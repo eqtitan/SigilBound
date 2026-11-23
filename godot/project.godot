@@ -1,0 +1,49 @@
+; Engine configuration file.
+; Sigilbound Godot demo. Godot 4.7 (see README.md for the pinned version).
+
+config_version=5
+
+[application]
+
+config/name="Sigilbound (Godot)"
+config/description="Sigilbound — Godot demo: the first campaign chapter with 3D battles."
+config/version="0.1.0"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.0588235, 0.0470588, 0.0823529, 1)
+boot_splash/show_image=false
+run/max_fps=60
+
+[autoload]
+
+Game="*res://scripts/game.gd"
+
+[display]
+
+window/size/viewport_width=412
+window/size/viewport_height=915
+window/handheld/orientation=1
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[gui]
+
+theme/default_font_multichannel_signed_distance_field=true
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+rendering_device/fallback_to_opengl3=true
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_3d=2
+lights_and_shadows/directional_shadow/size=2048
+lights_and_shadows/directional_shadow/size.mobile=2048
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=2
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile=2
+environment/defaults/default_clear_color=Color(0.0588235, 0.0470588, 0.0823529, 1)
