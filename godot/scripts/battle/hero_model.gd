@@ -1,7 +1,9 @@
-## A rigged CC0 hero (one of the three Quaternius bases, imported from godot/models), recoloured
-## per hero from art.js LOOKS (LooksData / LookColors), with the base's own clips: idle, attack,
-## cast, hit and death. Follows buildRigged() / styleOf() in game3d/three3d.mjs, minus the
-## code-built signature kit (simple props stand in for weapons and focuses).
+## A rigged CC0 hero (one of the three Quaternius bases, imported from godot/models), built the
+## way buildRigged() in game3d/three3d.mjs does: parts borrowed across bases (BODY.parts, long
+## robes drop the legs), hidden material roles, beard/scalp trimming for shaved and bald heroes,
+## recolouring from art.js LOOKS with the character shading (HeroShading), the code-built kit
+## and visible gear (HeroKit), per-hero proportions (height, head, chest bulk, limbs, shoulders),
+## and the base's own clips: idle, attack, cast, hit, death, victory.
 class_name HeroModel
 extends Node3D
 
@@ -13,18 +15,22 @@ const CASTERS := ["staff", "orb", "bell", "lantern", "candle", "mirror", "bow"]
 const TARGET_HEAD := 1.85
 
 static var _scenes := {}
-static var _head_y := {}
+static var _libs := {} # base -> an instanced scene kept to borrow parts from
+static var _trimmed := {}
 
 var hero_id := ""
 var base := "adventurer"
 var hollow := false
 var player: AnimationPlayer
 var skeleton: Skeleton3D
+var armature: Node3D
 var style := {}
 var dead := false
 var strike_n := 0
 var height := 2.3 ## top of the head (for HUD tags), metres
 var _idle := ""
+var _fx: Array = [] # [node, fn(node, t)]
+var _t := 0.0
 
 
 static func scene_for(b: String) -> PackedScene:
@@ -33,7 +39,14 @@ static func scene_for(b: String) -> PackedScene:
 	return _scenes[b]
 
 
-func build(id: String, is_hollow: bool) -> void:
+static func _lib(b: String) -> Node:
+	if not _libs.has(b):
+		_libs[b] = scene_for(b).instantiate()
+	return _libs[b]
+
+
+## gear: {weapon|helm|chest|boots: {r, s}} as art.js heroGearLook(), or null.
+func build(id: String, is_hollow: bool, el: String = "", gear = null) -> void:
 	hero_id = id
 	hollow = is_hollow
 	base = LooksData.BASE.get(id, "adventurer")
@@ -43,175 +56,235 @@ func build(id: String, is_hollow: bool) -> void:
 	var model: Node3D = scene_for(base).instantiate()
 	add_child(model)
 	skeleton = model.find_child("Skeleton3D", true, false)
+	armature = skeleton.get_parent()
 	player = model.find_child("AnimationPlayer", true, false)
+	var rim := Color("#ff3355") if hollow else (UiKit.element_color(el) if el != "" else Color("#9fb4ff"))
+	# A long robe replaces the legs (the feet still show under the hem).
+	var parts: Dictionary = body.get("parts", {}).duplicate()
+	if kit.get("robe", "") == "long" and not parts.has("legs"):
+		parts["legs"] = "none"
+	_swap_parts(parts)
 	var colors := LookColors.role_colors(L, hollow)
 	var hide: Array = body.get("hide", [])
 	var show_crown: bool = L.get("gear", "") == "crown" and not hide.has("crown")
-	var part_of := {}
-	var pm: Dictionary = LooksData.PARTMESH.get(base, {})
-	for k in pm:
-		part_of[pm[k]] = k
-	for mi in model.find_children("*", "MeshInstance3D", true, false):
+	for mi in skeleton.find_children("*", "MeshInstance3D", false, false):
 		var m: MeshInstance3D = mi
+		if m.skin == null:
+			continue
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		if m.name == "Sword":
-			m.visible = L.get("prop", "") in ["sword", "katana"] or (L.get("prop", "") == "shield" and kit.get("side", "") == "sword")
-		if m.name == "Backpack":
-			m.visible = not (kit.get("cape", false) or kit.get("pack", true) == false or kit.get("back", false))
-		# A long robe stands in for the legs in the web game; here the legs take the robe colour.
-		var kind: String = part_of.get(String(m.name), "")
+		var src_base: String = m.get_meta("sb_base", base)
+		var kind: String = m.get_meta("sb_kind", _part_kind(src_base, String(m.name)))
+		# Shaved heroes lose the beard; bald ones keep only the beard (heads with hair+beard in one mesh).
+		if kind == "head" and src_base != "hooded" and (body.get("shave") or body.get("bald")):
+			_trim_hair(m, src_base, "beard" if body.get("bald") else "scalp")
 		for s in m.mesh.get_surface_count():
 			var src: Material = m.mesh.surface_get_material(s)
 			var mat_name := src.resource_name if src else ""
-			var role := LookColors.role_of(base, kind, mat_name)
-			m.set_surface_override_material(s, _recolor(src, role, colors, hide, kind, show_crown, L, kit))
+			var role := LookColors.role_of(src_base, kind, mat_name)
+			m.set_surface_override_material(s, _recolor(src, role, colors, hide, kind, show_crown, L, src_base, rim))
 	# Normalise height: base models are ~1.8 m; heroes stand about 2 units tall like the web.
-	var arm: Node3D = skeleton.get_parent()
 	var head_i := skeleton.find_bone("Head")
-	var head_y: float = (arm.transform * skeleton.get_bone_global_rest(head_i)).origin.y
+	var head_y: float = (armature.transform * skeleton.get_bone_global_rest(head_i)).origin.y
 	var h: float = body.get("h", 1.0)
 	model.scale = Vector3.ONE * (TARGET_HEAD / head_y * h)
 	height = TARGET_HEAD * h + 0.45
-	_add_prop(L, kit, colors)
+	var hk := HeroKit.new(self)
+	hk.build(id, L, body, base, hollow, gear, rim)
+	_shape_body(body)
 	_setup_anims(L)
 
 
-func _recolor(src: Material, role: String, colors: Dictionary, hide: Array, kind: String, show_crown: bool, L: Dictionary, kit: Dictionary) -> Material:
+static func _part_kind(b: String, node_name: String) -> String:
+	var pm: Dictionary = LooksData.PARTMESH.get(b, {})
+	for k in pm:
+		if pm[k] == node_name:
+			return k
+	return ""
+
+
+## swapParts(): borrow skinned parts from another base (same skeleton, bound by bone name).
+func _swap_parts(parts: Dictionary) -> void:
+	var own_parts: Dictionary = LooksData.PARTMESH.get(base, {})
+	for kind in parts:
+		var src: String = parts[kind]
+		if src == base:
+			continue
+		var own: Node = skeleton.get_node_or_null(NodePath(own_parts.get(kind, "")))
+		var from: MeshInstance3D = null
+		if src != "none":
+			var lib := _lib(src)
+			from = lib.find_child(LooksData.PARTMESH[src][kind], true, false)
+			if from == null:
+				continue
+		if own:
+			own.free()
+		if src == "none":
+			continue
+		var copy: MeshInstance3D = from.duplicate()
+		copy.set_meta("sb_base", src)
+		copy.set_meta("sb_kind", kind)
+		skeleton.add_child(copy)
+		copy.skeleton = NodePath("..")
+
+
+## trimHair(): split a head's hair+beard surface by position in head-bone space.
+func _trim_hair(m: MeshInstance3D, src_base: String, keep: String) -> void:
+	var key := "%s|%s|%s" % [src_base, m.mesh.resource_path if m.mesh.resource_path != "" else str(m.mesh.get_instance_id()), keep]
+	if _trimmed.has(key):
+		m.mesh = _trimmed[key]
+		return
+	var head_bind := -1
+	for b in m.skin.get_bind_count():
+		if m.skin.get_bind_name(b) == "Head":
+			head_bind = b
+	if head_bind < 0:
+		return
+	var to_head: Transform3D = m.skin.get_bind_pose(head_bind)
+	var mesh := ArrayMesh.new()
+	for s in m.mesh.get_surface_count():
+		var arrays: Array = m.mesh.surface_get_arrays(s)
+		var mat: Material = m.mesh.surface_get_material(s)
+		if LookColors.role_of(src_base, "head", mat.resource_name if mat else "") == "hair":
+			var v: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+			var out := PackedInt32Array()
+			for i in range(0, idx.size(), 3):
+				var c := Vector3.ZERO
+				for k in 3:
+					c += to_head * v[idx[i + k]] * 100.0
+				c /= 3.0
+				var beard := c.y < 0.075 and c.z > -0.03
+				if beard == (keep == "beard"):
+					out.append_array([idx[i], idx[i + 1], idx[i + 2]])
+			arrays[Mesh.ARRAY_INDEX] = out
+		var flags: int = m.mesh.surface_get_format(s) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, flags)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
+	_trimmed[key] = mesh
+	m.mesh = mesh
+
+
+## shapeBody(): per-hero proportions by scaling bones once (the clips only key rotations, plus
+## translations on Body and the feet). Child bones get the inverse scale so only that segment grows.
+func _shape_body(Bd: Dictionary) -> void:
+	var scale_bone := func(name: String, v: Vector3) -> void:
+		var i := skeleton.find_bone(name)
+		if i < 0:
+			return
+		skeleton.set_bone_pose_scale(i, v)
+		for c in skeleton.get_bone_children(i):
+			var R := Basis(skeleton.get_bone_pose_rotation(c))
+			var inv := Vector3(1.0 / v.x, 1.0 / v.y, 1.0 / v.z)
+			# diag(Rt * S^-1 * R): exact when the child's rotation permutes the parent's axes.
+			var cs := Vector3.ZERO
+			for row in 3:
+				var acc := 0.0
+				for k in 3:
+					acc += R[row][k] * R[row][k] * inv[k]
+				cs[row] = acc
+			skeleton.set_bone_pose_scale(c, cs)
+	if Bd.has("bulk"):
+		scale_bone.call("Chest", Vector3(Bd["bulk"][0], Bd["bulk"][1], Bd["bulk"][2]))
+	if Bd.has("arms"):
+		for n in ["UpperArm.L", "UpperArm.R", "LowerArm.L", "LowerArm.R"]:
+			scale_bone.call(n, Vector3(Bd["arms"], 1, Bd["arms"]))
+	if Bd.has("legs"):
+		for n in ["UpperLeg.L", "UpperLeg.R"]:
+			scale_bone.call(n, Vector3(Bd["legs"], 1, Bd["legs"]))
+	if Bd.has("sh"):
+		for pair in [["Shoulder.L", 1.0], ["Shoulder.R", -1.0]]:
+			var i := skeleton.find_bone(pair[0])
+			if i >= 0:
+				var p := skeleton.get_bone_pose_position(i)
+				p.x += pair[1] * Bd["sh"] / armature.scale.x
+				skeleton.set_bone_pose_position(i, p)
+	if Bd.has("head"):
+		var hi := skeleton.find_bone("Head")
+		skeleton.set_bone_pose_scale(hi, skeleton.get_bone_pose_scale(hi) * Bd["head"])
+
+
+func _recolor(src: Material, role: String, colors: Dictionary, hide: Array, kind: String, show_crown: bool, L: Dictionary, src_base: String, rim: Color) -> Material:
 	if (role == "crown" and not show_crown) or role == "tongue" or hide.has(role) or hide.has(kind + ":" + role):
 		return HiddenMaterial.get_material()
-	var m := StandardMaterial3D.new()
+	var c := Color.WHITE
 	if src is BaseMaterial3D:
-		m.albedo_color = (src as BaseMaterial3D).albedo_color
-	var shiny := (role == "armor" and base == "monarch") or role in ["trim", "blade", "crown"]
-	m.roughness = 0.5 if shiny else 0.8
-	m.metallic = 0.3 if shiny else 0.0
+		c = (src as BaseMaterial3D).albedo_color
 	if role == "eye" and (hollow or L.get("glow")):
-		m.albedo_color = Color(colors["eye"])
-		m.emission_enabled = true
-		m.emission = Color(colors["eye"])
-		m.emission_energy_multiplier = 3.0
-		return m
-	if role == "pants" and kit.get("robe", "") == "long" and kit.get("robeColor"):
-		m.albedo_color = Color(LookColors.mix(kit["robeColor"], LookColors.HOLLOW_TINT, 0.5) if hollow else kit["robeColor"])
-		return m
+		return HeroShading.emissive(Color(colors["eye"]), 3.0, rim)
 	if role != "" and colors.has(role):
-		m.albedo_color = Color(colors[role])
+		c = Color(colors[role])
 	elif hollow:
-		m.albedo_color = Color(LookColors.mix("#" + m.albedo_color.to_html(false), LookColors.HOLLOW_TINT, 0.5))
-	return m
+		c = Color(LookColors.mix("#" + c.to_html(false), LookColors.HOLLOW_TINT, 0.5))
+	return HeroShading.material(c, _shade_role(role, src_base, src.resource_name if src else ""), rim)
 
 
-## A simple stand-in for the web game's code-built weapon or focus, held in the right hand.
-func _add_prop(L: Dictionary, kit: Dictionary, colors: Dictionary) -> void:
-	var prop: String = L.get("prop", "")
-	var right: String = kit.get("side", "") if prop == "shield" else prop
-	var metal := _mat(Color(colors["blade"]), 0.3, 0.5)
-	var wood := _mat(Color(colors["wood"]), 0.0, 0.8)
-	var accent := _mat(Color(colors["accent"]), 0.3, 0.5)
-	var glow_c := Color(L.get("glow") if L.get("glow") else colors["accent"])
-	if hollow:
-		glow_c = Color("#ff3355")
-	var r := _attach("Wrist.R")
-	var l := _attach("Wrist.L")
-	# Wrist bones point down the forearm; a held shaft runs along the hand's local X.
-	match right:
-		"staff", "spear", "trident":
-			_part(r, _cyl(0.025, 1.7), wood, Vector3(0, 0.05, 0), Vector3(0, 0, 90))
-			if right == "staff":
-				_part(r, _sphere(0.09), _glow(glow_c), Vector3(0, 0.05, 0.85).rotated(Vector3.FORWARD, 0), Vector3.ZERO, Vector3(0.85, 0.05, 0))
-			else:
-				_part(r, _cone(0.05, 0.25), metal, Vector3(0.95, 0.05, 0), Vector3(0, 0, -90))
-		"hammer", "club":
-			_part(r, _cyl(0.03, 0.8), wood, Vector3(0, 0.05, 0), Vector3(0, 0, 90))
-			_part(r, _box(Vector3(0.16, 0.24, 0.16)), metal if right == "hammer" else wood, Vector3(0.42, 0.05, 0))
-		"bow":
-			_part(l, _torus(0.42, 0.02), wood, Vector3(0, 0.05, 0), Vector3(90, 0, 0), Vector3.ZERO, Vector3(1, 0.25, 1))
-		"orb", "bell", "lantern", "candle", "mirror":
-			_part(r, _sphere(0.1), _glow(glow_c), Vector3(0.05, 0.12, 0))
-		"whip", "hook", "daggers", "dagger":
-			_part(r, _box(Vector3(0.38, 0.03, 0.06)), metal, Vector3(0.22, 0.05, 0))
-		"katana", "sword":
-			if base != "hooded":
-				_part(r, _box(Vector3(0.85, 0.03, 0.07)), metal, Vector3(0.45, 0.05, 0))
-				_part(r, _box(Vector3(0.05, 0.05, 0.2)), accent, Vector3(0.04, 0.05, 0))
-	if prop == "shield" and kit.get("shield"):
-		_part(l, _cyl(0.32, 0.05), accent, Vector3(0, -0.08, 0), Vector3(0, 0, 0))
+## roleFromGame() in shading.mjs: model colour role -> shading finish.
+static func _shade_role(role: String, src_base: String, mat_name: String) -> String:
+	match role:
+		"skin": return "skin"
+		"hair", "brow": return "hair"
+		"eye": return "eye"
+		"crown": return "gold"
+		"trim", "blade": return "metal"
+		"accent": return "gold" if mat_name.to_lower().contains("gold") else "leather"
+		"armor": return "metal" if src_base == "monarch" else ("leather" if src_base == "hooded" else "cloth")
+		"boot", "wood": return "leather"
+		"cloth", "pants", "hood": return "cloth"
+	return "default"
 
 
-func _attach(bone: String) -> Node3D:
-	var a := BoneAttachment3D.new()
-	a.bone_name = bone
-	skeleton.add_child(a)
-	# The skeleton sits under a node scaled by 100 (glTF centimetres): undo it for props.
-	var holder := Node3D.new()
-	holder.scale = Vector3.ONE * 0.01
-	a.add_child(holder)
-	return holder
+# ---------- live kit parts (pulse, flicker, spin, cloth on springs) ----------
+func add_fx(node: Node3D, fn: Callable) -> void:
+	_fx.append([node, fn])
 
 
-func _part(parent: Node3D, mesh: Mesh, mat: Material, pos: Vector3, rot_deg: Vector3 = Vector3.ZERO, pos2: Vector3 = Vector3.INF, scl: Vector3 = Vector3.ONE) -> void:
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.material_override = mat
-	mi.position = pos2 if pos2 != Vector3.INF else pos
-	mi.rotation_degrees = rot_deg
-	mi.scale = scl
-	parent.add_child(mi)
+func _process(delta: float) -> void:
+	_t += delta
+	for f in _fx:
+		if is_instance_valid(f[0]):
+			f[1].call(f[0], _t)
 
 
-func _mat(c: Color, metal: float, rough: float) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = c
-	m.metallic = metal
-	m.roughness = rough
-	return m
-
-
-func _glow(c: Color) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = c
-	m.emission_enabled = true
-	m.emission = c
-	m.emission_energy_multiplier = 2.0
-	return m
-
-
-func _cyl(r: float, h: float) -> CylinderMesh:
-	var c := CylinderMesh.new()
-	c.top_radius = r
-	c.bottom_radius = r
-	c.height = h
-	c.radial_segments = 10
-	return c
-
-
-func _cone(r: float, h: float) -> CylinderMesh:
-	var c := _cyl(r, h)
-	c.top_radius = 0.0
-	return c
-
-
-func _sphere(r: float) -> SphereMesh:
-	var s := SphereMesh.new()
-	s.radius = r
-	s.height = r * 2
-	s.radial_segments = 16
-	s.rings = 8
-	return s
-
-
-func _box(sz: Vector3) -> BoxMesh:
-	var b := BoxMesh.new()
-	b.size = sz
-	return b
-
-
-func _torus(r: float, t: float) -> TorusMesh:
-	var m := TorusMesh.new()
-	m.inner_radius = r - t
-	m.outer_radius = r + t
-	return m
+## springy(): wraps a live part's animation so it also swings against its anchor's motion, as a
+## critically damped spring in the anchor's axes (moving forward pushes it back).
+static func springy(fn: Callable, gain: float) -> Callable:
+	return func(o: Node3D, t: float) -> void:
+		var s: Dictionary = o.get_meta("sp", {})
+		if s.is_empty():
+			s = {"t": t, "ax": 0.0, "az": 0.0, "vx": 0.0, "vz": 0.0, "on": false, "addX": 0.0, "addZ": 0.0, "p": Vector3.ZERO}
+		o.rotation.x -= s["addX"]
+		o.rotation.z -= s["addZ"]
+		s["addX"] = 0.0
+		s["addZ"] = 0.0
+		fn.call(o, t)
+		var dt := clampf(t - s["t"], 0.001, 0.05)
+		s["t"] = t
+		var par := o.get_parent() as Node3D
+		if par == null or not par.is_inside_tree():
+			o.set_meta("sp", s)
+			return
+		var wp := par.global_position
+		if not s["on"]:
+			s["p"] = wp
+			s["on"] = true
+		var vel: Vector3 = (wp - s["p"]) / dt
+		s["p"] = wp
+		if vel.length() > 3.0:
+			vel = vel.normalized() * 3.0
+		vel = par.global_basis.orthonormalized().inverse() * vel
+		var tx := clampf((vel.z * 0.08 - vel.y * 0.04) * gain, -0.12, 0.42)
+		var tz := clampf(-vel.x * 0.08 * gain, -0.3, 0.3)
+		s["vx"] += ((tx - s["ax"]) * 70.0 - s["vx"] * 16.7) * dt
+		s["ax"] += s["vx"] * dt
+		s["vz"] += ((tz - s["az"]) * 70.0 - s["vz"] * 16.7) * dt
+		s["az"] += s["vz"] * dt
+		s["ax"] = clampf(s["ax"], -0.15, 0.45)
+		s["az"] = clampf(s["az"], -0.32, 0.32)
+		o.rotation.x += s["ax"]
+		o.rotation.z += s["az"]
+		s["addX"] = s["ax"]
+		s["addZ"] = s["az"]
+		o.set_meta("sp", s)
 
 
 # ---------- animation (styleOf / makeAnim in three3d.mjs) ----------
