@@ -198,7 +198,7 @@ namespace Sigilbound.Client
                         fx.Aoe(c, 1.9f, u.El); StartCoroutine(Later(0.45f, () => fx.Shockwave(c, u.El, 2.6f)));
                     }
                 }
-                yield return view.Attack(aim, melee, support, ult, () => { Vfx.I.Shake(0.35f); fx?.TitanSlam(view.transform.position, u.El); });
+                yield return view.Attack(aim, melee, support, ult, () => { Vfx.I.Shake(0.35f); fx?.TitanSlam(view.transform.position, u.El); }, skillIdx);
                 if (support && fx == null) Vfx.I.Cast(view.transform.position + Vector3.up * 0.1f, color);
                 if (!melee && hit.Count > 0)
                 {

@@ -89,6 +89,14 @@ namespace Sigilbound.Client
             var n = support && Has(Style.Support) ? Style.Support : ult && Has(Style.Ult) ? Style.Ult : Has(Style.Cast) ? Style.Cast : "Gun_Shoot";
             Play(n, false, 0.12f); return Length(n);
         }
+        // The hero's own clip for skill index `skill` (0-based), if it has one (Core.HeroClips Skill_<n>).
+        public bool HasSkill(int skill) => skill >= 0 && Has($"Skill_{skill + 1}");
+        public float Skill(int skill)
+        {
+            var n = $"Skill_{skill + 1}";
+            if (!Has(n)) return -1;
+            Play(n, false, 0.1f); return Length(n);
+        }
         public void Hit(bool big)
         {
             if (Style.Titan) { Play(Has("HitReact") ? "HitReact" : "Idle", false, 0.1f); return; }

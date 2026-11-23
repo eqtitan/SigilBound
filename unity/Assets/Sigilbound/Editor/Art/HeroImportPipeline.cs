@@ -90,28 +90,60 @@ namespace Sigilbound.EditorTools
             return ok;
         }
 
-        // Batch mode: Unity -batchmode -projectPath unity -executeMethod Sigilbound.EditorTools.HeroImportPipeline.ImportFromCommandLine -sbArtIn <folder> [-sbArtKeepFailing] [-sbArtSelfTest]
-        // Exit code 0 = every hero passed validation, 1 = a hero failed, 2 = usage/IO error.
+        // Batch mode: Unity -batchmode -projectPath unity -executeMethod Sigilbound.EditorTools.HeroImportPipeline.ImportFromCommandLine
+        //   [-sbArtSelfTest] [-sbArtIn <folder>] [-sbArtKeepFailing] [-sbArtExitZero] [-customBuildPath <file>]
+        // Runs the CC0 self-test and/or the import (both if both are given). Exit code 0 = everything
+        // passed, 1 = the self-test or a hero failed validation, 2 = usage/IO error; -sbArtExitZero
+        // exits 0 unless there was an error (CI reads the summary instead, so passing heroes still ship).
+        // A JSON summary is written to -customBuildPath (game-ci checks that its build output exists)
+        // and to Assets/Sigilbound/Art/Reports/summary.json.
         public static void ImportFromCommandLine()
         {
             int code = 2;
+            var summary = new System.Text.StringBuilder("{");
+            var args = Environment.GetCommandLineArgs();
+            string Arg(string k) { int i = Array.IndexOf(args, k); return i >= 0 && i + 1 < args.Length && !args[i + 1].StartsWith("-") ? args[i + 1] : null; }
+            bool Has(string k) => Array.IndexOf(args, k) >= 0;
             try
             {
-                var args = Environment.GetCommandLineArgs();
-                string Arg(string k) { int i = Array.IndexOf(args, k); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
-                if (Array.IndexOf(args, "-sbArtSelfTest") >= 0) code = SelfTest(true) ? 0 : 1;
-                else
+                bool any = false, ok = true;
+                if (Has("-sbArtSelfTest"))
                 {
-                    var dir = Arg("-sbArtIn");
-                    if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) Debug.LogError("Sigilbound art: pass -sbArtIn <folder>");
-                    else
-                    {
-                        var stats = Run(dir, new Options { Quiet = true, KeepFailing = Array.IndexOf(args, "-sbArtKeepFailing") >= 0 });
-                        code = stats.All(s => ArtValidation.Passes(ArtValidation.Validate(s))) ? 0 : 1;
-                    }
+                    any = true; bool pass = SelfTest(true); ok &= pass;
+                    summary.Append($"\"selfTest\":{(pass ? "true" : "false")},");
+                }
+                var dir = Arg("-sbArtIn");
+                if (dir != null)
+                {
+                    if (!Directory.Exists(dir)) throw new DirectoryNotFoundException("-sbArtIn " + dir);
+                    any = true;
+                    var stats = Run(dir, new Options { Quiet = true, KeepFailing = Has("-sbArtKeepFailing") });
+                    var pass = stats.Where(st => ArtValidation.Passes(ArtValidation.Validate(st))).Select(st => st.HeroId).ToList();
+                    var fail = stats.Select(st => st.HeroId).Except(pass).ToList();
+                    ok &= fail.Count == 0;
+                    string J(IEnumerable<string> xs) => "[" + string.Join(",", xs.Select(x => "\"" + x + "\"")) + "]";
+                    var fallback = stats.Where(st => ArtValidation.UniqueCount(st) < 5).Select(st => st.HeroId);
+                    summary.Append($"\"passed\":{J(pass)},\"failed\":{J(fail)},\"usingFallbackMotion\":{J(fallback)},");
+                }
+                if (!any) { Debug.LogError("Sigilbound art: pass -sbArtIn <folder> and/or -sbArtSelfTest"); code = 2; }
+                else code = ok || Has("-sbArtExitZero") ? 0 : 1;
+                summary.Append($"\"ok\":{(ok ? "true" : "false")}}}");
+            }
+            catch (Exception e) { Debug.LogException(e); code = 2; summary.Append("\"error\":true}"); }
+            try
+            {
+                EnsureFolder(ReportDir);
+                File.WriteAllText($"{ReportDir}/summary.json", summary.ToString());
+                var outPath = Arg("-customBuildPath");
+                if (!string.IsNullOrEmpty(outPath))
+                {
+                    var d = Path.GetDirectoryName(outPath);
+                    if (!string.IsNullOrEmpty(d)) Directory.CreateDirectory(d);
+                    File.WriteAllText(outPath, summary.ToString());
                 }
             }
-            catch (Exception e) { Debug.LogException(e); code = 2; }
+            catch (Exception e) { Debug.LogException(e); }
+            Debug.Log("Sigilbound art summary: " + summary);
             EditorApplication.Exit(code);
         }
 
@@ -278,36 +310,52 @@ namespace Sigilbound.EditorTools
 
         static void ChooseAnimation(string id, string lod0Path, string dir, GameObject model, Avatar avatar, HeroRig rig, HeroAssetStats stats, Options opt)
         {
-            // a) Shared retargeted library (Humanoid clips): hero override -> archetype -> shared.
+            // a) Retargeted library (Humanoid clips), in the policy's order per state (Core.ArtSpec.AnimSources):
+            //    shared states shared-first, unique states the hero's own first, then a tag-matched
+            //    archetype variant (SB_Anim_<Archetype>_<State>@<variant>), then the plain archetype clip.
             var library = new Dictionary<string, AnimationClip>();
+            var origin = new Dictionary<string, string>();
+            var heroTags = ReadHeroTags(dir, id);
+            var variantTags = ReadVariantTags();
+            AnimationClip Humanoid(string path) => File.Exists(path) ? ClipsIn(path).FirstOrDefault(k => !k.legacy && k.humanMotion) : null;
             if (avatar != null)
                 foreach (var c in HeroClips.All)
-                    foreach (var cand in ArtSpec.AnimCandidates(id, c.Name))
+                    foreach (var (cand, org) in ArtSpec.AnimSources(id, c.Name))
                     {
-                        var path = $"{AnimDir}/{cand}";
-                        var clip = File.Exists(path) ? ClipsIn(path).FirstOrDefault(k => !k.legacy && k.humanMotion) : null;
-                        if (clip != null) { library[c.Name] = clip; break; }
+                        AnimationClip clip = null; var o = org;
+                        if (org == ArtSpec.ClipOrigin.Archetype && c.Unique)
+                        {
+                            // variants of this archetype/state, picked by motion tags
+                            var stem = Path.GetFileNameWithoutExtension(cand);
+                            var vars = Directory.Exists(AnimDir) ? Directory.GetFiles(AnimDir, stem + "@*.fbx").Select(f => (File: Path.GetFileName(f), Tags: variantTags.TryGetValue(Path.GetFileName(f), out var t) ? t : new string[0])).ToList() : new List<(string, string[])>();
+                            var pick = ArtSpec.PickVariant(id, heroTags, vars);
+                            if (pick != null) { clip = Humanoid($"{AnimDir}/{pick}"); o = ArtSpec.ClipOrigin.Tagged; }
+                        }
+                        if (clip == null) clip = Humanoid($"{AnimDir}/{cand}");
+                        if (clip != null) { library[c.Name] = clip; origin[c.Name] = o.ToString().ToLowerInvariant(); break; }
                     }
             bool libraryOk = avatar != null && HeroClips.All.Where(c => c.Required).All(c => HeroClips.Effective(c.Name, library.Keys) != null);
 
             // b) The file's own clips, plus per-hero clip files (SB_Anim_<id>_<state>.glb, same rig).
             var own = ClipsIn(lod0Path).ToList();
             var embedded = HeroClips.Resolve(own.Select(c => c.name)).ToDictionary(kv => kv.Key, kv => own.First(c => c.name == kv.Value));
+            var embeddedOrigin = embedded.Keys.ToDictionary(k => k, k => "embedded");
             foreach (var c in HeroClips.All)
             {
                 var p = $"{AnimDir}/{ArtSpec.AnimFileName(c.Name, id, "glb")}";
                 var k = File.Exists(p) ? ClipsIn(p).FirstOrDefault() : null;
-                if (k != null) embedded[c.Name] = k;
+                if (k != null) { embedded[c.Name] = k; embeddedOrigin[c.Name] = "hero"; }
             }
 
             var legacyAnim = model.GetComponentInChildren<Animation>(true);
             var animator = model.GetComponentInChildren<Animator>(true);
             Dictionary<string, AnimationClip> use;
-            if (libraryOk) { use = library; stats.AnimBackend = "humanoid-library"; }
+            if (libraryOk) { use = library; stats.AnimBackend = "humanoid-library"; foreach (var kv in origin) stats.ClipOrigins[kv.Key] = kv.Value; }
             else
             {
                 use = embedded;
                 stats.AnimBackend = use.Count == 0 ? "none" : use.Values.All(c => c.legacy) ? "embedded-legacy" : "embedded-mecanim";
+                foreach (var kv in embeddedOrigin) stats.ClipOrigins[kv.Key] = kv.Value;
                 if (avatar != null && library.Count > 0) stats.Notes.Add($"shared library incomplete for this hero ({library.Count} states); using the file's own clips");
             }
             foreach (var k in use.Keys) stats.Clips.Add(k);
@@ -349,6 +397,25 @@ namespace Sigilbound.EditorTools
                 }
             }
             rig.StateKeys = keys.ToArray(); rig.StateNames = states.ToArray(); rig.StateLengths = lengths.ToArray();
+        }
+
+        // Motion tags for the tag-based fallback: SB_Hero_<id>.json (written by heroforge from the
+        // hero sheets) with { "motionTags": ["whip", "fast", ...] }.
+        static string[] ReadHeroTags(string dir, string id)
+        {
+            var p = $"{dir}/{ArtSpec.MetaFileName(id)}";
+            if (!File.Exists(p)) return new string[0];
+            try { return (Json.Arr(Json.Parse(File.ReadAllText(p)), "motionTags") ?? new List<object>()).Select(x => x as string).Where(x => x != null).ToArray(); }
+            catch (Exception) { return new string[0]; }
+        }
+        // Animations/anim-tags.json: { "SB_Anim_Blade_Attack_1@spin.fbx": ["spin", "wide"], ... }
+        static Dictionary<string, string[]> ReadVariantTags()
+        {
+            var p = $"{AnimDir}/anim-tags.json"; var o = new Dictionary<string, string[]>();
+            if (!File.Exists(p)) return o;
+            try { foreach (var kv in (Dictionary<string, object>)Json.Parse(File.ReadAllText(p))) o[kv.Key] = ((List<object>)kv.Value).Select(x => x as string).Where(x => x != null).ToArray(); }
+            catch (Exception) { }
+            return o;
         }
 
         // One Animator state per battle state; once-off states return to Idle, Death holds.
