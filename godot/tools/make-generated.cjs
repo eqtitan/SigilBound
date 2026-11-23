@@ -22,7 +22,7 @@ const ctx = { Object, Array, Math, Date, JSON };
 vm.createContext(ctx);
 vm.runInContext(read("public/game/data.js") + `
 ;globalThis.__d = { ELEMENTS, ELEMENT_KEYS, RARITY, RARITY_KEYS, ROLES, EFFECTS, HEROES, STARTERS, CHAPTERS, STAGES_PER_CHAPTER,
-  ENEMY_CURVE, GEAR_SLOTS, GEAR_SLOT_KEYS, GEAR_SETS, GEAR_SET_KEYS, SUBSTATS, SHARDS, GEAR_MAX_LEVEL, MAX_STARS };`, ctx);
+  ENEMY_CURVE, GEAR_SLOTS, GEAR_SLOT_KEYS, GEAR_RARITY, GEAR_SETS, GEAR_SET_KEYS, SUBSTATS, SHARDS, GEAR_MAX_LEVEL, MAX_STARS };`, ctx);
 const D = ctx.__d;
 const strip = (o, keys) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Object.fromEntries(Object.entries(v).filter(([kk]) => !keys.includes(kk)))]));
 // GDScript reads JSON literals as-is; "icon" fields hold emoji the default font can't draw, so they are left out.
@@ -44,6 +44,7 @@ const data = [
   `const ENEMY_CURVE = ${lit(D.ENEMY_CURVE)}`,
   `const GEAR_SLOTS = ${lit(strip(D.GEAR_SLOTS, ["icon"]))}`,
   `const GEAR_SLOT_KEYS = ${lit(D.GEAR_SLOT_KEYS)}`,
+  `const GEAR_RARITY = ${lit(D.GEAR_RARITY)}`,
   `const GEAR_SETS = ${lit(strip(D.GEAR_SETS, ["icon"]))}`,
   `const GEAR_SET_KEYS = ${lit(D.GEAR_SET_KEYS)}`,
   `const SUBSTATS = ${lit(D.SUBSTATS)}`,

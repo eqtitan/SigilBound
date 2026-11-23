@@ -39,6 +39,7 @@ const STAGES_PER_CHAPTER = 6
 const ENEMY_CURVE = {"start":1,"end":1.75,"shape":1.3,"spdPerStage":0.3,"bossStat":1.1,"bossHp":2.2,"chapter":[1,1.14,0.97,1,1.08,0.94,1,0.98,0.95,1.04]}
 const GEAR_SLOTS = {"weapon":{"name":"Weapon","stat":"atk","base":20},"helm":{"name":"Helm","stat":"hp","base":200},"chest":{"name":"Chest","stat":"def","base":18},"boots":{"name":"Boots","stat":"spd","base":4}}
 const GEAR_SLOT_KEYS = ["weapon","helm","chest","boots"]
+const GEAR_RARITY = ["","Worn","Fine","Superior","Heroic","Mythic"]
 const GEAR_SETS = {"fury":{"name":"Fury","stat":"atkPct","val":15,"desc":"+15% ATK"},"vigor":{"name":"Vigor","stat":"hpPct","val":15,"desc":"+15% HP"},"bulwark":{"name":"Bulwark","stat":"defPct","val":15,"desc":"+15% DEF"},"haste":{"name":"Haste","stat":"spdPct","val":12,"desc":"+12% SPD"},"keen":{"name":"Keen","stat":"crit","val":12,"desc":"+12% Crit Rate"}}
 const GEAR_SET_KEYS = ["fury","vigor","bulwark","haste","keen"]
 const SUBSTATS = {"atkPct":{"name":"ATK%","roll":[4,7]},"hpPct":{"name":"HP%","roll":[4,7]},"defPct":{"name":"DEF%","roll":[4,7]},"spd":{"name":"SPD","roll":[2,5]},"crit":{"name":"Crit Rate","roll":[3,6]},"cdmg":{"name":"Crit DMG","roll":[4,8]}}
