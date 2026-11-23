@@ -24,6 +24,7 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(root)
 	ui.set_meta("root", root)
+	Updater.changed.connect(_on_update_changed)
 	show_title()
 	if Game.smoke:
 		_smoke.call_deferred()
@@ -162,11 +163,35 @@ func pick_starter(id: String) -> void:
 
 
 # ---------- home ----------
+func _update_banner() -> Control:
+	var card := UiKit.card()
+	var row := UiKit.hbox(8)
+	card.add_child(row)
+	var info := UiKit.vbox(2)
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(info)
+	info.add_child(UiKit.heading("Update available", 16))
+	info.add_child(UiKit.label("v%s · build %d (you have build %d)" % [Updater.latest_version, Updater.latest_build, Updater.my_build()], 12, UiKit.DIM))
+	var b := UiKit.button("Download", Updater.download)
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(b)
+	return card
+
+
+# A newer build showed up (or went away): redraw Home now, without a restart. Mid-battle the
+# banner waits until the player is back on Home.
+func _on_update_changed() -> void:
+	if battle_view == null and screen and screen.get_meta("home", false):
+		show_home()
+
+
 func show_home() -> void:
 	var g := Game.g
 	var pc := _scroll_page()
 	var col: VBoxContainer = pc[1]
 	col.add_child(UiKit.logo(32))
+	if Updater.latest_build > 0:
+		col.add_child(_update_banner())
 	var stats := UiKit.label("Gold %s   ·   Worn %d   ·   Mystic %d   ·   %d wins" % [Rules.fmt(g["gold"]), g["shards"]["common"], g["shards"]["mystic"], g["stats"]["wins"]], 13, UiKit.DIM)
 	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(stats)
@@ -289,6 +314,7 @@ func show_home() -> void:
 	var ver := UiKit.label("Sigilbound — Godot demo · " + Game.version_label(), 12, Color("#8a7f6c"))
 	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(ver)
+	pc[0].set_meta("home", true)
 	_set_screen(pc[0])
 
 

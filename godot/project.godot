@@ -18,6 +18,7 @@ run/max_fps=60
 [autoload]
 
 Game="*res://scripts/game.gd"
+Updater="*res://scripts/updater.gd"
 
 [display]
 

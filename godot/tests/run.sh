@@ -28,6 +28,7 @@ timeout 900 "$GODOT" --headless --import --path . >"$logdir/import.log" 2>&1 || 
 step "parity tests" "^[0-9]+ passed, 0 failed$" --headless --path . --script res://tests/run_tests.gd
 step "smoke run" "^SMOKE OK" --headless --path . -- --smoke
 step "touch scroll" "^SCROLL OK" --headless --path . -- --scrolltest
+step "update banner" "^UPDATE OK" --headless --path . --script res://tests/update_check.gd
 
 [ "$status" -eq 0 ] && echo "All Godot checks passed." || echo "Godot checks FAILED."
 exit $status
