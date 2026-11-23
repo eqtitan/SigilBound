@@ -87,9 +87,11 @@ Save codes work both ways (Settings → Copy mine in the Unity app loads in the 
 | `Assets/Sigilbound/Client/` | Everything you see, built in code at startup (no scenes or prefabs to hand-make): 3D arena, glTFast hero models, effects, quality tiers, battle HUD, menus, friends & chat. |
 | `Assets/Sigilbound/Editor/` | Project setup run before every build: scene, app id, URP pipeline and materials, Android settings; the command-line build script. |
 | `Assets/StreamingAssets/Models/` | The web game's CC0 Quaternius models (meshopt decoded) and retargeted CC0 UAL clips, with `CREDITS.md`. Regenerate with `Tools~/models`. |
+| `Assets/Sigilbound/Core/Art/`, `Editor/Art/`, `Client/HeroRig.cs` | Hero art revamp pipeline: naming, budgets, battle states, humanoid mapping; the **Sigilbound > Art** import tool; the runtime loader for imported hero prefabs (falls back to today's heroes). See `ART_PIPELINE.md`. |
 | `Tests~/` | Core tests (`dotnet run --project unity/Tests~`), web-parity fixtures, and the compile check (`CompileCheck/`). Unity ignores folders ending in `~`. |
 | `Tools~/models/` | `prepare-models.mjs`: copies `public/game/models` into StreamingAssets, decoding meshopt. |
 | `Tools~/shadercheck/` | Compiles every pass and variant of our `.shader` files with DXC against URP 17's ShaderLibrary (no Unity needed). |
+| `Tools~/heroforge/`, `Tools~/artcheck/` | Agent batch flow for hero art (prompt, generate by API, rig, LODs, stage) and the offline validator. See `ART_PIPELINE.md`. |
 | `Tools~/unity-refs/` | Fetches the real Unity 6000.0.58f1 managed assemblies from the game-ci editor image (no Docker, no license). |
 
 ## Checks without Unity (what CI runs)
@@ -101,6 +103,8 @@ node unity/Tests~/fixtures/make-fixtures.cjs            # regenerate parity fixt
 node unity/Tests~/fixtures/make-role-colors.mjs         # regenerate model colours with three.js (after `npm ci`)
 node unity/Tests~/fixtures/make-kit-fixture.mjs         # re-run the web's buildKit() for the kit parity test (after `npm ci`)
 node unity/Tests~/fixtures/make-hero-art.cjs            # regenerate Core/HeroArt.Generated.cs (kit, builds, faces)
+dotnet run --project unity/Tools~/artcheck -- <folder>  # offline hero art check (same rules as the Unity import tool)
+node unity/Tools~/heroforge/make-sheets.mjs             # regenerate docs/sigilbound/art/heroes from hero-prompts.json
 
 # against the real Unity 6 assemblies (keeps ~50 MB of DLLs from the editor image):
 python3 unity/Tools~/unity-refs/fetch_unity_refs.py /tmp/unity-managed
