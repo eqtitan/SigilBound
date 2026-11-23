@@ -78,14 +78,15 @@ namespace Sigilbound.Client
             return new HeroModel(gameObject, Legacy, tagHeight, style, States());
         }
 
-        // Element rim and glow (the hero's own glow colour, or red for Hollow enemies) and the Hollow
+        // Element rim and glow mask (the hero's own glow colour, none for heroes without one, red for Hollow
+        // enemies) and the Hollow
         // tint, on per-variant material copies so the SRP batcher still batches them.
         static readonly Dictionary<(int, bool, Element), Material> _variants = new Dictionary<(int, bool, Element), Material>();
         void ApplyLook(string heroId, Element el, bool hollow)
         {
             var look = Looks.Of(heroId);
             Color rim = hollow ? Palette.Hex("#ff3355") : Palette.Element(el);
-            Color glow = hollow ? Palette.Hex("#ff2a40") : look.Glow != null ? Palette.Hex(look.Glow) : Palette.Element(el);
+            Color glow = hollow ? Palette.Hex("#ff2a40") : look.Glow != null ? Palette.Hex(look.Glow) : Color.black; // heroes without a glow colour (commons) don't glow
             foreach (var r in Renderers)
             {
                 if (r == null) continue;

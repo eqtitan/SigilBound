@@ -10,3 +10,5 @@ assets-candidates/
 unity/Assets/Resources/BuildInfo.txt
 unity/Assets/Resources/BuildInfo.txt.meta
 unity/build-number.txt
+.heroforge-out/
+.heroforge-selftest/

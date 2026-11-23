@@ -217,7 +217,7 @@ namespace Sigilbound.Core
             for (int lod = 0; lod < 3; lod++)
             {
                 int t = s.LodTris[lod], b = ArtBudget.Tris(lod);
-                if (t < 0) { Add(lod == 0 ? ArtSeverity.Error : ArtSeverity.Warning, "lod-missing", lod == 0 ? "LOD0 model missing" : $"LOD{lod} missing (generate it with Tools~/heroforge decimate, or LOD0 is used at every distance)"); continue; }
+                if (t < 0) { Add(lod == 0 ? ArtSeverity.Error : ArtSeverity.Warning, "lod-missing", lod == 0 ? "LOD0 model missing" : $"LOD{lod} missing (generate it with Tools~/heroforge lods, or LOD0 is used at every distance)"); continue; }
                 if (t > b * ArtBudget.HardFactor) Add(ArtSeverity.Error, "tris", $"LOD{lod}: {t:N0} tris, over 1.5x the {b:N0} budget");
                 else if (t > b) Add(ArtSeverity.Warning, "tris", $"LOD{lod}: {t:N0} tris, over the {b:N0} budget");
             }

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Offline hero art check (no Unity): runs the same rules as the Unity import tool
+       (Core/Art: GlbInfo, HumanoidMap, ArtValidation) on a folder of convention-named files.
+       dotnet run (project unity/Tools~/artcheck), arguments: folder [report.md]
+       Unity ignores folders ending in ~. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/Sigilbound/Core/**/*.cs" />
+  </ItemGroup>
+</Project>
