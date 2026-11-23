@@ -27,6 +27,8 @@ func _ready() -> void:
 	show_title()
 	if Game.smoke:
 		_smoke.call_deferred()
+	elif Game.scroll_test:
+		_scroll_test.call_deferred()
 	elif Game.shots_dir != "":
 		_shots.call_deferred()
 
@@ -50,7 +52,7 @@ func _scroll_page() -> Array:
 	var page := Control.new()
 	page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	page.add_child(SigilBackground.new())
-	var sc := ScrollContainer.new()
+	var sc := DragScroll.new()
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	page.add_child(sc)
@@ -539,3 +541,38 @@ func _shots() -> void:
 	await _frames(10)
 	await _shot("8-result")
 	get_tree().quit(0)
+
+
+# Checks that a finger drag scrolls a page even when it starts on a button or a hero card.
+func _scroll_test() -> void:
+	await _frames(2)
+	_press("Begin")
+	await _frames(2)
+	_press("Choose Ysolde")
+	await _frames(2)
+	_press("Let's go")
+	await _frames(3)
+	var sc: ScrollContainer = screen.find_children("*", "ScrollContainer", true, false)[0]
+	var vp := get_viewport()
+	var h := vp.get_visible_rect().size
+	var start := Vector2(h.x * 0.5, h.y * 0.75)
+	var xf := vp.get_final_transform()
+	var target := vp.gui_get_focus_owner()
+	var t := InputEventScreenTouch.new()
+	t.index = 0; t.position = xf * start; t.pressed = true
+	vp.push_input(t)
+	await _frames(1)
+	var pos := start
+	for i in 20:
+		pos.y -= 20.0
+		var d := InputEventScreenDrag.new()
+		d.index = 0; d.position = xf * pos; d.relative = Vector2(0, -20); d.screen_relative = Vector2(0, -20)
+		vp.push_input(d)
+		await _frames(1)
+	var r := InputEventScreenTouch.new()
+	r.index = 0; r.position = xf * pos; r.pressed = false
+	vp.push_input(r)
+	await _frames(3)
+	print("SCROLL max=%d now=%d screen=%s" % [int(sc.get_v_scroll_bar().max_value - sc.size.y), sc.scroll_vertical, str(screen.get_class())])
+	print("SCROLL OK" if sc.scroll_vertical > 0 else "SCROLL FAILED")
+	get_tree().quit(0 if sc.scroll_vertical > 0 else 1)

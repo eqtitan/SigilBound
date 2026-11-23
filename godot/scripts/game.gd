@@ -11,16 +11,18 @@ const SAVE_PATH := "user://sigilbound_godot_save.json"
 var g: Dictionary = Rules.new_state()
 var save_path := SAVE_PATH
 var smoke := false
+var scroll_test := false
 var shots_dir := ""
 
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	smoke = args.has("--smoke")
+	scroll_test = args.has("--scrolltest")
 	for a in args:
 		if a.begins_with("--shots="):
 			shots_dir = a.substr(8)
-	if smoke or shots_dir != "":
+	if smoke or scroll_test or shots_dir != "":
 		# Scripted runs never touch the player's real save.
 		save_path = "user://sigilbound_godot_smoke.json"
 		g = Rules.new_state()
