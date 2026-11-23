@@ -45,9 +45,12 @@ jobs:
           # Stamp version.js with this build so the app shows exactly what's installed.
           VERSION=$(node -p "require('fs').readFileSync('www/version.js','utf8').match(/version: \"([^\"]+)\"/)[1]")
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "BUILD=${{ github.run_number }}" >> "$GITHUB_ENV"
+          # Build numbers continue from the old arrakis builds (which reached the 30s), so
+          # phones that installed those still see these as updates and can install over them.
+          BUILD=$(( ${{ github.run_number }} + 100 ))
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
           printf 'window.SB_VERSION = { version: "%s", build: "%s", commit: "%s", date: "%s" };\n' \
-            "$VERSION" "${{ github.run_number }}" "${GITHUB_SHA::7}" "$(date -u +%Y-%m-%d)" > www/version.js
+            "$VERSION" "$BUILD" "${GITHUB_SHA::7}" "$(date -u +%Y-%m-%d)" > www/version.js
           npx cap sync android
       - name: Build debug APK
         working-directory: mobile/android
