@@ -30,6 +30,7 @@ var _speed_btns: Array = []
 var _info: Label
 var _wave_lbl: Label
 var _banner: Label
+var _vfx: Vfx
 var _float_stack := {} # key -> [count, last spawn time] so texts on one unit don't overlap
 var _dot_tex: GradientTexture2D
 
@@ -72,6 +73,9 @@ func _ready() -> void:
 	_cam.near = 0.1
 	_cam.far = 150.0
 	_world.add_child(_cam)
+	_vfx = Vfx.new()
+	_world.add_child(_vfx)
+	_vfx.setup(_cam, qp["arena"])
 	_hud = Control.new()
 	_hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_hud.offset_bottom = -PANEL_H
@@ -458,17 +462,21 @@ func _do_act(u: SbUnit, choice: Dictionary) -> void:
 		model.strike()
 		await _wait(0.35)
 		for k in hit_keys:
-			_slash(k, color)
+			_vfx.slash(_views[k]["root"].position + Vector3(0, 1.1, 0), u.el)
 	else:
 		root.rotation.y = root.rotation.y + angle_difference(root.rotation.y, turn_to)
 		model.cast(sk["mult"] == 0)
-		_spell_circle(home, color)
+		# castCircle + charge under the caster (vfx.mjs), then a projectile per target
+		_vfx.cast_circle(home, u.el)
+		_vfx.charge(home, u.el, 0.5)
 		tw.tween_property(root, "position", home + dir.normalized() * 0.2 if dir.length() > 0.01 else home, 0.2)
-		await _wait(0.35)
+		await _wait(0.45)
 		if not hit_keys.is_empty():
+			var prop: String = LooksData.LOOKS.get(u.template["id"], {}).get("prop", "")
+			var kind := "arrow" if prop == "bow" else ("bolt" if prop in ["mirror", "staff"] else ("orb" if prop in ["orb", "candle"] else "shard"))
 			for k in hit_keys:
-				_projectile(root.position + Vector3(0, 1.3, 0), _views[k]["root"].position + Vector3(0, 1.1, 0), color)
-			await _wait(0.3)
+				_vfx.projectile(root.position + Vector3(0, 1.3, 0), _views[k]["root"].position + Vector3(0, 1.1, 0), u.el, kind)
+			await _wait(0.32)
 	if not _alive:
 		return
 	await _show_events(events, color)
@@ -540,11 +548,13 @@ func _show_events(events: Array, color: Variant) -> void:
 				var big := crit or amt / maxf(1.0, u.max_hp) > 0.14
 				if e.get("dot", false):
 					_float(key, "-%d" % amt, Color("#9be36a"), 18)
-					_burst(v["root"].position + Vector3(0, 1.0, 0), Color("#7dff7a"), 10, 1.0)
+					_vfx.debuff_tick(v["root"].position)
 				else:
 					var col := Color("#ffd23a") if crit else (Color("#ffb0a0") if e.get("em", 1.0) > 1 else Color.WHITE)
 					_float(key, ("%d!" if crit else "%d") % amt, col, 30 if crit else 22)
-					_burst(v["root"].position + Vector3(0, 1.1, 0), color if color is Color else Color("#ffffff"), 26 if big else 14, 3.4 if big else 2.4)
+					_vfx.impact(v["root"].position, _actor.el if _actor else "physical", crit)
+					if crit:
+						_crit_flash()
 					if u.alive:
 						v["model"].hit(big)
 						var back: Vector3 = (v["root"].position - BattleLayout.CENTRE).normalized() * (0.34 if big else 0.2)
@@ -557,12 +567,15 @@ func _show_events(events: Array, color: Variant) -> void:
 				_float(key, "Absorbed %d" % e["amount"], Color("#9fd8ff"), 16)
 			"heal":
 				_float(key, "+%d" % e["amount"], Color("#7dff7a"), 22)
-				_burst(v["root"].position + Vector3(0, 0.3, 0), Color("#7dff8a"), 18, 1.2, -1.5)
+				_vfx.heal(v["root"].position)
 			"fx":
 				var meta: Dictionary = WebData.EFFECTS[e["t"]]
 				var buff: bool = meta["buff"]
 				_float(key, meta["name"], Color("#ffd56a") if buff else Color("#c07aff"), 15)
-				_burst(v["root"].position + Vector3(0, 0.4, 0), Color("#ffd86a") if buff else Color("#c07aff"), 10, 0.9, -1.0)
+				if e["t"] == "shield":
+					_vfx.shield(v["root"].position)
+				else:
+					_vfx.buff(v["root"].position, buff)
 			"text":
 				_float(key, e["text"], Color("#f6e6c2"), 15)
 			"death":
@@ -574,7 +587,7 @@ func _die(key: String) -> void:
 	var v: Dictionary = _views[key]
 	var model: HeroModel = v["model"]
 	model.die()
-	_burst(v["root"].position + Vector3(0, 1.0, 0), Color("#8a8a96"), 26, 1.6)
+	_vfx.death_fade(v["root"].position, v["u"].el)
 	var root: Node3D = v["root"]
 	var tw := create_tween()
 	tw.tween_interval(1.6)
@@ -582,6 +595,19 @@ func _die(key: String) -> void:
 	tw.tween_callback(func() -> void:
 		if is_instance_valid(v["aura"]):
 			v["aura"].visible = false)
+
+
+## critFlash(): a brief full-screen tint in the hit's element colour.
+func _crit_flash() -> void:
+	var r := ColorRect.new()
+	r.color = Color(1, 0.95, 0.8, 0.22)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	r.offset_bottom = -PANEL_H
+	add_child(r)
+	var tw := create_tween()
+	tw.tween_property(r, "color:a", 0.0, 0.18)
+	tw.tween_callback(r.queue_free)
 
 
 func _float(key: String, text: String, col: Color, fs: int) -> void:
@@ -613,119 +639,3 @@ func _glow_mat(c: Color, alpha: float = 1.0) -> StandardMaterial3D:
 	m.no_depth_test = false
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	return m
-
-
-## A burst of glowing particles (burstAt in three3d.mjs).
-func _burst(pos: Vector3, c: Color, n: int, spd: float, gravity: float = 3.0) -> void:
-	var p := CPUParticles3D.new()
-	p.one_shot = true
-	p.emitting = false
-	p.amount = n
-	p.lifetime = 0.7
-	p.explosiveness = 1.0
-	p.direction = Vector3.UP
-	p.spread = 180.0
-	p.initial_velocity_min = spd * 0.4
-	p.initial_velocity_max = spd
-	p.gravity = Vector3(0, -gravity, 0)
-	p.scale_amount_min = 0.6
-	p.scale_amount_max = 1.2
-	var curve := Curve.new()
-	curve.add_point(Vector2(0, 1))
-	curve.add_point(Vector2(1, 0))
-	p.scale_amount_curve = curve
-	var q := QuadMesh.new()
-	q.size = Vector2(0.22, 0.22)
-	var m := _glow_mat(c)
-	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	m.albedo_texture = _dot()
-	q.material = m
-	p.mesh = q
-	p.position = pos
-	_world.add_child(p)
-	p.emitting = true
-	get_tree().create_timer(1.2).timeout.connect(p.queue_free)
-
-
-## A soft round sprite for particles (the web's dot() texture).
-func _dot() -> GradientTexture2D:
-	if _dot_tex == null:
-		var g := Gradient.new()
-		g.set_color(0, Color(1, 1, 1, 1))
-		g.set_color(1, Color(1, 1, 1, 0))
-		g.add_point(0.35, Color(1, 1, 1, 0.8))
-		_dot_tex = GradientTexture2D.new()
-		_dot_tex.gradient = g
-		_dot_tex.fill = GradientTexture2D.FILL_RADIAL
-		_dot_tex.fill_from = Vector2(0.5, 0.5)
-		_dot_tex.fill_to = Vector2(1.0, 0.5)
-		_dot_tex.width = 32
-		_dot_tex.height = 32
-	return _dot_tex
-
-
-## A glowing spell circle under a caster, turning and fading out (spellCircle()).
-func _spell_circle(pos: Vector3, c: Color) -> void:
-	var g := Node3D.new()
-	var mat := _glow_mat(c, 0.9)
-	for r in [[0.75, 0.82], [0.5, 0.55]]:
-		var ring := MeshInstance3D.new()
-		var t := TorusMesh.new()
-		t.inner_radius = r[0]
-		t.outer_radius = r[1]
-		t.rings = 48
-		t.ring_segments = 4
-		ring.mesh = t
-		ring.material_override = mat
-		ring.scale = Vector3(1, 0.05, 1)
-		g.add_child(ring)
-	g.position = pos + Vector3(0, 0.05, 0)
-	g.scale = Vector3.ONE * 0.6
-	_world.add_child(g)
-	var tw := create_tween().set_parallel(true)
-	tw.tween_property(g, "rotation:y", 2.2, 0.75)
-	tw.tween_property(g, "scale", Vector3.ONE * 1.2, 0.3).set_ease(Tween.EASE_OUT)
-	tw.tween_property(mat, "albedo_color:a", 0.0, 0.3).set_delay(0.45)
-	tw.chain().tween_callback(g.queue_free)
-
-
-## A glowing bolt flying from caster to target on a shallow arc.
-func _projectile(a: Vector3, b: Vector3, c: Color) -> void:
-	var orb := MeshInstance3D.new()
-	var s := SphereMesh.new()
-	s.radius = 0.16
-	s.height = 0.32
-	orb.mesh = s
-	orb.material_override = _glow_mat(c.lightened(0.4))
-	orb.position = a
-	_world.add_child(orb)
-	var tw := create_tween()
-	tw.tween_method(func(k: float) -> void:
-		orb.position = a.lerp(b, k) + Vector3(0, sin(k * PI) * 0.9, 0), 0.0, 1.0, 0.3)
-	tw.tween_callback(func() -> void:
-		_burst(b, c, 12, 2.0)
-		orb.queue_free())
-
-
-## An arc slash across a melee target.
-func _slash(key: String, c: Color) -> void:
-	if not _views.has(key):
-		return
-	var arc := MeshInstance3D.new()
-	var t := TorusMesh.new()
-	t.inner_radius = 0.55
-	t.outer_radius = 0.7
-	t.ring_segments = 4
-	arc.mesh = t
-	var mat := _glow_mat(c, 1.0)
-	arc.material_override = mat
-	arc.position = _views[key]["root"].position + Vector3(0, 1.1, 0)
-	arc.scale = Vector3(1, 0.08, 1)
-	arc.rotation = Vector3(randf_range(-0.5, 0.5), 0, PI / 2 + randf_range(-0.4, 0.4))
-	_world.add_child(arc)
-	arc.look_at(_cam.global_position, Vector3.UP)
-	arc.rotate_object_local(Vector3.RIGHT, PI / 2)
-	var tw := create_tween().set_parallel(true)
-	tw.tween_property(mat, "albedo_color:a", 0.0, 0.22)
-	tw.tween_property(arc, "scale", Vector3(1.3, 0.08, 1.3), 0.22)
-	tw.chain().tween_callback(arc.queue_free)

@@ -584,8 +584,9 @@ func _shots() -> void:
 	battle_view._on_auto()
 	await get_tree().create_timer(5.0).timeout
 	await _shot("6-battle")
-	await get_tree().create_timer(2.3).timeout
-	await _shot("7-battle-b")
+	for i in 4:
+		await get_tree().create_timer(0.55).timeout
+		await _shot("7-battle-%d" % i)
 	battle_view._on_speed(3)
 	await battle_view.finished
 	await _frames(10)
