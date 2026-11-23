@@ -7,3 +7,4 @@ build/
 *.idsig
 export_credentials.cfg
 tools/models/node_modules/
+tools/reference/node_modules/

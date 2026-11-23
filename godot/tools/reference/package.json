@@ -1,0 +1,6 @@
+{
+  "name": "sigilbound-godot-reference",
+  "private": true,
+  "description": "Renders the web game for side-by-side visual comparison with the Godot demo.",
+  "dependencies": { "playwright-core": "1.49.1" }
+}
