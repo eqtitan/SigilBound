@@ -1,0 +1,14 @@
+{
+  "name": "sigilbound-godot-models",
+  "private": true,
+  "description": "Godot demo prep tools: decodes the web game's CC0 hero models into plain GLBs (prepare-models.mjs) and generates the hero-colour parity fixture with three.js (make-role-colors.mjs).",
+  "type": "module",
+  "scripts": { "prepare-models": "node prepare-models.mjs" },
+  "dependencies": {
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "meshoptimizer": "1.3.0",
+    "three": "0.149.0"
+  }
+}

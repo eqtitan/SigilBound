@@ -1,0 +1,9 @@
+# Godot 4 editor cache and build output
+.godot/
+/android/
+build/
+*.apk
+*.aab
+*.idsig
+export_credentials.cfg
+tools/models/node_modules/
