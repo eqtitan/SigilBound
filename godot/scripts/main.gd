@@ -13,6 +13,15 @@ var _last_result := {}
 
 
 func _ready() -> void:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--lineup="):
+			var lu: Node3D = load("res://scripts/dev/lineup.gd").new()
+			lu.out_dir = a.substr(9)
+			for b in OS.get_cmdline_user_args():
+				if b.begins_with("--gear="):
+					lu.gear_r = int(b.substr(7))
+			add_child(lu)
+			return
 	ui = CanvasLayer.new()
 	add_child(ui)
 	modal_layer = CanvasLayer.new()
@@ -304,6 +313,21 @@ func show_home() -> void:
 		show_home(), true)
 	eq.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(eq)
+	# Graphics quality: Auto (Ultra on flagship GPUs, else High) or a fixed tier.
+	stc.add_child(UiKit.label("Graphics: %s%s" % [Quality.current(), " (Auto)" if String(g["settings"].get("quality", "auto")) == "auto" else ""], 13, UiKit.DIM))
+	var qrow := UiKit.hbox(4)
+	stc.add_child(qrow)
+	for qn in ["auto", "Ultra", "High", "Medium", "Low"]:
+		var qb := UiKit.button("Auto" if qn == "auto" else qn, func() -> void:
+			g["settings"]["quality"] = qn
+			Game.save()
+			show_home(), true)
+		qb.toggle_mode = true
+		qb.button_pressed = String(g["settings"].get("quality", "auto")) == qn
+		qb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		qb.add_theme_font_size_override("font_size", 11)
+		qb.custom_minimum_size.y = 32
+		qrow.add_child(qb)
 	stc.add_child(UiKit.label("Gear: %d pieces. Equipped gear adds to hero stats exactly as in the web game." % g["gear"].size(), 12, UiKit.DIM))
 	stc.add_child(UiKit.button("Reset demo save", func() -> void:
 		_modal("Reset?", "Start the demo over from the starter pick?", [["Cancel", _close_modal], ["Reset", func() -> void:

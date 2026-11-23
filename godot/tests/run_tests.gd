@@ -31,6 +31,7 @@ func _init() -> void:
 	test_battles(fx["battles"])
 	test_rules_misc()
 	test_role_colors()
+	test_quality_and_kit()
 	print("%d passed, %d failed" % [passed, failed])
 	quit(0 if failed == 0 else 1)
 
@@ -306,3 +307,30 @@ func test_role_colors() -> void:
 	for b in bad.slice(0, 6):
 		print("     ", b)
 	check(bad.is_empty() and want.size() == 24, "model colours (24 heroes and their Hollow copies) match three.js roleColors()")
+
+
+func test_quality_and_kit() -> void:
+	print("Graphics tiers and hero kit")
+	var cases := {"Adreno (TM) 830": "Ultra", "Adreno (TM) 740": "Ultra", "Adreno (TM) 730": "Ultra", "Adreno (TM) 650": "High",
+		"Mali-G715 MC11": "Ultra", "Mali-G77 MC9": "High", "Immortalis-G720": "Ultra", "Samsung Xclipse 940": "Ultra",
+		"Samsung Xclipse 920": "High", "llvmpipe (LLVM 20.1.2, 256 bits)": "Low", "": "High"}
+	var bad := []
+	for k in cases:
+		if Quality.tier_for_gpu(k) != cases[k]:
+			bad.append("%s -> %s" % [k, Quality.tier_for_gpu(k)])
+	check(bad.is_empty(), "Auto picks Ultra on Adreno 730+, Mali-G715+/Immortalis and Xclipse 940+, else High %s" % [bad])
+	var sockets := 0
+	var heroes := 0
+	var with_fx := 0
+	var gear := {"weapon": {"r": 5, "s": "fury"}, "helm": {"r": 4, "s": "keen"}, "chest": {"r": 3, "s": "vigor"}, "boots": {"r": 2, "s": "haste"}}
+	for h in WebData.HEROES:
+		for hollow in [false, true]:
+			var m := HeroModel.new()
+			m.build(h["id"], hollow, h["el"], gear if not hollow else null)
+			heroes += 1
+			sockets += m.find_children("*", "BoneAttachment3D", true, false).size()
+			if not m._fx.is_empty():
+				with_fx += 1
+			m.free()
+	check(heroes == 48 and sockets >= 48 * 3, "all 24 heroes (and Hollow copies) build with their kit: %d bone sockets" % sockets)
+	check(with_fx >= 10, "animated kit parts (capes, glows, tails) on %d builds" % with_fx)

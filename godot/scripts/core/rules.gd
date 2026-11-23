@@ -56,7 +56,7 @@ static func new_state() -> Dictionary:
 		"pity": {"mystic": 0, "radiant": 0},
 		"login": {"last": "", "day": 0},
 		"daily": null,
-		"settings": {"speed": 1, "auto": false, "autoReplay": false, "fpsCap": 60},
+		"settings": {"speed": 1, "auto": false, "autoReplay": false, "fpsCap": 60, "quality": "auto"},
 		"stats": {"wins": 0, "summons": 0, "titanBest": 0},
 	}
 
