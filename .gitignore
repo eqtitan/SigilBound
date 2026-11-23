@@ -5,3 +5,8 @@ dist/
 .DS_Store
 .claude/worktrees/
 assets-candidates/
+
+# Written by the Unity build script (build number for the in-game update check)
+unity/Assets/Resources/BuildInfo.txt
+unity/Assets/Resources/BuildInfo.txt.meta
+unity/build-number.txt

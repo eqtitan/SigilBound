@@ -106,12 +106,15 @@ namespace UnityEditor
         public static EditorBuildSettingsScene[] scenes { get; set; }
     }
 
+    [Flags] public enum ImportAssetOptions { Default = 0, ForceUpdate = 1, ForceSynchronousImport = 8 }
+
     public sealed class AssetDatabase
     {
         public static void CreateAsset(UnityEngine.Object asset, string path) => throw new NotImplementedException();
         public static T LoadAssetAtPath<T>(string assetPath) where T : UnityEngine.Object => throw new NotImplementedException();
         public static void SaveAssets() => throw new NotImplementedException();
         public static void Refresh() => throw new NotImplementedException();
+        public static void ImportAsset(string path, ImportAssetOptions options = ImportAssetOptions.Default) => throw new NotImplementedException();
         public static bool IsValidFolder(string path) => throw new NotImplementedException();
         public static string CreateFolder(string parentFolder, string newFolderName) => throw new NotImplementedException();
         public static string[] FindAssets(string filter) => throw new NotImplementedException();

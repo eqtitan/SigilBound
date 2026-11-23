@@ -25,6 +25,7 @@ namespace Sigilbound.EditorTools
             PlayerSettings.bundleVersion = Version();
             int code = BuildNumber();
             if (code > 0) PlayerSettings.Android.bundleVersionCode = code;
+            WriteBuildInfo(code);
             var keystore = Path.GetFullPath(TestKeystore);
             if (File.Exists(keystore))
             {
@@ -51,6 +52,7 @@ namespace Sigilbound.EditorTools
             PlayerSettings.bundleVersion = Version();
             var target = UnityEditor.Build.NamedBuildTarget.Standalone;
             PlayerSettings.SetScriptingBackend(target, ScriptingImplementation.Mono2x);
+            WriteBuildInfo(BuildNumber());
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
             PlayerSettings.defaultScreenWidth = 540;
             PlayerSettings.defaultScreenHeight = 960;
@@ -64,6 +66,15 @@ namespace Sigilbound.EditorTools
         }
 
         public static void iOS() { ProjectSetup.Apply(); PlayerSettings.bundleVersion = Version(); Build(BuildTarget.iOS, "Builds/iOS"); }
+
+        // The build number the in-game update check (Client/Updater.cs) compares against the
+        // unity-latest release. 0 (local builds) turns the check off.
+        static void WriteBuildInfo(int build)
+        {
+            Directory.CreateDirectory("Assets/Resources");
+            File.WriteAllText("Assets/Resources/BuildInfo.txt", Math.Max(0, build).ToString());
+            AssetDatabase.ImportAsset("Assets/Resources/BuildInfo.txt", ImportAssetOptions.ForceSynchronousImport);
+        }
 
         static string Arg(string name)
         {

@@ -237,6 +237,7 @@ jobs:
       - name: Prepare hero models and version
         run: |
           (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)
+          echo "${{ github.run_number }}" > unity/build-number.txt
           VERSION=$(node -p "require('fs').readFileSync('public/game/version.js','utf8').match(/version: \"([^\"]+)\"/)[1]")
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "BUILD=${{ github.run_number }}" >> "$GITHUB_ENV"
