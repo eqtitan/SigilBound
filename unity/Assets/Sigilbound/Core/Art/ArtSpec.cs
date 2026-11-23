@@ -32,35 +32,47 @@ namespace Sigilbound.Core
         public static readonly double[] WeaponScale = { 1, 1, 1.04, 1.08, 1.13, 1.18 };
     }
 
-    // One battle animation state: its canonical name, whether it loops, and what stands in when it is missing.
+    // One battle animation state: its canonical name, whether it loops, what stands in when it is
+    // missing, and the animation policy: Shared states (idle, waiting for a turn, hit reactions,
+    // run-in) come from one library for every hero; all other states should be unique per hero.
     public sealed class ClipSpec
     {
-        public string Name; public bool Loop; public bool Clamp; public bool Required; public string Fallback; public string When;
+        public string Name; public bool Loop; public bool Clamp; public bool Required; public string[] Fallbacks = new string[0]; public string When;
+        public bool Shared;
+        public bool Unique => !Shared;
+        public string Fallback => Fallbacks.Length > 0 ? Fallbacks[0] : null;
         public bool SpeedParam => !(Name == "Idle" || Name == "Victory"); // idle and victory always play at 1x
     }
 
     public static class HeroClips
     {
         // The states the battle and hero views trigger (CharacterView / BattleController / HeroModel).
+        // Skill_<n> is the hero's own clip for skill n (1 = basic attack, 3 = usually the ultimate):
+        // when present it plays instead of the generic Attack/Cast state for that skill.
         public static readonly ClipSpec[] All =
         {
-            new ClipSpec { Name = "Idle", Loop = true, Required = true, When = "standing in battle, hero viewer, menu lineup" },
-            new ClipSpec { Name = "Idle_Fidget", Fallback = "Idle", When = "occasional idle variation (web: every 8-20 s)" },
-            new ClipSpec { Name = "Run", Loop = true, Required = true, When = "melee run-in toward the target (0.26 s)" },
-            new ClipSpec { Name = "Run_Back", Loop = true, Fallback = "Run", When = "backpedal home after a melee strike (0.25 s)" },
-            new ClipSpec { Name = "Attack_1", Required = true, When = "single-target damage skill, melee heroes; strike rotation 1" },
-            new ClipSpec { Name = "Attack_2", Fallback = "Attack_1", When = "strike rotation 2" },
-            new ClipSpec { Name = "Attack_3", Fallback = "Attack_1", When = "strike rotation 3 (often a kick or shield bash)" },
-            new ClipSpec { Name = "Cast", Required = true, When = "ranged hero attacks and every all-enemies skill (also melee heroes' AoE)" },
-            new ClipSpec { Name = "Cast_Ult", Fallback = "Cast", When = "third skill or all-enemies skill (camera zooms toward the caster)" },
-            new ClipSpec { Name = "Cast_Support", Fallback = "Cast", When = "no-damage skills: heals, buffs, shields, taunts" },
-            new ClipSpec { Name = "Hit", Required = true, When = "taking damage" },
-            new ClipSpec { Name = "Hit_Big", Fallback = "Hit", When = "crit or a hit over 14% of max HP" },
-            new ClipSpec { Name = "Dodge", When = "glancing blow (weak element or under 4% HP), 35% chance; skipped if missing" },
+            new ClipSpec { Name = "Idle", Loop = true, Required = true, Shared = true, When = "standing in battle, waiting for a turn, hero viewer, menu lineup" },
+            new ClipSpec { Name = "Idle_Fidget", Shared = true, Fallbacks = new[] { "Idle" }, When = "occasional idle variation (web: every 8-20 s)" },
+            new ClipSpec { Name = "Run", Loop = true, Required = true, Shared = true, When = "melee run-in toward the target (0.26 s)" },
+            new ClipSpec { Name = "Run_Back", Loop = true, Shared = true, Fallbacks = new[] { "Run" }, When = "backpedal home after a melee strike (0.25 s)" },
+            new ClipSpec { Name = "Skill_1", When = "skill 1 (the basic attack): the hero's own motion" },
+            new ClipSpec { Name = "Skill_2", When = "skill 2: the hero's own motion" },
+            new ClipSpec { Name = "Skill_3", When = "skill 3 (usually the ultimate): the hero's own motion" },
+            new ClipSpec { Name = "Skill_4", When = "skill 4 (reserved for heroes with four skills)" },
+            new ClipSpec { Name = "Attack_1", Required = true, Fallbacks = new[] { "Skill_1" }, When = "single-target damage skill, melee heroes, when there is no Skill_<n> clip; strike rotation 1" },
+            new ClipSpec { Name = "Attack_2", Fallbacks = new[] { "Attack_1" }, When = "strike rotation 2" },
+            new ClipSpec { Name = "Attack_3", Fallbacks = new[] { "Attack_1" }, When = "strike rotation 3 (often a kick or shield bash)" },
+            new ClipSpec { Name = "Cast", Required = true, Fallbacks = new[] { "Skill_2", "Skill_3", "Skill_1" }, When = "ranged attacks and all-enemies skills without a Skill_<n> clip" },
+            new ClipSpec { Name = "Cast_Ult", Fallbacks = new[] { "Skill_3", "Cast" }, When = "third skill or all-enemies skill (camera zooms toward the caster)" },
+            new ClipSpec { Name = "Cast_Support", Fallbacks = new[] { "Cast" }, When = "no-damage skills: heals, buffs, shields, taunts" },
+            new ClipSpec { Name = "Hit", Required = true, Shared = true, When = "taking damage" },
+            new ClipSpec { Name = "Hit_Big", Shared = true, Fallbacks = new[] { "Hit" }, When = "crit or a hit over 14% of max HP" },
+            new ClipSpec { Name = "Dodge", Shared = true, When = "glancing blow (weak element or under 4% HP), 35% chance; skipped if missing" },
             new ClipSpec { Name = "Death", Clamp = true, Required = true, When = "HP reaches 0; holds the last frame, then the unit sinks" },
-            new ClipSpec { Name = "Victory", Loop = true, Fallback = "Idle", When = "winners after the last wave (staggered)" },
+            new ClipSpec { Name = "Victory", Loop = true, Fallbacks = new[] { "Idle" }, When = "winners after the last wave (staggered)" },
         };
         public static readonly Dictionary<string, ClipSpec> ByName = All.ToDictionary(c => c.Name);
+        public static IEnumerable<ClipSpec> UniqueStates => All.Where(c => c.Unique);
 
         // Source clip names we recognise inside a model file, per canonical state, in order of preference:
         // the CC0 Quaternius character clips and Universal Animation Library, generator presets
@@ -71,6 +83,7 @@ namespace Sigilbound.Core
             ["Idle_Fidget"] = new[] { "Idle_Fidget", "Idle_Neutral", "Interact", "Idle_Look" },
             ["Run"] = new[] { "Run", "Running", "run", "Run_Forward", "Jog_Fwd", "Sprint" },
             ["Run_Back"] = new[] { "Run_Back", "Running_Backward", "Walk_Back", "Jog_Bwd" },
+            ["Skill_1"] = new[] { "Skill_1" }, ["Skill_2"] = new[] { "Skill_2" }, ["Skill_3"] = new[] { "Skill_3" }, ["Skill_4"] = new[] { "Skill_4" },
             ["Attack_1"] = new[] { "Attack_1", "Sword_Slash", "Slash", "slash", "Attack", "Sword_Attack", "Punch_Right", "Punch", "chop" },
             ["Attack_2"] = new[] { "Attack_2", "Punch_Left", "Sword_Attack_2", "Kick_Right" },
             ["Attack_3"] = new[] { "Attack_3", "Kick_Right", "Kick_Left", "Shield_Bash" },
@@ -101,12 +114,16 @@ namespace Sigilbound.Core
         // The canonical state that actually plays for `name`, following fallbacks (null if none present).
         public static string Effective(string name, ICollection<string> present)
         {
-            for (int guard = 0; name != null && guard < 4; guard++)
+            var seen = new HashSet<string>();
+            string Walk(string n)
             {
-                if (present.Contains(name)) return name;
-                name = ByName.TryGetValue(name, out var c) ? c.Fallback : null;
+                if (n == null || !seen.Add(n)) return null;
+                if (present.Contains(n)) return n;
+                if (!ByName.TryGetValue(n, out var c)) return null;
+                foreach (var f in c.Fallbacks) { var r = Walk(f); if (r != null) return r; }
+                return null;
             }
-            return null;
+            return Walk(name);
         }
     }
 
@@ -122,7 +139,8 @@ namespace Sigilbound.Core
         public static readonly string[] TextureMaps = { "Albedo", "Normal", "Mask", "Emission" };
 
         static readonly Regex HeroFile = new Regex(@"^SB_Hero_(?<id>[a-z]+)_LOD(?<lod>[0-2])\.(?<ext>glb|gltf|fbx)$", RegexOptions.IgnoreCase);
-        static readonly Regex AnimFile = new Regex(@"^SB_Anim_(?:(?<owner>[A-Za-z]+)_)?(?<clip>[A-Za-z]+(?:_[A-Za-z0-9]+)?)\.(?<ext>glb|fbx)$", RegexOptions.IgnoreCase);
+        static readonly Regex AnimFile = new Regex(@"^SB_Anim_(?:(?<owner>[A-Za-z]+)_)?(?<clip>[A-Za-z]+(?:_[A-Za-z0-9]+)?)(?:@(?<variant>[a-z0-9-]+))?\.(?<ext>glb|fbx)$", RegexOptions.IgnoreCase);
+        static readonly Regex MetaFile = new Regex(@"^SB_Hero_(?<id>[a-z]+)\.json$", RegexOptions.IgnoreCase);
         static readonly Regex TexFile = new Regex(@"^T_Hero_(?<id>[a-z]+)_(?<map>Albedo|Normal|Mask|Emission)\.(?<ext>png|tga|jpg|jpeg)$", RegexOptions.IgnoreCase);
         static readonly Regex GearFile = new Regex(@"^SB_Gear_(?<id>[a-z]+)_(?<slot>Weapon|Offhand|Helm|Chest|Boots|Back)(?:_r(?<r>[1-5]))?\.(?<ext>glb|fbx)$", RegexOptions.IgnoreCase);
 
@@ -131,13 +149,16 @@ namespace Sigilbound.Core
         public static string TextureFileName(string heroId, string map) => $"T_Hero_{heroId}_{map}.png";
         public static string MaterialName(string heroId, string slot) => $"M_Hero_{heroId}_{slot}";
 
-        public sealed class Parsed { public string Kind, HeroId, Owner, Clip, Map, Slot, Ext; public int Lod = -1, Rarity; }
+        public sealed class Parsed { public string Kind, HeroId, Owner, Clip, Variant, Map, Slot, Ext; public int Lod = -1, Rarity; }
+        public static string MetaFileName(string heroId) => $"SB_Hero_{heroId}.json";
 
         // Classifies a file name under the convention, or returns null (unknown files are reported, not imported).
         public static Parsed Parse(string fileName)
         {
             var m = HeroFile.Match(fileName);
             if (m.Success) return new Parsed { Kind = "hero", HeroId = m.Groups["id"].Value.ToLowerInvariant(), Lod = int.Parse(m.Groups["lod"].Value), Ext = m.Groups["ext"].Value.ToLowerInvariant() };
+            m = MetaFile.Match(fileName);
+            if (m.Success) return new Parsed { Kind = "meta", HeroId = m.Groups["id"].Value.ToLowerInvariant(), Ext = "json" };
             m = TexFile.Match(fileName);
             if (m.Success) return new Parsed { Kind = "texture", HeroId = m.Groups["id"].Value.ToLowerInvariant(), Map = Cap(m.Groups["map"].Value), Ext = m.Groups["ext"].Value.ToLowerInvariant() };
             m = GearFile.Match(fileName);
@@ -150,7 +171,7 @@ namespace Sigilbound.Core
                 if (owner != null && !HeroClips.ByName.ContainsKey(clip) && HeroClips.ByName.ContainsKey(owner + "_" + clip)) { clip = owner + "_" + clip; owner = null; }
                 if (!HeroClips.ByName.ContainsKey(clip)) return null;
                 if (owner != null && !Enum.TryParse<Archetype>(owner, true, out _)) owner = owner.ToLowerInvariant();
-                return new Parsed { Kind = "anim", Owner = owner, Clip = clip, Ext = m.Groups["ext"].Value.ToLowerInvariant() };
+                return new Parsed { Kind = "anim", Owner = owner, Clip = clip, Variant = m.Groups["variant"].Success ? m.Groups["variant"].Value.ToLowerInvariant() : null, Ext = m.Groups["ext"].Value.ToLowerInvariant() };
             }
             return null;
         }
@@ -171,13 +192,35 @@ namespace Sigilbound.Core
             return Archetype.Blade;
         }
 
-        // Clip lookup order for a hero: its own override, then its archetype's set, then the shared set.
-        public static IEnumerable<string> AnimCandidates(string heroId, string clip)
+        // Where a clip came from: the hero's own file, a tag-matched archetype variant, the plain
+        // archetype clip, or the shared library. For unique states anything but "hero" is a fallback.
+        public enum ClipOrigin { Hero, Tagged, Archetype, Shared, Embedded }
+
+        // Clip lookup order for a hero (file names; the caller checks which exist):
+        //   shared states: shared library, then archetype, then the hero's own (consistency first);
+        //   unique states: the hero's own, then the archetype set (variants chosen by PickVariant), then shared.
+        public static IEnumerable<(string File, ClipOrigin Origin)> AnimSources(string heroId, string clip)
         {
-            yield return AnimFileName(clip, heroId);
-            yield return AnimFileName(clip, ArchetypeOf(heroId).ToString());
-            yield return AnimFileName(clip);
+            var arche = ArchetypeOf(heroId).ToString();
+            bool shared = HeroClips.ByName.TryGetValue(clip, out var spec) && spec.Shared;
+            if (shared) { yield return (AnimFileName(clip), ClipOrigin.Shared); yield return (AnimFileName(clip, arche), ClipOrigin.Archetype); yield return (AnimFileName(clip, heroId), ClipOrigin.Hero); }
+            else { yield return (AnimFileName(clip, heroId), ClipOrigin.Hero); yield return (AnimFileName(clip, arche), ClipOrigin.Archetype); yield return (AnimFileName(clip), ClipOrigin.Shared); }
         }
+        public static IEnumerable<string> AnimCandidates(string heroId, string clip) => AnimSources(heroId, clip).Select(x => x.File);
+
+        // Tag-based fallback for unique states when a hero's own clip couldn't be generated: among an
+        // archetype's variants for the state (SB_Anim_<Archetype>_<State>@<variant>, tagged in the
+        // library index), pick the one sharing the most motion tags with the hero; ties are spread
+        // by a stable hash of the hero id, so 100 heroes don't all fall back to the same clip.
+        public static string PickVariant(string heroId, IEnumerable<string> heroTags, IReadOnlyList<(string File, string[] Tags)> variants)
+        {
+            if (variants == null || variants.Count == 0) return null;
+            var tags = new HashSet<string>((heroTags ?? Enumerable.Empty<string>()).Select(t => t.ToLowerInvariant()));
+            int best = variants.Max(v => v.Tags.Count(t => tags.Contains(t.ToLowerInvariant())));
+            var top = variants.Where(v => v.Tags.Count(t => tags.Contains(t.ToLowerInvariant())) == best).OrderBy(v => v.File, StringComparer.Ordinal).ToList();
+            return top[(int)(StableHash(heroId) % (uint)top.Count)].File;
+        }
+        public static uint StableHash(string s) { uint h = 2166136261; foreach (char c in s ?? "") { h ^= c; h *= 16777619; } return h; }
 
         // Battle height the runtime scales a hero prefab to (the current models: head at 1.85 m, about
         // 2.05 m to the crown), times the hero's build from the web art (BODY h).
@@ -201,6 +244,7 @@ namespace Sigilbound.Core
         public double Height;
         public readonly List<(string Name, int W, int H)> Textures = new List<(string, int, int)>();
         public readonly HashSet<string> Clips = new HashSet<string>();      // canonical states that resolved
+        public readonly Dictionary<string, string> ClipOrigins = new Dictionary<string, string>(); // state -> hero/tagged/archetype/shared/embedded
         public readonly HashSet<string> Sockets = new HashSet<string>();
         public readonly List<string> MissingHumanBones = new List<string>();
         public readonly List<string> HumanoidProblems = new List<string>();  // bones outside their human parent (no Humanoid avatar)
@@ -248,11 +292,29 @@ namespace Sigilbound.Core
             {
                 if (s.Clips.Contains(c.Name)) continue;
                 if (c.Required) Add(ArtSeverity.Error, "anim-missing", $"required animation {c.Name} missing ({c.When})");
-                else Add(ArtSeverity.Info, "anim-fallback", c.Fallback != null ? $"{c.Name} missing, plays {HeroClips.Effective(c.Name, s.Clips) ?? "nothing"}" : $"{c.Name} missing, skipped");
+                else if (!c.Name.StartsWith("Skill_", StringComparison.Ordinal) || c.Name == "Skill_4")
+                    Add(ArtSeverity.Info, "anim-fallback", c.Fallback != null ? $"{c.Name} missing, plays {HeroClips.Effective(c.Name, s.Clips) ?? "nothing"}" : $"{c.Name} missing, skipped");
             }
+            // Uniqueness policy: skills, death and victory should be the hero's own motion.
+            var borrowed = UniqueFallbacks(s);
+            if (borrowed.Count > 0) Add(ArtSeverity.Warning, "anim-not-unique", $"using fallback motion for {string.Join(", ", borrowed)}");
             foreach (var sock in ArtSpec.RequiredSockets) if (!s.Sockets.Contains(sock)) Add(ArtSeverity.Warning, "socket", $"{sock} not created");
             return o;
         }
+        // The unique states a hero plays with someone else's motion: missing own clips for skills,
+        // death and victory, or ones filled from an archetype variant or the shared library.
+        public static List<string> UniqueFallbacks(HeroAssetStats s)
+        {
+            var o = new List<string>();
+            foreach (var name in new[] { "Skill_1", "Skill_2", "Skill_3", "Death", "Victory" })
+            {
+                if (!s.Clips.Contains(name)) { o.Add(name + " (missing)"); continue; }
+                if (s.ClipOrigins.TryGetValue(name, out var org) && org != "hero" && org != "embedded") o.Add($"{name} ({org})");
+            }
+            return o;
+        }
+        public static int UniqueCount(HeroAssetStats s) => 5 - UniqueFallbacks(s).Count;
+
         static bool IsPow2(int v) => v > 0 && (v & (v - 1)) == 0;
 
         public static bool Passes(IEnumerable<ArtIssue> issues) => issues.All(i => i.Severity != ArtSeverity.Error);
@@ -263,15 +325,16 @@ namespace Sigilbound.Core
             var sb = new System.Text.StringBuilder();
             sb.AppendLine($"# {title}").AppendLine();
             sb.AppendLine($"Budgets: LOD0 {ArtBudget.TrisLod0:N0} / LOD1 {ArtBudget.TrisLod1:N0} / LOD2 {ArtBudget.TrisLod2:N0} tris, {ArtBudget.Bones} bones, {ArtBudget.Materials} materials, textures {ArtBudget.TextureMin}-{ArtBudget.TextureMax} px.").AppendLine();
-            sb.AppendLine("| Hero | Result | LOD0 | LOD1 | LOD2 | Bones | Mats | Textures | Clips | Sockets | Anim | Source |");
-            sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|");
+            sb.AppendLine("Unique = own motion for Skill_1-3, Death and Victory (out of 5); anything less means the hero is using fallbacks.").AppendLine();
+            sb.AppendLine("| Hero | Result | LOD0 | LOD1 | LOD2 | Bones | Mats | Textures | Clips | Unique | Sockets | Anim | Source |");
+            sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|---|");
             var details = new System.Text.StringBuilder();
             foreach (var s in all)
             {
                 var issues = Validate(s);
                 string T(int i) => s.LodTris[i] < 0 ? "-" : s.LodTris[i].ToString("N0");
                 int errs = issues.Count(i => i.Severity == ArtSeverity.Error), warns = issues.Count(i => i.Severity == ArtSeverity.Warning);
-                sb.AppendLine($"| {s.HeroId} | {(errs > 0 ? $"FAIL ({errs})" : warns > 0 ? $"ok, {warns} warn" : "ok")} | {T(0)} | {T(1)} | {T(2)} | {s.Bones} | {s.Materials} | {(s.Textures.Count == 0 ? "none" : string.Join(", ", s.Textures.Select(t => $"{t.W}")))} | {s.Clips.Count}/{HeroClips.All.Length} | {s.Sockets.Count} | {s.AnimBackend} | {s.Source} |");
+                sb.AppendLine($"| {s.HeroId} | {(errs > 0 ? $"FAIL ({errs})" : warns > 0 ? $"ok, {warns} warn" : "ok")} | {T(0)} | {T(1)} | {T(2)} | {s.Bones} | {s.Materials} | {(s.Textures.Count == 0 ? "none" : string.Join(", ", s.Textures.Select(t => $"{t.W}")))} | {s.Clips.Count}/{HeroClips.All.Length} | {UniqueCount(s)}/5{(UniqueCount(s) < 5 ? " FALLBACK" : "")} | {s.Sockets.Count} | {s.AnimBackend} | {s.Source} |");
                 details.AppendLine($"## {s.HeroId}").AppendLine();
                 foreach (var i in issues) details.AppendLine($"- {i}");
                 foreach (var n in s.Notes) details.AppendLine($"- NOTE: {n}");
