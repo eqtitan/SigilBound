@@ -174,7 +174,8 @@ jobs:
           allowDirtyBuild: true
       - name: Name the APK
         run: |
-          APK=$(find unity/Builds -name '*.apk' | head -n 1)
+          # game-ci saves to its -customBuildPath (build/ in the workspace); local runs use unity/Builds.
+          APK=$(find build unity/build unity/Builds -name '*.apk' 2>/dev/null | head -n 1)
           if [ -z "$APK" ]; then echo "::error::No APK was produced"; exit 1; fi
           cp "$APK" Sigilbound-Unity.apk
           cp Sigilbound-Unity.apk "Sigilbound-Unity-$VERSION-build$BUILD.apk"

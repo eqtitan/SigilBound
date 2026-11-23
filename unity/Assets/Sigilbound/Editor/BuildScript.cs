@@ -1,7 +1,7 @@
 // Command-line builds (used by CI through game-ci). Example:
 //   Unity -batchmode -quit -projectPath unity -executeMethod Sigilbound.EditorTools.BuildScript.Android
 // Environment (all optional): SB_VERSION (e.g. 0.19.2), SB_BUILD (versionCode, the CI run number),
-// SB_OUTPUT (APK path, default Builds/Android/Sigilbound-Unity.apk).
+// SB_OUTPUT (APK path; else game-ci's -customBuildPath; else Builds/Android/Sigilbound-Unity.apk).
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -35,11 +35,22 @@ namespace Sigilbound.EditorTools
                 PlayerSettings.Android.keyaliasPass = TestKeyPass;
             }
             else Debug.LogWarning($"Sigilbound: test keystore not found at {keystore}; using Unity's debug key (updates won't install over each other).");
+            // SB_OUTPUT wins; otherwise game-ci's -customBuildPath (it checks that exact path for the
+            // APK after the build and fails the job if it's empty); otherwise the local default.
             var output = Environment.GetEnvironmentVariable("SB_OUTPUT");
+            if (string.IsNullOrEmpty(output)) output = Arg("-customBuildPath");
             Build(BuildTarget.Android, string.IsNullOrEmpty(output) ? "Builds/Android/Sigilbound-Unity.apk" : output);
         }
 
         public static void iOS() { ProjectSetup.Apply(); PlayerSettings.bundleVersion = Version(); Build(BuildTarget.iOS, "Builds/iOS"); }
+
+        static string Arg(string name)
+        {
+            var args = Environment.GetCommandLineArgs();
+            for (int i = 0; i + 1 < args.Length; i++)
+                if (args[i] == name && !string.IsNullOrEmpty(args[i + 1]) && !args[i + 1].StartsWith("-")) return args[i + 1];
+            return null;
+        }
 
         // Android versionCode (must always go up so updates install): SB_BUILD, else game-ci's
         // -androidVersionCode argument, else unity/build-number.txt written by CI.
