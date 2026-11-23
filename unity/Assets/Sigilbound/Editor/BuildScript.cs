@@ -107,8 +107,15 @@ namespace Sigilbound.EditorTools
             {
                 scenes = new[] { ProjectSetup.ScenePath }, locationPathName = path, target = target, options = BuildOptions.None,
             });
-            Debug.Log($"Build {report.summary.result}: {report.summary.totalSize / (1024 * 1024)} MB at {path}");
-            if (report.summary.result != BuildResult.Succeeded) EditorApplication.Exit(1);
+            var sum = report.summary;
+            Debug.Log($"Build {sum.result}: {sum.totalSize / (1024 * 1024)} MB uncompressed at {path}");
+            // game-ci validates the log after the build: it needs the literal "Build succeeded!" (what its
+            // own default build method prints) or a "# Build results #" block with Errors: 0, else it
+            // fails the job even when the player was built fine. Print both, in its format.
+            Debug.Log("###########################\n#      Build results      #\n###########################\n" +
+                      $"Duration: {sum.totalTime}\nWarnings: {sum.totalWarnings}\nErrors: {(sum.result == BuildResult.Succeeded ? 0 : Math.Max(1, sum.totalErrors))}\nSize: {sum.totalSize} bytes");
+            if (sum.result == BuildResult.Succeeded) Debug.Log("Build succeeded!");
+            else EditorApplication.Exit(1);
         }
     }
 }

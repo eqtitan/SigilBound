@@ -169,6 +169,7 @@ namespace UnityEditor.Build.Reporting
     {
         public BuildResult result => throw new NotImplementedException();
         public ulong totalSize => throw new NotImplementedException();
+        public int totalWarnings => throw new NotImplementedException();
         public int totalErrors => throw new NotImplementedException();
         public TimeSpan totalTime => throw new NotImplementedException();
         public string outputPath => throw new NotImplementedException();
