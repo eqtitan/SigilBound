@@ -1,0 +1,13 @@
+# Cloudflare Pages project for Sigilbound: serves public/ (the web build of the game) and
+# functions/api/sb (friends & chat).
+name = "sigilbound"
+pages_build_output_dir = "public"
+compatibility_date = "2025-07-18"
+
+# Friends & chat need a D1 database bound as SIGIL_DB.
+# Create one (dashboard: Storage & Databases > D1 > Create, or `npx wrangler d1 create sigilbound`),
+# then uncomment and paste its database_id. Tables are created automatically on first use.
+# [[d1_databases]]
+# binding = "SIGIL_DB"
+# database_name = "sigilbound"
+# database_id = "PASTE-DATABASE-ID-HERE"

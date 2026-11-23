@@ -37,7 +37,7 @@ namespace Sigilbound.Client
     public sealed class Online : MonoBehaviour
     {
         // The website where functions/api/sb runs with its D1 database.
-        public const string ServerUrl = "https://arrakis-c06.pages.dev";
+        public const string ServerUrl = "https://sigilbound.pages.dev";
         const string CredsKey = "sigilbound.online.v1";
 
         public App App;

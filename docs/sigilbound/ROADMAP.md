@@ -13,7 +13,7 @@ _Last updated: 2026-11-22._
 |---|---|---|
 | Web game (`public/game/`) | ✅ Playable | 24 heroes, campaign, Titan, gear, summoning, daily quests. Fully free, with no shop. |
 | 3D battles | ✅ Playable | Rigged CC0 models with per-hero builds, code-built kit and visible gear; 2D fallback toggle on Home. |
-| Android app (`mobile/`) | ✅ Tested on a real phone | Debug APK built on every push: [download](https://github.com/eqtitan/arrakis/releases/download/android-latest/Sigilbound.apk). |
+| Android app (`mobile/`) | ✅ Tested on a real phone | Debug APK built on every push: [download](https://github.com/eqtitan/sigilbound/releases/download/android-latest/Sigilbound.apk). |
 | iOS app (`mobile/`) | 🟡 Compiles in CI | Needs an Apple Developer account for TestFlight. |
 | Friends & chat | 🟡 Built, not live | Needs the D1 database and a merge to `master`. |
 | Balance | ✅ Tuned | Progression sim in `tools/sigilbound-balance-sim.cjs`. |

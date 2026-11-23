@@ -19,7 +19,7 @@ function saveOnline() {
 }
 // The installed apps aren't served from the website, so they call it by full address.
 // This must be the site where functions/api/sb is deployed with its D1 database.
-const NATIVE_SERVER = "https://arrakis-c06.pages.dev";
+const NATIVE_SERVER = "https://sigilbound.pages.dev"; // Cloudflare Pages project for this repo (friends & chat)
 const API_BASE = NATIVE.isNative ? `${NATIVE_SERVER}/api/sb/` : "/api/sb/";
 
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

@@ -7,7 +7,7 @@ cooler phones, higher-fidelity characters). Same heroes, rules and numbers as th
 
 It installs as a **separate app**, "Sigilbound (Unity)" (`com.sigilbound.unity`), next to the
 regular Sigilbound app, and downloads from its own release:
-**https://github.com/eqtitan/arrakis/releases/tag/unity-latest**
+**https://github.com/eqtitan/sigilbound/releases/tag/unity-latest**
 
 ## Phone builds: what the owner needs to do (once)
 
@@ -28,7 +28,7 @@ Use a separate free account, not your personal one (its password will live in Gi
 ### 2. Add the account to GitHub as secrets
 
 1. In your phone's browser (the GitHub app can't edit secrets), open
-   **https://github.com/eqtitan/arrakis/settings/secrets/actions** and sign in.
+   **https://github.com/eqtitan/sigilbound/settings/secrets/actions** and sign in.
    (The long way: the repository page → **Settings** → **Secrets and variables** → **Actions**.
    If you don't see Settings, use the browser menu's "Desktop site" option.)
 2. Tap **New repository secret**, then add each of these (name exactly as written), tapping
@@ -42,7 +42,7 @@ Use a separate free account, not your personal one (its password will live in Gi
 That's all. The next push that changes `unity/` builds an APK; or start one by hand:
 **Actions** tab → **Sigilbound Unity** → **Run workflow** → task **build-apk** → **Run workflow**.
 When it finishes (about 20–40 minutes the first time), the APK is on the
-[unity-latest release](https://github.com/eqtitan/arrakis/releases/tag/unity-latest).
+[unity-latest release](https://github.com/eqtitan/sigilbound/releases/tag/unity-latest).
 
 Without these secrets the tests still run, and the APK step is skipped with a note.
 
