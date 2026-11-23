@@ -16,5 +16,8 @@
     <None Remove="CompileCheck/**" />
     <None Include="fixtures/*.json" CopyToOutputDirectory="PreserveNewest" LinkBase="fixtures" />
     <None Include="../Assets/StreamingAssets/Models/anims_ual.json" CopyToOutputDirectory="PreserveNewest" Link="fixtures/anims_ual.json" />
+    <!-- Hero art pipeline checks (ArtTests.cs): the shipped CC0 models and the hero prompt data. -->
+    <None Include="../Assets/StreamingAssets/Models/*.glb" CopyToOutputDirectory="PreserveNewest" LinkBase="fixtures/models" />
+    <None Include="../../docs/sigilbound/art/heroes/hero-prompts.json" CopyToOutputDirectory="PreserveNewest" Link="fixtures/hero-prompts.json" Condition="Exists('../../docs/sigilbound/art/heroes/hero-prompts.json')" />
   </ItemGroup>
 </Project>
