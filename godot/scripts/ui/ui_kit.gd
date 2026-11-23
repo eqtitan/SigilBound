@@ -134,8 +134,14 @@ static func heading(text: String, size: int = 20) -> Label:
 
 
 ## The gold "SIGILBOUND" logo with an engraved shadow.
-static func logo(size: int = 40) -> Label:
+static func logo(size: int = 40, spaced: bool = false) -> Label:
 	var l := label("SIGILBOUND", size, GOLD, true)
+	if spaced:
+		# letter-spaced like the web's logo (letter-spacing: 5px)
+		var fv := FontVariation.new()
+		fv.base_font = display_font
+		fv.spacing_glyph = int(size * 0.16)
+		l.add_theme_font_override("font", fv)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.add_theme_color_override("font_shadow_color", Color("#3a2508"))
 	l.add_theme_constant_override("shadow_offset_y", 3)

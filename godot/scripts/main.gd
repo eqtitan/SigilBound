@@ -122,6 +122,62 @@ func show_title() -> void:
 	_set_screen(page)
 
 
+func _top_bar(g: Dictionary) -> Control:
+	var bar := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#16111e", 0.97)
+	sb.border_color = UiKit.TRIM_LO
+	sb.border_width_bottom = 2
+	sb.shadow_color = Color(0, 0, 0, 0.6)
+	sb.shadow_size = 6
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	bar.add_theme_stylebox_override("panel", sb)
+	bar.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	var row := UiKit.hbox(6)
+	bar.add_child(row)
+	for chip in [["gold", Rules.fmt(g["gold"]), Color("#f2c45c")], ["Worn", str(g["shards"]["common"]), Color("#a98b6b")],
+			["Mystic", str(g["shards"]["mystic"]), Color("#4aa3ff")], ["Radiant", str(g["shards"]["radiant"]), Color("#ffb02e")]]:
+		row.add_child(_chip(chip[1], chip[2], chip[0] == "gold"))
+	return bar
+
+
+## A currency chip: a recessed pill with a coin or shard gem and the amount.
+func _chip(text: String, c: Color, coin: bool) -> Control:
+	var p := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#0d0a12")
+	sb.border_color = Color("#5c4a30")
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(14)
+	sb.content_margin_left = 6
+	sb.content_margin_right = 10
+	sb.content_margin_top = 3
+	sb.content_margin_bottom = 3
+	p.add_theme_stylebox_override("panel", sb)
+	var h := UiKit.hbox(5)
+	p.add_child(h)
+	var icon := Control.new()
+	icon.custom_minimum_size = Vector2(16, 16)
+	icon.draw.connect(func() -> void:
+		var ctr := icon.size / 2
+		if coin:
+			icon.draw_circle(ctr, 7.5, Color("#8a5d1c"))
+			icon.draw_circle(ctr, 6.5, c)
+			icon.draw_circle(ctr + Vector2(-1.5, -1.5), 2.5, Color("#fff1c0"))
+		else:
+			var pts := PackedVector2Array([ctr + Vector2(0, -7.5), ctr + Vector2(6.5, 0), ctr + Vector2(0, 7.5), ctr + Vector2(-6.5, 0)])
+			icon.draw_colored_polygon(pts, c)
+			icon.draw_colored_polygon(PackedVector2Array([ctr + Vector2(0, -7.5), ctr + Vector2(6.5, 0), ctr]), c.lightened(0.35)))
+	h.add_child(icon)
+	var l := UiKit.label(text, 14, Color("#f6e9cf"))
+	l.add_theme_font_override("font", UiKit.display_font)
+	h.add_child(l)
+	return p
+
+
 func _rule() -> Control:
 	var c := Control.new()
 	c.custom_minimum_size = Vector2(0, 12)
@@ -198,12 +254,19 @@ func show_home() -> void:
 	var g := Game.g
 	var pc := _scroll_page()
 	var col: VBoxContainer = pc[1]
-	col.add_child(UiKit.logo(32))
+	# The web's top bar: currency chips on a carved bar with a gold rule (stays put while scrolling).
+	var margin: MarginContainer = col.get_parent()
+	margin.add_theme_constant_override("margin_top", 70)
+	(pc[0] as Control).add_child(_top_bar(g))
+	var head := UiKit.vbox(2)
+	head.add_child(UiKit.logo(34, true))
+	var sub := UiKit.label("Campaign %d/%d · %d heroes · %d wins" % [g["cleared"], Rules.TOTAL_STAGES, g["heroes"].size(), g["stats"]["wins"]], 13, UiKit.DIM)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.add_child(sub)
+	head.add_child(_rule())
+	col.add_child(head)
 	if Updater.latest_build > 0:
 		col.add_child(_update_banner())
-	var stats := UiKit.label("Gold %s   ·   Worn %d   ·   Mystic %d   ·   %d wins" % [Rules.fmt(g["gold"]), g["shards"]["common"], g["shards"]["mystic"], g["stats"]["wins"]], 13, UiKit.DIM)
-	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(stats)
 	# Team
 	var team_card := UiKit.card()
 	var tc := UiKit.vbox(8)

@@ -35,7 +35,7 @@ const QUALITY := {
 }
 # Theme colours are "look" colours scaled for the web's rig (0.42 ground, 0.55 props there). Three.js
 # ACES divides by 0.6 and its legacy lights carry an extra PI, so the same rig here needs ~2x albedo.
-const AG := 0.42 * 2.1
+const AG := 0.42 * 2.5
 const AP := 0.55 * 1.9
 const PATH := [[0.6, 14], [0.4, 5], [0, -0.5], [-0.8, -6.5], [-2.6, -13], [-1.2, -21], [2.6, -30], [4.5, -42]]
 const HILLS := 4.5
@@ -378,14 +378,7 @@ func _environment() -> void:
 	env.adjustment_enabled = true
 	env.adjustment_brightness = 1.0
 	env.adjustment_contrast = 1.07
-	env.adjustment_saturation = 1.1
-	var grade := Gradient.new()
-	grade.set_color(0, Color("#140c18"))
-	grade.set_color(1, Color("#fff4e0"))
-	grade.add_point(0.5, Color("#8a7a70"))
-	var gt := GradientTexture1D.new()
-	gt.gradient = grade
-	env.adjustment_color_correction = gt
+	env.adjustment_saturation = 1.04
 	# SSAO only exists in the Forward+ renderer; the Mobile renderer (phones) ignores it.
 	env.ssao_enabled = quality == "ultra"
 	env.ssao_radius = 0.8
