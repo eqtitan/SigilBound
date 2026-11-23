@@ -9,6 +9,9 @@ name: Sigilbound Unity
 # - android: builds an APK with game-ci and publishes it to the "unity-latest" pre-release
 #   (separate from android-latest; app id com.sigilbound.unity, so both apps install side by
 #   side). Runs only when Unity license secrets exist; otherwise it is skipped with a note.
+# - windows: after android, builds a Windows 10+ (64-bit) test build and attaches it to the same
+#   "unity-latest" release as Sigilbound-Windows.zip. Runs after android (not alongside) so the
+#   two builds never hold the Personal license seat at once.
 # - get-license-file: run by hand (Actions > Sigilbound Unity > Run workflow > task
 #   "get-license-file") as a fallback if account activation doesn't work; see unity/README.md.
 #
@@ -191,7 +194,8 @@ jobs:
             The native Unity version, in progress alongside the web app. It installs as a separate app,
             "Sigilbound (Unity)", next to the regular Sigilbound app. To bring your progress over: in the
             regular app open Settings > Save code > Copy, then in the Unity app open Settings, tap Paste
-            and Load code.
+            and Load code. Windows 10+: download Sigilbound-Windows.zip, unzip it, run Sigilbound.exe
+            (Windows may warn about an unknown publisher: More info > Run anyway).
         # Replace the APK in place (never delete the release first, so the link keeps working).
         run: |
           NOTES="Sigilbound (Unity) v$VERSION, build $BUILD (${GITHUB_SHA::7}, branch ${GITHUB_REF_NAME}, $(date -u +%Y-%m-%d)). $NOTES_TAIL"
@@ -206,6 +210,86 @@ jobs:
             gh release create unity-latest Sigilbound-Unity.apk "Sigilbound-Unity-$VERSION-build$BUILD.apk" --prerelease \
               --title "$TITLE" --notes "$NOTES"
           fi
+
+  windows:
+    needs: [checks, secrets, android]
+    # Runs even if the Android build failed, so one platform's problem doesn't block the other.
+    if: ${{ !cancelled() && needs.secrets.outputs.can_build == 'true' && github.event_name != 'pull_request' && needs.checks.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      group: sigilbound-unity-windows-release
+      cancel-in-progress: false
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Prepare hero models and version
+        run: |
+          (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)
+          VERSION=$(node -p "require('fs').readFileSync('public/game/version.js','utf8').match(/version: \"([^\"]+)\"/)[1]")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD=${{ github.run_number }}" >> "$GITHUB_ENV"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: unity/Library
+          key: unity-library-windows-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}-${{ hashFiles('unity/Assets/**') }}
+          restore-keys: |
+            unity-library-windows-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}-
+            unity-library-windows-
+      - name: Build for Windows (game-ci)
+        uses: game-ci/unity-builder@eb1b9fba120c6e62c9fb7a7a81d6c107ce004c45 # v6.0.0
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          cliVersion: v0.1.77
+          projectPath: unity
+          targetPlatform: StandaloneWindows64
+          buildName: Sigilbound
+          buildMethod: Sigilbound.EditorTools.BuildScript.Windows
+          versioning: None
+          allowDirtyBuild: true
+      - name: Zip the Windows build
+        run: |
+          EXE=$(find build unity/build unity/Builds -name 'Sigilbound.exe' 2>/dev/null | head -n 1)
+          if [ -z "$EXE" ]; then echo "::error::No Windows build was produced"; exit 1; fi
+          DIR=$(dirname "$EXE")
+          sudo chown -R "$(id -u)" "$DIR" || true
+          # Debug symbols aren't needed to play.
+          find "$DIR" -maxdepth 1 -name '*_BurstDebugInformation_DoNotShip' -exec rm -rf {} + || true
+          rm -rf Sigilbound-Windows && cp -r "$DIR" Sigilbound-Windows
+          (cd Sigilbound-Windows/.. && zip -qr9 Sigilbound-Windows.zip Sigilbound-Windows)
+          cp Sigilbound-Windows.zip "Sigilbound-Windows-$VERSION-build$BUILD.zip"
+          ls -la Sigilbound-Windows*.zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sigilbound-unity-windows
+          path: Sigilbound-Windows-*.zip
+      - name: Publish to the unity-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Only touches the Windows files, so the Android APKs on the same release stay as they are.
+        run: |
+          if ! gh release view unity-latest >/dev/null 2>&1; then
+            gh release create unity-latest --prerelease --title "Sigilbound (Unity) test builds" \
+              --notes "Sigilbound (Unity) test builds. Android: Sigilbound-Unity.apk. Windows 10+: Sigilbound-Windows.zip (unzip, then run Sigilbound.exe)." || true
+          fi
+          for a in $(gh release view unity-latest --json assets -q '.assets[].name' | grep '^Sigilbound-Windows-' || true); do
+            gh release delete-asset unity-latest "$a" --yes || true
+          done
+          gh release upload unity-latest Sigilbound-Windows.zip "Sigilbound-Windows-$VERSION-build$BUILD.zip" --clobber
 
   # Fallback: headless web activation to get a .ulf license file (needs the Unity account's
   # two-step verification OFF, or UNITY_TOTP_KEY). Unity has been restricting manual activation

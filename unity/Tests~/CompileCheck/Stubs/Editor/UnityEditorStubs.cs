@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace UnityEditor
 {
-    public enum BuildTarget { iOS = 9, Android = 13, StandaloneLinux64 = 24 }
+    public enum BuildTarget { iOS = 9, Android = 13, StandaloneWindows64 = 19, StandaloneLinux64 = 24 }
     public enum BuildTargetGroup { Unknown = 0, Standalone = 1, iOS = 4, Android = 7 }
     [Flags] public enum BuildOptions { None = 0, Development = 1, CompressWithLz4 = 1 << 19, CompressWithLz4HC = 1 << 20, StrictMode = 1 << 21, DetailedBuildReport = 1 << 28 }
     public enum ScriptingImplementation { Mono2x = 0, IL2CPP = 1 }
@@ -61,6 +61,10 @@ namespace UnityEditor
         public static string companyName { get; set; }
         public static string productName { get; set; }
         public static string bundleVersion { get; set; }
+        public static UnityEngine.FullScreenMode fullScreenMode { get; set; }
+        public static int defaultScreenWidth { get; set; }
+        public static int defaultScreenHeight { get; set; }
+        public static bool resizableWindow { get; set; }
         public static ColorSpace colorSpace { get; set; }
         public static UIOrientation defaultInterfaceOrientation { get; set; }
         public static bool allowedAutorotateToPortrait { get; set; }

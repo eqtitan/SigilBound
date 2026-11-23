@@ -42,6 +42,27 @@ namespace Sigilbound.EditorTools
             Build(BuildTarget.Android, string.IsNullOrEmpty(output) ? "Builds/Android/Sigilbound-Unity.apk" : output);
         }
 
+        // Windows 10+ test build (64-bit). Built on the Linux CI runner, which can only make Mono
+        // Windows players (IL2CPP for Windows needs a Windows machine); fine for testing.
+        // Runs as a phone-shaped window you can resize; the UI scales to the window's width.
+        public static void Windows()
+        {
+            ProjectSetup.Apply();
+            PlayerSettings.bundleVersion = Version();
+            var target = UnityEditor.Build.NamedBuildTarget.Standalone;
+            PlayerSettings.SetScriptingBackend(target, ScriptingImplementation.Mono2x);
+            PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
+            PlayerSettings.defaultScreenWidth = 540;
+            PlayerSettings.defaultScreenHeight = 960;
+            PlayerSettings.resizableWindow = true;
+            PlayerSettings.runInBackground = false;
+            var output = Environment.GetEnvironmentVariable("SB_OUTPUT");
+            if (string.IsNullOrEmpty(output)) output = Arg("-customBuildPath");
+            if (string.IsNullOrEmpty(output)) output = "Builds/Windows/Sigilbound.exe";
+            if (!output.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) output = Path.Combine(output, "Sigilbound.exe");
+            Build(BuildTarget.StandaloneWindows64, output);
+        }
+
         public static void iOS() { ProjectSetup.Apply(); PlayerSettings.bundleVersion = Version(); Build(BuildTarget.iOS, "Builds/iOS"); }
 
         static string Arg(string name)
