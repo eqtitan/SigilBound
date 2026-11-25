@@ -1,7 +1,7 @@
 // Campaign world map (docs/sigilbound/PLAN.md step 8), shown in landscape. Sigilbound's own land:
 // a parchment map generated in code (noise coastlines raised along the road, hills and a
 // vignette), a dashed road through ten chapter medallions (element icon, number, six pips for the
-// stages cleared, lock when locked), a side panel with the chosen chapter's stages, and a track
+// stages cleared, lock when locked), the chapter's stage list (PrepScreens.cs DrawStageList), and a track
 // of the real boss first-clear rewards (a Mystic Shard per chapter boss, plus a Radiant Shard
 // every third chapter: Game.StageRewards). Normal/Hard switch top-left. Portrait keeps the list.
 using Sigilbound.Core;
@@ -72,38 +72,11 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(map.x + 96, map.y + 10, 80, 30), "Hard", hard ? Ui.Kind.ChipOn : Ui.Kind.Chip, 12, G.S.cleared > 0)) { _hardTab = true; _chapterOpen = -1; }
             Ui.Text(new Rect(map.xMax - 190, map.y + 10, 180, 30), hard ? $"Hard {G.S.hardCleared}/{G.S.cleared}" : $"{G.S.cleared}/{TotalStages} stages", 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
 
-            if (_chapterOpen >= 0 && _chapterOpen < Chapters.Length) DrawChapterPanel(map, _chapterOpen, hard);
+            if (_chapterOpen >= 0 && _chapterOpen < Chapters.Length) DrawStageList(map, _chapterOpen, hard);
             if (!hard) DrawRewardTrack(new Rect(area.x + 10, map.yMax + 6, area.width - 20, trackH - 8));
         }
 
         Vector2 MapPos(Rect map, int c) => new Vector2(map.x + MapPoints[c].x * map.width, map.y + MapPoints[c].y * map.height);
-
-        // The chosen chapter's stages, in a panel on the side of the map away from its medallion.
-        void DrawChapterPanel(Rect map, int c, bool hard)
-        {
-            float w = Mathf.Min(330, map.width * 0.4f), h = Mathf.Min(map.height - 20, 200);
-            bool right = MapPoints[c].x < 0.5f;
-            var r = new Rect(right ? map.xMax - w - 10 : map.x + 10, map.yMax - h - 10, w, h);
-            Ui.Card(r, true);
-            int first = c * StagesPerChapter;
-            Ui.Text(new Rect(r.x + 14, r.y + 10, r.width - 60, 22), $"{c + 1}. {Chapters[c]}", 15, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
-            Ui.Text(new Rect(r.x + 14, r.y + 32, r.width - 28, 18), $"{Game.ChapterElement(c)} · Lv {Game.StageLevel(first) + (hard ? Game.HardLvl : 0)}–{Game.StageLevel(first + 5) + (hard ? Game.HardLvl : 0)}{(hard ? " · Hard" : "")}", 12, Palette.Dim);
-            var close = new Rect(r.xMax - 38, r.y + 8, 30, 30);
-            if (Ui.Button(close, "", Ui.Kind.Ghost)) { _chapterOpen = -1; return; }
-            Icons.Draw(new Rect(close.x + 8, close.y + 8, 14, 14), Icon.Close, Palette.Dim);
-            float bw = (r.width - 28 - 12) / 3f, bh = (r.height - 66 - 16) / 2f;
-            for (int s = 0; s < StagesPerChapter; s++)
-            {
-                int idx = first + s;
-                var b = new Rect(r.x + 14 + (s % 3) * (bw + 6), r.y + 58 + (s / 3) * (bh + 6), bw, bh);
-                bool open = hard ? G.HardOpen(idx) : idx <= G.S.cleared;
-                bool clear = hard ? idx < G.S.hardCleared : idx < G.S.cleared;
-                bool next = hard ? idx == G.S.hardCleared : idx == G.S.cleared;
-                var kind = clear ? Ui.Kind.Secondary : next ? Ui.Kind.Primary : Ui.Kind.Chip;
-                string label = (Game.IsBossStage(idx) ? "Boss " : "") + Game.StageLabel(idx) + (clear ? "\nCleared" : next ? "\nNext" : "");
-                if (Ui.Button(b, label, kind, 12, open)) OpenPrep(idx, false, ScreenId.Campaign, hard);
-            }
-        }
 
         // Boss first-clear rewards per chapter (Game.StageRewards): ticked once claimed.
         void DrawRewardTrack(Rect r)
