@@ -200,7 +200,13 @@ Unfinished work saved from the stopped agents:
     - Juno got a dancer's skirt, so she doesn't read as a second Ysolde.
   - STEP 28 DONE (2026-11-25): Rhea, Corwin (Execute), and the first new Epics, Astrid (Pierce) and Caspian. Preview: `docs/sigilbound/art/prototype/step28-glass-and-storm.png`.
     - Balance after tuning: Rhea 43% vs Hask/Gorrum, Corwin 51% vs Ysolde/Lumen/Nyx, Astrid 51% vs Kaito/Maelis, Caspian 45% vs Thrain. 52 heroes.
-  - Next (step 29): Ignis (Burn), Lyra, Malachar, Rowan.
+  - STEP 29 DONE (2026-11-25): Ignis (Burn), Lyra, Malachar (Counter), Rowan, all Epic. Preview: `docs/sigilbound/art/prototype/step29-glass-and-storm.png`.
+    - Balance after tuning: Ignis 44% and Lyra 43% vs Sable/Oriel, Malachar 54% and Rowan 49% vs Aurelia. 56 heroes.
+    - Lessons:
+      - Supports without a heal lose badly to Oriel.
+      - Defenders swing hard on Taunt (Rowan 19% without, 87% with a team Regen ward), so shields stay small.
+    - Horns now use the measured head (they were hidden under Malachar's helm). Gorrum is rebaked.
+  - Next (step 30): Selene, Brann (Counter), Ysra, Oswin (Pierce). That finishes phase 2.
 - [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)

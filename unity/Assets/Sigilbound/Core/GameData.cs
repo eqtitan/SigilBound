@@ -151,6 +151,11 @@ namespace Sigilbound.Core
             H("corwin", "Corwin Blackthorn", Rarity.Rare, Element.Shadow, Role.Attack, S("Duel Cut", E, 1.0, 0), S("Shadow Lunge", E, 1.8, 3, F(FxType.DefDown, 2, 0.5)), new SkillDef { Name = "Final Verdict", Target = E, Mult = 1.6, Cooldown = 4, Execute = 0.25 }),
             H("astrid", "Astrid Windrider", Rarity.Epic, Element.Gale, Role.Attack, new SkillDef { Name = "Sky Lance", Target = E, Mult = 1.1, Pierce = true }, S("Windrider", E, 1.7, 3, F(FxType.SpdUp, 2, -1, FxTo.Self)), S("Stormdive", AE, 1.2, 4, F(FxType.Slow, 2, 0.5))),
             H("caspian", "Caspian Deepwell", Rarity.Epic, Element.Tide, Role.Hp, S("Tide Crown", E, 0.085, 0, 1, Scale.Hp), S("Deep Ward", AA, 0, 4, Shield(0.16), F(FxType.Taunt, 2, -1, FxTo.Self)), S("Drowned King's Grace", AA, 0, 5, F(FxType.Regen, 2), F(FxType.DefUp, 2))),
+            // Step 29:
+            H("ignis", "Ignis Kael", Rarity.Epic, Element.Flame, Role.Support, S("Pyre Spark", E, 1.0, 0, F(FxType.Burn, 2, 0.4)), S("Eternal Flame", AA, 0, 4, F(FxType.AtkUp, 2), TmUp(0.2), Heal(0.28)), S("Firestorm Rite", AE, 0.6, 4, F(FxType.Burn, 2, 0.7))),
+            H("lyra", "Lyra Starglass", Rarity.Epic, Element.Light, Role.Support, S("Glass Beam", E, 1.0, 0, F(FxType.AtkDown, 2, 0.3)), S("Starglass Hymn", AA, 0, 4, Heal(0.25), Cleanse()), S("Oracle's Sight", AA, 0, 5, F(FxType.AtkUp, 2), F(FxType.SpdUp, 2))),
+            H("malachar", "Malachar Gloomhand", Rarity.Epic, Element.Shadow, Role.Defense, S("Gloom Bash", E, 0.95, 0, 1, Scale.Def, F(FxType.DefDown, 2, 0.4)), S("Broken Chains", SELF, 0, 4, Shield(0.05), F(FxType.Taunt, 2), F(FxType.Counter, 2)), S("Hollow Quake", AE, 0.8, 5, 1, Scale.Def, F(FxType.DefDown, 2, 0.5))),
+            H("rowan", "Rowan Thornheart", Rarity.Epic, Element.Gale, Role.Defense, S("Thorn Bash", E, 0.95, 0, 1, Scale.Def, F(FxType.Slow, 2, 0.3)), S("Old Wood Ward", AA, 0, 5, Shield(0.04)), S("Wardenroot", SELF, 0, 5, F(FxType.Taunt, 2), F(FxType.DefUp, 1))),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web

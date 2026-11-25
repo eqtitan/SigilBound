@@ -140,6 +140,10 @@ namespace Sigilbound.Core
             ["corwin"] = new HeroLook { Skin = "pale", Hair = "#1a1a24", Style = "spiky", Gear = "none", Armor = "#2a2238", Accent = "#c070ff", Cloth = "#1a1428", Prop = "katana", Beard = "stubble", Glow = "#d090ff", Base = "adventurer", Height = 1.03 },
             ["astrid"] = new HeroLook { Skin = "fair", Hair = "#e8e8f0", Style = "ponytail", Gear = "none", Armor = "#6a90b0", Accent = "#c8f0ff", Cloth = "#3a5a7a", Prop = "spear", Glow = "#c8f0ff", Cape = true, CapeColor = "#2a4a6a", Base = "adventurer", Height = 1.04, Shave = true },
             ["caspian"] = new HeroLook { Skin = "brown", Hair = "#1a3a4a", Style = "long", Gear = "crown", Armor = "#1a5a6a", Accent = "#5ae0e0", Cloth = "#0e3a48", Prop = "trident", Beard = "full", Glow = "#5ae0e0", Cape = true, CapeColor = "#0e3a48", Base = "monarch", Height = 1.08 },
+            ["ignis"] = new HeroLook { Skin = "deep", Hair = "#ff6a1a", Style = "flame", Gear = "none", Armor = "#6a1a10", Accent = "#ffc040", Cloth = "#3a0e08", Prop = "staff", Glow = "#ffb030", Robe = "long", RobeColor = "#3a0e08", Base = "adventurer", Height = 1.03, Shave = true },
+            ["lyra"] = new HeroLook { Skin = "pale", Hair = "#e8f0ff", Style = "long", Gear = "halo", Armor = "#c8d8f0", Accent = "#e0f0ff", Cloth = "#8aa0c8", Prop = "mirror", Glow = "#e8f4ff", Robe = "long", RobeColor = "#8aa0c8", Base = "hooded", Height = 1.0, Hide = new[] { "hood" } },
+            ["malachar"] = new HeroLook { Skin = "ash", Hair = "#2a2030", Style = "short", Gear = "horns", Armor = "#2a2434", Accent = "#a070ff", Cloth = "#1a1424", Prop = "shield", Glow = "#b080ff", Cape = true, CapeColor = "#140e1a", Base = "monarch", Height = 1.1, Hide = new[] { "crown" } },
+            ["rowan"] = new HeroLook { Skin = "tan", Hair = "#5a4a2a", Style = "long", Gear = "none", Armor = "#3a5a2a", Accent = "#c8e080", Cloth = "#2a4020", Prop = "shield", Beard = "full", Cape = true, CapeColor = "#1e3418", Base = "monarch", Height = 1.05, Hide = new[] { "crown" } },
         };
     }
 }

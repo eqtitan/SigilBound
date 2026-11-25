@@ -141,6 +141,15 @@ HEROES = {
                    hide=[], kit=["ponytail", "spear", "cape"], rim="#3fb57a", height=1.04),
     "caspian": dict(base="monarch", skin="brown", hair="#1a3a4a", armor="#1a5a6a", accent="#5ae0e0", cloth="#0e3a48", glow="#5ae0e0", cape="#0e3a48",
                    hide=[], kit=["long_hair", "beard", "trident", "cape"], rim="#3a8ee8", height=1.08),
+    # Step 29:
+    "ignis":  dict(base="adventurer", skin="deep", hair="#ff6a1a", armor="#6a1a10", accent="#ffc040", cloth="#3a0e08", glow="#ffb030",
+                   hide=["hair"], kit=["flame_hair", "staff", "robe"], rim="#ff7a3a", height=1.03),
+    "lyra":   dict(base="hooded", skin="pale", hair="#e8f0ff", armor="#c8d8f0", accent="#e0f0ff", cloth="#8aa0c8", glow="#e8f4ff",
+                   hide=["hood"], kit=["long_hair", "halo", "mirror", "robe"], rim="#ffe27a", height=1.0),
+    "malachar": dict(base="monarch", skin="ash", hair="#2a2030", armor="#2a2434", accent="#a070ff", cloth="#1a1424", glow="#b080ff", cape="#140e1a",
+                   hide=["crown", "hair"], kit=["helm", "horns", "shield", "cape"], rim="#a050ff", height=1.1),
+    "rowan":  dict(base="monarch", skin="tan", hair="#5a4a2a", armor="#3a5a2a", accent="#c8e080", cloth="#2a4020", glow=None, cape="#1e3418",
+                   hide=["crown"], kit=["long_hair", "beard", "shield", "cape"], rim="#3fb57a", height=1.05),
 }
 
 def palette(h):
@@ -175,7 +184,7 @@ ROLES = {
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
 }
 # Clean-shaven heroes (Shave = true in Core/Looks.cs): their beard is removed (adventurer heads only).
-SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid"}
+SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis"}
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}
@@ -323,8 +332,9 @@ def kit(h, arm, P, head_mesh):
             out.append(rigid(F.box("Nasal", H(0, -1.0, 0.15), (half.x * 0.09, half.x * 0.05, half.z * 0.25)), arm, "Head", P["Steel"]))
         elif k == "horns":
             for s in (-1, 1):
-                pts = [head + Vector((s * hh * 0.45, 0, hh * 0.75)), head + Vector((s * hh * 1.0, 0, hh * 1.05)), head + Vector((s * hh * 1.15, -hh * 0.1, hh * 1.6))]
-                out.append(rigid(F.strand(f"Horn{s}", pts, hh * 0.16, hh * 0.02), arm, "Head", P["White"]))
+                # From the sides of the crown, out and up (measured head, so they clear a helm).
+                pts = [H(s * 0.8, 0.05, 0.55), H(s * 1.35, 0.0, 0.95), H(s * 1.5, -0.15, 1.6)]
+                out.append(rigid(F.strand(f"Horn{s}", pts, half.x * 0.22, half.x * 0.03), arm, "Head", P["White"]))
         elif k == "whip":
             W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
             out.append(rigid(F.strand("Grip", [W(0, 0.02, 0), W(0, 0.16, 0)], 0.022), arm, "Wrist.R", P["Accent"]))
