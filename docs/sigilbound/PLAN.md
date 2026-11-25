@@ -77,9 +77,14 @@ Unfinished work saved from the stopped agents:
     - The reward track shows the real boss first-clear rewards from `Game.StageRewards`.
     - The chapter panel's stage buttons go to Prep. Step 9 should restyle that panel into the full stage list (enemies, drops).
   - Ideas for later: painted landmarks per chapter (towers, ruins) on the map; an animated marker on the current chapter.
-- [ ] **9. Stage list and team setup.**
+- [x] **9. Stage list and team setup.** (2026-11-25, step/9)
   - Stage rows: stars, enemies, drops, Battle button.
   - Team setup: you vs the enemy, the element wheel, power, a hero picker with filter, sort and presets.
+  - DONE: PrepScreens.cs, landscape only (portrait keeps the old screens). Everything is real game data.
+    - The stage list draws on the world map when a chapter is chosen (`DrawStageList`). Enemies come from StageWaves/HardWaves, drops from StageRewards/HardRewards, and the gear chance is 45%/90%.
+    - Team setup (`DrawPrepWide`) is three columns: team and presets; element wheel and waves; hero picker with filter and sort.
+  - There's no leader or aura: the game has no auras, so none were invented. There are no stars either, only the cleared ticks.
+  - Check first in the screenshots: the density of the stage rows on a 480-tall canvas (rows are about 40 high), and the wave chip widths with 3 enemies.
 - [ ] **10. Battle presentation.** Wide camera, slim HP bars with level, wave counter and timer, corner Auto/speed/pause, slim skill bar, tags that don't overlap.
 - [ ] **11. Results screen.** Banner with stars and time, rewards, per-hero damage dealt / taken / healing, and Replay / Edit Team / Next.
 
