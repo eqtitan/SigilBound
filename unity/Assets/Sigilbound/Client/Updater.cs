@@ -6,6 +6,7 @@
 // screen, without a restart. It starts itself (no scene setup) and draws its own banner, so it
 // works on every screen. Disabled in the editor and in local builds without a build number.
 using System.Collections;
+using System.IO;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -115,13 +116,79 @@ namespace Sigilbound.Client
             float closeW = 36 * k, btnW = 120 * k;
             GUI.Label(new Rect(r.x + pad, r.y + 8 * k, w - btnW - closeW - 3 * pad, 24 * k), "Update available", _title);
             GUI.Label(new Rect(r.x + pad, r.y + 34 * k, w - btnW - closeW - 3 * pad, 20 * k),
-                $"v{LatestVersion} · build {LatestBuild} (you have build {MyBuild})", _sub);
-            if (GUI.Button(new Rect(r.xMax - btnW - closeW - pad, r.y + 12 * k, btnW, h - 24 * k), "Download", _btn))
-                Application.OpenURL(FileUrl);
+                _installing != null ? _installing : $"v{LatestVersion} · build {LatestBuild} (you have build {MyBuild})", _sub);
+            var btn = new Rect(r.xMax - btnW - closeW - pad, r.y + 12 * k, btnW, h - 24 * k);
+            if (_installing != null)
+            {
+                // Download progress bar in place of the button.
+                GUI.Box(btn, GUIContent.none, _box);
+                GUI.DrawTexture(new Rect(btn.x, btn.y, btn.width * Mathf.Clamp01(_progress), btn.height), _btn.normal.background);
+            }
+            else if (GUI.Button(btn, Application.platform == RuntimePlatform.WindowsPlayer ? "Update now" : "Download", _btn))
+            {
+                if (Application.platform == RuntimePlatform.WindowsPlayer) StartCoroutine(UpdateWindows());
+                else Application.OpenURL(FileUrl);
+            }
             var close = new Rect(r.xMax - closeW - pad * 0.5f, r.y + 14 * k, closeW, h - 28 * k);
             if (GUI.Button(close, "", _close)) _dismissed = true;
             float ic = Mathf.Min(close.width, close.height) * 0.5f;
             Icons.Draw(new Rect(close.center.x - ic / 2, close.center.y - ic / 2, ic, ic), Icon.Close, Palette.Dim);
+        }
+
+        // ---------- Windows: update in place ----------
+        // Downloads the new zip, then hands over to a hidden PowerShell helper that waits for the
+        // game to close, unpacks the zip over this install folder (no second copy kept), deletes the
+        // download and starts the new build. Progress is saved in PlayerPrefs (the Windows
+        // registry), not in the game folder, so it carries over. Any failure falls back to the link.
+        string _installing; float _progress;
+
+        IEnumerator UpdateWindows()
+        {
+            _installing = "Downloading the update…"; _progress = 0;
+            string work = Path.Combine(Path.GetTempPath(), "sigilbound-update");
+            string zip = Path.Combine(work, "Sigilbound-Windows.zip");
+            try { if (Directory.Exists(work)) Directory.Delete(work, true); Directory.CreateDirectory(work); }
+            catch (System.Exception) { Fallback(); yield break; }
+            using (var req = new UnityWebRequest(FileUrl, UnityWebRequest.kHttpVerbGET))
+            {
+                req.downloadHandler = new DownloadHandlerFile(zip) { removeFileOnAbort = true };
+                req.SetRequestHeader("User-Agent", "Sigilbound-Unity");
+                var op = req.SendWebRequest();
+                while (!op.isDone) { _progress = req.downloadProgress; yield return null; }
+                if (req.result != UnityWebRequest.Result.Success) { Fallback(); yield break; }
+            }
+            _progress = 1; _installing = "Installing… the game will restart.";
+            yield return null;
+            try
+            {
+                string dir = Path.GetDirectoryName(Application.dataPath); // the folder holding Sigilbound.exe
+                string exe = Path.Combine(dir, "Sigilbound.exe");
+                if (!File.Exists(exe)) exe = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+                string Q(string v) => "'" + v.Replace("'", "''") + "'";
+                string ps1 = Path.Combine(Path.GetTempPath(), "sigilbound-update.ps1");
+                File.WriteAllText(ps1,
+                    "$ErrorActionPreference = 'SilentlyContinue'\r\n" +
+                    $"Wait-Process -Id {System.Diagnostics.Process.GetCurrentProcess().Id} -Timeout 60\r\n" +
+                    $"$x = Join-Path {Q(work)} 'x'\r\n" +
+                    $"Expand-Archive -LiteralPath {Q(zip)} -DestinationPath $x -Force\r\n" +
+                    "$src = Get-ChildItem -LiteralPath $x -Directory | Select-Object -First 1\r\n" +
+                    "if ($src -and (Test-Path (Join-Path $src.FullName 'Sigilbound.exe'))) {\r\n" +
+                    $"  robocopy $src.FullName {Q(dir)} /E /R:5 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null\r\n" +
+                    "}\r\n" +
+                    $"Remove-Item -LiteralPath {Q(work)} -Recurse -Force\r\n" +
+                    $"Start-Process -FilePath {Q(exe)}\r\n");
+                var psi = new System.Diagnostics.ProcessStartInfo("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{ps1}\"")
+                { UseShellExecute = false, CreateNoWindow = true };
+                System.Diagnostics.Process.Start(psi);
+            }
+            catch (System.Exception e) { Debug.LogWarning("Sigilbound: in-place update failed: " + e.Message); Fallback(); yield break; }
+            Application.Quit();
+        }
+
+        void Fallback()
+        {
+            _installing = null;
+            Application.OpenURL(FileUrl);
         }
 
         void EnsureStyles()
