@@ -22,6 +22,7 @@ namespace Sigilbound.Client
         public static int MyBuild { get; private set; }
         public static int LatestBuild { get; private set; }
         public static string LatestVersion { get; private set; } = "";
+        static string _latestFile; // the exact versioned asset found (e.g. Sigilbound-Unity-0.21.1-build23.apk)
 
         float _lastCheck = -999f;
         bool _busy, _dismissed;
@@ -44,10 +45,12 @@ namespace Sigilbound.Client
         }
 
         static string AssetPattern => Application.platform == RuntimePlatform.Android
-            ? @"""name""\s*:\s*""Sigilbound-Unity-([0-9.]+)-build(\d+)\.apk"""
-            : @"""name""\s*:\s*""Sigilbound-Windows-([0-9.]+)-build(\d+)\.zip""";
+            ? @"""name""\s*:\s*""(Sigilbound-Unity-([0-9.]+)-build(\d+)\.apk)"""
+            : @"""name""\s*:\s*""(Sigilbound-Windows-([0-9.]+)-build(\d+)\.zip)""";
 
-        static string FileUrl => Download + (Application.platform == RuntimePlatform.Android ? "Sigilbound-Unity.apk" : "Sigilbound-Windows.zip");
+        // Download the exact versioned file the check found: the fixed-name copy can briefly go missing
+        // while two builds publish over each other (that gave the owner a 404).
+        static string FileUrl => Download + (_latestFile ?? (Application.platform == RuntimePlatform.Android ? "Sigilbound-Unity.apk" : "Sigilbound-Windows.zip"));
 
         void Start()
         {
@@ -88,13 +91,13 @@ namespace Sigilbound.Client
                 yield return req.SendWebRequest();
                 _busy = false;
                 if (req.result != UnityWebRequest.Result.Success) yield break; // offline or rate-limited: try later
-                int best = 0; string ver = "";
+                int best = 0; string ver = "", file = null;
                 foreach (Match m in Regex.Matches(req.downloadHandler.text, AssetPattern))
-                    if (int.TryParse(m.Groups[2].Value, out var b) && b > best) { best = b; ver = m.Groups[1].Value; }
+                    if (int.TryParse(m.Groups[3].Value, out var b) && b > best) { best = b; ver = m.Groups[2].Value; file = m.Groups[1].Value; }
                 if (best > MyBuild)
                 {
                     if (best != LatestBuild) _dismissed = false; // a newer build than the one dismissed
-                    LatestBuild = best; LatestVersion = ver;
+                    LatestBuild = best; LatestVersion = ver; _latestFile = file;
                 }
                 else LatestBuild = 0;
             }
