@@ -45,6 +45,10 @@ namespace Sigilbound.Client
                 { "#28203a", "#c8a870", "#2c2640", "#14101e" }, { "#2a2438", "#e0b0d0", "#3a2e4a", "#ffd0f0" },
                 { "#101a2e", "#5a7ab0", "#1a2440", "#0c1220" }, { "#0e0a16", "#3a2a5a", "#180f26", "#b080ff" },
                 { "#0e1a2a", "#2a5a7a", "#10283c", "#80e0ff" }, { "#1a0a0a", "#ff6a2a", "#24100c", "#100606" },
+                // act 2: harbor dusk, black fens, barrow mist, ember groves, storm coast
+                { "#1a2436", "#c89060", "#22262a", "#ffcf70" }, { "#080e0a", "#2a3a28", "#0e160e", "#b0ff6a" },
+                { "#1a1c26", "#8a8e9a", "#24262c", "#d8e0f0" }, { "#140806", "#c04a1a", "#1e100c", "#ff9a3a" },
+                { "#0a1018", "#3a4a5e", "#141a22", "#b8d0ff" },
             };
             int c = GameData.ThemeOf(chapter); // act 2 chapters use their own theme picks
             return (Hex(s[c, 0]), Hex(s[c, 1]), Hex(s[c, 2]), Hex(s[c, 3]));

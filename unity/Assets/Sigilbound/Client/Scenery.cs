@@ -1,4 +1,5 @@
-// Battle arenas after game3d/scenery.mjs: the ten chapter themes (same colours, scaled like the web
+// Battle arenas after game3d/scenery.mjs: the ten chapter themes, plus five act 2 themes (harbor
+// posts and lanterns, fen dead trees and reeds, barrow stones and mounds, glowing ember groves, storm-coast rain) (same colours, scaled like the web
 // rig), a two-tone ground with a worn patch around the rune circle and a winding dirt path, water or
 // lava where the theme has them, scatter (grass tufts, rocks, trees with themed leaves, crystals,
 // mushrooms, badland strata), dark silhouettes on the horizon, and drifting motes (leaves, spray,
@@ -14,6 +15,9 @@ namespace Sigilbound.Client
         sealed class Theme
         {
             public string Name, Grass, Grass2, Worn, Hill, Rock, Bark, Tuft, Cloth, Sil, Water, Motes, MoteColor; public string[] Leaves, Strata; public bool Crystals, Mushrooms;
+            // Act 2 scatter: pier posts and crates, glowing lantern posts, bare dead trees, reeds,
+            // standing stones and barrow mounds; and glowing leaves (the ember groves).
+            public bool Posts, Lanterns, DeadTrees, Reeds, Stones, GlowLeaves;
         }
         // scenery.mjs THEMES and TITAN_THEME.
         static readonly Theme[] Themes =
@@ -28,6 +32,12 @@ namespace Sigilbound.Client
             new Theme { Name = "amethyst badlands", Grass = "#5e4e6c", Grass2 = "#6f5c80", Worn = "#9584a6", Hill = "#54466a", Rock = "#5e4c70", Bark = "#4a3c4e", Strata = new[] { "#56466c", "#6f5c86", "#463a5a", "#88729e" }, Tuft = "#6a5a7a", Cloth = "#3a2a5a", Sil = "#221a36", Motes = "sparks", MoteColor = "#c890ff", Crystals = true },
             new Theme { Name = "glow marsh", Grass = "#2c4846", Grass2 = "#385850", Worn = "#5e586c", Hill = "#284242", Rock = "#4a5460", Bark = "#38384a", Leaves = new[] { "#2a4a4a" }, Tuft = "#4a7a6a", Water = "#123040", Cloth = "#2a3a5a", Sil = "#122838", Motes = "fireflies", MoteColor = "#80e8ff", Mushrooms = true },
             new Theme { Name = "burning ruins", Grass = "#665834", Grass2 = "#7a6238", Worn = "#8a7a6a", Hill = "#5a4a30", Rock = "#7a6e64", Bark = "#4a3a2e", Leaves = new[] { "#5a5a2a", "#7a5a26" }, Tuft = "#7a6a3a", Cloth = "#6a1a1a", Sil = "#381410", Motes = "embers", MoteColor = "#ff8a3a", Crystals = true },
+            // Act 2 (GameData.ThemeOf: chapters 11-15).
+            new Theme { Name = "saltreach harbor", Grass = "#8a8070", Grass2 = "#9a907c", Worn = "#6e6658", Hill = "#7a7262", Rock = "#5a5c62", Bark = "#5a4632", Tuft = "#7a7a5a", Water = "#163a4a", Cloth = "#c8b890", Sil = "#1e2c3a", Motes = "spray", MoteColor = "#e0f0ff", Posts = true, Lanterns = true },
+            new Theme { Name = "black fens", Grass = "#1e2a20", Grass2 = "#26322a", Worn = "#3a3a30", Hill = "#1a2620", Rock = "#3a4038", Bark = "#2a2620", Tuft = "#3a4a30", Water = "#0a1410", Cloth = "#2a3020", Sil = "#0e1812", Motes = "fireflies", MoteColor = "#b0ff6a", DeadTrees = true, Reeds = true, Mushrooms = true },
+            new Theme { Name = "wraithmoor barrows", Grass = "#56584a", Grass2 = "#626452", Worn = "#7a7868", Hill = "#4a4c40", Rock = "#6a6c70", Bark = "#3a3632", Tuft = "#6a6a52", Cloth = "#3a3a4a", Sil = "#202230", Motes = "dust", MoteColor = "#d8e0f0", Stones = true, DeadTrees = true },
+            new Theme { Name = "ember groves", Grass = "#3a3230", Grass2 = "#4a3c34", Worn = "#5a4a40", Hill = "#34302e", Rock = "#4a4440", Bark = "#2a2220", Leaves = new[] { "#ff7a2a", "#ffaa3a", "#e04a1a" }, Tuft = "#5a4a3a", Cloth = "#6a1a10", Sil = "#2a0e0a", Motes = "embers", MoteColor = "#ff9a3a", GlowLeaves = true },
+            new Theme { Name = "storm coast", Grass = "#4a5052", Grass2 = "#565c5c", Worn = "#6a6a66", Hill = "#3e4446", Rock = "#3a3e46", Bark = "#3a3432", Tuft = "#5a6456", Water = "#0e2234", Cloth = "#8a9aa8", Sil = "#0e1622", Motes = "rain", MoteColor = "#b8d0ff", Stones = true },
         };
         static readonly Theme TitanTheme = new Theme { Name = "titan caldera", Grass = "#3a3436", Grass2 = "#463e3e", Worn = "#6a625e", Hill = "#332e30", Rock = "#2e2a2e", Bark = "#2a2222", Tuft = "#3a3030", Cloth = "#5a1a10", Sil = "#1e0c0a", Motes = "embers", MoteColor = "#ff7a2a" };
         public static string ThemeName(int chapter, bool titan) => titan ? TitanTheme.Name : Themes[GameData.ThemeOf(chapter)].Name;
@@ -73,7 +83,8 @@ namespace Sigilbound.Client
                 float a = R(0, Mathf.PI * 2), r = R(6.5f, 22f), x = Mathf.Cos(a) * r, z = Mathf.Sin(a) * r * 0.9f + 4f;
                 if (Clear(x, z)) continue;
                 float s = R(0.6f, 1.6f), pick = R(0, 1);
-                if (th.Leaves != null && pick < 0.35f) Tree(root, new Vector3(x, 0, z), s, bark, th.Leaves, R);
+                if (Act2Prop(root, th, new Vector3(x, 0, z), s, pick, bark, rock, R)) continue;
+                if (th.Leaves != null && pick < 0.35f) Tree(root, new Vector3(x, 0, z), s, bark, th.Leaves, R, th.GlowLeaves ? th.MoteColor : null);
                 else if (pick < 0.6f) Rock(root, new Vector3(x, 0, z), s, rock, R);
                 else if (th.Strata != null && pick < 0.8f) Mesa(root, new Vector3(x, 0, z), s, th.Strata, R);
                 else if (th.Crystals && pick < 0.75f) Prop(root, PrimitiveType.Cube, new Vector3(x, 0.6f * s, z), new Vector3(0.3f, 1.2f, 0.3f) * s, Materials.Glow(Palette.Hex(th.MoteColor) * 0.4f, Palette.Hex(th.MoteColor), 1.2f), new Vector3(R(-15, 15), 45, R(-15, 15)));
@@ -119,7 +130,50 @@ namespace Sigilbound.Client
 
         // Faceted low-poly trees as in scenery.mjs: a broadleaf (tapered trunk, clustered faceted
         // canopy) or, about a third of the time, a pine of stacked cones.
-        static void Tree(Transform root, Vector3 p, float s, Material bark, string[] leaves, System.Func<float, float, float> R)
+        // Act 2 scatter. Returns true when it placed something for this slot.
+        static bool Act2Prop(Transform root, Theme th, Vector3 p, float s, float pick, Material bark, Material rock, System.Func<float, float, float> R)
+        {
+            if (th.Posts && pick < 0.3f)
+            {
+                // A pier post, sometimes with a crate stack beside it.
+                Prop(root, PrimitiveType.Cylinder, p + Vector3.up * 0.7f * s, new Vector3(0.18f, 0.7f, 0.18f) * s, bark);
+                if (R(0, 1) < 0.5f) Prop(root, PrimitiveType.Cube, p + new Vector3(0.5f, 0.25f, 0) * s, Vector3.one * 0.5f * s, Materials.Lit(D(th.Cloth, AP), 0, 0.1f), new Vector3(0, R(0, 90), 0));
+                return true;
+            }
+            if (th.Lanterns && pick < 0.42f)
+            {
+                Prop(root, PrimitiveType.Cylinder, p + Vector3.up * 1.1f * s, new Vector3(0.07f, 1.1f, 0.07f) * s, bark);
+                Prop(root, PrimitiveType.Sphere, p + Vector3.up * 2.25f * s, Vector3.one * 0.26f * s, Materials.Glow(Palette.Hex("#3a2a10"), Palette.Hex("#ffcf70"), 1.6f));
+                return true;
+            }
+            if (th.DeadTrees && pick < 0.3f)
+            {
+                // A bare, leaning trunk with a few crooked branches.
+                float h = R(1.8f, 3.0f) * s, lean = R(-12, 12);
+                Prop(root, PrimitiveType.Cylinder, p + Vector3.up * h * 0.5f, new Vector3(0.14f * s, h * 0.5f, 0.14f * s), bark, new Vector3(lean, R(0, 360), 0));
+                for (int i = 0; i < 3; i++)
+                    Prop(root, PrimitiveType.Cylinder, p + Vector3.up * h * R(0.55f, 0.9f), new Vector3(0.05f, 0.45f, 0.05f) * s, bark, new Vector3(R(35, 70), R(0, 360), 0));
+                return true;
+            }
+            if (th.Reeds && pick < 0.5f)
+            {
+                var reed = Materials.Lit(D(th.Tuft, AG), 0, 0.1f);
+                for (int i = 0; i < 6; i++)
+                    Prop(root, PrimitiveType.Cylinder, p + new Vector3(R(-0.4f, 0.4f), 0.5f * s, R(-0.4f, 0.4f)), new Vector3(0.03f, 0.5f * s, 0.03f), reed, new Vector3(R(-10, 10), 0, R(-10, 10)));
+                return true;
+            }
+            if (th.Stones && pick < 0.35f)
+            {
+                if (R(0, 1) < 0.65f) // a standing stone
+                    Prop(root, PrimitiveType.Cube, p + Vector3.up * 0.9f * s, new Vector3(0.5f, 1.8f, 0.35f) * s, rock, new Vector3(R(-6, 6), R(0, 360), R(-6, 6)));
+                else // a barrow mound
+                    Prop(root, PrimitiveType.Sphere, p, new Vector3(2.4f, 1.0f, 1.8f) * s, Materials.Lit(D(th.Hill, AP), 0, 0.08f));
+                return true;
+            }
+            return false;
+        }
+
+        static void Tree(Transform root, Vector3 p, float s, Material bark, string[] leaves, System.Func<float, float, float> R, string glow = null)
         {
             int V() => (int)R(0, LowPoly.Variants - 0.01f);
             if (R(0, 1) < 0.33f)
@@ -142,7 +196,8 @@ namespace Sigilbound.Client
                 var c = D(leaves[(int)R(0, leaves.Length - 0.01f)], AP);
                 float r = R(0.75f, 1.15f) * s;
                 var at = p + new Vector3(R(-0.55f, 0.55f) * s, trunkH + R(0.2f, 0.9f) * s, R(-0.55f, 0.55f) * s);
-                MeshProp(root, LowPoly.Blob(V(), 0.12f), at, new Vector3(r, r * R(0.8f, 1f), r), Materials.Lit(c, 0, 0.08f), new Vector3(R(0, 360), R(0, 360), R(0, 360)));
+                var leafMat = glow != null ? Materials.Glow(c * 0.5f, Palette.Hex(glow), 0.8f) : Materials.Lit(c, 0, 0.08f); // ember groves: glowing leaves
+                MeshProp(root, LowPoly.Blob(V(), 0.12f), at, new Vector3(r, r * R(0.8f, 1f), r), leafMat, new Vector3(R(0, 360), R(0, 360), R(0, 360)));
             }
         }
 
@@ -226,8 +281,9 @@ namespace Sigilbound.Client
             main.startColor = new ParticleSystem.MinMaxGradient(c, Color.Lerp(c, Color.white, 0.3f));
             main.startSize = th.Motes == "leaves" || th.Motes == "petals" ? new ParticleSystem.MinMaxCurve(0.08f, 0.16f) : new ParticleSystem.MinMaxCurve(0.03f, 0.08f);
             main.startSpeed = 0.2f;
-            main.gravityModifier = th.Motes == "embers" || th.Motes == "sparks" ? -0.02f : th.Motes == "leaves" || th.Motes == "petals" ? 0.01f : 0f;
-            var em = ps.emission; em.rateOverTime = 20 * density;
+            main.gravityModifier = th.Motes == "embers" || th.Motes == "sparks" ? -0.02f : th.Motes == "leaves" || th.Motes == "petals" ? 0.01f : th.Motes == "rain" ? 0.6f : 0f;
+            if (th.Motes == "rain") { main.startLifetime = 1.6f; main.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.04f); }
+            var em = ps.emission; em.rateOverTime = (th.Motes == "rain" ? 90 : 20) * density;
             var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(16, 4, 12);
             var noise = ps.noise; noise.enabled = true; noise.strength = th.Motes == "fireflies" ? 0.6f : 0.35f; noise.frequency = 0.3f;
             var col = ps.colorOverLifetime; col.enabled = true;

@@ -281,8 +281,26 @@ namespace Sigilbound.Core
         public static int ClassicStages => ClassicChapters * StagesPerChapter;
         public static int ActOf(int chapter) => chapter < ClassicChapters ? 1 : 2;
         // Scenery/colour-grade theme per chapter: act 2 picks act 1 themes that suit the coast and fens.
-        static readonly int[] Act2Themes = { 1, 8, 7, 9, 6 }; // teal shore, glow marsh, amethyst badlands, burning ruins, moonlit shore
-        public static int ThemeOf(int chapter) => chapter < ClassicChapters ? ((chapter % 10) + 10) % 10 : Act2Themes[(chapter - ClassicChapters) % Act2Themes.Length];
+        // Act 2 chapters have their own themes 10-14 (harbor, fens, barrows, ember groves, storm coast).
+        public static int ThemeOf(int chapter) => chapter < ClassicChapters ? ((chapter % 10) + 10) % 10 : ClassicChapters + (chapter - ClassicChapters) % 5;
+
+        // Act 2 story (Unity only): the introduction shown once when Act II opens, and a few lines per
+        // chapter at the top of its stage list.
+        public const string Act2Title = "Act II · The Sigil Bearers";
+        public const string Act2Intro =
+            "The Last Pyre is quiet, but the Sigil did not mend. Its five shards fled west on the storm, " +
+            "to the harbour city of Saltreach, and each has chosen a bearer. The Hollow follow them, and so do you. " +
+            "Find the bearers before the Hollow King does.";
+        public static readonly string[] ChapterStory =
+        {
+            null, null, null, null, null, null, null, null, null, null, // act 1 has no chapter text
+            "Saltreach's lamps still burn, but the docks are full of Hollow. A street urchin swears the Flame shard sleeps in the old lighthouse.",
+            "Beyond the city walls the fens are black and still. Something drowned here has learned to walk, and it carries the Shadow shard's chill.",
+            "The barrows of Wraithmoor hum at night. The dead kings beneath them are restless, and the Tide shard sings under the stones.",
+            "The ember groves never stop burning. A Light shard fell among the trees, and the fire answered it.",
+            "On the storm coast the last bearer waits, and so does the Hollow King. The Gale shard screams in the lightning. End it here.",
+        };
+        public static string StoryOf(int chapter) => chapter >= 0 && chapter < ChapterStory.Length ? ChapterStory[chapter] : null;
         // Enemy stat multiplier curve, tuned with the progression sim (see tools/sigilbound-balance-sim.cjs).
         public static class Curve
         {

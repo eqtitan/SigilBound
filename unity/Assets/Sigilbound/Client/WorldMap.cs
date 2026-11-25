@@ -32,6 +32,16 @@ namespace Sigilbound.Client
             bool hard = _hardTab && G.S.cleared > 0;
             int progressAll = hard ? G.S.hardCleared : G.S.cleared;
             bool act2Open = G.S.cleared >= ClassicStages;
+            if (act2Open && !ModalOpen && PlayerPrefs.GetInt("sb.act2Intro", 0) == 0)
+            {
+                PlayerPrefs.SetInt("sb.act2Intro", 1); PlayerPrefs.Save();
+                _act = 2;
+                Modal(Act2Title, 300, b =>
+                {
+                    Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), Act2Intro, 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                    if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "To Saltreach")) CloseModal();
+                });
+            }
             int act = _act != 0 ? _act : (act2Open && progressAll >= ClassicStages ? 2 : 1);
             if (act == 2 && !act2Open) act = 1;
             var pts = act == 1 ? MapPoints : MapPoints2;

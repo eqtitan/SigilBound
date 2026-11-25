@@ -31,7 +31,8 @@ namespace Sigilbound.Client
         void DrawStageList(Rect map, int c, bool hard)
         {
             float w = Mathf.Min(map.width * 0.62f, 640), h = map.height - 16;
-            bool right = MapPoints[c].x < 0.5f;
+            var pt = c < ClassicChapters ? MapPoints[c] : MapPoints2[c - ClassicChapters]; // act 2 chapters have their own map points
+            bool right = pt.x < 0.5f;
             var r = new Rect(right ? map.xMax - w - 8 : map.x + 8, map.y + 8, w, h);
             Ui.Card(r, true);
             int first = c * StagesPerChapter;
@@ -41,7 +42,14 @@ namespace Sigilbound.Client
             var close = new Rect(r.xMax - 36, r.y + 8, 28, 28);
             if (Ui.Button(close, "", Ui.Kind.Ghost)) { _chapterOpen = -1; return; }
             Icons.Draw(new Rect(close.x + 7, close.y + 7, 14, 14), Icon.Close, Palette.Dim);
-            float top = r.y + 48, rowH = (r.yMax - 8 - top) / StagesPerChapter;
+            float top = r.y + 48;
+            var story = StoryOf(c);
+            if (story != null)
+            {
+                Ui.Text(new Rect(r.x + 14, top - 2, r.width - 28, 36), story, 11, Palette.Text, FontStyle.Italic, TextAnchor.UpperLeft, true);
+                top += 38;
+            }
+            float rowH = (r.yMax - 8 - top) / StagesPerChapter;
             for (int s = 0; s < StagesPerChapter; s++)
             {
                 int idx = first + s;
