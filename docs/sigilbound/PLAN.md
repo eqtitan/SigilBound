@@ -154,7 +154,22 @@ Unfinished work saved from the stopped agents:
       - the albedo colours and glow strength look right in URP.
     - Polish later: robes are rigid on the hips (the legs can poke through when walking); kit pieces are basic shapes.
   - Steps 14–18: add the next heroes to `HEROES` in quat.py (palette from Core/Looks.cs, kit list), run it, check the previews, commit the files. Adventurer-based heroes need an `adventurer` entry in ROLES (copy from Core/Looks.cs).
-- [ ] **19. Roster plan to 100 heroes.** Phases and concepts only. New heroes get designed (stats and skills) in their own later steps.
+- [x] **19. Roster plan to 100 heroes.** Phases and concepts only. New heroes get designed (stats and skills) in their own later steps.
+  - DONE (2026-11-25): `docs/sigilbound/ROSTER.md`.
+    - 76 concepts in 4 phases: Roadwardens (16), Glass and Storm (20), The Hollow Unbound (20), The Sigil Bearers (20).
+    - Each concept has a name, rarity, element, role, base body, kit and a mechanic hook.
+    - Targets at 100: 20 heroes per element; 22/34/28/16 by rarity; 34/22/20/24 by role.
+    - `docs/sigilbound/roster.py` checks the counts.
+    - Ten new mechanics are listed for the engine work that comes before phases 2 to 4.
+
+## Phase D: the roster grows (from docs/sigilbound/ROSTER.md)
+
+- [ ] **20. Verify all 24 baked heroes in game.** Check the menu lineup, battle and hero viewer in the screenshot tour and on a device, then polish (robes that follow the legs, colour and glow levels).
+  - Model-load fixes so far: shared loads on a persistent loader (build 30, confirmed in battle); the menu lineup was rebuilt every frame (build 35, to confirm).
+- [ ] **21–24. Phase 1 heroes (Roadwardens), 4 per step.** Stats, skills, looks, tests and balance sims, plus the baked model and the new `anchor`/`net` kit.
+- [ ] **25. Engine: phase 2 mechanics** (Burn, Pierce, Execute, Pull, spread on kill, counter Taunt), with tests.
+- [ ] **26–30. Phase 2 heroes (Glass and Storm).**
+- [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
 
