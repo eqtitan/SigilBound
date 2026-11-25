@@ -341,6 +341,7 @@ namespace Sigilbound.Core
             double stat = sk.Scale == Scale.Def ? DefOf(u) : sk.Scale == Scale.Hp ? u.MaxHp : AtkOf(u);
             double em = ElementMultiplier(u.El, t.El);
             double dmg = stat * sk.Mult * part * _boost * em * (650 / (650 + DefOf(t)));
+            if (sk.Rage > 0) dmg *= 1 + sk.Rage * (1 - u.Hp / (double)u.MaxHp); // grows with the attacker's lost HP
             bool crit = _rng.NextDouble() * 100 < u.Crit && em >= 1;
             if (crit) dmg *= 1 + u.Cdmg / 100.0;
             dmg *= 0.95 + _rng.NextDouble() * 0.1;
@@ -364,8 +365,25 @@ namespace Sigilbound.Core
             ev.Add(new BattleEvent { Type = EvType.Damage, Unit = t, Source = src, Amount = remaining, Crit = crit, Elem = em, Dot = dot });
             if (t.Hp <= 0)
             {
+                // Revive: a unit holding it comes back at its share of max HP instead of falling (used up).
+                var rv = t.Titan ? null : t.Effects.FirstOrDefault(e => e.Type == FxType.Revive);
+                if (rv != null)
+                {
+                    t.Effects.Remove(rv);
+                    t.Hp = Math.Max(1, Js.RoundInt(t.MaxHp * rv.Val / 100.0));
+                    ev.Add(new BattleEvent { Type = EvType.Text, Unit = t, Text = "Revived!" });
+                    ev.Add(new BattleEvent { Type = EvType.Heal, Unit = t, Amount = t.Hp });
+                    return;
+                }
                 t.Hp = 0; t.Alive = false; t.Effects.Clear();
                 ev.Add(new BattleEvent { Type = EvType.Death, Unit = t });
+                // Last Light (HeroDef.FallHeal): living allies of the fallen unit with the passive heal their side.
+                var side = Allies.Contains(t) ? Allies : Enemies;
+                foreach (var healer in side.Where(s => s.Alive && s.Template.FallHeal > 0).ToList())
+                {
+                    ev.Add(new BattleEvent { Type = EvType.Text, Unit = healer, Text = "Last Light" });
+                    foreach (var a in side.Where(s => s.Alive)) HealUnit(a, a.MaxHp * healer.Template.FallHeal, ev);
+                }
             }
         }
 
@@ -409,8 +427,8 @@ namespace Sigilbound.Core
                 if (existing != null) { existing.Val = Math.Max(existing.Val, val); existing.Turns = 2; }
                 else r.Effects.Add(new Effect { Type = FxType.Shield, Val = val, Turns = 2, Fresh = self });
             }
-            else if (existing != null) { existing.Turns = Math.Max(existing.Turns, f.Turns); if (self) existing.Fresh = true; }
-            else r.Effects.Add(new Effect { Type = f.Type, Turns = Math.Max(1, f.Turns), Fresh = self });
+            else if (existing != null) { existing.Turns = Math.Max(existing.Turns, f.Turns); if (self) existing.Fresh = true; if (f.Type == FxType.Revive) existing.Val = Math.Max(existing.Val, Js.RoundInt(f.Pct * 100)); }
+            else r.Effects.Add(new Effect { Type = f.Type, Turns = Math.Max(1, f.Turns), Fresh = self, Val = f.Type == FxType.Revive ? Js.RoundInt(f.Pct * 100) : 0 });
             ev.Add(new BattleEvent { Type = EvType.Status, Unit = r, Fx = f.Type });
         }
 

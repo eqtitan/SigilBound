@@ -1,5 +1,5 @@
-// The roster mechanics (docs/sigilbound/ROSTER.md section 4; PLAN step 25): Burn, Pierce, Execute,
-// Pull, Spread and Counter, checked on test units with fixed rolls (no crits, no damage spread).
+// The roster mechanics (docs/sigilbound/ROSTER.md section 4; PLAN steps 25 and 31): Burn, Pierce,
+// Execute, Pull, Spread, Counter, Revive, Rage and the Last Light passive, checked on test units with fixed rolls (no crits, no damage spread).
 // They are Unity-only: none of the web game's 24 heroes may use them (web parity).
 using System;
 using System.Collections.Generic;
@@ -103,12 +103,47 @@ static class MechanicsTests
             check(Dmg(ev2, aoe) == 0 && FxDef.IsBuff(FxType.Counter) && !t3.Has(FxType.Counter), "Counter: not against area attacks; a buff that Strip removes");
         }
 
+        // Revive (phase 3): on a lethal hit the holder comes back at its share of HP, once; a buff.
+        {
+            var a = U(true, Def("big", Basic(50))); var t = U(false, dummy);
+            t.Effects.Add(new Effect { Type = FxType.Revive, Turns = 3, Val = 30 });
+            var ev = Fight(a, t).Act(a, 0, t);
+            bool first = t.Alive && t.Hp == 3000 && ev.Any(e => e.Text == "Revived!") && !t.Has(FxType.Revive);
+            var ev2 = Fight(a, t).Act(a, 0, t);
+            var giver = U(true, Def("giver", new SkillDef { Name = "Vigil", Target = Target.AllAllies, Fx = new[] { new FxDef { Type = FxType.Revive, Turns = 3, Pct = 0.25 } } }));
+            Fight(giver, U(false, dummy)).Act(giver, 0, giver);
+            var given = giver.Effects.FirstOrDefault(e => e.Type == FxType.Revive);
+            check(first && !t.Alive && ev2.Any(e => e.Type == EvType.Death) && given != null && given.Val == 25 && FxDef.IsBuff(FxType.Revive),
+                "Revive: a lethal hit leaves the holder at 30% HP once, then it falls; given by skills (Pct); a buff");
+        }
+
+        // Rage (phase 3): damage grows with the attacker's missing HP.
+        {
+            var rager = Def("rager", new SkillDef { Name = "Fury", Target = Target.Enemy, Mult = 1.0, Rage = 1.0 });
+            var a = U(true, rager); var t = U(false, dummy, 1000000);
+            int full = Dmg(Fight(a, t).Act(a, 0, t), t);
+            a.Hp = a.MaxHp / 2; int half = Dmg(Fight(a, t).Act(a, 0, t), t);
+            check(Math.Abs(half - full * 1.5) <= 1, $"Rage: full HP {full}, half HP {half} (+50% at half HP with Rage 1.0)");
+        }
+
+        // Last Light (phase 3 passive): when an ally falls, the hero heals all living allies.
+        {
+            var ember = Def("ember", Basic()); ember.FallHeal = 0.1;
+            var keeper = U(true, ember); var friend = U(true, dummy, 100); var hurt = U(true, dummy);
+            keeper.Hp = 5000; hurt.Hp = 5000;
+            var foe = U(false, Def("foe", Basic(5)));
+            var b = new Battle(new List<Unit> { keeper, friend, hurt }, new List<List<Unit>> { new List<Unit> { foe } }, new Fixed());
+            var ev = b.Act(foe, 0, friend);
+            check(!friend.Alive && keeper.Hp == 6000 && hurt.Hp == 6000 && ev.Any(e => e.Text == "Last Light") && SkillText.Passive(ember) != null && SkillText.Passive(dummy) == null,
+                "Last Light: an ally falls and the passive heals the living allies 10%; the hero screen shows the passive");
+        }
+
         // Text and web parity.
         var demo = new SkillDef { Name = "Demo", Target = Target.Enemy, Mult = 1, Pierce = true, Execute = 0.25, Spread = true, Fx = new[] { new FxDef { Type = FxType.Pull, Val = 0.2 }, new FxDef { Type = FxType.Burn, Turns = 2 } } };
         var txt = SkillText.Describe(demo);
         check(txt.Contains("pierces") && txt.Contains("executes below 25%") && txt.Contains("spread") && txt.Contains("takes 20% Turn Meter") && txt.Contains("Burn")
               && SkillText.EffectShort(FxType.Burn) == "BRN" && SkillText.EffectShort(FxType.Counter) == "CTR", "skill text and status labels describe the new mechanics");
-        bool webClean = Classic.All(h => h.Skills.All(s => !s.Pierce && s.Execute == 0 && !s.Spread && s.Fx.All(f => f.Type != FxType.Burn && f.Type != FxType.Pull && f.Type != FxType.Counter)));
+        bool webClean = Classic.All(h => h.FallHeal == 0 && h.Skills.All(s => !s.Pierce && s.Execute == 0 && !s.Spread && s.Rage == 0 && s.Fx.All(f => f.Type < FxType.Burn)));
         check(webClean && (int)FxType.Strip == 15, "the web game's 24 heroes use none of them, and the web effect order is unchanged");
     }
 }

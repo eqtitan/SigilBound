@@ -13,15 +13,15 @@ namespace Sigilbound.Core
     public enum Target { Enemy, AllEnemies, Ally, AllAllies, Self }
     public enum Scale { Atk, Def, Hp }
     // The first 16 are the web game's (in its order: IsStatus/IsBuff compare by order). Burn, Pull and
-    // Counter are Unity-only roster mechanics (docs/sigilbound/ROSTER.md section 4), added at the end.
-    public enum FxType { AtkUp, DefUp, SpdUp, Regen, Shield, Taunt, AtkDown, DefDown, Slow, Poison, Stun, Heal, Tm, TmDrain, Cleanse, Strip, Burn, Pull, Counter }
+    // Counter (phase 2) and Revive (phase 3) are Unity-only roster mechanics (docs/sigilbound/ROSTER.md section 4), added at the end.
+    public enum FxType { AtkUp, DefUp, SpdUp, Regen, Shield, Taunt, AtkDown, DefDown, Slow, Poison, Stun, Heal, Tm, TmDrain, Cleanse, Strip, Burn, Pull, Counter, Revive }
     public enum FxTo { Target, Self, Allies, Enemies }
 
     public sealed class FxDef
     {
         public FxType Type; public int Turns = 1; public double Chance = -1; public double Pct; public double Val; public FxTo To = FxTo.Target;
-        public bool IsStatus => Type <= FxType.Stun || Type == FxType.Burn || Type == FxType.Counter;
-        public static bool IsBuff(FxType t) => t <= FxType.Taunt || t == FxType.Counter;
+        public bool IsStatus => Type <= FxType.Stun || Type == FxType.Burn || Type == FxType.Counter || Type == FxType.Revive;
+        public static bool IsBuff(FxType t) => t <= FxType.Taunt || t == FxType.Counter || t == FxType.Revive;
     }
 
     public sealed class SkillDef
@@ -32,11 +32,13 @@ namespace Sigilbound.Core
         public bool Pierce;      // each hit also strikes the next enemy in line for half damage
         public double Execute;   // a target left below this HP fraction falls at once (not bosses or the Titan)
         public bool Spread;      // if the target dies, its Poison and Burn jump to the next enemy
+        public double Rage;      // damage x (1 + Rage x the attacker's missing HP fraction)
     }
 
     public sealed class HeroDef
     {
         public string Id, Name; public Rarity Rarity; public Element Element; public Role Role; public SkillDef[] Skills;
+        public double FallHeal;  // passive (Unity-only roster): when an ally falls, heal all living allies this share of their max HP
         public string ShortName => Name.Split(' ', ',')[0];
     }
 

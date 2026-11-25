@@ -19,6 +19,7 @@ namespace Sigilbound.Core
             foreach (var f in sk.Fx) parts.Add(Fx(f));
             if (sk.Execute > 0) parts.Add($"executes below {sk.Execute * 100:0}% HP (not bosses)");
             if (sk.Spread) parts.Add("on a kill, Poison and Burn spread to the next enemy");
+            if (sk.Rage > 0) parts.Add($"up to +{sk.Rage * 100:0}% damage as the attacker loses HP");
             return string.Join(" · ", parts);
         }
 
@@ -32,6 +33,7 @@ namespace Sigilbound.Core
                 FxType.Tm => $"fills Turn Meter by {f.Val * 100:0}%",
                 FxType.TmDrain => $"{ch}drains {f.Val * 100:0}% Turn Meter",
                 FxType.Pull => $"{ch}takes {f.Val * 100:0}% Turn Meter",
+                FxType.Revive => $"{ch}Revive ({f.Turns}t): on falling, back at {f.Pct * 100:0}% HP{who}",
                 FxType.Cleanse => "removes debuffs",
                 FxType.Strip => "removes buffs",
                 FxType.Shield => $"Shield = {f.Pct * 100:0}% of caster HP{who}",
@@ -44,15 +46,19 @@ namespace Sigilbound.Core
             FxType.AtkUp => "ATK Up", FxType.DefUp => "DEF Up", FxType.SpdUp => "SPD Up", FxType.AtkDown => "ATK Down",
             FxType.DefDown => "DEF Down", FxType.Slow => "Slow", FxType.Poison => "Poison", FxType.Stun => "Stun",
             FxType.Regen => "Regen", FxType.Shield => "Shield", FxType.Taunt => "Taunt",
-            FxType.Burn => "Burn", FxType.Counter => "Counter", _ => t.ToString(),
+            FxType.Burn => "Burn", FxType.Counter => "Counter", FxType.Revive => "Revive", _ => t.ToString(),
         };
         public static string EffectShort(FxType t) => t switch
         {
             FxType.AtkUp => "ATK+", FxType.DefUp => "DEF+", FxType.SpdUp => "SPD+", FxType.AtkDown => "ATK-",
             FxType.DefDown => "DEF-", FxType.Slow => "SLW", FxType.Poison => "PSN", FxType.Stun => "STN",
             FxType.Regen => "RGN", FxType.Shield => "SHD", FxType.Taunt => "TNT",
-            FxType.Burn => "BRN", FxType.Counter => "CTR", _ => "",
+            FxType.Burn => "BRN", FxType.Counter => "CTR", FxType.Revive => "RVV", _ => "",
         };
+
+        // A hero's passive, or null (Unity-only roster heroes).
+        public static string Passive(HeroDef h) =>
+            h != null && h.FallHeal > 0 ? $"Last Light: when an ally falls, heals all allies {h.FallHeal * 100:0}% HP" : null;
 
         public static string StatName(GameData.Stat s, int v) => s switch
         {
