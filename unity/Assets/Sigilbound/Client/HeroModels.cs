@@ -134,6 +134,11 @@ namespace Sigilbound.Client
         static Dictionary<string, List<UalClip>> _ualData; static bool _ualTried;
         static GameObject _libRoot;
 
+        // Load tracing ("SBMODEL ..." lines in the player log): the real models have never shown in a
+        // build (step 4: every hero is the code-built stand-in) and nothing was logged, so each stage
+        // of the load says what it got.
+        static void Trace(string msg) => Debug.Log("SBMODEL " + msg);
+
         static IEnumerator ReadBytes(string file, Action<byte[]> done)
         {
             var path = Path.Combine(Application.streamingAssetsPath, "Models", file);
@@ -147,6 +152,7 @@ namespace Sigilbound.Client
                 }
             }
             else if (File.Exists(path)) data = File.ReadAllBytes(path);
+            Trace($"read {file}: {(data == null ? "MISSING at " + path : data.Length + " bytes")}");
             done(data);
         }
 
@@ -164,7 +170,9 @@ namespace Sigilbound.Client
             {
                 lib.Gltf = new GLTFast.GltfImport(null, null, new SigilMaterialGenerator());
                 var load = lib.Gltf.LoadGltfBinary(bytes, null, new GLTFast.ImportSettings { AnimationMethod = GLTFast.AnimationMethod.Legacy, GenerateMipMaps = false });
+                float t0 = Time.realtimeSinceStartup;
                 while (!load.IsCompleted) yield return null;
+                Trace($"lib {baseModel}: parsed={(!load.IsFaulted && load.Result)} in {Time.realtimeSinceStartup - t0:0.0}s {load.Exception?.GetBaseException().Message}");
                 if (load.IsFaulted || !load.Result) lib.Failed = true;
                 else
                 {
@@ -172,6 +180,7 @@ namespace Sigilbound.Client
                     var proto = new GameObject(baseModel).transform; proto.SetParent(_libRoot.transform, false);
                     var inst = lib.Gltf.InstantiateMainSceneAsync(proto);
                     while (!inst.IsCompleted) yield return null;
+                    Trace($"lib {baseModel}: prototype={(!inst.IsFaulted && inst.Result)} children={proto.childCount} {inst.Exception?.GetBaseException().Message}");
                     lib.Prototype = proto;
                     var head = BodyShaper.Find(proto, "Head");
                     if (head != null) lib.HeadY = proto.InverseTransformPoint(head.position).y;
@@ -252,13 +261,16 @@ namespace Sigilbound.Client
 
             // A free-path hero baked in Blender (Tools~/blenderforge/quat.py) replaces the runtime build
             // for that hero (not its Hollow enemy copy, nor the Titan); anything missing falls back below.
+            Trace($"build {id} base={baseModel} hollow={hollow}");
             if (!titan && !hollow)
             {
                 yield return EnsureBakedIndex();
+                Trace($"baked index: {string.Join(",", _baked)}; {id} baked={_baked.Contains(id)}");
                 if (_baked.Contains(id))
                 {
                     HeroModel built = null;
                     yield return BuildBaked(unit, look, body, parent, m => built = m);
+                    Trace($"baked {id}: {(built != null ? "ok" : "FAILED, falling back")}");
                     if (built != null) { done(built); yield break; }
                 }
             }
@@ -267,13 +279,13 @@ namespace Sigilbound.Client
             foreach (var src in parts.Values.Where(v => v != "none" && v != baseModel).Distinct()) yield return EnsureLibrary(src);
             yield return EnsureUal();
             var lib = _libs[baseModel];
-            if (lib.Failed || parent == null) { done(null); yield break; }
+            if (lib.Failed || parent == null) { Trace($"build {id}: no library (failed={lib.Failed}, parent={(parent != null)})"); done(null); yield break; }
 
             var holder = new GameObject("Model").transform;
             holder.SetParent(parent, false);
             var inst = lib.Gltf.InstantiateMainSceneAsync(holder);
             while (!inst.IsCompleted) yield return null;
-            if (inst.IsFaulted || !inst.Result || holder == null) { if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
+            if (inst.IsFaulted || !inst.Result || holder == null) { Trace($"build {id}: instantiate failed {inst.Exception?.GetBaseException().Message}"); if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
 
             var bones = new Dictionary<string, Transform>();
             foreach (var t in holder.GetComponentsInChildren<Transform>(true)) if (!bones.ContainsKey(t.name)) bones[t.name] = t;
@@ -317,6 +329,7 @@ namespace Sigilbound.Client
                 if (lib.Ual == null) lib.Ual = BuildUal(baseModel, anim.transform);
                 foreach (var c in lib.Ual) anim.AddClip(c, c.name);
             }
+            Trace($"build {id}: done, anim={(anim != null ? anim.GetClipCount() + " clips" : "none")}");
             done(new HeroModel(holder.gameObject, anim, (titan ? 4.7f : 2.3f) * (float)body.H, titan ? AnimStyle.TitanStyle : AnimStyle.For(id)));
         }
 
@@ -380,7 +393,7 @@ namespace Sigilbound.Client
             holder.SetParent(parent, false);
             var inst = bk.gltf.InstantiateMainSceneAsync(holder);
             while (!inst.IsCompleted) yield return null;
-            if (inst.IsFaulted || !inst.Result || holder == null || holder.childCount == 0) { if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
+            if (inst.IsFaulted || !inst.Result || holder == null || holder.childCount == 0) { Trace($"baked {id}: instantiate failed {inst.Exception?.GetBaseException().Message}"); if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
             foreach (var r in holder.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;

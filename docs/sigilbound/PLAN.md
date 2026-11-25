@@ -138,6 +138,11 @@ Unfinished work saved from the stopped agents:
       - albedo colour space;
       - glow strength.
     - Known polish items: Hask's helm doesn't show; Ysolde's circlet doesn't show; the kit pieces are basic shapes.
+  - STEP 14 DONE (2026-11-25): Ulfgar, Morwenna, Oriel, Vaelith (the owner's own team), plus Hask/Ysolde rebaked. Preview: `docs/sigilbound/art/prototype/step14-free-path.png`.
+    - quat.py now has the adventurer base, head kit from the measured head mesh, and crown/halo/flame hair/beard/cape/robe/sword/orb.
+    - BLOCKER FOUND: the real models (runtime-built and baked) have never shown in any Unity build. The build 27 tour and the owner's phone screenshots show only the code-built stand-ins (CharacterView.BuildPlaceholder), with no warning in the log. This is the step 4 'stand-in heroes' issue.
+      - The Linux preview contains StreamingAssets/Models (bases, heroes/, index.txt) and glTFast, and SB_GLTFAST is compiled in.
+      - Build 29+ logs every load stage as `SBMODEL ...` in player.log. Run `tools/unity-shots.sh` and `grep SBMODEL <out>/player.log` to see where it stops, then fix that before step 15.
   - Steps 14–18: add the next heroes to `HEROES` in quat.py (palette from Core/Looks.cs, kit list), run it, check the previews, commit the files. Adventurer-based heroes need an `adventurer` entry in ROLES (copy from Core/Looks.cs).
 - [ ] **19. Roster plan to 100 heroes.** Phases and concepts only. New heroes get designed (stats and skills) in their own later steps.
 
