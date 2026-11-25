@@ -214,7 +214,12 @@ Unfinished work saved from the stopped agents:
   - DONE (2026-11-25):
     - `FxType.Revive` (a buff: back at Pct HP instead of falling, once); `SkillDef.Rage` (damage grows with the attacker's missing HP); `HeroDef.FallHeal` (the Last Light passive).
     - The hero screen's Skills card shows a passive line (`SkillText.Passive`). 3 more checks in MechanicsTests (15 in all). Rules in ROSTER.md section 4.
-- [ ] **32–36. Phase 3 heroes (The Hollow Unbound), 4 per step.** Grimsby, Marrow (Rage), Ember (Last Light), Quill; Drift, Sprig, Tallow, Hollis; Auren, Cinder, Thessaly, Umbra; Lucan, Kharra, Nocturne (Execute), Aelira; Zephyrine, Solenne (Revive), Nell, Briar.
+- [ ] **32–36. Phase 3 heroes (The Hollow Unbound), 4 per step.** Step 32 DONE (2026-11-25):
+  - Grimsby, Marrow (Rage), Ember (Last Light passive), Quill. New kit: book. Preview: `docs/sigilbound/art/prototype/step32-hollow-unbound.png`.
+  - Balance after tuning: Grimsby 44% and Quill 45% vs Corvan/Tamsin, Marrow 52% vs Kaito/Maelis, Ember 44% vs Velka. Ember started at 86%: a self-shield with Taunt dominates HP duels again. 64 heroes.
+  - Marrow was redesigned as a grey, long-haired giant so he doesn't read as a second Gorrum.
+  - Next (step 33): Drift, Sprig, Tallow, Hollis.
+  Grimsby, Marrow (Rage), Ember (Last Light), Quill; Drift, Sprig, Tallow, Hollis; Auren, Cinder, Thessaly, Umbra; Lucan, Kharra, Nocturne (Execute), Aelira; Zephyrine, Solenne (Revive), Nell, Briar.
 - [ ] **37. Campaign act 2** (chapters 11–15: the port city and the storm coast), with new enemy pools that include roster heroes.
 - [ ] **38–42. Phase 4 heroes (The Sigil Bearers), 4 per step.**
 
