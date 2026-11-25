@@ -141,6 +141,22 @@ namespace Sigilbound.Client
             ["loam"] = L(Tan, "#7a5a30", "#6a7a3a", "#d8c070", Headgear.None, Prop.Shield, true),
             ["merrit"] = L(Fair, "#d8b060", "#c8c0b0", "#ffd860", Headgear.None, Prop.Sword),
             ["sienna"] = L(Tan, "#c84a2a", "#7a3a20", "#ffb050", Headgear.None, Prop.Bow, false, true, "#ffb040"),
+            ["calder"] = L(Tan, "#8a8a8a", "#3a4a6a", "#fff0a0", Headgear.None, Prop.Lantern, true, false, "#fff0a0"),
+            ["dorian"] = L(Brown, "#4a4a4a", "#2a4a6a", "#c8b070", Headgear.None, Prop.Club, true),
+            ["ivo"] = L(Fair, "#d8c080", "#d8d0b8", "#ffd860", Headgear.Helm, Prop.Hammer),
+            ["saoirse"] = L(Pale, "#2a3a3a", "#2a3434", "#9ad0c0", Headgear.Veil, Prop.Shield, false, true, "#a8e8d8"),
+            ["gideon"] = L(Tan, "#5a2a1a", "#7a2a1a", "#ffa040", Headgear.Helm, Prop.Shield, false, false, "#ffa040"),
+            ["liora"] = L(Fair, "#5ad0d0", "#1a6a7a", "#a8ffff", Headgear.None, Prop.Trident, false, true, "#a8ffff"),
+            ["bastian"] = L(Ash, "#6a6a6a", "#3a3440", "#b080ff", Headgear.None, Prop.Club, true, false, "#b080ff"),
+            ["elowen"] = L(Fair, "#f0e0a0", "#e8e0c0", "#fff2b0", Headgear.None, Prop.Bow, false, true, "#fff2b0"),
+            ["faelan"] = L(Tan, "#a05a2a", "#4a6a5a", "#c8f0d0", Headgear.None, Prop.Spear, true, true),
+            ["wick"] = L(Fair, "#e8a050", "#a0502a", "#ffd060", Headgear.Halo, Prop.Candle, false, false, "#ffd060"),
+            ["azura"] = L(Brown, "#1a4a8a", "#1a3a7a", "#7ad0ff", Headgear.None, Prop.Trident, false, true, "#9ae0ff"),
+            ["pyrrhus"] = L(Deep, "#2a1410", "#5a1a0e", "#ff8a20", Headgear.Horns, Prop.Hammer, false, false, "#ffa030"),
+            ["kaelith"] = L(Ash, "#1a1424", "#1a1028", "#c070ff", Headgear.Crown, Prop.Orb, false, true, "#d090ff"),
+            ["aurex"] = L(Tan, "#f8f0d0", "#f0e8d0", "#ffe070", Headgear.Halo, Prop.Sword, false, false, "#fff4b0"),
+            ["stormbearer"] = L(Fair, "#c8d8e0", "#6a8aa0", "#c8f0ff", Headgear.Helm, Prop.Shield, false, false, "#c8f0ff"),
+            ["vex"] = L(Ash, "#2a2a34", "#24202c", "#ff4a6a", Headgear.Crown, Prop.Orb, false, true, "#ff6a8a"),
         };
 
         public static bool IsCaster(string heroId) => Looks.TryGetValue(heroId, out var l) &&

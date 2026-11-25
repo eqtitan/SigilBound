@@ -134,26 +134,26 @@ final ally. This phase needs the new chapters first (a separate campaign step).
 
 | Id | Name | Rarity | Element | Role | Body | Look and kit (* = new kit piece) | Mechanic hook | Concept |
 |---|---|---|---|---|---|---|---|---|
-| `wick` | Saint Wick of the Lamps | Legendary | Flame | Support | adventurer | halo, candle, cape | AtkUp all; Heal all; Cleanse | The urchin who lit the city lamps, grown into the keeper of the Flame shard's hearth. |
+| `wick` | Saint Wick of the Lamps | Legendary | Flame | Support | adventurer | halo, candle, cape | Burn on hit; big team Heal with Shield and Cleanse; team Turn Meter, AtkUp and DefUp | The urchin who lit the city lamps, grown into the keeper of the Flame shard's hearth. |
 | `perrin` | Perrin Gullsby | Common | Tide | Defense | adventurer | bandana, shield | Slow on hit (small chance); small team Shield and DefUp | Harbour guard of the new act's port city. |
 | `loam` | Loam Bracken | Common | Gale | Defense | monarch | beard, shield | Team DefUp with a little Turn Meter | Farmer who held the gate with a plough-shield. |
 | `merrit` | Merrit Vellum | Common | Light | Attack | adventurer | spiky_hair, sword | May Strip on hit; a big hit | Squire to the Sigil Bearers. |
-| `calder` | Calder Stormglass | Epic | Light | Support | monarch | beard, lantern | SpdUp all allies; Heal the lowest | Lighthouse keeper whose beam guides ships, and allies, home. |
+| `calder` | Calder Stormglass | Epic | Light | Support | monarch | beard, lantern | AtkDown on hit; team Heal and SpdUp; team Turn Meter and AtkUp | Lighthouse keeper whose beam guides ships, and allies, home. |
 | `sienna` | Sienna Firethorn | Rare | Flame | Attack | hooded | braid, bow, quiver | Burn on hit and on all enemies; a big single hit | Archer of the ember groves. |
-| `dorian` | Dorian Lowe | Rare | Tide | Hp | monarch | beard, anchor* | Regen all; Taunt | Harbourmaster of the port city. |
-| `ivo` | Ivo Brightmantle | Rare | Light | Hp | monarch | helm, hammer, cape | Heal self; DefUp | Bell-tower guard. |
-| `saoirse` | Saoirse Wraithmoor | Rare | Shadow | Defense | hooded | veil, shield | Shield; TmDrain attacker | Moor-walker who guards the barrows. |
-| `gideon` | Gideon Flamecaller | Epic | Flame | Defense | monarch | helm, shield, cape | Shield all; Burn on attackers | Commander of the Pyre guard. |
-| `liora` | Liora Tidesinger | Epic | Tide | Attack | hooded | long_hair, trident | AoE; Slow all | Siren of the storm coast. |
-| `bastian` | Bastian Grey | Epic | Shadow | Hp | monarch | cape, club | Regen; HP-scaled AoE | Hollow-blooded brawler. |
-| `elowen` | Elowen Brightwater | Epic | Light | Attack | adventurer | ponytail, bow, quiver | Big hit; AtkDown | Ranger who carries a Light shard arrow. |
-| `faelan` | Faelan Galeheart | Epic | Gale | Hp | monarch | beard, cape, spear | Regen all; SpdUp self | Stormcrown chieftain. |
-| `azura` | Azura Deepstar | Legendary | Tide | Attack | adventurer | long_hair, trident, cape | AoE; Stun | Bearer of the Tide shard. |
-| `pyrrhus` | Pyrrhus Sunderflame | Legendary | Flame | Defense | monarch | horns, shield, hammer, cape | Shield all; counter-style Taunt | Bearer of the Flame shard. |
-| `kaelith` | Kaelith Shadowborne | Legendary | Shadow | Hp | hooded | crown, orb, cape, robe | Regen; TmDrain all | Bearer of the Shadow shard. |
-| `aurex` | Aurex Lightsworn | Legendary | Light | Attack | adventurer | halo, sword, cape | AoE; Strip; AtkUp self | Bearer of the Light shard. |
-| `stormbearer` | Gale Stormbearer | Legendary | Gale | Defense | monarch | helm, shield, cape | Shield all; Taunt; SpdUp | Bearer of the Gale shard. |
-| `vex` | Vex Hollowking | Legendary | Shadow | Support | monarch | crown, orb, cape | DefDown all; Stun; Strip | The Hollow's king, an uneasy ally at the end. |
+| `dorian` | Dorian Lowe | Rare | Tide | Hp | monarch | beard, anchor, cape | Small self Shield and Taunt; team Regen | Harbourmaster of the port city. |
+| `ivo` | Ivo Brightmantle | Rare | Light | Hp | monarch | helm, hammer, cape | May Stun on hit; team Regen while he Taunts (1 turn); self DefUp and Heal | Bell-tower guard. |
+| `saoirse` | Saoirse Wraithmoor | Rare | Shadow | Defense | hooded | veil, shield | TmDrain on hit and on all enemies; big self Shield and Taunt | Moor-walker who guards the barrows. |
+| `gideon` | Gideon Flamecaller | Epic | Flame | Defense | monarch | helm, shield, cape, runes | Burn on hit; small team Shield while he Taunts; AoE AtkDown | Commander of the Pyre guard. |
+| `liora` | Liora Tidesinger | Epic | Tide | Attack | hooded | long_hair, trident, robe | Slow on hit; AoE Slow; a big hit that drains Turn Meter | Siren of the storm coast. |
+| `bastian` | Bastian Grey | Epic | Shadow | Hp | monarch | cape, club | DefDown on hit; team Shield while he Taunts; AoE DefDown with team AtkUp | Hollow-blooded brawler. |
+| `elowen` | Elowen Brightwater | Epic | Light | Attack | adventurer | ponytail, bow, quiver | AtkDown on hit; a big hit that Strips; AoE AtkDown | Ranger who carries a Light shard arrow. |
+| `faelan` | Faelan Galeheart | Epic | Gale | Hp | monarch | long_hair, beard, spear, cape | Piercing basic; team Shield while he Taunts; team Regen and SpdUp | Stormcrown chieftain. |
+| `azura` | Azura Deepstar | Legendary | Tide | Attack | adventurer | long_hair, trident, cape | Slow on hit; AoE Stun; a big hit that drains Turn Meter | Bearer of the Tide shard. |
+| `pyrrhus` | Pyrrhus Sunderflame | Legendary | Flame | Defense | monarch | helm, horns, shield, hammer, cape | Burn on hit; team Shield and DefUp while he Taunts and Counters; AoE Stun | Bearer of the Flame shard. |
+| `kaelith` | Kaelith Shadowborne | Legendary | Shadow | Hp | hooded | veil, crown, orb, robe, cape | TmDrain on hit; Taunt and Regen on self; AoE TmDrain and DefDown | Bearer of the Shadow shard. |
+| `aurex` | Aurex Lightsworn | Legendary | Light | Attack | adventurer | halo, sword, cape | AtkDown on hit; AoE that may Strip; a big hit that raises his ATK | Bearer of the Light shard. |
+| `stormbearer` | Gale Stormbearer | Legendary | Gale | Defense | monarch | helm, shield, spear, cape | Slow on hit; team Shield, DefUp and SpdUp while he Taunts; AoE DefDown | Bearer of the Gale shard. |
+| `vex` | Vex Hollowking | Legendary | Shadow | Support | monarch | long_hair, horns, orb, cape | DefDown on hit; big team Heal with Shield, Cleanse, Turn Meter and AtkUp; AoE Stun and Strip | The Hollow's king, an uneasy ally at the end. |
 
 ## 4. New mechanics (engine work, before the heroes that use them)
 
