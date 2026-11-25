@@ -169,7 +169,10 @@ Unfinished work saved from the stopped agents:
   - Work done (2026-11-25, to confirm in the next build):
     - Screenshot tour: a hero gallery (all 24, four at a time, menus hidden), with real-model counts in shots.log.
     - Robes follow the legs: weighted from the hips toward each thigh. The 7 robed heroes are rebaked. High-knee frames still show the thigh a little; true cloth would need simulation.
-    - Stilt legs fixed (owner's build 31 screenshot, Morwenna and Hollow Mira): the Quaternius feet hang off the root as IK targets, and the shared UAL spell/hit clips have no foot keys, so the legs stretched. `FootFollow` keeps the feet on the shins while UAL clips play.
+    - Stilt legs, then floating (owner's screenshots, Android and Windows, mostly the hooded heroes):
+      - The real cause: the UAL spell/hit/death tracks use three.js names without dots (`UpperLegL`, `FootL`), while the Unity bones keep them (`UpperLeg.L`), so only the hips, spine and head were animated.
+      - The hooded UAL data also puts Body at about twice its rest height.
+      - Fixed in `HeroModels.BuildUal`: bones match with or without dots, and position tracks are applied relative to the rest pose. The earlier `FootFollow` patch, which turned the stilts into floating, is removed.
   - Still open: colour and glow levels (judge from the gallery shots), and device checks.
 - [ ] **21–24. Phase 1 heroes (Roadwardens), 4 per step.** Steps 21–22 DONE (2026-11-25): Bram, Nettle, Hobb, Greta; Cole, Tilly, Ronan, Isla (see below). Stats, skills, looks, tests and balance sims, plus the baked model and the new `anchor`/`net` kit.
   - STEP 21 DONE (2026-11-25):
