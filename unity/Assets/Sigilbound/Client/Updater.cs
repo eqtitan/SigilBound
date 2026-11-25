@@ -217,6 +217,7 @@ namespace Sigilbound.Client
         IEnumerator UpdateAndroid() // the banner's Update now
         {
             _userStarted = true; _autoBlocked = false;
+            _useIntent = false; _failText = null; _linkMode = false; // each tap tries the PackageInstaller route first
             if (_apkPath == null || _apkBuild != LatestBuild)
             {
                 yield return DownloadApk(false);
@@ -228,7 +229,8 @@ namespace Sigilbound.Client
         IEnumerator DownloadApk(bool background)
         {
             _installing = background ? "Downloading the update (Wi-Fi)…" : "Downloading the update…"; _progress = 0;
-            // Application.temporaryCachePath is the app's cache dir on Android, which SigilboundApkProvider serves.
+            // Application.temporaryCachePath (usually the external cache on Android); the exact path is handed to
+            // SigilboundApkProvider when the standard installer is used.
             string path = Path.Combine(Application.temporaryCachePath, "sigilbound-update.apk");
             int build = LatestBuild;
             try { if (File.Exists(path)) File.Delete(path); } catch (Exception) { }
@@ -287,7 +289,7 @@ namespace Sigilbound.Client
                     if (_useIntent)
                     {
                         _installing = "Tap Install in Android's installer";
-                        cls.CallStatic("installViaIntent", activity);
+                        cls.CallStatic("installViaIntent", activity, _apkPath);
                     }
                     else
                     {
