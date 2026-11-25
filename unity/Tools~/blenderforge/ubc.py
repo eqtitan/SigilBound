@@ -217,6 +217,8 @@ def make_cape(arm, mat, clasp_mat, long_=True):
     def cape_w(p):
         t = max(0.0, min(1.0, (top_z - p.z) / max(1e-6, top_z - hem_z)))
         side = max(0.0, min(1.0, (p.x - ur.x) / max(1e-6, ul.x - ur.x)))
+        if p.z > top_z - 0.02:   # the collar: half follows the neck, so it turns with the head
+            return {"neck_01": 0.5, "clavicle_l": 0.2 * side, "clavicle_r": 0.2 * (1 - side), "spine_03": 0.3}
         if t < 0.08:   # yoke and top: shoulders and upper chest
             return {"clavicle_l": 0.45 * side, "clavicle_r": 0.45 * (1 - side), "spine_03": 0.55}
         w = {"spine_03": max(0.0, 1 - t * 1.6), "spine_01": min(1.0, t * 1.2) * (1 - t)}
