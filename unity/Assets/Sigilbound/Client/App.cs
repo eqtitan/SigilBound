@@ -272,19 +272,23 @@ namespace Sigilbound.Client
             GUI.DrawTexture(new Rect(0, 0, Ui.W, r.yMax), Ui.GradientTex(Palette.Hex("#1d1726"), Palette.Hex("#120e19"), null, 2));
             Ui.GoldRule(new Rect(0, r.yMax - 1, Ui.W, 1));
             float x = 8;
-            void Chip(string text, Color c)
+            // Currency chips: a drawn icon (Icons.cs) plus the amount.
+            void Chip(Icon icon, string text, Color c)
             {
-                var w = Mathf.Max(48, text.Length * 7.4f + 16);
+                var w = Mathf.Max(48, text.Length * 7.4f + 30);
                 Ui.Panel(new Rect(x, r.y + 8, w, 28), Palette.Hex("#0d0a12"), Palette.Bronze, 13);
-                Ui.Text(new Rect(x, r.y + 8, w, 28), text, 12, c, FontStyle.Bold, TextAnchor.MiddleCenter);
+                Icons.Draw(new Rect(x + 8, r.y + 15, 14, 14), icon, c);
+                Ui.Text(new Rect(x + 24, r.y + 8, w - 30, 28), text, 12, c, FontStyle.Bold, TextAnchor.MiddleCenter);
                 x += w + 5;
             }
-            Chip("● " + Ui.Fmt(G.S.gold), Palette.Gold);
-            Chip("◆ " + G.S.shardCommon, Palette.Hex("#c9a37b"));
-            Chip("◆ " + G.S.shardMystic, Palette.Blue);
-            Chip("◆ " + G.S.shardRadiant, Palette.Hex("#ffb02e"));
-            Chip("◇ " + G.S.essence, Palette.Hex("#8fd8ff"));
-            if (Ui.Button(new Rect(Ui.W - 46, r.y + 6, 38, 32), "≡", Ui.Kind.Secondary, 16)) OpenSettings();
+            Chip(Icon.Coin, Ui.Fmt(G.S.gold), Palette.Gold);
+            Chip(Icon.Shard, G.S.shardCommon.ToString(), Palette.Hex("#c9a37b"));
+            Chip(Icon.Shard, G.S.shardMystic.ToString(), Palette.Blue);
+            Chip(Icon.Shard, G.S.shardRadiant.ToString(), Palette.Hex("#ffb02e"));
+            Chip(Icon.Essence, G.S.essence.ToString(), Palette.Hex("#8fd8ff"));
+            var menu = new Rect(Ui.W - 46, r.y + 6, 38, 32);
+            if (Ui.Button(menu, "", Ui.Kind.Secondary, 16)) OpenSettings();
+            Icons.Draw(new Rect(menu.x + 10, menu.y + 7, 18, 18), Icon.Menu, Palette.Hex("#f3e3c3"));
         }
 
         void DrawNav(Rect r)
@@ -292,7 +296,7 @@ namespace Sigilbound.Client
             // Stone bar with a gold edge and a glowing active tab (style.css .nav).
             GUI.DrawTexture(r, Ui.GradientTex(Palette.Hex("#1a1522"), Palette.Hex("#0d0a12"), null, 2));
             Ui.GoldRule(new Rect(r.x, r.y, r.width, 1));
-            var items = new (ScreenId id, string label)[] { (ScreenId.Home, "Home"), (ScreenId.Campaign, "Campaign"), (ScreenId.Heroes, "Heroes"), (ScreenId.Summon, "Summon"), (ScreenId.Trials, "Trials"), (ScreenId.Friends, "Friends") };
+            var items = new (ScreenId id, string label, Icon icon)[] { (ScreenId.Home, "Home", Icon.Home), (ScreenId.Campaign, "Campaign", Icon.Map), (ScreenId.Heroes, "Heroes", Icon.Helm), (ScreenId.Summon, "Summon", Icon.Portal), (ScreenId.Trials, "Trials", Icon.Tower), (ScreenId.Friends, "Friends", Icon.Friends) };
             float w = Ui.W / items.Length;
             for (int i = 0; i < items.Length; i++)
             {
@@ -303,7 +307,9 @@ namespace Sigilbound.Client
                 var cell = new Rect(i * w, r.y, w, 64);
                 if (Ui.Button(cell, "", Ui.Kind.Ghost)) { if (it.id == ScreenId.Friends) OpenFriends(); else Go(it.id); }
                 if (on) { GUI.DrawTexture(new Rect(cell.x + 6, r.y + 4, w - 12, 56), Ui.RoundTex(new Color(0.95f, 0.77f, 0.36f, 0.12f), null, 12)); Ui.GoldRule(new Rect(cell.x + w * 0.22f, r.y + 1, w * 0.56f, 2)); }
-                Ui.Text(new Rect(cell.x, r.y + 12, w, 40), it.label, 12, on ? Palette.Gold : Palette.Hex("#9b8f7a"), FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+                var tint = on ? Palette.Gold : Palette.Hex("#9b8f7a");
+                Icons.Draw(new Rect(cell.x + w / 2 - 12, r.y + 8, 24, 24), it.icon, tint);
+                Ui.Text(new Rect(cell.x, r.y + 34, w, 22), it.label, 11, tint, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
                 int badge = it.id == ScreenId.Home ? HomeBadge() : it.id == ScreenId.Trials ? G.TrialsBadge()
                     : it.id == ScreenId.Friends && Online.SignedIn ? Online.Unread.messages + Online.Unread.requests : 0;
                 if (badge > 0)

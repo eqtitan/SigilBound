@@ -118,8 +118,10 @@ namespace Sigilbound.Client
                 $"v{LatestVersion} · build {LatestBuild} (you have build {MyBuild})", _sub);
             if (GUI.Button(new Rect(r.xMax - btnW - closeW - pad, r.y + 12 * k, btnW, h - 24 * k), "Download", _btn))
                 Application.OpenURL(FileUrl);
-            if (GUI.Button(new Rect(r.xMax - closeW - pad * 0.5f, r.y + 14 * k, closeW, h - 28 * k), "✕", _close))
-                _dismissed = true;
+            var close = new Rect(r.xMax - closeW - pad * 0.5f, r.y + 14 * k, closeW, h - 28 * k);
+            if (GUI.Button(close, "", _close)) _dismissed = true;
+            float ic = Mathf.Min(close.width, close.height) * 0.5f;
+            Icons.Draw(new Rect(close.center.x - ic / 2, close.center.y - ic / 2, ic, ic), Icon.Close, Palette.Dim);
         }
 
         void EnsureStyles()
