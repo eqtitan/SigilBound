@@ -240,7 +240,7 @@ namespace Sigilbound.Client
         // ---------- GUI ----------
         void OnGUI()
         {
-            Ui.Begin(Screen == ScreenId.Battle || Screen == ScreenId.Modes); // battle and the modes hub use the whole width; menus a column
+            Ui.Begin(Screen == ScreenId.Battle || Screen == ScreenId.Modes || (Screen == ScreenId.Campaign && Ui.Landscape)); // battle and the modes hub use the whole width; menus a column
             GUI.enabled = !ModalOpen; // a modal blocks taps on the screen behind it
             if (Screen == ScreenId.Battle) { Battle.DrawHud(); DrawModalAndToasts(); return; }
             var safe = Ui.Safe;
@@ -253,7 +253,7 @@ namespace Sigilbound.Client
             {
                 case ScreenId.Home: DrawHome(content); break;
                 case ScreenId.Modes: DrawModes(content); break;
-                case ScreenId.Campaign: if (_hardTab && G.S.cleared > 0) DrawHardCampaign(content); else DrawCampaign(content); break;
+                case ScreenId.Campaign: if (Ui.Landscape) DrawWorldMap(content); else if (_hardTab && G.S.cleared > 0) DrawHardCampaign(content); else DrawCampaign(content); break;
                 case ScreenId.Prep: DrawPrep(content); break;
                 case ScreenId.Heroes: if (_codex) DrawCodex(content); else DrawHeroes(content); break;
                 case ScreenId.Achievements: DrawAchievements(content); break;
