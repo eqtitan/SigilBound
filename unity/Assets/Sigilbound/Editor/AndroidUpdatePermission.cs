@@ -1,4 +1,5 @@
-// Adds the REQUEST_INSTALL_PACKAGES permission to the Android manifest at build time, for the
+// Adds the REQUEST_INSTALL_PACKAGES permission and the update-APK provider
+// (Plugins/Android/SigilboundApkProvider.java) to the Android manifest at build time, for the
 // in-app updater (Plugins/Android/SigilboundUpdateInstaller.java, Client/Updater.cs; PLAN step 34).
 // Android only: the Windows and Linux editors don't have the Android build module.
 #if UNITY_ANDROID
@@ -12,6 +13,7 @@ namespace Sigilbound.EditorTools
     {
         const string Android = "http://schemas.android.com/apk/res/android";
         const string Permission = "android.permission.REQUEST_INSTALL_PACKAGES";
+        const string Provider = "com.sigilbound.updater.SigilboundApkProvider";
         public int callbackOrder => 10;
 
         public void OnPostGenerateGradleAndroidProject(string path)
@@ -22,13 +24,31 @@ namespace Sigilbound.EditorTools
             var doc = new XmlDocument();
             doc.Load(manifest);
             var root = doc.DocumentElement;
+            bool hasPermission = false, hasProvider = false;
             foreach (XmlNode n in root.SelectNodes("uses-permission"))
-                if (n.Attributes?["android:name"]?.Value == Permission) return;
-            var el = doc.CreateElement("uses-permission");
-            el.SetAttribute("name", Android, Permission);
-            root.PrependChild(el);
+                if (n.Attributes?["android:name"]?.Value == Permission) hasPermission = true;
+            var app = root.SelectSingleNode("application") as XmlElement;
+            if (app != null)
+                foreach (XmlNode n in app.SelectNodes("provider"))
+                    if (n.Attributes?["android:name"]?.Value == Provider) hasProvider = true;
+            if (!hasPermission)
+            {
+                var el = doc.CreateElement("uses-permission");
+                el.SetAttribute("name", Android, Permission);
+                root.PrependChild(el);
+            }
+            if (app != null && !hasProvider)
+            {
+                // ${applicationId} is filled in by the manifest merger; the Java side builds the same authority.
+                var p = doc.CreateElement("provider");
+                p.SetAttribute("name", Android, Provider);
+                p.SetAttribute("authorities", Android, "${applicationId}.sbupdate");
+                p.SetAttribute("exported", Android, "false");
+                p.SetAttribute("grantUriPermissions", Android, "true");
+                app.AppendChild(p);
+            }
             doc.Save(manifest);
-            UnityEngine.Debug.Log("Sigilbound: added " + Permission + " for in-app updates");
+            UnityEngine.Debug.Log("Sigilbound: in-app update permission and APK provider are in the manifest");
         }
     }
 }

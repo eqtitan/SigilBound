@@ -244,6 +244,10 @@ Unfinished work saved from the stopped agents:
       - a cancelled or refused install leaves the banner; an installer that can't start falls back to the download link.
     - Settings has a new "Updates" row: Auto (Wi-Fi) or When I tap.
     - Not tested on a device yet. The first build with this must be installed by hand once, since older builds only open the link.
+    - Owner test (2026-11-25, build 52 to 53): the download, the unknown-apps permission and Android's "Update this app?" prompt all worked, but after Update the install failed with no visible reason.
+      - Signing is ruled out: every APK carries the committed test certificate (SHA-256 ea8347b4…).
+      - Fix 1: the banner shows PackageInstaller's code and message.
+      - Fix 2: if that route fails or is cancelled, the game opens Android's standard package installer for the same file (`SigilboundApkProvider`, the same screen as installing from a file manager). If that fails too, the button becomes Download.
   - Today: the update banner on Android opens the APK link in the browser. The owner then downloads, opens the file and installs.
   - Goal: tap **Update now** in the game. It downloads the APK with a progress bar (as on Windows), then Android's installer opens directly, so one tap installs it and the save is kept. Later updates are silent where Android allows it.
   - What Android allows:
