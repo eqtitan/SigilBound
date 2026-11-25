@@ -49,6 +49,21 @@ public final class SigilboundUpdateInstaller {
         }
     }
 
+    // The fallback route: Android's standard package installer (as from a file manager) for the APK
+    // in the app cache, served by SigilboundApkProvider. The game closes if the update installs.
+    public static void installViaIntent(Activity activity) {
+        try {
+            Uri uri = Uri.parse("content://" + activity.getPackageName() + ".sbupdate/" + SigilboundApkProvider.FILE);
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(uri, "application/vnd.android.package-archive");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            activity.startActivity(i);
+            status = "intent";
+        } catch (Throwable t) {
+            status = "failed:-2:" + t;
+        }
+    }
+
     // Starts the install on a background thread; poll getStatus() for the outcome.
     public static void install(final Activity activity, final String apkPath) {
         status = "working";

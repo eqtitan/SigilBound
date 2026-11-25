@@ -209,6 +209,7 @@ namespace Sigilbound.Client
         const string InstallerClass = "com.sigilbound.updater.SigilboundUpdateInstaller";
         string _apkPath; int _apkBuild;
         string _failText; bool _linkMode; // after a failed install: Android's reason, and the Download link
+        bool _useIntent; // after the PackageInstaller route failed or was cancelled: Android's standard installer
         bool _autoTried, _autoBlocked, _awaitPermission, _installStarted, _userStarted;
         float _nextPoll;
         App _app;
@@ -227,6 +228,7 @@ namespace Sigilbound.Client
         IEnumerator DownloadApk(bool background)
         {
             _installing = background ? "Downloading the update (Wi-Fi)…" : "Downloading the update…"; _progress = 0;
+            // Application.temporaryCachePath is the app's cache dir on Android, which SigilboundApkProvider serves.
             string path = Path.Combine(Application.temporaryCachePath, "sigilbound-update.apk");
             int build = LatestBuild;
             try { if (File.Exists(path)) File.Delete(path); } catch (Exception) { }
@@ -282,8 +284,16 @@ namespace Sigilbound.Client
                         cls.CallStatic("openPermissionSettings", activity);
                         return;
                     }
-                    _installing = "Installing the update…";
-                    cls.CallStatic("install", activity, _apkPath);
+                    if (_useIntent)
+                    {
+                        _installing = "Tap Install in Android's installer";
+                        cls.CallStatic("installViaIntent", activity);
+                    }
+                    else
+                    {
+                        _installing = "Installing the update…";
+                        cls.CallStatic("install", activity, _apkPath);
+                    }
                 }
             }
             catch (Exception e) { Debug.LogWarning("Sigilbound: Android install failed to start: " + e.Message); InstallFailed(true); }
@@ -315,7 +325,8 @@ namespace Sigilbound.Client
                 string st = "";
                 try { using (var cls = new AndroidJavaClass(InstallerClass)) st = cls.CallStatic<string>("getStatus") ?? ""; }
                 catch (Exception) { }
-                if (st == "user-action") _installing = "Confirm the update in Android's window";
+                if (st == "intent") { _installStarted = false; _installing = null; _failText = "Finish in Android's installer (Install), then reopen"; }
+                else if (st == "user-action") _installing = "Confirm the update in Android's window";
                 else if (st == "success") _installing = "Updated: open Sigilbound again";
                 else if (st.StartsWith("failed", StringComparison.Ordinal))
                 {
@@ -323,13 +334,22 @@ namespace Sigilbound.Client
                     // failure, shown in the banner, and the button switches to the Download link.
                     Debug.LogWarning("Sigilbound: Android install " + st);
                     var parts = st.Split(new[] { ':' }, 3);
-                    bool cancelled = parts.Length > 1 && parts[1] == "3";
+                    string code = parts.Length > 1 ? parts[1] : "?";
+                    string why = parts.Length > 2 ? parts[2] : st;
+                    if (why.Length > 60) why = why.Substring(0, 60) + "…";
                     InstallFailed(false);
-                    if (!cancelled)
+                    if (!_useIntent && code != "-2")
                     {
-                        string why = parts.Length > 2 ? parts[2] : st;
-                        if (why.Length > 70) why = why.Substring(0, 70) + "…";
-                        _failText = $"Install failed ({(parts.Length > 1 ? parts[1] : "?")}): {why}";
+                        // The PackageInstaller route failed (or was cancelled): open Android's standard
+                        // installer for the same file at once (as installing it from a file manager).
+                        _useIntent = true;
+                        _failText = $"Trying Android's installer ({code}: {why})";
+                        _userStarted = true;
+                        StartInstall();
+                    }
+                    else
+                    {
+                        _failText = $"Install failed ({code}): {why}";
                         _linkMode = true;
                     }
                 }
