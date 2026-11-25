@@ -60,6 +60,15 @@ HEROES = {
                    hide=["hood"], kit=["braid", "bow", "quiver"], rim="#3fb57a", height=0.98),
     "sable":  dict(base="hooded", skin="pale", hair="#3a2050", armor="#232a48", accent="#c8d8ff", cloth="#1c2240", glow="#c8d8ff", cape="#161a30",
                    hide=["hood"], kit=["veil", "mirror", "cape", "robe"], rim="#a050ff", height=1.0),
+    # Step 17.
+    "brannoc": dict(base="adventurer", skin="tan", hair="#5a3a22", armor="#4f7a34", accent="#d8b04a", cloth="#7a5232", glow=None,
+                   hide=[], kit=["bandana", "spear"], rim="#3fb57a", height=1.0),
+    "mira":   dict(base="hooded", skin="fair", hair="#2f8f8f", armor="#3f7f9a", accent="#e8e0c8", cloth="#2a5a70", glow=None,
+                   hide=["hood"], kit=["ponytail", "shield"], rim="#3a8ee8", height=0.95),
+    "pell":   dict(base="adventurer", skin="pale", hair="#c8642a", armor="#8a4a2a", accent="#ffb347", cloth="#6a3420", glow="#ffb347",
+                   hide=[], kit=["candle", "robe"], rim="#ff7a3a", height=0.9),
+    "odo":    dict(base="monarch", skin="brown", hair="#1e1610", armor="#4e3626", accent="#9ab84a", cloth="#6b7a3a", glow=None,
+                   hide=["crown", "hair"], kit=["beard", "club"], rim="#3fb57a", height=1.03),
 }
 
 def palette(h):
@@ -208,6 +217,11 @@ def kit(h, arm, P, head_mesh):
                 t = -1 + i / 4.0
                 pts = [H(t * 0.95, 0.2, 0.85), H(t * 1.2, 1.2, 0.2), H(t * 1.35, 1.4, -2.2)]
                 out.append(rigid(F.strand(f"Veil{i}", pts, half.x * 0.22, half.x * 0.16), arm, "Head", P["Cape"]))
+        elif k == "ponytail":
+            # A high ponytail: a tie at the back of the crown and a tapering tail swinging down.
+            out.append(rigid(F.torus("PonyTie", H(0, 0.95, 0.55), half.x * 0.16, half.x * 0.06, rot=(math.radians(70), 0, 0)), arm, "Head", P["Accent"]))
+            pts = [H(0, 1.0, 0.6), H(0, 1.45, 0.4), H(0.05, 1.6, -0.4), H(0.1, 1.45, -1.3)]
+            out.append(rigid(F.strand("Ponytail", pts, half.x * 0.3, half.x * 0.06), arm, "Head", P["Hair"]))
         elif k == "halo":
             out.append(rigid(F.torus("Halo", H(0, 0.2, 1.45), half.x * 0.95, half.x * 0.07), arm, "Head", P.get("Glow", P["Gold"])))
         elif k == "helm":
@@ -292,6 +306,24 @@ def kit(h, arm, P, head_mesh):
             out.append(rigid(F.strand("MirrorHandle", [bp(arm, "Wrist.L", 0, 0.04, 0), bp(arm, "Wrist.L", 0, 0.1, 0)], 0.016, 0.016), arm, "Wrist.L", P["Gold"]))
             out.append(rigid(F.ellipsoid("MirrorFace", c, (0.1, 0.1, 0.018)), arm, "Wrist.L", P.get("Glow", P["Steel"])))
             out.append(rigid(F.torus("MirrorRim", c, 0.1, 0.014), arm, "Wrist.L", P["Gold"]))
+        elif k == "spear":
+            # A long spear through the right fist, leaf blade up, with a cloth tassel under the head.
+            W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
+            out.append(rigid(F.strand("SpearShaft", [W(0, 0.08, 0.9), W(0, 0.08, -1.15)], 0.022, 0.022), arm, "Wrist.R", P["Wood"]))
+            out.append(rigid(F.strand("SpearHead", [W(0, 0.08, -1.12), W(0, 0.08, -1.25), W(0, 0.08, -1.42)], 0.045, 0.004), arm, "Wrist.R", P["Steel"]))
+            out.append(rigid(F.ellipsoid("Tassel", W(0.02, 0.08, -1.08), (0.035, 0.035, 0.06), seg=8, rings=4), arm, "Wrist.R", P["Accent"]))
+        elif k == "club":
+            # A knobbly wooden club (Odo): a thick tapering log with a few studs.
+            W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
+            out.append(rigid(F.strand("Club", [W(0, 0.08, 0.15), W(0, 0.08, -0.35), W(0, 0.08, -0.75)], 0.035, 0.1), arm, "Wrist.R", P["Wood"]))
+            for i, (dx, dz) in enumerate(((0.09, -0.55), (-0.09, -0.65), (0.0, -0.78), (0.07, -0.72))):
+                out.append(rigid(F.ellipsoid(f"Stud{i}", W(dx, 0.08 + (0.05 if i % 2 else -0.05), dz), (0.025, 0.025, 0.025), seg=8, rings=4), arm, "Wrist.R", P["Steel"]))
+        elif k == "candle":
+            # A big candle in a brass holder in the left hand, its flame glowing (Pell).
+            W = lambda x, y, z: bp(arm, "Wrist.L", x, y, z)
+            out.append(rigid(F.torus("CandleDish", W(0, 0.1, 0.0), 0.06, 0.015, rot=(math.radians(90), 0, 0)), arm, "Wrist.L", P["Gold"]))
+            out.append(rigid(F.strand("Candle", [W(0, 0.1, 0.0), W(0, 0.1, -0.22)], 0.035, 0.032), arm, "Wrist.L", P["White"]))
+            out.append(rigid(F.ellipsoid("Flame", W(0, 0.1, -0.28), (0.03, 0.03, 0.06), seg=10, rings=6), arm, "Wrist.L", P.get("Glow", P["Accent"])))
         elif k == "cape":
             # A cape hanging from the shoulders down the back, flaring toward the hem (rigid on the chest).
             chest = bone_world(arm, "Chest"); top = chest.z + 0.2; back = chest.y + 0.2
