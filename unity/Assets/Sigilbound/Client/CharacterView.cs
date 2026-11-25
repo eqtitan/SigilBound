@@ -409,12 +409,15 @@ namespace Sigilbound.Client
             if (_animator != null) _animator.SetTrigger("Hit");
             if (_model != null && !_busy)
             {
-                if (!big && glancing && !Unit.Titan && Random.value < 0.35f && _model.Roll()) { }
+                bool guard = !big && !Unit.Titan && (Unit.Template.Role == Role.Defense || Impact.FamilyOf(Unit.Template.Id) == WeaponFamily.Shield) && Random.value < 0.5f;
+                if (guard && _model.Block()) { }
+                else if (!big && glancing && !Unit.Titan && Unit.Template.Role != Role.Defense && Random.value < 0.35f && _model.Roll()) { } // Defense never dodges
                 else _model.Hit(big);
             }
             if (!Unit.Titan) StartCoroutine(HitRoutine(big));
         }
         public void Win() { if (!_dead && _model != null) { _busy = true; _model.Win(); } }
+        public void Lose() { if (!_dead && _model != null) { _busy = true; _model.Defeat(); } }
         IEnumerator HitRoutine(bool big)
         {
             Vector3 back = -transform.forward * (big ? 0.34f : 0.2f);

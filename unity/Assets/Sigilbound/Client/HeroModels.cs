@@ -108,7 +108,18 @@ namespace Sigilbound.Client
             else { foreach (var kv in _frozenSpeeds) if (kv.Key != null) kv.Key.speed = kv.Value; _frozenSpeeds.Clear(); }
         }
 
-        public void Idle(float fade = 0.25f) { var n = IdleName; if (n != null) Play(n, true, fade, Style.Titan ? 0.7f : 1f); }
+        bool _idlePhased;
+        public void Idle(float fade = 0.25f)
+        {
+            var n = IdleName; if (n == null) return;
+            Play(n, true, fade, Style.Titan ? 0.7f : Style.IdleSpeed);
+            // First idle starts at a random phase (MECHANICS.md 5), so neighbours don't breathe together.
+            if (!_idlePhased && _animator == null && Anim != null) { _idlePhased = true; var st = Anim[_names[n]]; if (st != null) st.time = UnityEngine.Random.value * st.length; }
+        }
+        // Guard against a light hit (Defense role, shields).
+        public bool Block() => Style.Block != null && Has(Style.Block) && Play(Style.Block, false, 0.06f, 1.4f);
+        // The losing side's survivors (held pose or slow loop).
+        public void Defeat() { if (Style.Defeat != null && Has(Style.Defeat)) Play(Style.Defeat, Style.Defeat.EndsWith("_Loop"), 0.3f, Style.DefeatSpeed, !Style.Defeat.EndsWith("_Loop")); else Idle(0.3f); }
         public float Strike()
         {
             var list = Style.Strike.Where(Has).ToArray();
@@ -137,7 +148,7 @@ namespace Sigilbound.Client
         }
         public bool Roll() => Has("Roll") && Play("Roll", false, 0.1f, 1.5f);
         public bool Die() { var n = Style.Death.FirstOrDefault(Has); return n != null && Play(n, false, 0.12f, 1f, true); }
-        public void Win() => Play(Style.Win, true, 0.25f);
+        public void Win() { if (Style.WinHold) Play(Style.Win, false, 0.25f, Style.WinSpeed, true); else Play(Style.Win, true, 0.25f, Style.WinSpeed); }
         public void Run(bool back = false) => Play(back && Has("Run_Back") ? "Run_Back" : "Run", true, 0.15f, back ? 1.5f : 1.4f);
     }
 

@@ -380,7 +380,7 @@ Owner decisions (2026-11-25): frame rate defaults to **Auto (match the screen)**
   - Add them to the clip set and to `HeroClips.Aliases`.
   - Record their provenance in `models/CREDITS.md`.
   - Check: no stilts or floating; clips play in the hero viewer.
-- [ ] **67. Per-weapon state machine.**
+- [ ] **67. Per-weapon state machine.** First pass done (high-detail heroes): `AnimStyle.Hd` follows the family clip table (daggers crouch and cut with both hands, bows draw/shoot, casters spell-idle, shields bash, brawlers jab/cross) and role victory/defeat poses; Defense and shield heroes block light hits (`Punch_Enter` guard) and never dodge; HP heroes shrug hits; idles start at a random phase with ±8% speed per hero; the losing side's survivors take defeat poses. Still to do: Animator/playables graph, Ready/Stunned/Knocked_Down/Revive states, additive buff layers, idle and victory at 1x at every battle speed.
   - Replace the queued-crossfade playback with an Animator or playables graph holding the states and priorities in section 3.1.
   - Families come from `Looks.Prop` (section 3.2). Role timing multipliers and idle desync come from section 5.
   - New states: Ready, Block, Stunned, Knocked_Down, Revive (add `EvType.Revive`), Counter, Defeat, and additive buff/debuff layers.

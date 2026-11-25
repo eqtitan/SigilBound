@@ -9,6 +9,8 @@ namespace Sigilbound.Core
     public sealed class AnimStyle
     {
         public string Idle; public string[] Strike; public string Cast, Support, Ult; public string[] Hit, BigHit, Death, Fidget; public string Win; public bool Titan;
+        // Phase G (high-detail heroes): guard, defeat pose, victory hold, per-hero idle speed (desync).
+        public string Block, Defeat; public float WinSpeed = 1f, DefeatSpeed = 1f, IdleSpeed = 1f, HitScale = 1f; public bool WinHold;
 
         static readonly HashSet<string> Brawlers = new HashSet<string> { "odo", "kettle", "gorrum", "thrain" };
         static readonly HashSet<string> SmallFocus = new HashSet<string> { "candle", "mirror", "bell", "orb", "lantern" };
@@ -28,19 +30,39 @@ namespace Sigilbound.Core
             string p = Looks.Of(heroId).Prop;
             return !SmallFocus.Contains(p) && !Brawlers.Contains(heroId);
         }
+        // Per weapon family (MECHANICS.md 3.2, free clips only) and per role (section 5).
         public static AnimStyle Hd(string heroId)
         {
-            string p = Looks.Of(heroId).Prop;
-            bool caster = SmallFocus.Contains(p) || p == "staff" || p == "book" || p == "fan" || p == "lute";
-            return new AnimStyle
+            var fam = Impact.FamilyOf(heroId);
+            var role = GameData.Heroes.FirstOrDefault(h => h.Id == heroId)?.Role ?? Role.Attack;
+            var st = new AnimStyle
             {
-                Idle = caster ? "Idle_Loop" : "Sword_Idle",
-                Strike = Brawlers.Contains(heroId) ? new[] { "Punch_Jab", "Punch_Cross" } : p == "daggers" ? new[] { "Sword_Attack", "Punch_Jab" }
-                    : p == "bow" ? new[] { "Pistol_Shoot" } : caster ? new[] { "Spell_Simple_Shoot" } : new[] { "Sword_Attack" },
-                Cast = p == "bow" ? "Pistol_Shoot" : "Spell_Simple_Shoot", Support = "Spell_Simple_Enter", Ult = "Spell_Simple_Shoot",
+                Cast = "Spell_Simple_Shoot", Support = "Spell_Simple_Enter", Ult = "Spell_Simple_Shoot",
                 Hit = new[] { "Hit_Chest" }, BigHit = new[] { "Hit_Head" }, Death = new[] { "Death01" },
-                Fidget = new[] { "Idle_Loop", "Idle_Talking_Loop" }, Win = "Interact",
+                Fidget = new[] { "Idle_Loop", "Idle_Talking_Loop" },
             };
+            switch (fam)
+            {
+                case WeaponFamily.Daggers: st.Idle = "Crouch_Idle_Loop"; st.Strike = new[] { "Punch_Jab", "Punch_Cross", "Sword_Attack" }; break;
+                case WeaponFamily.Bow: st.Idle = "Pistol_Idle_Loop"; st.Strike = new[] { "Pistol_Shoot" }; st.Cast = "Pistol_Shoot"; break;
+                case WeaponFamily.Caster: st.Idle = "Spell_Simple_Idle_Loop"; st.Strike = new[] { "Spell_Simple_Shoot" }; break;
+                case WeaponFamily.Support: st.Idle = "Idle_Loop"; st.Strike = new[] { "Spell_Simple_Shoot" }; break;
+                case WeaponFamily.Shield: st.Idle = "Sword_Idle"; st.Strike = new[] { "Punch_Cross", "Sword_Attack" }; st.Block = "Punch_Enter"; break;
+                case WeaponFamily.Unarmed: st.Idle = "Idle_Loop"; st.Strike = new[] { "Punch_Jab", "Punch_Cross" }; break;
+                default: st.Idle = "Sword_Idle"; st.Strike = new[] { "Sword_Attack" }; break; // blade, heavy, polearm
+            }
+            switch (role)
+            {
+                case Role.Attack: st.Win = "Sword_Attack"; st.WinSpeed = 0.5f; st.WinHold = true; st.Defeat = "Crouch_Idle_Loop"; st.DefeatSpeed = 0.6f; break;
+                case Role.Defense: st.Win = "Interact"; st.Block ??= "Punch_Enter"; st.Defeat = "Idle_Loop"; st.DefeatSpeed = 0.5f; break;
+                case Role.Hp: st.Win = "Idle_Talking_Loop"; st.WinSpeed = 0.8f; st.Defeat = "Sitting_Enter"; st.HitScale = 0.8f; break;
+                default: st.Win = "Spell_Simple_Enter"; st.WinHold = true; st.Defeat = "Crouch_Idle_Loop"; st.DefeatSpeed = 0.6f; break;
+            }
+            if (fam == WeaponFamily.Caster || fam == WeaponFamily.Support) st.Win = role == Role.Support ? "Spell_Simple_Enter" : st.Win;
+            // Desync: breathing speed varies +/-8% by hero id, so a lineup never breathes in sync.
+            int hsh = 17; foreach (char ch in heroId) hsh = hsh * 31 + ch;
+            st.IdleSpeed = 0.92f + (System.Math.Abs(hsh) % 1000) / 1000f * 0.16f;
+            return st;
         }
 
         public static AnimStyle For(string heroId)
