@@ -5,6 +5,11 @@
 // build<N>.zip on Windows), a small banner with a Download button appears at the top of the
 // screen, without a restart. It starts itself (no scene setup) and draws its own banner, so it
 // works on every screen. Disabled in the editor and in local builds without a build number.
+// Windows updates in place (a PowerShell helper). Android (PLAN step 34) downloads the APK and
+// installs it through PackageInstaller (Plugins/Android/SigilboundUpdateInstaller.java): one tap
+// on Android's confirmation the first time, silent later on Android 12+. With Auto-update on (the
+// default; Settings), new builds download on Wi-Fi and install on the home screen, never mid-battle.
+using System;
 using System.Collections;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -70,6 +75,7 @@ namespace Sigilbound.Client
         void OnApplicationFocus(bool focus)
         {
             if (focus) Check(false);
+            if (focus && _awaitPermission) PermissionReturned();
         }
 
         void Check(bool force)
@@ -96,8 +102,12 @@ namespace Sigilbound.Client
                     if (int.TryParse(m.Groups[3].Value, out var b) && b > best) { best = b; ver = m.Groups[2].Value; file = m.Groups[1].Value; }
                 if (best > MyBuild)
                 {
-                    if (best != LatestBuild) _dismissed = false; // a newer build than the one dismissed
+                    if (best != LatestBuild) { _dismissed = false; _autoTried = false; _autoBlocked = false; } // a newer build than the one dismissed
                     LatestBuild = best; LatestVersion = ver; _latestFile = file;
+                    // Auto-update (Android): fetch it in the background while on Wi-Fi.
+                    if (Application.platform == RuntimePlatform.Android && AutoUpdate && !_autoTried && _installing == null && !_installStarted
+                        && _apkBuild != LatestBuild && Application.internetReachability == NetworkReachability.ReachableViaLocalAreaNetwork)
+                    { _autoTried = true; StartCoroutine(DownloadApk(true)); }
                 }
                 else LatestBuild = 0;
             }
@@ -127,9 +137,10 @@ namespace Sigilbound.Client
                 GUI.Box(btn, GUIContent.none, _box);
                 GUI.DrawTexture(new Rect(btn.x, btn.y, btn.width * Mathf.Clamp01(_progress), btn.height), _btn.normal.background);
             }
-            else if (GUI.Button(btn, Application.platform == RuntimePlatform.WindowsPlayer ? "Update now" : "Download", _btn))
+            else if (GUI.Button(btn, "Update now", _btn))
             {
                 if (Application.platform == RuntimePlatform.WindowsPlayer) StartCoroutine(UpdateWindows());
+                else if (Application.platform == RuntimePlatform.Android) StartCoroutine(UpdateAndroid());
                 else Application.OpenURL(FileUrl);
             }
             var close = new Rect(r.xMax - closeW - pad * 0.5f, r.y + 14 * k, closeW, h - 28 * k);
@@ -186,6 +197,137 @@ namespace Sigilbound.Client
             }
             catch (System.Exception e) { Debug.LogWarning("Sigilbound: in-place update failed: " + e.Message); Fallback(); yield break; }
             Application.Quit();
+        }
+
+        // ---------- Android: download, then install through PackageInstaller ----------
+        public static bool AutoUpdate
+        {
+            get => PlayerPrefs.GetInt("sb.autoUpdate", 1) == 1;
+            set { PlayerPrefs.SetInt("sb.autoUpdate", value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+        const string InstallerClass = "com.sigilbound.updater.SigilboundUpdateInstaller";
+        string _apkPath; int _apkBuild;
+        bool _autoTried, _autoBlocked, _awaitPermission, _installStarted, _userStarted;
+        float _nextPoll;
+        App _app;
+
+        IEnumerator UpdateAndroid() // the banner's Update now
+        {
+            _userStarted = true; _autoBlocked = false;
+            if (_apkPath == null || _apkBuild != LatestBuild)
+            {
+                yield return DownloadApk(false);
+                if (_apkPath == null || _apkBuild != LatestBuild) yield break;
+            }
+            StartInstall();
+        }
+
+        IEnumerator DownloadApk(bool background)
+        {
+            _installing = background ? "Downloading the update (Wi-Fi)…" : "Downloading the update…"; _progress = 0;
+            string path = Path.Combine(Application.temporaryCachePath, "sigilbound-update.apk");
+            int build = LatestBuild;
+            try { if (File.Exists(path)) File.Delete(path); } catch (Exception) { }
+            using (var req = new UnityWebRequest(FileUrl, UnityWebRequest.kHttpVerbGET))
+            {
+                req.downloadHandler = new DownloadHandlerFile(path) { removeFileOnAbort = true };
+                req.SetRequestHeader("User-Agent", "Sigilbound-Unity");
+                var op = req.SendWebRequest();
+                while (!op.isDone) { _progress = req.downloadProgress; yield return null; }
+                if (req.result != UnityWebRequest.Result.Success) { DownloadFailed(background); yield break; }
+            }
+            // An APK is a zip ("PK") of several MB; anything else (an error page) is not installed.
+            bool ok = false;
+            try
+            {
+                var fi = new FileInfo(path);
+                if (fi.Length > 1_000_000) using (var f = File.OpenRead(path)) ok = f.ReadByte() == 'P' && f.ReadByte() == 'K';
+            }
+            catch (Exception) { }
+            if (!ok) { DownloadFailed(background); yield break; }
+            _apkPath = path; _apkBuild = build; _progress = 1;
+            _installing = null;
+        }
+
+        void DownloadFailed(bool background)
+        {
+            _installing = null;
+            if (background) _autoBlocked = true; // keep the banner; no browser pop-up from a background try
+            else Fallback();
+        }
+
+        static AndroidJavaObject CurrentActivity()
+        {
+            using (var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+                return player.GetStatic<AndroidJavaObject>("currentActivity");
+        }
+
+        void StartInstall()
+        {
+            if (_apkPath == null) return;
+            _installStarted = true;
+            (_app != null ? _app : (_app = FindAnyObjectByType<App>()))?.Save(); // progress is safe before Android replaces the app
+            try
+            {
+                using (var cls = new AndroidJavaClass(InstallerClass))
+                {
+                    var activity = CurrentActivity();
+                    if (!cls.CallStatic<bool>("canInstall", activity))
+                    {
+                        // One time: Android must allow Sigilbound to install apps.
+                        _awaitPermission = true;
+                        _installing = "Allow \"Install unknown apps\" for Sigilbound, then come back";
+                        cls.CallStatic("openPermissionSettings", activity);
+                        return;
+                    }
+                    _installing = "Installing the update…";
+                    cls.CallStatic("install", activity, _apkPath);
+                }
+            }
+            catch (Exception e) { Debug.LogWarning("Sigilbound: Android install failed to start: " + e.Message); InstallFailed(true); }
+        }
+
+        void PermissionReturned()
+        {
+            _awaitPermission = false;
+            bool allowed = false;
+            try { using (var cls = new AndroidJavaClass(InstallerClass)) allowed = cls.CallStatic<bool>("canInstall", CurrentActivity()); }
+            catch (Exception) { }
+            if (allowed) StartInstall();
+            else InstallFailed(false); // not allowed: back to the banner (Update now asks again)
+        }
+
+        // linkFallback: the installer itself is unusable, so offer the download link instead.
+        void InstallFailed(bool linkFallback)
+        {
+            _installStarted = false; _installing = null; _autoBlocked = true;
+            if (linkFallback && _userStarted) Fallback();
+        }
+
+        void Update()
+        {
+            if (Application.platform != RuntimePlatform.Android) return;
+            if (_installStarted && !_awaitPermission && Time.unscaledTime >= _nextPoll)
+            {
+                _nextPoll = Time.unscaledTime + 0.5f;
+                string st = "";
+                try { using (var cls = new AndroidJavaClass(InstallerClass)) st = cls.CallStatic<string>("getStatus") ?? ""; }
+                catch (Exception) { }
+                if (st == "user-action") _installing = "Confirm the update in Android's window";
+                else if (st == "success") _installing = "Updated: open Sigilbound again";
+                else if (st.StartsWith("failed", StringComparison.Ordinal))
+                {
+                    Debug.LogWarning("Sigilbound: Android install " + st);
+                    InstallFailed(false); // e.g. cancelled: the banner stays, Update now tries again
+                }
+            }
+            // Auto-update: a downloaded update installs on the home screen, never mid-battle.
+            if (_apkPath != null && _apkBuild == LatestBuild && !_installStarted && !_autoBlocked && AutoUpdate && Time.unscaledTime >= _nextPoll)
+            {
+                _nextPoll = Time.unscaledTime + 1f;
+                if (_app == null) _app = FindAnyObjectByType<App>();
+                if (_app != null && _app.Screen == ScreenId.Home && !_app.ModalOpen) { _userStarted = false; StartInstall(); }
+            }
         }
 
         void Fallback()
