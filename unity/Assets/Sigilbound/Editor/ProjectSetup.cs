@@ -33,8 +33,10 @@ namespace Sigilbound.EditorTools
 
             PlayerSettings.companyName = "Sigilbound";
             // Frame pacing at 120/60/30 Hz on high-refresh phones (MECHANICS.md 6.1), and frame timings for Quality.
+#if UNITY_2022_2_OR_NEWER
             PlayerSettings.Android.optimizedFramePacing = true;
             PlayerSettings.enableFrameTimingStats = true;
+#endif
             PlayerSettings.productName = AppName;
             PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, AppId);
             PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS, AppId);
