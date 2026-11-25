@@ -1,0 +1,149 @@
+name: Sigilbound hero art
+
+# Hero art import (unity/ART_PIPELINE.md), run by hand: Actions > Sigilbound hero art > Run workflow.
+#  1. heroforge makes or fetches the heroes' files (provider "local" = the shipped CC0 models, for
+#     testing; "blender" = the free scripted builds in Tools~/blenderforge; meshy/tripo = optional paid
+#     plug-ins that need their key secret), makes LODs, stages them and runs the offline check;
+#  2. Unity (game-ci, the same license secrets as sigilbound-unity.yml) runs the CC0 self-test and
+#     the import tool in batch mode;
+#  3. the reports and staged files are uploaded as artifacts, and the generated prefabs/assets are
+#     committed to a new branch hero-art/<run id> (never to main) for review.
+# Secrets: UNITY_EMAIL, UNITY_PASSWORD (required), UNITY_LICENSE (optional), and only for paid
+# providers MESHY_API_KEY or TRIPO_API_KEY. Keys reach heroforge as environment variables and are
+# never echoed (GitHub also masks them in logs).
+
+on:
+  workflow_dispatch:
+    inputs:
+      heroes:
+        description: "Hero ids, comma-separated (empty = all 24)"
+        type: string
+        default: "brannoc,hask,wren"
+      provider:
+        description: "Where the models come from"
+        type: choice
+        options: ["local", "blender", "meshy", "tripo"]
+        default: "local"
+      plan_tier:
+        description: "Paid providers only: the plan the key belongs to"
+        type: choice
+        options: ["paid", "free"]
+        default: "paid"
+      budget:
+        description: "Paid providers only: hard credit cap for this run"
+        type: string
+        default: "0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sigilbound-hero-art
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check the Unity secrets
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          if [ -z "$UNITY_EMAIL" ] || [ -z "$UNITY_PASSWORD" ]; then
+            echo "::error::Add the UNITY_EMAIL and UNITY_PASSWORD secrets (see unity/README.md)."; exit 1
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: "8.0.x"
+      - name: Prepare the CC0 models (self-test input)
+        run: (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)
+      - name: Free-tools builds (Blender as a Python module)
+        if: inputs.provider == 'blender'
+        run: |
+          python3 -m pip install --quiet bpy==5.2.4 || { echo "::error::bpy 5.2.4 needs Python 3.13 on the runner"; exit 1; }
+      - name: heroforge (generate or copy, rig, LODs, stage, offline check)
+        env:
+          MESHY_API_KEY: ${{ inputs.provider == 'meshy' && secrets.MESHY_API_KEY || '' }}
+          TRIPO_API_KEY: ${{ inputs.provider == 'tripo' && secrets.TRIPO_API_KEY || '' }}
+          HEROES: ${{ inputs.heroes }}
+          PROVIDER: ${{ inputs.provider }}
+          PLAN_TIER: ${{ inputs.plan_tier }}
+          BUDGET: ${{ inputs.budget }}
+        run: |
+          (cd unity/Tools~/heroforge && npm ci --no-audit --no-fund)
+          ARGS=(--provider "$PROVIDER" --out .heroforge-out --batch "ci-${{ github.run_id }}")
+          if [ -n "$HEROES" ]; then ARGS+=(--heroes "$HEROES"); fi
+          if [ "$PROVIDER" = "meshy" ] || [ "$PROVIDER" = "tripo" ]; then ARGS+=(--plan-tier "$PLAN_TIER" --budget "$BUDGET"); fi
+          node unity/Tools~/heroforge/heroforge.mjs estimate "${ARGS[@]}"
+          for step in generate rig lods stage; do node unity/Tools~/heroforge/heroforge.mjs "$step" "${ARGS[@]}"; done
+          # The offline check fails for heroes the Unity tool will reject; keep going so the report ships.
+          node unity/Tools~/heroforge/heroforge.mjs validate "${ARGS[@]}" || echo "::warning::Offline check: some heroes fail (see the artcheck report artifact)."
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: unity/Library
+          key: unity-library-heroart-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: |
+            unity-library-heroart-
+      - name: Unity import + CC0 self-test (game-ci, batch mode)
+        # The import method writes its JSON summary to game-ci's -customBuildPath, so game-ci finds a
+        # build output; -sbArtExitZero keeps passing heroes even when another hero fails validation.
+        uses: game-ci/unity-builder@eb1b9fba120c6e62c9fb7a7a81d6c107ce004c45 # v6.0.0
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          cliVersion: v0.1.77
+          projectPath: unity
+          targetPlatform: StandaloneLinux64
+          buildName: hero-art-summary
+          buildMethod: Sigilbound.EditorTools.HeroImportPipeline.ImportFromCommandLine
+          customParameters: -sbArtSelfTest -sbArtIn ../.heroforge-out/incoming -sbArtExitZero
+          versioning: None
+          allowDirtyBuild: true
+      - name: Read the summary
+        id: summary
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" unity build 2>/dev/null || true
+          S=unity/Assets/Sigilbound/Art/Reports/summary.json
+          if [ ! -f "$S" ]; then echo "::error::The Unity import wrote no summary (see the Unity log above)."; exit 1; fi
+          cat "$S"; echo
+          node -e "const s=require('./$S'); if(s.selfTest===false) console.log('::error::CC0 self-test failed in Unity'); if((s.failed||[]).length) console.log('::warning::Failed validation: '+s.failed.join(', ')); if((s.usingFallbackMotion||[]).length) console.log('::warning::Using fallback motion: '+s.usingFallbackMotion.join(', '));"
+          echo "passed=$(node -p "(require('./$S').passed||[]).length")" >> "$GITHUB_OUTPUT"
+          echo "selftest=$(node -p "String(require('./$S').selfTest)")" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: hero-art-reports-${{ github.run_id }}
+          path: |
+            unity/Assets/Sigilbound/Art/Reports/
+            .heroforge-out/reports/
+            .heroforge-out/manifest.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: hero-art-staged-${{ github.run_id }}
+          path: .heroforge-out/incoming/
+      - name: Commit the generated heroes to hero-art/${{ github.run_id }}
+        # Prefabs reference the imported files by GUID, so the .meta files are committed with them.
+        # Self-test output (Art/Test) stays out. Never pushes to main.
+        if: steps.summary.outputs.passed != '0'
+        env:
+          BRANCH: hero-art/${{ github.run_id }}
+        run: |
+          git config user.name "sigilbound-hero-art"
+          git config user.email "hero-art@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -f unity/Assets/Sigilbound/Art unity/Assets/Sigilbound/Art.meta 2>/dev/null || git add -f unity/Assets/Sigilbound/Art
+          git reset -q -- unity/Assets/Sigilbound/Art/Test unity/Assets/Sigilbound/Art/Test.meta 2>/dev/null || true
+          if git diff --cached --quiet; then echo "Nothing to commit."; exit 0; fi
+          git commit -q -m "Hero art import, run ${{ github.run_id }} (${{ inputs.provider }}: ${{ inputs.heroes || 'all' }})" \
+            -m "Self-test: ${{ steps.summary.outputs.selftest }}. Reports are in the run's artifacts."
+          git push origin "$BRANCH"
+          echo "Pushed $BRANCH: open a pull request to review the heroes." >> "$GITHUB_STEP_SUMMARY"
