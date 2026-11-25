@@ -345,9 +345,56 @@ Owner decision: do all four upgrades, all free (CC0 and code; no paid tools). Go
 Owner decision: rebuild the heroes on **Quaternius Universal Base Characters + Modular Character Outfits – Fantasy** (CC0; Source editions, mirrored with their licence files and SHA256SUMS in github.com/slopwarefactory/terra `art/characters/quaternius/`). These are detailed male and female bodies (about 14k triangles) with 4K PBR textures (BaseColor, Normal, ORM). Outfits come as separate pieces: Knight (armet, horned helm, pauldrons), Noble (crown), Wizard, Ranger and Peasant, each in 3 colourways, plus 10 hair and beard styles. The rig is a 65-joint, Unreal-style skeleton, the one the Universal Animation Library (CC0, already our clip source) was made for. Runs next, before steps 46–55, which then build on these bodies.
 
 - [x] **56. Import and verify.** Done (import): `godot/models/ubc/`, with 57 parts on one 65-joint skeleton (bodies, heads, 10 hair and beard pieces, Knight, Noble, Wizard, Ranger and Peasant pieces). Every file matched the source's SHA256SUMS; textures were scaled to 1024 (ORM 512). Test assembly renders cleanly. Still open: playing the UAL clips on this rig is checked in step 58. Copy the bodies, outfit pieces, hair and licence files into `godot/models/ubc/`. Scale textures down for phones (1024 for albedo and normal, 512 for ORM). Check every piece's skeleton matches the base body and that the full UAL clip set plays on it (no stilts, no floating).
-- [ ] **57. New build tool.** `blenderforge/ubc.py`: per hero, pick the body, head, hair or beard, outfit pieces and colourway, tint the BaseColor by mask to the hero's palette, and add quat.py kit pieces on the new bone names (pelvis, spine_03, hand_r…). Export one skinned GLB with albedo, normal and glow, and set a triangle budget (about 25k at LOD0, plus an LOD1).
+- [ ] **57. New build tool.** In progress: `blenderforge/ubc.py` (+ `ubc_parts.py`) builds a hero from a design entry: parts picked and tinted, kit bound to bones, one 65-joint skeleton, decimated to 25k triangles (LOD1 about 8k), one baked atlas (albedo, tangent normal, glow). Capes are fitted to each body by ray-casting (they drape over the shoulders, fasten with clasps at the collarbones and hang clear of the back and legs). Weapons sit in the palm along the knuckle line and the fingers curl around them (`grip_pose`, which the game's hand grip will repeat after each animation frame). `ual_retarget.py` retargets all 46 free UAL clips onto the rig. `blenderforge/ubc.py`: per hero, pick the body, head, hair or beard, outfit pieces and colourway, tint the BaseColor by mask to the hero's palette, and add quat.py kit pieces on the new bone names (pelvis, spine_03, hand_r…). Export one skinned GLB with albedo, normal and glow, and set a triangle budget (about 25k at LOD0, plus an LOD1).
 - [ ] **58. Game loading.** HeroModels loads the new rig with the full UAL clip set (more attack, cast and hit clips than today), the Hollow enemies use the new bodies too, and there is a performance check on a Galaxy S26+ (10 heroes on screen) with a lower LOD on Low quality.
 - [ ] **59–63. Rebuild all 100 heroes, 20 per step**, each with its own outfit combination and its signature (signatures.py). The uniqueness audit (audit.py) extends to outfit pieces and must pass at the end of each step.
+
+## Phase G: gameplay animation and mechanics (owner request, 2026-11-25)
+
+Owner request: a character mechanics agent (`.claude/agents/character-mechanics.md`) researches common in-game mechanics and uses them to build the heroes' battle animations, and the game matches the device's refresh rate. The spec is `docs/sigilbound/MECHANICS.md`.
+- Every rule is time-based: seconds and normalized clip time, never frame counts.
+- Clips are free CC0 only, UAL first.
+
+Steps 66–69 need the step 58 rig. Step 65 can run any time.
+
+Owner decisions (2026-11-25): frame rate defaults to **Auto (match the screen)** (players who chose 30 keep it); a **screen shake setting Full / Reduced / Off** (default Full); **free UAL clips first**, paid tier decided after tests T2–T4.
+
+- [x] **64. Research and spec.** Done (2026-11-25): MECHANICS.md has:
+  - the five beats of an action with durations, and their scaling at 2x and 3x;
+  - the state machine and the nine weapon families with clips and fallbacks;
+  - the hit-stop, shake and flash numbers;
+  - role personality;
+  - the frame-rate design and 12 animation tests.
+- [ ] **65. Frame-rate matching.**
+  - Frame rate setting: Auto (match the display, up to 120), 60 or 30, saved as the new `settings.fpsMode` (`fpsCap` stays for web saves).
+  - `Quality.cs` changes as in MECHANICS.md section 6.3:
+    - `DisplayHz`;
+    - desktop vsync;
+    - at high refresh, Auto lowers 120 → 60 before it lowers the quality tier;
+    - `FrameTimingManager` decides when to retry 120.
+  - Turn on Optimized Frame Pacing and Frame Timing Stats in Player settings.
+  - Fix the frame-rate-dependent code (section 4.6): screen shake noise, spark spawn rates, a fixed substep for cloth springs.
+  - Check: the performance overlay shows 120 on the S26+ with Auto, and 60 and 30 when chosen. Windows follows the monitor.
+- [ ] **66. UAL clip set on the new rig.**
+  - Retarget the free UAL Standard clips the families need onto the 65-joint rig (`tools/anim-retarget`), and confirm every *(verify)* name in MECHANICS.md section 3.
+  - Add them to the clip set and to `HeroClips.Aliases`.
+  - Record their provenance in `models/CREDITS.md`.
+  - Check: no stilts or floating; clips play in the hero viewer.
+- [ ] **67. Per-weapon state machine.**
+  - Replace the queued-crossfade playback with an Animator or playables graph holding the states and priorities in section 3.1.
+  - Families come from `Looks.Prop` (section 3.2). Role timing multipliers and idle desync come from section 5.
+  - New states: Ready, Block, Stunned, Knocked_Down, Revive (add `EvType.Revive`), Counter, Defeat, and additive buff/debuff layers.
+  - Idle and victory stay at 1x at every battle speed.
+- [ ] **68. Hit-stop and impact events.**
+  - Every attack clip gets normalized `impact` / `release` times. Damage numbers, effects and reactions fire when those times are crossed, instead of after fixed waits.
+  - Hit-stop freezes only the attacker and the target, with the pose snapped to the impact time, using the durations in section 4.1.
+  - Knockback curves and speed-based projectiles.
+  - Tests in `unity/Tests~` that an action takes the same time at a simulated 30, 60 and 120 fps.
+- [ ] **69. Animation test approvals.**
+  - Render tests T1–T12 (MECHANICS.md section 7) in Blender on the high-detail heroes, and put them in `docs/sigilbound/art/anim-tests/`.
+  - The owner approves, rejects or changes each one. The verdicts go in MECHANICS.md and the ROADMAP decisions log.
+  - Rejected tests are reworked before steps 59–63 roll the clips out to all 100 heroes.
+  - T11 (frame rate) is also checked live in the Unity build on the S26+.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
 
