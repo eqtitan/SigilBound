@@ -68,6 +68,7 @@ namespace Sigilbound.Client
             Clear();
             Spawn(_b.Allies, true); Spawn(_b.Enemies, false);
             _finished = false; _awaiting = false; _banner = ""; _actor = null;
+            _t0 = Time.unscaledTime; _paused = false;
             App.Go(ScreenId.Battle);
             Sound.I?.StartMusic();
             Time.timeScale = Mathf.Clamp(G.S.settings.speed, 1, 3);
@@ -93,7 +94,7 @@ namespace Sigilbound.Client
         public void End(ScreenId to)
         {
             if (_loop != null) StopCoroutine(_loop);
-            Time.timeScale = 1;
+            Time.timeScale = 1; _paused = false;
             _auto = null;
             Clear();
             App.CloseModal();
@@ -272,7 +273,7 @@ namespace Sigilbound.Client
         {
             if (_finished) return;
             _finished = true;
-            Time.timeScale = 1;
+            Time.timeScale = 1; _paused = false;
             if (_b.Result == BattleResult.Victory) StartCoroutine(Celebrate(true));
             Sound.I?.StopMusic();
             if (_spec.Mode == BattleMode.Titan) { Sound.I?.Play("bigKill"); StartCoroutine(Later(0.6f, () => Sound.I?.Play("coin"))); }
@@ -482,6 +483,7 @@ namespace Sigilbound.Client
         public void DrawHud()
         {
             if (_b == null) return;
+            if (Ui.Landscape) { DrawHudWide(); return; }
             var safe = Ui.Safe; var cam = App.Arena.Cam;
             float top = safe.y;
             // header
@@ -555,6 +557,164 @@ namespace Sigilbound.Client
                 }
             }
             else Ui.Text(new Rect(0, barTop, Ui.W, 90), Auto ? "Auto battle" : _actor != null && !_actor.Ally ? "Enemy turn…" : "", 13, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+        }
+
+        // ---------- landscape battle HUD (docs/sigilbound/PLAN.md step 10) ----------
+        float _t0; bool _paused;
+
+        void TogglePause()
+        {
+            _paused = !_paused;
+            Time.timeScale = _paused ? 0 : (_finished ? 1 : Mathf.Clamp(G.S.settings.speed, 1, 3));
+        }
+
+        // A round corner button with a drawn icon and a tiny caption.
+        bool RoundButton(Rect r, Icon icon, string caption, bool on)
+        {
+            GUI.DrawTexture(r, Ui.RoundTex(on ? Palette.Hex("#3d3020") : new Color(0.08f, 0.06f, 0.1f, 0.82f), on ? Palette.Gold : Palette.Bronze, Mathf.RoundToInt(r.width / 2)));
+            Icons.Draw(new Rect(r.x + r.width * 0.26f, r.y + r.height * 0.18f, r.width * 0.48f, r.height * 0.48f), icon, on ? Palette.Gold : Palette.Text);
+            Ui.Text(new Rect(r.x - 6, r.yMax - r.height * 0.36f, r.width + 12, r.height * 0.3f), caption, 9, on ? Palette.Gold : Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter);
+            return Ui.Button(r, "", Ui.Kind.Ghost);
+        }
+
+        void DrawHudWide()
+        {
+            var safe = Ui.Safe; var cam = App.Arena.Cam;
+            float top = safe.y + 6, left = Mathf.Max(8, safe.x + 8), right = Mathf.Min(Ui.W - 8, safe.xMax - 8);
+
+            // ---- top-left: retreat, stage and wave, timer ----
+            if (RoundButton(new Rect(left, top, 40, 40), Icon.Close, "Leave", false)) AskRetreat();
+            string where = _spec.Mode switch
+            {
+                BattleMode.Titan => $"Titan · Turn {Mathf.Min(_b.BossTurns + 1, TitanTurns)}/{TitanTurns}",
+                BattleMode.Dungeon => $"{Trials.Dungeon(_spec.Dungeon).Name} · Floor {_spec.Floor + 1}",
+                BattleMode.Arena => $"Arena · vs {_spec.Rival.Name}",
+                BattleMode.Hard => $"Hard {Game.StageLabel(_spec.Stage)}",
+                _ => $"Stage {Game.StageLabel(_spec.Stage)}",
+            };
+            string round = _spec.Mode == BattleMode.Titan ? $"{Ui.Fmt(_b.TitanDamage)} damage" : _spec.Mode == BattleMode.Arena ? "" : $"Wave {_b.Wave + 1} of {_b.Waves.Count}";
+            int secs = Mathf.FloorToInt(Time.unscaledTime - _t0);
+            var info = new Rect(left + 48, top, 300, 40);
+            GUI.DrawTexture(new Rect(info.x - 4, info.y + 2, 230, 36), Ui.RoundTex(new Color(0.06f, 0.05f, 0.08f, 0.6f), null, 10));
+            Ui.Text(new Rect(info.x + 6, info.y + 2, 220, 18), where, 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+            Icons.Draw(new Rect(info.x + 6, info.y + 22, 12, 12), Icon.Clock, Palette.Dim);
+            Ui.Text(new Rect(info.x + 22, info.y + 20, 200, 16), $"{secs / 60}:{secs % 60:00}{(round.Length > 0 ? "   " + round : "")}", 11, Palette.Dim);
+
+            // ---- top-right: camera, loop, auto, speed, pause ----
+            float bx = right - 40;
+            if (RoundButton(new Rect(bx, top, 40, 40), _paused ? Icon.Play : Icon.Pause, _paused ? "Resume" : "Pause", _paused)) TogglePause();
+            bx -= 46; if (RoundButton(new Rect(bx, top, 40, 40), Icon.Speed, $"{G.S.settings.speed}x", G.S.settings.speed > 1)) { G.S.settings.speed = G.S.settings.speed >= 3 ? 1 : G.S.settings.speed + 1; if (!_paused) Time.timeScale = _finished ? 1 : G.S.settings.speed; App.Save(); }
+            bx -= 46; if (RoundButton(new Rect(bx, top, 40, 40), Icon.Auto, "Auto", Auto)) { G.S.settings.auto = !G.S.settings.auto; App.Save(); }
+            if (_spec.Mode == BattleMode.Stage) { bx -= 46; if (RoundButton(new Rect(bx, top, 40, 40), Icon.Loop, "Loop", G.S.settings.autoReplay)) { G.S.settings.autoReplay = !G.S.settings.autoReplay; App.Save(); } }
+            bx -= 46; if (RoundButton(new Rect(bx, top, 40, 40), Icon.Camera, "View", false)) CycleCamera();
+
+            // ---- turn order, centred under the top row ----
+            if (!_b.Over)
+            {
+                if (_turnsFrame != Time.frameCount) { _turnsFrame = Time.frameCount; _turns = _b.PredictTurns(7); }
+                float cw = 70, cg = 4, tw = _turns.Count * (cw + cg) + 36;
+                float tx = Ui.W / 2 - tw / 2, ty = top + 46;
+                GUI.DrawTexture(new Rect(tx - 4, ty - 2, tw + 8, 26), Ui.RoundTex(new Color(0.04f, 0.03f, 0.06f, 0.55f), null, 8));
+                Ui.Text(new Rect(tx, ty, 34, 22), "Next", 10, Palette.Dim, FontStyle.Bold, TextAnchor.MiddleLeft);
+                for (int i = 0; i < _turns.Count; i++)
+                {
+                    var u = _turns[i]; var r = new Rect(tx + 36 + i * (cw + cg), ty, cw, 22);
+                    bool now = i == 0 && u == _actor;
+                    Ui.Panel(r, u.Ally ? Palette.Hex("#1f3326") : Palette.Hex("#3a1c1c"), now ? Palette.Gold : u.Ally ? Palette.Good : Palette.Bad, 7);
+                    Icons.Draw(new Rect(r.x + 4, r.y + 5, 12, 12), Icons.ForElement(u.El), Palette.Element(u.El));
+                    string nm = u.Titan ? "Titan" : u.Template.ShortName;
+                    Ui.Text(new Rect(r.x + 17, r.y, r.width - 19, r.height), nm.Length > 7 ? nm.Substring(0, 7) : nm, 10, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
+                }
+            }
+
+            // ---- unit tags: slim bars with a level badge, nudged apart so none overlap ----
+            bool manual = _awaiting && _actor != null && _actor.Ally && !Auto && !_paused;
+            var targets = manual ? _b.AffectedBy(_actor, _sel) : new List<Unit>();
+            var tags = new List<(Unit u, CharacterView v, Rect r)>();
+            float minY = top + 96;
+            foreach (var kv in _views)
+            {
+                var u = kv.Key; var v = kv.Value;
+                if (v == null) continue;
+                v.SetHighlight(manual && targets.Contains(u) ? (u.Ally ? new Color(0.36f, 0.82f, 0.48f, 0.8f) : new Color(1f, 0.35f, 0.35f, 0.85f)) : (u == _actor ? new Color(1f, 0.81f, 0.35f, 0.7f) : (Color?)null));
+                if (!u.Alive) continue;
+                Vector3 sp = cam.WorldToScreenPoint(v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
+                if (sp.z < 0) continue;
+                float w = u.Titan ? 150 : 86;
+                float x = Mathf.Clamp(sp.x / Ui.Scale - Ui.Offset, w / 2 + 4, Ui.W - w / 2 - 4);
+                float y = Mathf.Max(minY, (Screen.height - sp.y) / Ui.Scale);
+                tags.Add((u, v, new Rect(x - w / 2, y - 26, w, 26)));
+            }
+            // Lowest on screen first; anything overlapping an earlier tag moves up until it clears.
+            tags.Sort((a, b) => b.r.y.CompareTo(a.r.y));
+            var placed = new List<Rect>();
+            for (int i = 0; i < tags.Count; i++)
+            {
+                var r = tags[i].r;
+                for (int guard = 0; guard < 8 && placed.Any(p => p.Overlaps(r)); guard++) r.y -= 24;
+                r.y = Mathf.Max(minY - 26, r.y);
+                placed.Add(r); tags[i] = (tags[i].u, tags[i].v, r);
+            }
+            foreach (var (u, v, r) in tags)
+            {
+                var badge = new Rect(r.x, r.y + 10, 18, 16);
+                GUI.DrawTexture(badge, Ui.RoundTex(u.Ally ? Palette.Hex("#1f3326") : Palette.Hex("#3a1c1c"), Palette.Element(u.El), 4));
+                Ui.Text(badge, u.Level.ToString(), 9, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+                Ui.Text(new Rect(r.x, r.y - 2, r.width + 30, 13), u.Ally ? u.Template.ShortName : u.Name, 10, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
+                var bar = new Rect(r.x + 20, r.y + 12, r.width - 20, 6);
+                Ui.Bar(bar, u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
+                var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 2), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
+                Ui.Bar(new Rect(bar.x, bar.yMax + 2, bar.width, 3), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
+                if (u.Effects.Count > 0) Ui.Text(new Rect(r.x, r.yMax, r.width + 30, 12), string.Join(" ", u.Effects.Select(e => Ui.ColorTag(SkillText.EffectShort(e.Type), FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff")))), 8, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
+                if (manual && targets.Contains(u))
+                {
+                    Vector3 feet = cam.WorldToScreenPoint(v.transform.position);
+                    float fy = (Screen.height - feet.y) / Ui.Scale;
+                    var tap = new Rect(r.center.x - 48, r.y, 96, Mathf.Max(70, fy - r.y + 30));
+                    if (!App.ModalOpen && Ui.Button(tap, "", Ui.Kind.Ghost))
+                    {
+                        var sk = _actor.Template.Skills[_sel];
+                        _chosen = sk.Target == Target.Enemy || sk.Target == Target.Ally ? u : null;
+                        _awaiting = false;
+                    }
+                }
+            }
+
+            // ---- banner, and the skill buttons bottom-right (only on a manual turn) ----
+            string banner = _paused ? "Paused" : !string.IsNullOrEmpty(_banner) ? _banner : manual ? $"{_actor.Template.ShortName}'s turn" : "";
+            if (banner.Length > 0) Ui.Text(new Rect(0, top + 76, Ui.W, 28), banner, 18, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+            float bottom = safe.yMax - 8;
+            if (manual)
+            {
+                var sks = _actor.Template.Skills;
+                float d = 66, g = 10, x0 = right - sks.Length * (d + g) + g;
+                // What the selected skill does, just left of the buttons.
+                var desc = new Rect(Mathf.Max(left, x0 - 330), bottom - d, Mathf.Min(320, x0 - left - 10), d);
+                GUI.DrawTexture(desc, Ui.RoundTex(new Color(0.06f, 0.05f, 0.08f, 0.72f), Palette.Bronze, 10));
+                Ui.Text(new Rect(desc.x + 10, desc.y + 4, desc.width - 20, 18), sks[_sel].Name, 12, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+                Ui.Text(new Rect(desc.x + 10, desc.y + 22, desc.width - 20, desc.height - 24), SkillText.Describe(sks[_sel]), 10, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                for (int i = 0; i < sks.Length; i++)
+                {
+                    int cd = _actor.Cds[i];
+                    var b = new Rect(x0 + i * (d + g), bottom - d, d, d);
+                    bool sel = _sel == i;
+                    GUI.DrawTexture(b, Ui.RoundTex(sel ? Palette.Hex("#3d3020") : Palette.Hex("#1d1726"), sel ? Palette.Gold : cd > 0 ? Palette.Bronze : Palette.Trim, Mathf.RoundToInt(d / 2)));
+                    var ic = sks[i].Target switch { Target.Enemy => Icon.Sword, Target.AllEnemies => Icon.Bolt, Target.Ally => Icon.Heart, Target.AllAllies => Icon.Shield, _ => Icon.Star };
+                    Icons.Draw(new Rect(b.x + d * 0.27f, b.y + d * 0.16f, d * 0.46f, d * 0.46f), ic, cd > 0 ? Palette.Dim : sel ? Palette.Gold : Palette.Text);
+                    Ui.Text(new Rect(b.x - 8, b.yMax - d * 0.36f, d + 16, d * 0.3f), $"A{i + 1}", 10, sel ? Palette.Gold : Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter);
+                    if (cd > 0)
+                    {
+                        GUI.DrawTexture(b, Ui.RoundTex(new Color(0, 0, 0, 0.55f), null, Mathf.RoundToInt(d / 2)));
+                        Ui.Text(b, cd.ToString(), 20, Palette.Bad, FontStyle.Bold, TextAnchor.MiddleCenter);
+                    }
+                    else if (Ui.Button(b, "", Ui.Kind.Ghost)) _sel = i;
+                }
+            }
+            else
+            {
+                string state = Auto ? "Auto battle" : _actor != null && !_actor.Ally ? "Enemy turn…" : "";
+                if (state.Length > 0) Ui.Text(new Rect(right - 200, bottom - 24, 200, 24), state, 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
+            }
         }
     }
 }
