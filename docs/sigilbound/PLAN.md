@@ -174,7 +174,7 @@ Unfinished work saved from the stopped agents:
       - The hooded UAL data also puts Body at about twice its rest height.
       - Fixed in `HeroModels.BuildUal`: bones match with or without dots, and position tracks are applied relative to the rest pose. The earlier `FootFollow` patch, which turned the stilts into floating, is removed.
   - Still open: colour and glow levels (judge from the gallery shots), and device checks.
-- [ ] **21–24. Phase 1 heroes (Roadwardens), 4 per step.** Steps 21–23 DONE (2026-11-25): Bram, Nettle, Hobb, Greta; Cole, Tilly, Ronan, Isla; Dunstan, Marisol, Vesper, Brega (see below). Stats, skills, looks, tests and balance sims, plus the baked model and the new `anchor`/`net` kit.
+- [x] **21–24. Phase 1 heroes (Roadwardens), 4 per step.** ALL DONE (2026-11-25): Bram, Nettle, Hobb, Greta; Cole, Tilly, Ronan, Isla; Dunstan, Marisol, Vesper, Brega; Fennick, Orla, Silas, Wynn. 40 heroes (see below). Stats, skills, looks, tests and balance sims, plus the baked model and the new `anchor`/`net` kit.
   - STEP 21 DONE (2026-11-25):
     - Bram, Nettle, Hobb and Greta are in `GameData.Heroes` after the original 24, with looks, runtime art (`Core/HeroArt.Roster.cs`), stand-ins and baked models. New kit: anchor, net. Preview: `docs/sigilbound/art/prototype/step21-roadwardens.png`.
     - Rules set in this step:
@@ -187,6 +187,8 @@ Unfinished work saved from the stopped agents:
     - Note: Brannoc is the weakest classic Common attacker, so new Attack heroes score high against him. Kettle is the fairer peer.
   - STEP 23 DONE (2026-11-25): Dunstan, Marisol, Vesper, Brega, the first new Rares (3 skills each). Preview: `docs/sigilbound/art/prototype/step23-roadwardens.png`. Balance: Dunstan 43% vs Hask/Gorrum, Marisol 55% and Vesper 46% vs Ysolde/Lumen/Nyx, Brega 54%.
     - Beards: the adventurer head's beard shares the hair material, and quat.py never applied Looks.cs `Shave`. Fixed with a SHAVE list (lower-front hair faces removed). Pell, Kettle, Lumen, Kaito, Oriel, Nettle, Cole and Marisol are rebaked clean-shaven, matching the game's looks.
+  - STEP 24 DONE (2026-11-25): Fennick, Orla, Silas, Wynn. Preview: `docs/sigilbound/art/prototype/step24-roadwardens.png`. Balance after tuning: Fennick 55% vs Corvan/Tamsin (he started at 1%: Rare supports need a heal), Orla 46% vs Velka, Silas 43% vs Hask/Gorrum, Wynn 56% vs Ysolde/Lumen/Nyx.
+    - Phase 1 (Roadwardens) is complete: 16 heroes. Their ROSTER rows hold the final kits.
 - [ ] **25. Engine: phase 2 mechanics** (Burn, Pierce, Execute, Pull, spread on kill, counter Taunt), with tests.
 - [ ] **26–30. Phase 2 heroes (Glass and Storm).**
 - [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.

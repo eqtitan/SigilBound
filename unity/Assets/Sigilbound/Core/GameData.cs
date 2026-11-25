@@ -125,6 +125,11 @@ namespace Sigilbound.Core
             H("marisol", "Marisol Wavecrest", Rarity.Rare, Element.Tide, Role.Attack, S("Pearl Strike", E, 1.0, 0), S("Riptide Dive", E, 1.9, 3, F(FxType.Slow, 2, 0.5)), S("Wavebreak", AE, 0.85, 4, F(FxType.Slow, 2, 0.4))),
             H("vesper", "Vesper Gloam", Rarity.Rare, Element.Shadow, Role.Attack, S("Gloom Cut", E, 0.6, 0, 2, Scale.Atk), S("Poisoned Edge", E, 2.1, 3, F(FxType.Poison, 2, 0.7)), S("Nightfall Feint", AE, 0.85, 4, F(FxType.DefDown, 2, 0.5))),
             H("brega", "Brega Ironmoss", Rarity.Rare, Element.Tide, Role.Defense, S("Barnacle Bash", E, 0.9, 0, 1, Scale.Def, F(FxType.Slow, 2, 0.25)), S("Lockkeeper", SELF, 0, 4, Shield(0.2), F(FxType.Taunt, 2)), S("Floodgate", AE, 0.6, 5, 1, Scale.Def, F(FxType.Slow, 2, 0.5))),
+            // Step 24:
+            H("fennick", "Fennick Sootpaw", Rarity.Rare, Element.Flame, Role.Support, S("Spark Toss", E, 1.0, 0, F(FxType.Poison, 2, 0.3)), S("Firework Volley", AE, 0.6, 4, F(FxType.Poison, 2, 0.6)), S("Bright Burst", AA, 0, 4, F(FxType.AtkUp, 2), Heal(0.22))),
+            H("orla", "Orla Greywater", Rarity.Rare, Element.Tide, Role.Hp, S("Weed Lash", E, 0.08, 0, 1, Scale.Hp), S("River Brew", AA, 0, 4, Heal(0.17)), S("Marsh Tonic", AA, 0, 5, F(FxType.Regen, 2))),
+            H("silas", "Silas Penumbra", Rarity.Rare, Element.Shadow, Role.Defense, S("Gate Strike", E, 0.9, 0, 1, Scale.Def, F(FxType.DefDown, 2, 0.3)), S("Penumbra Ward", SELF, 0, 4, Shield(0.32), F(FxType.Taunt, 2)), S("Black Gate", AE, 0.7, 5, 1, Scale.Def, F(FxType.DefDown, 2, 0.4))),
+            H("wynn", "Wynn Brightfeather", Rarity.Rare, Element.Light, Role.Attack, S("Falcon Shot", E, 1.0, 0), S("Stooping Dive", E, 2.1, 3, Strip()), S("Feather Storm", AE, 0.8, 4, F(FxType.AtkDown, 2, 0.3))),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web

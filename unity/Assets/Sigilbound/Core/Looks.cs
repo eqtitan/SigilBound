@@ -124,6 +124,10 @@ namespace Sigilbound.Core
             ["marisol"] = new HeroLook { Skin = "brown", Hair = "#1a1a2a", Style = "ponytail", Gear = "none", Armor = "#2a6a8a", Accent = "#7ae0ff", Cloth = "#1a4a5a", Prop = "trident", Glow = "#7ae0ff", Base = "adventurer", Height = 0.98, Shave = true },
             ["vesper"] = new HeroLook { Skin = "pale", Hair = "#2a2030", Style = "hood", Gear = "mask", Armor = "#2a2238", Accent = "#7ad07a", Cloth = "#1a1622", Prop = "daggers", Glow = "#9aff9a", Base = "hooded", Height = 0.96 },
             ["brega"] = new HeroLook { Skin = "deep", Hair = "#3a5a5a", Style = "short", Gear = "helm", Armor = "#4a6a6a", Accent = "#c8e8d0", Cloth = "#2a4a4a", Prop = "shield", Base = "monarch", Height = 1.0, Hide = new[] { "crown" } },
+            ["fennick"] = new HeroLook { Skin = "pale", Hair = "#d86a2a", Style = "messy", Gear = "bandana", Armor = "#7a3a2a", Accent = "#ffd040", Cloth = "#5a2a1a", Prop = "candle", Glow = "#ffb040", Base = "adventurer", Height = 0.92, Shave = true },
+            ["orla"] = new HeroLook { Skin = "tan", Hair = "#5a7a5a", Style = "long", Gear = "none", Armor = "#3a6a6a", Accent = "#a8e0c8", Cloth = "#2a5050", Prop = "staff", Glow = "#a8e0c8", Robe = "long", RobeColor = "#2a5050", Base = "hooded", Height = 1.0, Hide = new[] { "hood" } },
+            ["silas"] = new HeroLook { Skin = "deep", Hair = "#1a1a1a", Style = "short", Gear = "veil", Armor = "#2a2a3a", Accent = "#8a7aff", Cloth = "#1a1a28", Prop = "shield", Glow = "#a898ff", Base = "hooded", Height = 1.02, Hide = new[] { "hood" } },
+            ["wynn"] = new HeroLook { Skin = "fair", Hair = "#e8e0c0", Style = "spiky", Gear = "none", Armor = "#c8a860", Accent = "#fff0a0", Cloth = "#8a6a3a", Prop = "bow", Glow = "#fff2b0", Base = "adventurer", Height = 1.0, Shave = true },
         };
     }
 }
