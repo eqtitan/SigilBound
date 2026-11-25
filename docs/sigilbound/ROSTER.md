@@ -64,9 +64,9 @@ new mechanics apart from the `anchor` and `net` kit.
 | `marisol` | Marisol Wavecrest | Rare | Tide | Attack | adventurer | ponytail, trident | AoE hit; Slow | Drowned Mill pearl diver turned raider of the Hollow. |
 | `vesper` | Vesper Gloam | Rare | Shadow | Attack | hooded | mask, daggers | Poison; DefDown | Thief who works the Hollow Deep's edges. |
 | `brega` | Brega Ironmoss | Rare | Tide | Defense | monarch | helm, shield, beard | Shield and Taunt on self; AoE Slow | Mill-lock keeper in barnacled plate. |
-| `fennick` | Fennick Sootpaw | Rare | Flame | Support | adventurer | bandana, candle | AtkUp all allies; Poison on all enemies | Ashgrave firework maker. |
-| `orla` | Orla Greywater | Rare | Tide | Hp | hooded | long_hair, staff, robe | Regen; Heal scaling with HP | Marsh healer who brews from river weed. |
-| `silas` | Silas Penumbra | Rare | Shadow | Defense | hooded | veil, shield | Shield; DefDown on the attacker | Bellspire gatekeeper sworn to the dark. |
+| `fennick` | Fennick Sootpaw | Rare | Flame | Support | adventurer | bandana, candle | Poison on hit and on all enemies; AtkUp and Heal on all allies | Ashgrave firework maker. |
+| `orla` | Orla Greywater | Rare | Tide | Hp | hooded | long_hair, staff, robe | Heal and Regen on all allies | Marsh healer who brews from river weed. |
+| `silas` | Silas Penumbra | Rare | Shadow | Defense | hooded | veil, shield | Shield and Taunt on self; AoE DefDown | Bellspire gatekeeper sworn to the dark. |
 | `wynn` | Wynn Brightfeather | Rare | Light | Attack | adventurer | spiky_hair, bow, quiver | Single big hit; Strip | Falconer of Stormcrown's foothills. |
 
 ### Phase 2: Glass and Storm (20 heroes, Rare and Epic)

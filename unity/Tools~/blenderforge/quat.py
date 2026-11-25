@@ -105,6 +105,15 @@ HEROES = {
                    hide=[], kit=["mask", "daggers"], rim="#a050ff", height=0.96),
     "brega":  dict(base="monarch", skin="deep", hair="#3a5a5a", armor="#4a6a6a", accent="#c8e8d0", cloth="#2a4a4a", glow=None,
                    hide=["crown", "hair"], kit=["helm", "shield"], rim="#3a8ee8", height=1.0),
+    # Step 24:
+    "fennick": dict(base="adventurer", skin="pale", hair="#d86a2a", armor="#7a3a2a", accent="#ffd040", cloth="#5a2a1a", glow="#ffb040",
+                   hide=[], kit=["bandana", "candle"], rim="#ff7a3a", height=0.92),
+    "orla":   dict(base="hooded", skin="tan", hair="#5a7a5a", armor="#3a6a6a", accent="#a8e0c8", cloth="#2a5050", glow="#a8e0c8",
+                   hide=["hood"], kit=["long_hair", "staff", "robe"], rim="#3a8ee8", height=1.0),
+    "silas":  dict(base="hooded", skin="deep", hair="#1a1a1a", armor="#2a2a3a", accent="#8a7aff", cloth="#1a1a28", glow="#a898ff", cape="#1a1a28",
+                   hide=["hood"], kit=["veil", "shield"], rim="#a050ff", height=1.02),
+    "wynn":   dict(base="adventurer", skin="fair", hair="#e8e0c0", armor="#c8a860", accent="#fff0a0", cloth="#8a6a3a", glow="#fff2b0",
+                   hide=[], kit=["spiky_hair", "bow", "quiver"], rim="#ffe27a", height=1.0),
 }
 
 def palette(h):
@@ -139,7 +148,7 @@ ROLES = {
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
 }
 # Clean-shaven heroes (Shave = true in Core/Looks.cs): their beard is removed (adventurer heads only).
-SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol"}
+SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn"}
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}

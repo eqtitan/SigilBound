@@ -21,9 +21,9 @@ X = [
 (1,"marisol","Marisol Wavecrest",R,T,A,a,"ponytail, trident","AoE hit; Slow","Drowned Mill pearl diver turned raider of the Hollow."),
 (1,"vesper","Vesper Gloam",R,S,A,h,"mask, daggers","Poison; DefDown","Thief who works the Hollow Deep's edges."),
 (1,"brega","Brega Ironmoss",R,T,D,m,"helm, shield, beard","Shield and Taunt on self; AoE Slow","Mill-lock keeper in barnacled plate."),
-(1,"fennick","Fennick Sootpaw",R,F,Su,a,"bandana, candle","AtkUp all allies; Poison on all enemies","Ashgrave firework maker."),
-(1,"orla","Orla Greywater",R,T,H,h,"long_hair, staff, robe","Regen; Heal scaling with HP","Marsh healer who brews from river weed."),
-(1,"silas","Silas Penumbra",R,S,D,h,"veil, shield","Shield; DefDown on the attacker","Bellspire gatekeeper sworn to the dark."),
+(1,"fennick","Fennick Sootpaw",R,F,Su,a,"bandana, candle","Poison on hit and on all enemies; AtkUp and Heal on all allies","Ashgrave firework maker."),
+(1,"orla","Orla Greywater",R,T,H,h,"long_hair, staff, robe","Heal and Regen on all allies","Marsh healer who brews from river weed."),
+(1,"silas","Silas Penumbra",R,S,D,h,"veil, shield","Shield and Taunt on self; AoE DefDown","Bellspire gatekeeper sworn to the dark."),
 (1,"wynn","Wynn Brightfeather",R,Li,A,a,"spiky_hair, bow, quiver","Single big hit; Strip","Falconer of Stormcrown's foothills."),
 # Phase 2: Glass and Storm (chapters 6-10 regions; rare/epic)
 (2,"kestrel","Kestrel Vane",R,G,A,a,"bandana, spear","Pierce: hits the target and the one behind","Stormcrown lancer."),
