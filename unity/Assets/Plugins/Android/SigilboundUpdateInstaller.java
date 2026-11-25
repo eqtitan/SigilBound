@@ -25,7 +25,8 @@ import java.io.OutputStream;
 public final class SigilboundUpdateInstaller {
     static final String ACTION = "com.sigilbound.updater.INSTALL_STATUS";
 
-    // "" idle, "working", "user-action" (Android's confirm screen is up), "success", or "failed:<reason>".
+    // "" idle, "working", "user-action" (Android's confirm screen is up), "success", or
+    // "failed:<PackageInstaller status code>:<message>" (code 3 = the user cancelled; -1 = an exception here).
     static volatile String status = "";
     static BroadcastReceiver receiver;
 
@@ -44,7 +45,7 @@ public final class SigilboundUpdateInstaller {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             activity.startActivity(i);
         } catch (Throwable t) {
-            status = "failed:" + t;
+            status = "failed:-1:" + t;
         }
     }
 
@@ -54,7 +55,7 @@ public final class SigilboundUpdateInstaller {
         new Thread(new Runnable() {
             public void run() {
                 try { doInstall(activity, apkPath); }
-                catch (Throwable t) { status = "failed:" + t; }
+                catch (Throwable t) { status = "failed:-1:" + t; }
             }
         }).start();
     }
@@ -107,7 +108,7 @@ public final class SigilboundUpdateInstaller {
                 } else if (st == PackageInstaller.STATUS_SUCCESS) {
                     status = "success";
                 } else {
-                    status = "failed:" + intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
+                    status = "failed:" + st + ":" + intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);
                 }
             }
         };

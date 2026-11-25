@@ -102,7 +102,7 @@ namespace Sigilbound.Client
                     if (int.TryParse(m.Groups[3].Value, out var b) && b > best) { best = b; ver = m.Groups[2].Value; file = m.Groups[1].Value; }
                 if (best > MyBuild)
                 {
-                    if (best != LatestBuild) { _dismissed = false; _autoTried = false; _autoBlocked = false; } // a newer build than the one dismissed
+                    if (best != LatestBuild) { _dismissed = false; _autoTried = false; _autoBlocked = false; _failText = null; _linkMode = false; } // a newer build than the one dismissed
                     LatestBuild = best; LatestVersion = ver; _latestFile = file;
                     // Auto-update (Android): fetch it in the background while on Wi-Fi.
                     if (Application.platform == RuntimePlatform.Android && AutoUpdate && !_autoTried && _installing == null && !_installStarted
@@ -129,7 +129,7 @@ namespace Sigilbound.Client
             float closeW = 36 * k, btnW = 120 * k;
             GUI.Label(new Rect(r.x + pad, r.y + 8 * k, w - btnW - closeW - 3 * pad, 24 * k), "Update available", _title);
             GUI.Label(new Rect(r.x + pad, r.y + 34 * k, w - btnW - closeW - 3 * pad, 20 * k),
-                _installing != null ? _installing : $"v{LatestVersion} · build {LatestBuild} (you have build {MyBuild})", _sub);
+                _installing != null ? _installing : _failText != null ? _failText : $"v{LatestVersion} · build {LatestBuild} (you have build {MyBuild})", _sub);
             var btn = new Rect(r.xMax - btnW - closeW - pad, r.y + 12 * k, btnW, h - 24 * k);
             if (_installing != null)
             {
@@ -137,9 +137,10 @@ namespace Sigilbound.Client
                 GUI.Box(btn, GUIContent.none, _box);
                 GUI.DrawTexture(new Rect(btn.x, btn.y, btn.width * Mathf.Clamp01(_progress), btn.height), _btn.normal.background);
             }
-            else if (GUI.Button(btn, "Update now", _btn))
+            else if (GUI.Button(btn, _linkMode ? "Download" : "Update now", _btn))
             {
-                if (Application.platform == RuntimePlatform.WindowsPlayer) StartCoroutine(UpdateWindows());
+                if (_linkMode) Application.OpenURL(FileUrl); // the in-game install failed: the browser download still works
+                else if (Application.platform == RuntimePlatform.WindowsPlayer) StartCoroutine(UpdateWindows());
                 else if (Application.platform == RuntimePlatform.Android) StartCoroutine(UpdateAndroid());
                 else Application.OpenURL(FileUrl);
             }
@@ -207,6 +208,7 @@ namespace Sigilbound.Client
         }
         const string InstallerClass = "com.sigilbound.updater.SigilboundUpdateInstaller";
         string _apkPath; int _apkBuild;
+        string _failText; bool _linkMode; // after a failed install: Android's reason, and the Download link
         bool _autoTried, _autoBlocked, _awaitPermission, _installStarted, _userStarted;
         float _nextPoll;
         App _app;
@@ -317,8 +319,19 @@ namespace Sigilbound.Client
                 else if (st == "success") _installing = "Updated: open Sigilbound again";
                 else if (st.StartsWith("failed", StringComparison.Ordinal))
                 {
+                    // "failed:<code>:<message>": code 3 is a cancel (try again later); anything else is a real
+                    // failure, shown in the banner, and the button switches to the Download link.
                     Debug.LogWarning("Sigilbound: Android install " + st);
-                    InstallFailed(false); // e.g. cancelled: the banner stays, Update now tries again
+                    var parts = st.Split(new[] { ':' }, 3);
+                    bool cancelled = parts.Length > 1 && parts[1] == "3";
+                    InstallFailed(false);
+                    if (!cancelled)
+                    {
+                        string why = parts.Length > 2 ? parts[2] : st;
+                        if (why.Length > 70) why = why.Substring(0, 70) + "…";
+                        _failText = $"Install failed ({(parts.Length > 1 ? parts[1] : "?")}): {why}";
+                        _linkMode = true;
+                    }
                 }
             }
             // Auto-update: a downloaded update installs on the home screen, never mid-battle.
