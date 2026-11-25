@@ -102,7 +102,15 @@ Unfinished work saved from the stopped agents:
 
 ## Phase C: hero art (free tools first; the owner decides on paid tools after seeing the result)
 
-- [ ] **12. Review the free-tools prototype.** Merge the useful parts of `art-round2`. Render Ysolde and Gorrum in the game next to today's heroes, and send the owner screenshots to decide.
+- [x] **12. Review the free-tools prototype.** (2026-11-25, step/12) Merge the useful parts of `art-round2`. Render Ysolde and Gorrum in the game next to today's heroes, and send the owner screenshots to decide.
+  - DONE:
+    - Merged `art-round2` up to d315f67: docs/sigilbound/art (ART_BIBLE, ROUTES, NO_PAID_PATH, 24 hero sheets), the Unity import pipeline (Editor/Art), the runtime loader (HeroRig), the SigilCharacterPainted shader, heroforge and blenderforge.
+    - The WIP hero-art CI workflow (commit 91ed352 on that branch) is NOT merged yet. It's untested.
+  - Review: `docs/sigilbound/art/prototype/{ysolde,gorrum}-compare.png` compare current against prototype.
+    - Better: stronger silhouettes and identity props.
+    - Same or worse: stiff anatomy, crude faces; at about 70 px in battle the gain is small.
+    - The prototypes haven't been rendered inside Unity: that needs the hero-art import job, which hasn't run yet.
+  - The owner decides next: keep improving the free path (CC0 base bodies + scripted kit + baked painted textures), or allow a paid generator for higher quality. Steps 13–18 depend on that answer.
 - [ ] **13–18. Heroes in batches of 4 per session** (24 heroes), with the shared idle/wait animation and unique skill animations where possible.
 - [ ] **19. Roster plan to 100 heroes.** Phases and concepts only. New heroes get designed (stats and skills) in their own later steps.
 
