@@ -42,9 +42,9 @@ X = [
 (2,"lyra","Lyra Starglass",E,Li,Su,h,"halo, mirror, robe","Heal and Cleanse all allies; team AtkUp and SpdUp","Glass Wastes oracle who reads the shattered Sigil."),
 (2,"malachar","Malachar Gloomhand",E,S,D,m,"helm, horns, shield, cape","Taunt and Counter; DefDown on hit and on all enemies","Hollow knight who broke free of the Hollow."),
 (2,"rowan","Rowan Thornheart",E,G,D,m,"long_hair, beard, shield, cape","Small team Shield; Taunt with a turn of DefUp","Warden of the Thornwick old wood."),
-(2,"selene","Selene Tidewhisper",E,T,Su,h,"long_hair, orb, robe","TmDrain enemies; Tm boost allies","Moon-priestess of the tides."),
-(2,"brann","Brann Emberfist",E,F,H,m,"beard, gauntlets*","Regen on self; counter-style Taunt","Pit fighter of the Ashgrave pass."),
-(2,"ysra","Ysra Nightbloom",E,S,A,h,"veil, daggers","Poison all; Stun on crit","Hollow Deep assassin who poisons with flowers."),
+(2,"selene","Selene Tidewhisper",E,T,Su,h,"long_hair, orb, robe","TmDrain on hit; AoE TmDrain that fills allies' Turn Meter; team Heal and Cleanse","Moon-priestess of the tides."),
+(2,"brann","Brann Emberfist",E,F,H,m,"beard, gauntlets","Team Shield while he Taunts and Counters; AoE Burn and team AtkUp","Pit fighter of the Ashgrave pass."),
+(2,"ysra","Ysra Nightbloom",E,S,A,h,"veil, daggers","Poison on hit and on all enemies; a big hit that may Stun","Hollow Deep assassin who poisons with flowers."),
 (2,"oswin","Oswin Dawnspear",E,Li,A,a,"helm, spear","Pierce; AtkUp self","Light-lancer of the Bellspire order."),
 # Phase 3: The Hollow Unbound (redeemed Hollow and Titan-touched; epic/legendary)
 (3,"grimsby","Grimsby Boneweaver",R,S,Su,a,"mask, staff","DefDown all; Strip","Hollow bone-reader who sees the Sigil's cracks."),

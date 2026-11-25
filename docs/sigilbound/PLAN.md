@@ -192,7 +192,7 @@ Unfinished work saved from the stopped agents:
 - [x] **25. Engine: phase 2 mechanics** (Burn, Pierce, Execute, Pull, spread on kill, counter Taunt), with tests.
   - DONE (2026-11-25): `FxType.Burn/Pull/Counter` (added after the web's 16 effects, so IsStatus/IsBuff and parity are unchanged), and `SkillDef.Pierce/Execute/Spread` in Core/Battle.cs. Skill text and status labels: BRN, CTR. 12 checks in `unity/Tests~/MechanicsTests.cs`. Rules in ROSTER.md section 4.
   - Not done: battle VFX made for these mechanics. They show through the existing status, damage and floating-text events ("Executed", "Pulled", "Spread!", "Counter!").
-- [ ] **26–30. Phase 2 heroes (Glass and Storm).** Step 26 DONE (2026-11-25):
+- [x] **26–30. Phase 2 heroes (Glass and Storm).** ALL DONE (2026-11-25); 60 heroes. Step 26:
   - Kestrel (Pierce on both attacks), Sorrel, Amber (Burn and Counter) and Tobias, with the new lute kit. Preview: `docs/sigilbound/art/prototype/step26-glass-and-storm.png`.
   - Balance after tuning: Kestrel 46% vs Ysolde/Lumen/Nyx, Sorrel 55% vs Velka, Amber 43% vs Hask/Gorrum, Tobias 46% vs Corvan/Tamsin. 44 heroes.
   - STEP 27 DONE (2026-11-25): Nerys, Hale, Juno (Burn and Spread), Pike (Pull). Preview: `docs/sigilbound/art/prototype/step27-glass-and-storm.png`.
@@ -206,7 +206,10 @@ Unfinished work saved from the stopped agents:
       - Supports without a heal lose badly to Oriel.
       - Defenders swing hard on Taunt (Rowan 19% without, 87% with a team Regen ward), so shields stay small.
     - Horns now use the measured head (they were hidden under Malachar's helm). Gorrum is rebaked.
-  - Next (step 30): Selene, Brann (Counter), Ysra, Oswin (Pierce). That finishes phase 2.
+  - STEP 30 DONE (2026-11-25): Selene, Brann (Counter, with the new gauntlets kit), Ysra, Oswin (Pierce). Preview: `docs/sigilbound/art/prototype/step30-glass-and-storm.png`.
+    - Balance after tuning: Selene 48% vs Sable/Oriel, Brann 52% vs Thrain (he needed Thrain's team-wide ATK Up, not more shield), Ysra 45% and Oswin 43% vs Kaito/Maelis.
+  - Phase 2 (Glass and Storm) is complete: 20 heroes, using every step 25 mechanic.
+  - Next: phase 3 needs its mechanics first (revive, damage that grows with HP lost, a heal when an ally falls). Then the 20 Hollow Unbound heroes.
 - [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
