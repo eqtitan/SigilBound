@@ -145,13 +145,25 @@ namespace Sigilbound.Client
             Destroy(t.gameObject);
         }
 
-        public void Shake(float intensity = 0.12f) => StartCoroutine(ShakeRoutine(intensity));
+        // Settings > Screen shake: full | reduced | off.
+        public static System.Func<string> ShakeSetting;
+        public void Shake(float intensity = 0.12f)
+        {
+            string s = ShakeSetting?.Invoke() ?? "full";
+            if (s == "off") return;
+            StartCoroutine(ShakeRoutine(s == "reduced" ? intensity * 0.4f : intensity));
+        }
+        // Time-based, so it looks the same at 30, 60 and 120 fps: a smooth noise offset sampled at a fixed
+        // 28 Hz of shake (not a new random jump every rendered frame) that fades over 0.22 s.
         IEnumerator ShakeRoutine(float intensity)
         {
             var home = _cam.transform.position; // the battle camera moves with the chosen preset
-            for (float k = 0; k < 1; k += Time.deltaTime / 0.22f)
+            float seed = Random.value * 100f;
+            for (float t = 0; t < 0.22f; t += Time.deltaTime)
             {
-                _cam.transform.position = home + Random.insideUnitSphere * intensity * (1 - k);
+                float k = t / 0.22f, f = (seed + t) * 28f;
+                var n = new Vector3(Mathf.PerlinNoise(f, 0.3f) - 0.5f, Mathf.PerlinNoise(0.7f, f) - 0.5f, Mathf.PerlinNoise(f, f * 0.5f) - 0.5f) * 2f;
+                _cam.transform.position = home + n * intensity * (1 - k);
                 yield return null;
             }
             _cam.transform.position = home;

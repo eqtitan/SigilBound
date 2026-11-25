@@ -78,11 +78,20 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(b.x, y, 160, 34), "View notes", Ui.Kind.Secondary, 13)) OpenWhatsNew();
             y += 44;
 
-            SettingRow(ref y, b, "Frame rate", "30 fps keeps the phone cooler and saves battery.");
-            Chips(ref y, b, new[] { "30 · Cooler", "60 · Smoother" }, st.fpsCap == 30 ? 0 : 1, i =>
+            int hz = Quality.DisplayHz; string fpsMode = Quality.SavedFpsMode(st.fpsCap);
+            SettingRow(ref y, b, "Frame rate", fpsMode == "auto" ? $"Auto matches your screen ({System.Math.Min(hz, 120)} Hz). Uses more battery." : fpsMode == "60" ? "60 fps: smooth." : "30 fps keeps the phone cooler and saves battery.");
+            string[] modes = { "auto", "60", "30" };
+            Chips(ref y, b, new[] { $"Auto · {System.Math.Min(hz, 120)}", "60 · Smooth", "30 · Battery" }, System.Array.IndexOf(modes, fpsMode) is int mi && mi >= 0 ? mi : 0, i =>
             {
-                st.fpsCap = i == 0 ? 30 : 60; Save(); Quality.I?.Set(st.quality, st.fpsCap);
-                Toast(i == 0 ? "30 fps: cooler and longer battery" : "60 fps: smoother");
+                Quality.SaveFpsMode(modes[i]); st.fpsCap = i == 2 ? 30 : 60; Save(); Quality.I?.Set(st.quality, modes[i]);
+                Toast(i == 0 ? $"Matches your screen ({System.Math.Min(hz, 120)} Hz). Uses more battery." : i == 1 ? "60 fps" : "30 fps: cooler and longer battery");
+            });
+
+            SettingRow(ref y, b, "Screen shake", "How much the camera shakes on big hits.");
+            string[] shakes = { "full", "reduced", "off" };
+            Chips(ref y, b, new[] { "Full", "Reduced", "Off" }, System.Array.IndexOf(shakes, Quality.SavedShake) is int si && si >= 0 ? si : 0, i =>
+            {
+                Quality.SavedShake = shakes[i]; Toast("Screen shake: " + new[] { "full", "reduced", "off" }[i]);
             });
 
             var q = Quality.I;
@@ -92,7 +101,7 @@ namespace Sigilbound.Client
             SettingRow(ref y, b, "Graphics quality", qSub);
             Chips(ref y, b, new[] { "Auto", "Ultra", "High", "Medium", "Low" }, System.Array.IndexOf(qKeys, st.quality), i =>
             {
-                st.quality = qKeys[i]; Save(); Quality.I?.Set(st.quality, st.fpsCap);
+                st.quality = qKeys[i]; Save(); Quality.I?.Set(st.quality, Quality.SavedFpsMode(st.fpsCap));
                 Toast("Graphics: " + (i == 0 ? "Auto" : qKeys[i]));
             });
 

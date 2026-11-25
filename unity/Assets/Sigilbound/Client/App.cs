@@ -56,10 +56,11 @@ namespace Sigilbound.Client
             G.EnsureDaily();
             Arena = Arena.Create();
             // Frame-rate cap (60, or 30 to run cooler) and graphics tier mapped to URP settings.
-            Quality.Create(gameObject, G.S.settings.quality, G.S.settings.fpsCap).Sun = Arena.Sun;
+            Quality.Create(gameObject, G.S.settings.quality, Quality.SavedFpsMode(G.S.settings.fpsCap)).Sun = Arena.Sun;
             Quality.Busy = () => Battle != null && Battle.InProgress; // Auto holds tier changes until the battle ends
             Quality.I.Apply();
             Quality.Notice = Toast; // thermal fallback messages
+            Vfx.ShakeSetting = () => Quality.SavedShake; // Settings > Screen shake
             PerfOverlay.Sync();     // debug FPS / draw-call overlay, if turned on in Settings
             Vfx.Create(Arena.Cam);
             SkillFx.Create(Arena.Cam).SetTier(Quality.I.Tier); // vfx.mjs-style skill effects
@@ -106,7 +107,7 @@ namespace Sigilbound.Client
             G.EnsureDaily();
             Save();
             _lineupKey = "";
-            Quality.I?.Set(G.S.settings.quality, G.S.settings.fpsCap);
+            Quality.I?.Set(G.S.settings.quality, Quality.SavedFpsMode(G.S.settings.fpsCap));
             Screen = G.S.started ? ScreenId.Home : ScreenId.Intro;
             return true;
         }

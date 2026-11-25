@@ -2,6 +2,9 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 
 ## 2026-11-25 | Heroines and a smoother updater
+new: Frame rate "Auto" matches your screen (up to 120 Hz on phones that support it); 60 and 30 are still in Settings.
+new: Screen shake setting: Full, Reduced or Off.
+change: Screen shake looks the same at any frame rate.
 fix: On Samsung phones, the update banner now explains Auto Blocker ("Unknown app blocked") and where to turn it off.
 new: Forty heroines now have their own bodies: knights and rogues in hooded leathers, witches and mages in flowing dresses, and rangers in light gear.
 new: A "What's new" window like this one appears after every update. Find it again any time in Settings.

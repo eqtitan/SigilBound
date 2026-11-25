@@ -19,8 +19,25 @@ namespace Sigilbound.Client
         public static Quality I;
         public string Choice = "auto";    // auto | Ultra | High | Medium | Low (saved in settings.quality)
         public int Tier { get; private set; } = 2;
-        public int FpsCap = 60;
+        public string FpsMode = "auto";   // auto (match the screen) | 60 | 30 (settings.fpsMode)
         public Light Sun;
+        // Auto's current frame target when it had to come down from the screen rate (0 = the screen rate).
+        int _autoHz; float _retryHzAt; float _retryWait = 120f;
+        public bool HzLowered => _autoHz > 0;
+        // The display's refresh rate (Unity 6), rounded; 60 when unknown.
+        public static int DisplayHz { get {
+#if UNITY_2022_2_OR_NEWER
+            double r = Screen.currentResolution.refreshRateRatio.value;
+#else
+            double r = Screen.currentResolution.refreshRate;
+#endif
+            return r > 1 && !double.IsNaN(r) ? Mathf.Clamp((int)System.Math.Round(r), 30, 240) : 60; } }
+
+        // Device-only settings (PlayerPrefs, not the save: the save format stays identical to the web game's).
+        public static string SavedFpsMode(int fpsCap) { var m = PlayerPrefs.GetString("sb.fpsMode", fpsCap == 30 ? "30" : "auto"); return m == "30" || m == "60" ? m : "auto"; }
+        public static void SaveFpsMode(string m) { PlayerPrefs.SetString("sb.fpsMode", m); PlayerPrefs.Save(); }
+        public static string SavedShake { get { var s = PlayerPrefs.GetString("sb.shake", "full"); return s == "reduced" || s == "off" ? s : "full"; } set { PlayerPrefs.SetString("sb.shake", value); PlayerPrefs.Save(); } }
+        int AutoTarget => _autoHz > 0 ? _autoHz : Mathf.Min(DisplayHz, 120);
 
         float _acc; int _frames; float _settle; float _noUpUntil;
         public static System.Action<string> Notice; // toasts (App.Toast)
@@ -32,14 +49,17 @@ namespace Sigilbound.Client
         public bool ThermalLimited { get; private set; }
         public int ThermalStatus { get; private set; } = -1; // -1 unknown, 0 none .. 6 shutdown
         float _thermalPoll, _coolSince = -1;
-        public int TargetFps => Tier == 0 || ThermalLimited ? 30 : FpsCap;
+        // Low tier and a warm phone force 30; otherwise the player's choice (Auto = the screen's rate, up to 120).
+        public int TargetFps => Tier == 0 || ThermalLimited || FpsMode == "30" ? 30 : FpsMode == "60" ? Mathf.Min(60, DisplayHz) : AutoTarget;
 
-        public static Quality Create(GameObject host, string choice, int fpsCap)
+        static string Mode(string m) => m == "30" || m == "60" ? m : "auto";
+
+        public static Quality Create(GameObject host, string choice, string fpsMode)
         {
             var q = host.AddComponent<Quality>();
             I = q;
             q.Choice = string.IsNullOrEmpty(choice) ? "auto" : choice;
-            q.FpsCap = fpsCap == 30 ? 30 : 60;
+            q.FpsMode = Mode(fpsMode);
             q.Tier = q.Choice == "auto" ? GuessTier() : System.Array.IndexOf(Tiers, q.Choice) is int i && i >= 0 ? i : 2;
             q.Apply();
             return q;
@@ -56,18 +76,30 @@ namespace Sigilbound.Client
             return 0;
         }
 
-        public void Set(string choice, int fpsCap)
+        public void Set(string choice, string fpsMode)
         {
-            Choice = choice; FpsCap = fpsCap == 30 ? 30 : 60;
+            Choice = choice; FpsMode = Mode(fpsMode); _autoHz = 0; _retryWait = 120f;
             if (choice != "auto") { int i = System.Array.IndexOf(Tiers, choice); Tier = i >= 0 ? i : 2; if (ThermalLimited && Tier > 0) Tier--; }
             Apply();
         }
 
         public void Apply()
         {
-            // Low always runs at 30 fps (as on the web); otherwise the player's cap.
-            QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = TargetFps;
+            // Frame pacing (MECHANICS.md 6.1). Phones: no vsync count, an explicit target (Android picks the
+            // display mode that matches it). Desktop: Auto follows the monitor through vsync; a cap uses a
+            // vsync divider when it divides the refresh rate evenly, else a frame-rate target.
+            int fpsT = TargetFps;
+#if UNITY_ANDROID || UNITY_IOS
+            QualitySettings.vSyncCount = 0; Application.targetFrameRate = fpsT;
+#else
+            if (FpsMode == "auto" && _autoHz == 0 && Tier > 0 && !ThermalLimited) { QualitySettings.vSyncCount = 1; Application.targetFrameRate = -1; }
+            else
+            {
+                int hz = DisplayHz, div = hz % fpsT == 0 ? hz / fpsT : 0;
+                QualitySettings.vSyncCount = div >= 1 && div <= 4 ? div : 0;
+                Application.targetFrameRate = QualitySettings.vSyncCount > 0 ? -1 : fpsT;
+            }
+#endif
             if (Sun != null) Sun.shadows = Tier == 0 ? LightShadows.None : Tier >= 2 ? LightShadows.Soft : LightShadows.Hard;
 #if SB_URP
             if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp)
@@ -91,18 +123,29 @@ namespace Sigilbound.Client
         void Update()
         {
             PollThermals();
-            if (Choice != "auto") { _pending = -1; return; }
             bool busy = Busy != null && Busy();
+            // Auto frame rate at a high-refresh screen: lowered to 60 under load, it tries the screen rate
+            // again between battles after a wait that doubles on each failed try (up to 8 minutes).
+            if (FpsMode == "auto" && _autoHz > 0 && !busy && Time.unscaledTime > _retryHzAt) { _autoHz = 0; _retryWait = Mathf.Min(480f, _retryWait * 2f); Apply(); return; }
+            if (Choice != "auto" && FpsMode != "auto") { _pending = -1; return; }
             if (_pending >= 0 && !busy) { Tier = _pending; _pending = -1; Apply(); return; }
             if (_settle > 0) { _settle -= Time.unscaledDeltaTime; return; }
             _acc += Time.unscaledDeltaTime; _frames++;
             if (_acc < 4f) return;
             float fps = _frames / _acc;
+            int target = TargetFps;
+            // At a high refresh rate, lower the frame target before the graphics (not gated by Busy:
+            // the look doesn't change, only smoothness).
+            if (FpsMode == "auto" && target > 60 && fps < target * 0.85f)
+            {
+                _autoHz = 60; _retryHzAt = Time.unscaledTime + _retryWait; Apply();
+                return;
+            }
+            if (Choice != "auto") { _acc = 0; _frames = 0; return; }
             int from = _pending >= 0 ? _pending : Tier;
-            int target = Application.targetFrameRate;
             // Low runs capped at 30 fps, so holding 30 there says nothing about holding the player's
-            // cap on Medium: from Low, only step up when the cap itself is 30 (else it would bounce).
-            int upTarget = from == 0 ? FpsCap : target;
+            // target on Medium: from Low, only step up when the player chose 30 anyway (else it would bounce).
+            int upTarget = from == 0 ? (FpsMode == "30" ? 30 : 60) : target;
             int next = from;
             if (fps < target * 0.85f && from > 0) { next = from - 1; _noUpUntil = Time.unscaledTime + 60f; }
             else if (fps > upTarget * 0.97f && from < 2 && !ThermalLimited && Time.unscaledTime > _noUpUntil) next = from + 1;
@@ -134,7 +177,7 @@ namespace Sigilbound.Client
             {
                 if (_coolSince < 0) { _coolSince = Time.unscaledTime; return; }
                 if (Time.unscaledTime - _coolSince < 120f) return;
-                ThermalLimited = false; _coolSince = -1;
+                ThermalLimited = false; _coolSince = -1; _autoHz = 0;
                 if (Choice != "auto") { int i = System.Array.IndexOf(Tiers, Choice); Tier = i >= 0 ? i : 2; }
                 Apply();
                 Notice?.Invoke("Phone has cooled down: graphics restored");
