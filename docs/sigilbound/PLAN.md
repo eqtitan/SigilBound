@@ -222,10 +222,19 @@ Unfinished work saved from the stopped agents:
     - Balance after tuning: Drift 57% vs Brannoc/Kettle, Sprig 48% vs Pell/Wren, Tallow 53% vs Mira (his Burn is strong for a Common, so its chance is 10%), Hollis 44% vs Odo. 68 heroes.
   - Next hero step (35, after the step 34 Android updates): Auren, Cinder, Thessaly, Umbra.
   Grimsby, Marrow (Rage), Ember (Last Light), Quill; Drift, Sprig, Tallow, Hollis; Auren, Cinder, Thessaly, Umbra; Lucan, Kharra, Nocturne (Execute), Aelira; Zephyrine, Solenne (Revive), Nell, Briar.
-- [ ] **34. Android in-app updates (like Windows).** Owner request (2026-11-25). The phase 3 hero steps 35–37 follow it.
+- [x] **34. Android in-app updates (like Windows).** Owner request (2026-11-25). The phase 3 hero steps 35–37 follow it.
   - OWNER DECISIONS (2026-11-25):
     - Build this as the next step, before the remaining phase 3 heroes.
     - Auto-update is ON by default: new builds download in the background on Wi-Fi and install at the home screen, never mid-battle. The Settings toggle can turn it off.
+  - DONE (2026-11-25): built as planned.
+    - `Assets/Plugins/Android/SigilboundUpdateInstaller.java`: PackageInstaller session, `USER_ACTION_NOT_REQUIRED` on API 31+, the confirm screen, and the unknown-apps permission page. It compiles against the Android 14 framework classes (checked here with javac).
+    - `Editor/AndroidUpdatePermission.cs` adds `REQUEST_INSTALL_PACKAGES` in Android builds only.
+    - `Client/Updater.cs` on Android:
+      - "Update now" downloads with progress and checks the file is a real APK, then installs;
+      - Auto (Wi-Fi, default) downloads in the background and installs on the home screen when no dialog is open;
+      - a cancelled or refused install leaves the banner; an installer that can't start falls back to the download link.
+    - Settings has a new "Updates" row: Auto (Wi-Fi) or When I tap.
+    - Not tested on a device yet. The first build with this must be installed by hand once, since older builds only open the link.
   - Today: the update banner on Android opens the APK link in the browser. The owner then downloads, opens the file and installs.
   - Goal: tap **Update now** in the game. It downloads the APK with a progress bar (as on Windows), then Android's installer opens directly, so one tap installs it and the save is kept. Later updates are silent where Android allows it.
   - What Android allows:
