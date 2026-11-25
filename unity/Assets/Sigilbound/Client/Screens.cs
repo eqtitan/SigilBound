@@ -48,6 +48,7 @@ namespace Sigilbound.Client
         // ---------- home ----------
         void DrawHome(Rect area)
         {
+            MaybeShowWhatsNew(); // the "What's new" window, once after an update (WhatsNew.cs)
             float content = 710;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;

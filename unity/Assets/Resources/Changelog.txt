@@ -1,0 +1,18 @@
+# Sigilbound "What's new" (player-facing; newest first). Tags: new, fix, change, balance.
+# Keep lines short and friendly; this is shown in the game after each update.
+
+## 2026-11-25 | Heroines and a smoother updater
+new: Forty heroines now have their own bodies: knights and rogues in hooded leathers, witches and mages in flowing dresses, and rangers in light gear.
+new: A "What's new" window like this one appears after every update. Find it again any time in Settings.
+fix: In-app updates on Android work again ("There's a problem with the app file").
+fix: If an update can't install, the banner now says why instead of failing quietly.
+change: The newest updates download faster to check, and the game always picks the latest build.
+
+## 2026-11-24 | Act II: The Drowned Coast
+new: Act II opens after chapter 10: five new chapters from Saltreach Harbor to the Storm Coast, each with its own story and scenery.
+new: The world map has an Act I / Act II switch.
+new: The roster grows to 100 heroes, each with a baked 3D model.
+new: New combat effects: Burn, Pull, Counter and Revive, plus piercing, executing and rage skills.
+balance: New heroes were tested against the original heroes of the same rarity and role.
+fix: Battle backgrounds no longer flicker when the graphics quality adjusts itself.
+fix: Heroes no longer float above the battlefield or walk on stilts.
