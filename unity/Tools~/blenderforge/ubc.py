@@ -193,8 +193,9 @@ def make_cape(arm, mat, clasp_mat, long_=True):
     for c in range(cols + 1):
         u = c / cols * 2 - 1
         x = (ul.x + ur.x) / 2 + u * half_top * 0.9
-        hit = bvh.ray_cast(Vector((x, nh.y - 0.02, top_z + 0.6)), Vector((0, 0, -1)), 2.0)
+        hit = bvh.ray_cast(Vector((x, nh.y - 0.02, top_z + 0.12)), Vector((0, 0, -1)), 0.5)
         z = (hit[0].z + gap * 0.6) if hit[0] is not None else top_z + 0.02
+        z = min(z, top_z + 0.03)   # never ride up the neck or into the hair: the yoke sits on the shoulders
         yoke.append(Vector((x, nh.y - 0.06 - 0.05 * (1 - abs(u)), z)))
     verts.insert(0, yoke)
     flat_v = [v for row in verts for v in row]

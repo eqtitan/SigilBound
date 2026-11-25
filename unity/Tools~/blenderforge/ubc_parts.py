@@ -70,10 +70,40 @@ def flat(name, color, emit=0.0, metal=0.0, rough=0.5):
         b.inputs["Emission Color"].default_value = color; b.inputs["Emission Strength"].default_value = emit
     return m
 
+def cull_covered_skin(gap=0.035):
+    """Delete the skin body's faces that clothing covers (a ray from the face along its normal hits an
+    outfit piece within `gap`), so the underbody costs only the visible skin: hands, neck, gaps."""
+    import bmesh
+    from mathutils.bvhtree import BVHTree
+    skin = [o for o in bpy.context.scene.objects if o.type == "MESH" and any(m and "Regular" in m.name for m in o.data.materials) and len(o.data.polygons) > 8000]
+    cloth = [o for o in bpy.context.scene.objects if o.type == "MESH" and o not in skin and not any(m and ("Regular" in m.name or "Eye" in m.name) for m in o.data.materials)]
+    if not skin or not cloth: return
+    verts, polys = [], []
+    for o in cloth:
+        mw = o.matrix_world; base = len(verts)
+        verts += [mw @ v.co for v in o.data.vertices]; polys += [[base + i for i in p.vertices] for p in o.data.polygons]
+    bvh = BVHTree.FromPolygons(verts, polys)
+    for o in skin:
+        mw = o.matrix_world; n3 = mw.to_3x3().inverted().transposed()
+        bm = bmesh.new(); bm.from_mesh(o.data)
+        dead = []
+        for f in bm.faces:
+            mat = o.data.materials[f.material_index]
+            if mat is None or "Regular" not in mat.name: continue      # keep eyes, brows
+            c = mw @ f.calc_center_median(); n = (n3 @ f.normal).normalized()
+            hit = bvh.ray_cast(c + n * 0.002, n, gap)
+            if hit[0] is not None:
+                dead.append(f)
+        bmesh.ops.delete(bm, geom=dead, context="FACES")
+        bm.to_mesh(o.data); bm.free()
+        print(f"[ubc] skin under the outfit: culled {len(dead)} covered faces, kept {len(o.data.polygons)}")
+
 def build(c, pose=True):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sex = c.get("sex", "male"); o = c.get("outfit", {}); pal = c.get("palette", {})
-    parts = [("head", "Regular_Female_OnlyHead" if sex == "female" else "Regular_Male_OnlyHead")]
+    # A full skin body under the outfit (how modular kits are dressed): any gap between mixed pieces
+    # (e.g. a short-sleeved top with forearm-only arms) shows skin, not a hole; covered faces are culled.
+    parts = [("skin", "Regular_Female_FullBody" if sex == "female" else "Regular_Male_FullBody")]
     for slot in ("arms", "body", "legs", "feet"):
         f = part_file(o.get(slot), sex, slot)
         if f is None and sex == "female" and o.get(slot) and not str(o.get(slot)).startswith(("custom", "none")):
@@ -121,6 +151,7 @@ def build(c, pose=True):
         if master is None: master = arm
         elif arm is not None: bpy.data.objects.remove(arm, do_unlink=True)
 
+    cull_covered_skin()
     if not pose:
         bpy.context.view_layer.update()
         return master
