@@ -130,8 +130,7 @@ namespace Sigilbound.Client
             public List<AnimationClip> Ual; public bool Failed;
         }
         static readonly Dictionary<string, Library> _libs = new Dictionary<string, Library>();
-        static readonly HashSet<string> _loading = new HashSet<string>();
-        static Dictionary<string, List<UalClip>> _ualData; static bool _ualTried;
+        static Dictionary<string, List<UalClip>> _ualData;
         static GameObject _libRoot;
 
         // Load tracing ("SBMODEL ..." lines in the player log): the real models have never shown in a
@@ -156,13 +155,61 @@ namespace Sigilbound.Client
             done(data);
         }
 
+        // ---------- shared loads ----------
+        // Shared, once-only loads (a base model, the UAL clips, the baked index) run on a loader that
+        // lives for the whole game, and every hero just waits for them. They used to run inside the
+        // first hero's own coroutine: when that hero's figure was destroyed mid-load (any screen
+        // change: intro -> home -> battle), Unity silently stopped the coroutine, the model stayed
+        // "loading" forever, and every later hero waited on it and kept its stand-in. That is why no
+        // real model ever showed in the Unity builds, with nothing in the log.
+        sealed class Loader : MonoBehaviour { }
+        static Loader _loader;
+        static readonly Dictionary<string, bool> _jobs = new Dictionary<string, bool>(); // key -> finished
+
+        static IEnumerator Shared(string key, Func<IEnumerator> work)
+        {
+            if (!_jobs.ContainsKey(key))
+            {
+                _jobs[key] = false;
+                if (_loader == null)
+                {
+                    var go = new GameObject("HeroModelLoader"); UnityEngine.Object.DontDestroyOnLoad(go);
+                    _loader = go.AddComponent<Loader>();
+                }
+                _loader.StartCoroutine(RunJob(key, work()));
+            }
+            while (!_jobs[key]) yield return null;
+        }
+
+        // Steps the job (and the steps it waits on) by hand, so an exception anywhere ends it with a
+        // warning instead of leaving every waiting hero hanging.
+        static IEnumerator RunJob(string key, IEnumerator work)
+        {
+            var stack = new Stack<IEnumerator>(); stack.Push(work);
+            while (stack.Count > 0)
+            {
+                object current;
+                try
+                {
+                    if (!stack.Peek().MoveNext()) { stack.Pop(); continue; }
+                    current = stack.Peek().Current;
+                }
+                catch (Exception e) { Debug.LogWarning($"Sigilbound: loading {key} failed: {e}"); break; }
+                if (current is IEnumerator nested) { stack.Push(nested); continue; }
+                yield return current;
+            }
+            _jobs[key] = true;
+        }
+
+        static IEnumerator EnsureLibrary(string baseModel) => Shared("lib:" + baseModel, () => LoadLibrary(baseModel));
+        static IEnumerator EnsureUal() => Shared("ual", LoadUal);
+        static IEnumerator EnsureBakedIndex() => Shared("baked-index", LoadBakedIndex);
+        static Library Lib(string baseModel) => _libs.TryGetValue(baseModel, out var l) ? l : null;
+
         // Loads a base model once: the parsed glTF (instantiated per unit) and a hidden prototype
         // instance that other heroes borrow body parts from.
-        static IEnumerator EnsureLibrary(string baseModel)
+        static IEnumerator LoadLibrary(string baseModel)
         {
-            while (_loading.Contains(baseModel)) yield return null;
-            if (_libs.ContainsKey(baseModel)) yield break;
-            _loading.Add(baseModel);
             var lib = new Library();
             byte[] bytes = null;
             yield return ReadBytes(Looks.Files[baseModel], b => bytes = b);
@@ -189,13 +236,10 @@ namespace Sigilbound.Client
             else lib.Failed = true;
             if (lib.Failed) Debug.LogWarning($"Sigilbound: couldn't load {Looks.Files[baseModel]}");
             _libs[baseModel] = lib;
-            _loading.Remove(baseModel);
         }
 
-        static IEnumerator EnsureUal()
+        static IEnumerator LoadUal()
         {
-            if (_ualTried) yield break;
-            _ualTried = true;
             byte[] bytes = null;
             var path = Path.Combine(Application.streamingAssetsPath, "Models", "anims_ual.json");
             if (path.Contains("://")) { using (var req = UnityWebRequest.Get(path)) { yield return req.SendWebRequest(); if (req.result == UnityWebRequest.Result.Success) bytes = req.downloadHandler.data; } }
@@ -265,8 +309,9 @@ namespace Sigilbound.Client
             if (!titan && !hollow)
             {
                 yield return EnsureBakedIndex();
-                Trace($"baked index: {string.Join(",", _baked)}; {id} baked={_baked.Contains(id)}");
-                if (_baked.Contains(id))
+                bool isBaked = _baked != null && _baked.Contains(id);
+                Trace($"baked index: {(_baked == null ? "none" : string.Join(",", _baked))}; {id} baked={isBaked}");
+                if (isBaked)
                 {
                     HeroModel built = null;
                     yield return BuildBaked(unit, look, body, parent, m => built = m);
@@ -278,8 +323,8 @@ namespace Sigilbound.Client
             yield return EnsureLibrary(baseModel);
             foreach (var src in parts.Values.Where(v => v != "none" && v != baseModel).Distinct()) yield return EnsureLibrary(src);
             yield return EnsureUal();
-            var lib = _libs[baseModel];
-            if (lib.Failed || parent == null) { Trace($"build {id}: no library (failed={lib.Failed}, parent={(parent != null)})"); done(null); yield break; }
+            var lib = Lib(baseModel);
+            if (lib == null || lib.Failed || parent == null) { Trace($"build {id}: no library (failed={lib?.Failed}, parent={(parent != null)})"); done(null); yield break; }
 
             var holder = new GameObject("Model").transform;
             holder.SetParent(parent, false);
@@ -337,15 +382,15 @@ namespace Sigilbound.Client
         static HashSet<string> _baked;
         static readonly Dictionary<string, (GLTFast.GltfImport gltf, Material mat)> _bakedLibs = new Dictionary<string, (GLTFast.GltfImport, Material)>();
 
-        static IEnumerator EnsureBakedIndex()
+        static IEnumerator LoadBakedIndex()
         {
-            if (_baked != null) yield break;
-            _baked = new HashSet<string>();
+            var set = new HashSet<string>();
             byte[] bytes = null;
             yield return ReadBytes(Path.Combine("heroes", "index.txt"), b => bytes = b);
-            if (bytes == null) yield break;
-            foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
-                if (line.Trim().Length > 0) _baked.Add(line.Trim());
+            if (bytes != null)
+                foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
+                    if (line.Trim().Length > 0) set.Add(line.Trim());
+            _baked = set;
         }
 
         static Texture2D LoadPng(byte[] bytes, bool linear)
@@ -363,8 +408,8 @@ namespace Sigilbound.Client
             string id = unit.Template.Id, baseModel = look.Base;
             yield return EnsureLibrary(baseModel);
             yield return EnsureUal();
-            var lib = _libs[baseModel];
-            if (lib.Failed || parent == null) { done(null); yield break; }
+            var lib = Lib(baseModel);
+            if (lib == null || lib.Failed || parent == null) { done(null); yield break; }
             if (!_bakedLibs.TryGetValue(id, out var bk))
             {
                 byte[] glb = null, alb = null, glow = null;
