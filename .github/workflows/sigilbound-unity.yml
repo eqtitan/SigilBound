@@ -25,6 +25,8 @@ name: Sigilbound Unity
 
 on:
   push:
+    # Only main publishes to the download links; other branches (work in progress) never do.
+    branches: [main]
     paths: ["unity/**", "public/game/models/**", "public/game/version.js", ".github/workflows/sigilbound-unity.yml"]
   pull_request:
     paths: ["unity/**", "public/game/models/**", ".github/workflows/sigilbound-unity.yml"]

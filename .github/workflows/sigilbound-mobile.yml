@@ -9,6 +9,8 @@ name: Sigilbound Mobile
 # Runs once per push (not again for the pull request) to halve dependency downloads.
 on:
   push:
+    # Only main publishes to the download links; other branches (work in progress) never do.
+    branches: [main]
     paths: ["public/game/**", "mobile/**", ".github/workflows/sigilbound-mobile.yml"]
   workflow_dispatch:
 

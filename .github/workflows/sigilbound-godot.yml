@@ -8,6 +8,8 @@ name: Sigilbound Godot
 
 on:
   push:
+    # Only main publishes to the download links; other branches (work in progress) never do.
+    branches: [main]
     paths: ["godot/**", ".github/workflows/sigilbound-godot.yml"]
   workflow_dispatch:
 
