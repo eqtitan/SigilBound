@@ -315,7 +315,7 @@ Unfinished work saved from the stopped agents:
 
 Owner decision: do all four upgrades, all free (CC0 and code; no paid tools). Goal: no two of the 100 heroes look or move alike. Each one is recognisable at 70 px in battle and rewarding up close in the hero viewer.
 
-- [ ] **44. Uniqueness audit and rules.**
+- [x] **44. Uniqueness audit and rules.** Done: `unity/Tools~/blenderforge/audit.py` writes `docs/sigilbound/UNIQUE.md` (base, palette, kit, height, clips and signature of every hero) and CI runs `audit.py --check`. The first audit found 48 near-twin pairs, now the fix list; a new twin fails CI, and a fixed pair must leave the list. Signatures for all 100 heroes are in `signatures.py`. Research for step 45: the bodies in our npm source (soldier, orc, ninja, demon, pirate and others) come from other Quaternius packs, with a smaller skeleton and a different clip set (no Sword_Slash or Idle_Sword), so they are left out. **Quaternius Ultimate Modular Women (CC0)** fits exactly: Medieval, Witch, Adventurer and seven more, a 62-bone rig with every core bone and the same 24 clips as our bases. Its colour-named materials suit quat.py's repaint. The Ultimate Modular Men and fantasy (Knight, Wizard, Elf) packs are the next candidates.
   - A script lists every hero's base body, palette, kit, build and clips.
   - A test fails when two heroes share the same base, the same main kit pieces and a similar palette (colour distance).
   - Today's near-twins go in a fix list (e.g. Tamsin and Sienna, Ysolde and Juno, Gorrum and Kharra, Bram and Dorian, Aurelia and Rhea).

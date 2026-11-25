@@ -52,6 +52,8 @@ jobs:
           dotnet-version: "8.0.x"
       - name: Game-core tests (rules, web parity, save codes, Trials, looks, layout)
         run: dotnet run --project unity/Tests~
+      - name: Hero uniqueness audit (no new near-twins; docs/sigilbound/UNIQUE.md)
+        run: python3 "unity/Tools~/blenderforge/audit.py" --check
       - name: Compile check (Client + Editor scripts against Unity reference assemblies)
         run: dotnet build unity/Tests~/CompileCheck/Editor.csproj
       - name: Fetch the real Unity 6 assemblies (from the game-ci editor image; no Docker, no license)
