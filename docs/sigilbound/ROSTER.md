@@ -80,10 +80,10 @@ mechanics: Pierce, Execute, Pull, Burn, spread-on-kill and the counter Taunt.
 | `sorrel` | Sorrel Duskmere | Rare | Shadow | Hp | monarch | cape, club | Poison on hit and on all enemies; team Regen with a self Shield | Hollow Deep miner who survived the collapse. |
 | `amber` | Amber Glasswright | Rare | Flame | Defense | hooded | helm, shield | Burn on hit; team Shield; self Shield, Taunt and Counter | Glass Wastes kiln-mistress with a fused-glass shield. |
 | `tobias` | Tobias Reed | Rare | Gale | Support | adventurer | long_hair, lute* | SpdUp and Turn Meter for all allies; team Heal and Cleanse | Wandering lute player of the high passes. |
-| `nerys` | Nerys Coldspring | Rare | Tide | Support | hooded | circlet, mirror | Cleanse all allies; DefUp | Sunken Cathedral acolyte. |
-| `hale` | Hale Sunforge | Rare | Light | Hp | monarch | beard, hammer, cape | Heal self on hit; Taunt | Bellspire smith who forged the waystone lamps. |
-| `juno` | Juno Ashveil | Rare | Flame | Attack | hooded | veil, whip | Poison on hit; spreads on kill | Fire dancer of the Last Pyre. |
-| `pike` | Pike Saltgrave | Rare | Tide | Attack | adventurer | bandana, hook | Pull: TmDrain the target | Smuggler of the Saltmarsh reaches. |
+| `nerys` | Nerys Coldspring | Rare | Tide | Support | hooded | circlet, mirror | Cleanse, DefUp and Turn Meter for all allies; team Heal | Sunken Cathedral acolyte. |
+| `hale` | Hale Sunforge | Rare | Light | Hp | monarch | beard, hammer, cape | Small self Shield and Taunt; team Regen | Bellspire smith who forged the waystone lamps. |
+| `juno` | Juno Ashveil | Rare | Flame | Attack | hooded | veil, whip, robe | Burn on hit; Burn spreads on a kill | Fire dancer of the Last Pyre. |
+| `pike` | Pike Saltgrave | Rare | Tide | Attack | adventurer | bandana, hook | Pull: takes the target's turn meter | Smuggler of the Saltmarsh reaches. |
 | `rhea` | Rhea Lumen-Kin | Rare | Light | Defense | monarch | helm, shield, cape | Shield on self; Cleanse self | Sister of Lumen Varro, sworn to the light-guard. |
 | `corwin` | Corwin Blackthorn | Rare | Shadow | Attack | adventurer | spiky_hair, katana | Execute below 25% HP | Duelist exiled from the Stormcrown court. |
 | `astrid` | Astrid Windrider | Epic | Gale | Attack | adventurer | ponytail, spear, cape | AoE hit; SpdUp self | Sky-rider of Stormcrown Heights. |

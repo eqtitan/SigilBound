@@ -123,6 +123,15 @@ HEROES = {
                    hide=["hood"], kit=["braid", "helm", "shield"], rim="#ff7a3a", height=0.98),
     "tobias": dict(base="adventurer", skin="fair", hair="#a07040", armor="#6a8a5a", accent="#ffd080", cloth="#4a6a3a", glow=None,
                    hide=[], kit=["long_hair", "lute"], rim="#3fb57a", height=1.0),
+    # Step 27:
+    "nerys":  dict(base="hooded", skin="pale", hair="#9ac8e8", armor="#4a7aa0", accent="#e0f4ff", cloth="#2a4a6a", glow="#bfefff",
+                   hide=["hood"], kit=["long_hair", "circlet", "mirror", "robe"], rim="#3a8ee8", height=0.98),
+    "hale":   dict(base="monarch", skin="tan", hair="#c8a060", armor="#a89070", accent="#ffe08a", cloth="#6a5030", glow="#ffe08a", cape="#8a3a1a",
+                   hide=["crown"], kit=["beard", "hammer", "cape", "runes"], rim="#ffe27a", height=1.06),
+    "juno":   dict(base="hooded", skin="tan", hair="#e8501a", armor="#8a2a1a", accent="#ffb030", cloth="#5a1a10", glow="#ffb030", cape="#3a0e08",
+                   hide=["hood"], kit=["veil", "whip", "robe"], rim="#ff7a3a", height=0.97),
+    "pike":   dict(base="adventurer", skin="tan", hair="#4a3a2a", armor="#4a5a6a", accent="#c8d8e0", cloth="#2a3a4a", glow=None,
+                   hide=[], kit=["bandana", "hook"], rim="#3a8ee8", height=1.0),
 }
 
 def palette(h):

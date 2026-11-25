@@ -141,6 +141,11 @@ namespace Sigilbound.Core
             H("sorrel", "Sorrel Duskmere", Rarity.Rare, Element.Shadow, Role.Hp, S("Pick Strike", E, 0.08, 0, 1, Scale.Hp, F(FxType.Poison, 2, 0.3)), S("Deep Breath", AA, 0, 4, F(FxType.Regen, 2), Shield(0.15, FxTo.Self)), S("Cave-in", AE, 0.06, 4, 1, Scale.Hp, F(FxType.Poison, 2, 0.5))),
             H("amber", "Amber Glasswright", Rarity.Rare, Element.Flame, Role.Defense, S("Glass Bash", E, 0.9, 0, 1, Scale.Def, F(FxType.Burn, 2, 0.3)), S("Kiln Shield", AA, 0, 4, Shield(0.15)), S("Molten Glass", SELF, 0, 5, Shield(0.2), F(FxType.Taunt, 2), F(FxType.Counter, 2))),
             H("tobias", "Tobias Reed", Rarity.Rare, Element.Gale, Role.Support, S("Discord", E, 1.0, 0, F(FxType.AtkDown, 2, 0.3)), S("Marching Song", AA, 0, 4, F(FxType.SpdUp, 2), TmUp(0.2)), S("Hearthsong", AA, 0, 4, Heal(0.2), Cleanse())),
+            // Step 27:
+            H("nerys", "Nerys Coldspring", Rarity.Rare, Element.Tide, Role.Support, S("Tide Mirror", E, 1.0, 0, F(FxType.Slow, 2, 0.3)), S("Still Waters", AA, 0, 4, Cleanse(), F(FxType.DefUp, 2), TmUp(0.2)), S("Spring Rite", AA, 0, 3, Heal(0.22))),
+            H("hale", "Hale Sunforge", Rarity.Rare, Element.Light, Role.Hp, S("Forge Strike", E, 0.08, 0, 1, Scale.Hp), S("Anvil Heart", SELF, 0, 4, Shield(0.05), F(FxType.Taunt, 2)), S("Lamplight", AA, 0, 5, F(FxType.Regen, 2))),
+            H("juno", "Juno Ashveil", Rarity.Rare, Element.Flame, Role.Attack, S("Fire Whirl", E, 1.0, 0, F(FxType.Burn, 2, 0.4)), new SkillDef { Name = "Ember Lash", Target = E, Mult = 1.9, Cooldown = 3, Spread = true, Fx = new[] { F(FxType.Burn, 2, 0.6) } }, S("Pyre Dance", AE, 0.8, 4, F(FxType.Burn, 2, 0.4))),
+            H("pike", "Pike Saltgrave", Rarity.Rare, Element.Tide, Role.Attack, S("Hook Swing", E, 1.05, 0, new FxDef { Type = FxType.Pull, Val = 0.15, Chance = 0.5 }), S("Reel In", E, 2.0, 3, new FxDef { Type = FxType.Pull, Val = 0.3 }), S("Smuggler's Volley", AE, 0.9, 4, F(FxType.DefDown, 2, 0.3))),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web
