@@ -121,6 +121,10 @@ namespace Sigilbound.Client
             ["marrow"] = L(Ash, "#b8b4ac", "#6a6660", "#ff6a2a", Headgear.None, Prop.Club, false, true, "#ff7a2a"),
             ["ember"] = L(Fair, "#f0e0c0", "#e8d8c0", "#ffb050", Headgear.Veil, Prop.Candle, false, true, "#ffb050"),
             ["quill"] = L(Fair, "#5a3a2a", "#3a4a6a", "#e8d8a0", Headgear.Circlet, Prop.Staff),
+            ["drift"] = L(Fair, "#c8e8ff", "#5a8aaa", "#e8f8ff", Headgear.Bandana, Prop.Daggers, false, false, "#c8f0ff"),
+            ["sprig"] = L(Fair, "#7aa04a", "#5a8a3a", "#e8d870", Headgear.None, Prop.Bell, false, true),
+            ["tallow"] = L(Tan, "#4a3020", "#7a5a3a", "#ff9a40", Headgear.Helm, Prop.Shield),
+            ["hollis"] = L(Deep, "#2a2a2a", "#3a3a3a", "#8aa08a", Headgear.Hood, Prop.Club),
         };
 
         public static bool IsCaster(string heroId) => Looks.TryGetValue(heroId, out var l) &&

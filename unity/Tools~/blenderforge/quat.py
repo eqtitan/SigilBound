@@ -168,6 +168,15 @@ HEROES = {
                    hide=["hood"], kit=["veil", "candle", "robe"], rim="#ff7a3a", height=0.97),
     "quill":  dict(base="adventurer", skin="fair", hair="#5a3a2a", armor="#3a4a6a", accent="#e8d8a0", cloth="#2a3450", glow=None,
                    hide=[], kit=["circlet", "book"], rim="#ffe27a", height=0.98),
+    # Step 33:
+    "drift":  dict(base="adventurer", skin="fair", hair="#c8e8ff", armor="#5a8aaa", accent="#e8f8ff", cloth="#3a5a7a", glow="#c8f0ff",
+                   hide=[], kit=["bandana", "daggers"], rim="#3a8ee8", height=0.92),
+    "sprig":  dict(base="hooded", skin="fair", hair="#7aa04a", armor="#5a8a3a", accent="#e8d870", cloth="#3a5a2a", glow=None,
+                   hide=["hood"], kit=["braid", "bell"], rim="#3fb57a", height=0.86),
+    "tallow": dict(base="monarch", skin="tan", hair="#4a3020", armor="#7a5a3a", accent="#ff9a40", cloth="#4a3020", glow=None, cape="#a04a1a",
+                   hide=["crown", "hair"], kit=["helm", "shield", "cape"], rim="#ff7a3a", height=1.0),
+    "hollis": dict(base="hooded", skin="deep", hair="#2a2a2a", armor="#3a3a3a", accent="#8aa08a", cloth="#2a2a2a", glow=None,
+                   hide=[], kit=["club"], rim="#a050ff", height=1.04),
 }
 
 def palette(h):
@@ -202,7 +211,7 @@ ROLES = {
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
 }
 # Clean-shaven heroes (Shave = true in Core/Looks.cs): their beard is removed (adventurer heads only).
-SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin", "grimsby", "quill"}
+SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin", "grimsby", "quill", "drift"}
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}

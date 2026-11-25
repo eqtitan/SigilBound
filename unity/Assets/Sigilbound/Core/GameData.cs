@@ -168,6 +168,11 @@ namespace Sigilbound.Core
             H("marrow", "Marrow Cinderhulk", Rarity.Epic, Element.Flame, Role.Attack, new SkillDef { Name = "Cinder Fist", Target = E, Mult = 1.1, Rage = 0.6 }, new SkillDef { Name = "Wrath of the Deep", Target = E, Mult = 2.2, Cooldown = 3, Rage = 1.0 }, S("Hollow Roar", AE, 1.0, 4, F(FxType.AtkUp, 2, -1, FxTo.Self))),
             new HeroDef { Id = "ember", Name = "Ember Tallow", Rarity = Rarity.Rare, Element = Element.Flame, Role = Role.Hp, FallHeal = 0.15, Skills = new[] { S("Wax Brand", E, 0.08, 0, 1, Scale.Hp, F(FxType.Burn, 2, 0.3)), S("Vigil Flame", AA, 0, 4, F(FxType.Regen, 2)), S("Candle Ward", SELF, 0, 5, Shield(0.2)) } },
             H("quill", "Quill Inkwell", Rarity.Rare, Element.Light, Role.Support, S("Quill Jab", E, 1.0, 0, new FxDef { Type = FxType.Strip, Chance = 0.4 }), S("Annotate", AA, 0, 4, F(FxType.AtkUp, 2), Heal(0.15)), S("Redact", E, 1.2, 4, Strip(), F(FxType.AtkDown, 2, 0.5))),
+            // Step 33:
+            H("drift", "Drift Coldfoot", Rarity.Common, Element.Tide, Role.Attack, S("Skate Cut", E, 0.45, 0, 2, Scale.Atk, F(FxType.Slow, 2, 0.2)), S("Frost Glide", E, 1.3, 3, F(FxType.Slow, 2, 0.5))),
+            H("sprig", "Sprig Mosslight", Rarity.Common, Element.Gale, Role.Support, S("Twig Poke", E, 1.0, 0), S("Bloom Song", AA, 0, 4, Heal(0.07), F(FxType.SpdUp, 2))),
+            H("tallow", "Tallow Firth", Rarity.Common, Element.Flame, Role.Defense, S("Torch Bash", E, 0.85, 0, 1, Scale.Def, F(FxType.Burn, 2, 0.1)), S("Watch Fire", AA, 0, 4, F(FxType.DefUp, 2))),
+            H("hollis", "Hollis Shade", Rarity.Common, Element.Shadow, Role.Hp, S("Grave Thump", E, 0.08, 0, 1, Scale.Hp), S("Gravedigger's Rest", SELF, 0, 4, Shield(0.2), F(FxType.Regen, 2), F(FxType.Taunt, 2))),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web
