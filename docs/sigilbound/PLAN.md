@@ -222,7 +222,10 @@ Unfinished work saved from the stopped agents:
     - Balance after tuning: Drift 57% vs Brannoc/Kettle, Sprig 48% vs Pell/Wren, Tallow 53% vs Mira (his Burn is strong for a Common, so its chance is 10%), Hollis 44% vs Odo. 68 heroes.
   - STEP 35 DONE (2026-11-25): Auren, Cinder, Thessaly, Umbra (all Epic). New kit: fan. Preview: `docs/sigilbound/art/prototype/step35-hollow-unbound.png`.
     - Balance: Auren 52% and Umbra 52% vs Sable/Oriel (Umbra needed team Turn Meter), Cinder 46% vs Kaito/Maelis, Thessaly 52% vs Aurelia. 72 heroes. Three of four balanced first time, starting from the kit patterns that worked before.
-  - Next (step 36): Lucan, Kharra, Nocturne (Execute), Aelira.
+  - STEP 36 DONE (2026-11-25): Lucan, and the first new Legendaries: Kharra, Nocturne (Execute), Aelira. Preview: `docs/sigilbound/art/prototype/step36-hollow-unbound.png`.
+    - Balance: Lucan 51% vs Aurelia (his Cleanse undid Aurelia's stuns: 77% until it was dropped), Kharra 59% vs Odo/Velka/Thrain, Nocturne 48% vs Vaelith/Morwenna, Aelira 43% vs Seraphine. 76 heroes.
+    - RosterTests: a peer of a lower rarity (no Legendary HP hero among the classic 24) is raised to the new hero's rarity.
+  - Next (step 37): Zephyrine, Solenne (Revive), Nell, Briar. That finishes phase 3.
   Grimsby, Marrow (Rage), Ember (Last Light), Quill; Drift, Sprig, Tallow, Hollis; Auren, Cinder, Thessaly, Umbra; Lucan, Kharra, Nocturne (Execute), Aelira; Zephyrine, Solenne (Revive), Nell, Briar.
 - [x] **34. Android in-app updates (like Windows).** Owner request (2026-11-25). The phase 3 hero steps 35–37 follow it.
   - OWNER DECISIONS (2026-11-25):

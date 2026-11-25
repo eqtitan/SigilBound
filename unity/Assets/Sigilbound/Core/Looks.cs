@@ -160,6 +160,10 @@ namespace Sigilbound.Core
             ["cinder"] = new HeroLook { Skin = "fair", Hair = "#ff7a2a", Style = "spiky", Gear = "none", Armor = "#4a2418", Accent = "#ffa040", Cloth = "#2a120c", Prop = "sword", Glow = "#ffb040", Base = "adventurer", Height = 1.04, Shave = true },
             ["thessaly"] = new HeroLook { Skin = "tan", Hair = "#3a5a6a", Style = "short", Gear = "helm", Armor = "#2a6a7a", Accent = "#a8f0f0", Cloth = "#1a4a5a", Prop = "shield", Glow = "#a8f0f0", Cape = true, CapeColor = "#123a48", Base = "monarch", Height = 1.06, Hide = new[] { "crown" } },
             ["umbra"] = new HeroLook { Skin = "ash", Hair = "#3a3a4a", Style = "hood", Gear = "mask", Armor = "#2a2a3a", Accent = "#9a8aff", Cloth = "#1a1a28", Prop = "orb", Glow = "#b0a0ff", Robe = "long", RobeColor = "#1a1a28", Base = "hooded", Height = 1.0 },
+            ["lucan"] = new HeroLook { Skin = "fair", Hair = "#e8d8a0", Style = "short", Gear = "helm", Armor = "#e8e0c8", Accent = "#ffd860", Cloth = "#8a6a2a", Prop = "shield", Glow = "#fff2b0", Cape = true, CapeColor = "#f0e8d0", Base = "monarch", Height = 1.06, Hide = new[] { "crown" } },
+            ["kharra"] = new HeroLook { Skin = "ash", Hair = "#2a1a14", Style = "bald", Gear = "horns", Armor = "#3a2a24", Accent = "#ff5a1a", Cloth = "#24140e", Prop = "hammer", Beard = "full", Glow = "#ff7a2a", Cape = true, CapeColor = "#4a1a0e", Base = "monarch", Height = 1.18, Hide = new[] { "crown" }, Bald = true },
+            ["nocturne"] = new HeroLook { Skin = "ash", Hair = "#141020", Style = "hood", Gear = "mask", Armor = "#1a1424", Accent = "#c060ff", Cloth = "#0e0a16", Prop = "katana", Glow = "#d080ff", Cape = true, CapeColor = "#0e0a16", Base = "hooded", Height = 1.06 },
+            ["aelira"] = new HeroLook { Skin = "brown", Hair = "#0e3a5a", Style = "long", Gear = "crown", Armor = "#1a5a8a", Accent = "#7ae8ff", Cloth = "#0e3048", Prop = "orb", Glow = "#9af0ff", Cape = true, CapeColor = "#0e3048", Robe = "long", RobeColor = "#0e3048", Base = "hooded", Height = 1.06, Hide = new[] { "hood" } },
         };
     }
 }

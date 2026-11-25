@@ -186,6 +186,15 @@ HEROES = {
                    hide=["crown", "hair"], kit=["helm", "shield", "trident", "cape"], rim="#3a8ee8", height=1.06),
     "umbra":  dict(base="hooded", skin="ash", hair="#3a3a4a", armor="#2a2a3a", accent="#9a8aff", cloth="#1a1a28", glow="#b0a0ff",
                    hide=[], kit=["mask", "orb", "robe"], rim="#a050ff", height=1.0),
+    # Step 36:
+    "lucan":  dict(base="monarch", skin="fair", hair="#e8d8a0", armor="#e8e0c8", accent="#ffd860", cloth="#8a6a2a", glow="#fff2b0", cape="#f0e8d0",
+                   hide=["crown", "hair"], kit=["helm", "halo", "shield", "cape"], rim="#ffe27a", height=1.06),
+    "kharra": dict(base="monarch", skin="ash", hair="#2a1a14", armor="#3a2a24", accent="#ff5a1a", cloth="#24140e", glow="#ff7a2a", cape="#4a1a0e",
+                   hide=["crown", "hair"], kit=["horns", "beard", "hammer", "cape"], rim="#ff7a3a", height=1.18),
+    "nocturne": dict(base="hooded", skin="ash", hair="#141020", armor="#1a1424", accent="#c060ff", cloth="#0e0a16", glow="#d080ff", cape="#0e0a16",
+                   hide=[], kit=["mask", "katana", "cape"], rim="#a050ff", height=1.06),
+    "aelira": dict(base="hooded", skin="brown", hair="#0e3a5a", armor="#1a5a8a", accent="#7ae8ff", cloth="#0e3048", glow="#9af0ff", cape="#0e3048",
+                   hide=["hood"], kit=["long_hair", "crown", "orb", "robe", "cape"], rim="#3a8ee8", height=1.06),
 }
 
 def palette(h):

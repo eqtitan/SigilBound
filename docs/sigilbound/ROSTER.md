@@ -117,10 +117,10 @@ revive effect, a heal when an ally falls, and damage that grows with HP lost.
 | `cinder` | Cinder Vale | Epic | Flame | Attack | adventurer | spiky_hair, sword, runes | Burn on hit; AoE AtkDown; a big hit that may Burn | Survivor of the Titan's first eruption. |
 | `thessaly` | Thessaly Reefward | Epic | Tide | Defense | monarch | helm, shield, trident | Small team Shield while she Taunts; AoE DefDown | Captain of the drowned fleet. |
 | `umbra` | Umbra Veilkin | Epic | Shadow | Support | hooded | mask, orb, robe | TmDrain on hit; AoE TmDrain and DefDown; team Heal, Cleanse and Turn Meter | Hollow seer who serves the living now. |
-| `lucan` | Lucan Brightshield | Epic | Light | Defense | monarch | helm, shield, cape | Shield all; Cleanse | Paladin of the Sunken Cathedral. |
-| `kharra` | Kharra Titanborn | Legendary | Flame | Hp | monarch | horns, hammer, cape | Huge HP; Regen; Taunt | Born in the Titan's shadow, half stone. |
-| `nocturne` | Nocturne | Legendary | Shadow | Attack | hooded | mask, katana, cape | Execute; Stun | The Hollow's first champion, now its hunter. |
-| `aelira` | Aelira Tidecrowned | Legendary | Tide | Support | hooded | crown, orb, robe, cape | Heal all; Tm boost all | Queen of the Sunken Cathedral. |
+| `lucan` | Lucan Brightshield | Epic | Light | Defense | monarch | helm, halo, shield, cape | Small team Shield while he Taunts; AoE AtkDown | Paladin of the Sunken Cathedral. |
+| `kharra` | Kharra Titanborn | Legendary | Flame | Hp | monarch | horns, beard, hammer, cape | Self Shield, Taunt and Regen; AoE Burn with team AtkUp | Born in the Titan's shadow, half stone. |
+| `nocturne` | Nocturne | Legendary | Shadow | Attack | hooded | mask, katana, cape | DefDown on hit; AoE Stun; Execute below 30% HP | The Hollow's first champion, now its hunter. |
+| `aelira` | Aelira Tidecrowned | Legendary | Tide | Support | hooded | crown, orb, robe, cape | Big team Heal with Shield and Cleanse; team Turn Meter, AtkUp and DefUp | Queen of the Sunken Cathedral. |
 | `zephyrine` | Zephyrine | Legendary | Gale | Attack | adventurer | ponytail, katana, cape | AoE; SpdUp all | Wind spirit bound to the Sigil's Gale shard. |
 | `solenne` | Solenne Dawnborn | Legendary | Light | Hp | monarch | halo, crown, hammer, cape | Regen all; revive-style Heal | Sun-saint who kept the first Sigil shard. |
 | `nell` | Nell Shadowgrass | Common | Shadow | Attack | hooded | mask, hook | Poison; Slow | Reed-cutter of the black fens. |
