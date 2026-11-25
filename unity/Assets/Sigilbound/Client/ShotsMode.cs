@@ -36,6 +36,9 @@ namespace Sigilbound.Client
             var dir = ShotsArg();
             if (string.IsNullOrEmpty(dir)) return;
             NoSave = true;
+            // Under xvfb there is no window manager, so the window never gets focus and the Linux
+            // player sits in its paused loop (frames frozen, coroutines stopped). Keep running.
+            Application.runInBackground = true;
             try { Directory.CreateDirectory(dir); File.WriteAllText(Path.Combine(dir, "shots.log"), $"started {DateTime.Now:O}\n"); } catch (Exception) { }
             StartCoroutine(RunShots(dir));
         }
