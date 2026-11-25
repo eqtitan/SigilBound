@@ -385,7 +385,7 @@ Owner decisions (2026-11-25): frame rate defaults to **Auto (match the screen)**
   - Families come from `Looks.Prop` (section 3.2). Role timing multipliers and idle desync come from section 5.
   - New states: Ready, Block, Stunned, Knocked_Down, Revive (add `EvType.Revive`), Counter, Defeat, and additive buff/debuff layers.
   - Idle and victory stay at 1x at every battle speed.
-- [ ] **68. Hit-stop and impact events.**
+- [ ] **68. Hit-stop and impact events.** First pass done: `Core/Kit/Impact.cs` (families from the prop, impact times and hit-stop table, speed^0.45 scaling, 0.25 s cap); melee attacks wait for the clip's impact time (`HeroModel.WaitNormalized`) instead of a fixed 0.35 s; attacker and targets (ranged: targets only) freeze via `SetFrozen`/`FreezeFor`; tests prove 30/60/120 fps land within one frame. Still to do: per-hit impacts for multi-hit skills, knockback curves, speed-based projectiles.
   - Every attack clip gets normalized `impact` / `release` times. Damage numbers, effects and reactions fire when those times are crossed, instead of after fixed waits.
   - Hit-stop freezes only the attacker and the target, with the pose snapped to the impact time, using the durations in section 4.1.
   - Knockback curves and speed-based projectiles.
