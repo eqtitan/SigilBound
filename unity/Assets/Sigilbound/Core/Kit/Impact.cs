@@ -47,6 +47,21 @@ namespace Sigilbound.Core
 
         public const double MaxHitStop = 0.25;
 
+        // Projectile flight (MECHANICS.md 4.4): by speed, clamped, so far targets take longer and near ones
+        // don't crawl. Returns seconds for `dist` metres.
+        public static double FlightTime(string kind, double dist)
+        {
+            var (speed, lo, hi) = kind switch
+            {
+                "arrow" => (22.0, 0.15, 0.35), "bolt" => (16.0, 0.18, 0.40), "orb" => (9.0, 0.25, 0.55), _ => (14.0, 0.18, 0.45),
+            };
+            return Math.Max(lo, Math.Min(hi, dist / speed));
+        }
+
+        // Multi-hit skills: time between hits on one target (the 0.22 / 0.48 / 0.74 spacing of a ~1 s
+        // clip), and the short stop on every hit but the last.
+        public const double MultiHitGap = 0.26, MultiHitStop = 0.04;
+
         // Hit-stop in SCALED seconds (battle speed is Time.timeScale): base x speed^0.45, so the real-time
         // stop is base x speed^-0.55 and impacts still read at 3x. Heals and buffs: 0.
         public static double HitStop(WeaponFamily f, bool crit, bool kill, bool ult, double speed)

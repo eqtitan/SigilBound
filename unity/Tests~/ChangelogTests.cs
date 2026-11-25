@@ -74,3 +74,12 @@ static class ImpactTests
         check(Sigilbound.Core.Impact.FamilyOf("lumen") == B && Sigilbound.Core.Impact.FamilyOf("odo") == Sigilbound.Core.WeaponFamily.Unarmed, "impact: families from the hero's prop");
     }
 }
+
+static class FlightTests
+{
+    public static void Run(System.Action<bool, string> check)
+    {
+        check(System.Math.Abs(Sigilbound.Core.Impact.FlightTime("arrow", 4.4) - 0.2) < 1e-9, "projectiles: an arrow flies 4.4 m in 0.2 s (22 m/s)");
+        check(Sigilbound.Core.Impact.FlightTime("orb", 0.5) == 0.25 && Sigilbound.Core.Impact.FlightTime("orb", 50) == 0.55, "projectiles: flight time clamped (orb 0.25-0.55 s)");
+    }
+}
