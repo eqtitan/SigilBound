@@ -74,6 +74,10 @@ namespace Sigilbound.Client
                 });
             }
 
+            SettingRow(ref y, b, "What's new", "Notes for every update: new features, fixes and changes.");
+            if (Ui.Button(new Rect(b.x, y, 160, 34), "View notes", Ui.Kind.Secondary, 13)) OpenWhatsNew();
+            y += 44;
+
             SettingRow(ref y, b, "Frame rate", "30 fps keeps the phone cooler and saves battery.");
             Chips(ref y, b, new[] { "30 · Cooler", "60 · Smoother" }, st.fpsCap == 30 ? 0 : 1, i =>
             {
