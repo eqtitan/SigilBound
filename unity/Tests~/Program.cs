@@ -12,7 +12,7 @@ static class Program
 
     static int Main()
     {
-        Check(Heroes.Length == 24 && Heroes.Select(h => h.Id).Distinct().Count() == 24, "24 unique heroes");
+        Check(Classic.Length == 24 && Classic.Select(h => h.Id).Distinct().Count() == 24 && Heroes.Select(h => h.Id).Distinct().Count() == Heroes.Length, $"24 classic heroes, {Heroes.Length} in all, unique ids");
         Check(ElementMultiplier(Element.Flame, Element.Gale) == 1.3 && ElementMultiplier(Element.Gale, Element.Flame) == 0.8 && ElementMultiplier(Element.Light, Element.Shadow) == 1.3, "element triangle");
         Check(Game.StageLevel(0) == 2 && Game.StageLevel(59) == 58, $"stage levels match web ({Game.StageLevel(0)}, {Game.StageLevel(59)})");
         // Same deterministic enemy picks as the web version (stage 1: Velka + Kettle in the web build).
@@ -57,6 +57,7 @@ static class Program
         KitTests.Run(Check);
         ExtrasTests.Run(Check);
         ArtTests.Run(Check);
+        RosterTests.Run(Check);
 
         // Win-rate sweep like the web sim's fixed-team check (geared team at stage level).
         Console.WriteLine("\nStage win rates (fixed teams at stage level, 30 runs):");

@@ -26,7 +26,7 @@ static class RenderTests
                 }
             }
         }
-        check(fx.Count == 24 && Looks.Table.Count == 24 && bad == 0, $"model recolours match the web's three.js colours ({n - bad}/{n} role colours, heroes and Hollow enemies)");
+        check(fx.Count == 24 && Looks.Table.Count == GameData.Heroes.Length && bad == 0, $"model recolours match the web's three.js colours ({n - bad}/{n} role colours, heroes and Hollow enemies)");
         check(Looks.Of("hask").Base == "monarch" && Looks.Of("mira").Base == "hooded" && Looks.Of("brannoc").Base == "adventurer" && Looks.Of("mira").Hide.Contains("hood"), "base model and hidden parts per hero");
         check(Looks.RoleOf("hooded", true, "Brown") == "eye" && Looks.RoleOf("hooded", false, "Brown") == "cloth" && Looks.RoleOf("titan", false, "Eye_Black") == "maw", "material roles (head-specific roles too)");
 

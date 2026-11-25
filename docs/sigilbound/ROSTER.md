@@ -52,10 +52,10 @@ new mechanics apart from the `anchor` and `net` kit.
 
 | Id | Name | Rarity | Element | Role | Body | Look and kit (* = new kit piece) | Mechanic hook | Concept |
 |---|---|---|---|---|---|---|---|---|
-| `bram` | Bram Wetherby | Common | Tide | Hp | monarch | beard, anchor* | Regen on self; Taunt when below half HP | Drowned Mill ferryman who hauled the mill wheel back by hand. |
-| `nettle` | Nettle Quickfinch | Common | Gale | Attack | adventurer | bandana, daggers | Hits twice; Slow on the second hit | Thornwick hedge-runner, fastest courier on the road. |
-| `hobb` | Hobb Lanternjaw | Common | Light | Defense | monarch | helm, shield, lantern | Shield on the lowest ally; Taunt | Road warden who keeps the waystone lamps lit. |
-| `greta` | Greta Brineknot | Common | Tide | Support | hooded | braid, net* | Slow all enemies; Cleanse one ally | Saltmarsh net-mender. |
+| `bram` | Bram Wetherby | Common | Tide | Hp | monarch | beard, anchor* | Shield, Regen and Taunt on self | Drowned Mill ferryman who hauled the mill wheel back by hand. |
+| `nettle` | Nettle Quickfinch | Common | Gale | Attack | adventurer | bandana, daggers | Hits twice with a chance to Slow; a big single hit | Thornwick hedge-runner, fastest courier on the road. |
+| `hobb` | Hobb Lanternjaw | Common | Light | Defense | monarch | helm, shield, lantern | DefUp and a small Shield on all allies | Road warden who keeps the waystone lamps lit. |
+| `greta` | Greta Brineknot | Common | Tide | Support | hooded | braid, net* | Slow on hit; small Heal and Cleanse on all allies | Saltmarsh net-mender. |
 | `cole` | Cole Ashworth | Common | Flame | Attack | adventurer | spiky_hair, axe* | Burst hit; AtkUp on self after a kill | Ashgrave charcoal burner with a woodsman's axe. |
 | `tilly` | Tilly Mothwing | Common | Shadow | Support | hooded | veil, candle | DefDown on all enemies; TmDrain | Moth-keeper of the Bellspire ruins. |
 | `ronan` | Ronan Stoutbarrow | Common | Gale | Hp | monarch | beard, hammer | Regen on all allies; big HP pool | Thornwick innkeeper, never lets a guest go hungry. |

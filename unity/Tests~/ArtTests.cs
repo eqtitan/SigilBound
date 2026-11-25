@@ -129,7 +129,7 @@ static class ArtTests
             var doc = (Dictionary<string, object>)Json.Parse(File.ReadAllText(promptsPath));
             var heroes = Json.Arr(doc, "heroes");
             var ids = heroes.Select(x => Json.Str(x, "id")).ToList();
-            check(ids.Count == 24 && GameData.Heroes.All(x => ids.Contains(x.Id)), "hero art data covers all 24 heroes");
+            check(ids.Count == 24 && GameData.Classic.All(x => ids.Contains(x.Id)), "hero art data covers the 24 classic heroes (roster heroes: ROSTER.md and quat.py)");
             var banned = Json.Arr(doc, "bannedTerms").Select(x => ((string)x).ToLowerInvariant()).ToList();
             doc.Remove("bannedTerms");
             var text = Json.Write(doc).ToLowerInvariant(); // templates, element words and every hero's prompt text

@@ -72,7 +72,7 @@ namespace Sigilbound.Core
                 var wave = new List<EnemySpec>();
                 for (int i = 0; i < 3; i++)
                 {
-                    var t = Heroes[(int)Math.Floor(rng.Next() * Heroes.Length)];
+                    var t = Classic[(int)Math.Floor(rng.Next() * Classic.Length)];
                     wave.Add(new EnemySpec { Template = t, Level = g.Level, Stars = g.Stars, Mul = g.Mul, Spd = g.Spd, ShownLevel = Game.StageLevel(idx), El = rng.Next() < 0.6 ? todayEl : t.Element });
                 }
                 if (boss && w == count - 1)
@@ -109,7 +109,7 @@ namespace Sigilbound.Core
             foreach (var (label, mul, gain) in specs)
             {
                 var ids = new List<string>();
-                while (ids.Count < n) { var t = Heroes[(int)Math.Floor(rng.Next() * Heroes.Length)]; if (!ids.Contains(t.Id)) ids.Add(t.Id); }
+                while (ids.Count < n) { var t = Classic[(int)Math.Floor(rng.Next() * Classic.Length)]; if (!ids.Contains(t.Id)) ids.Add(t.Id); }
                 string name = $"{RivalAdj[(int)Math.Floor(rng.Next() * RivalAdj.Length)]} {RivalNoun[(int)Math.Floor(rng.Next() * RivalNoun.Length)]}";
                 int lv = Math.Max(1, avgLv + Js.RoundInt((mul - 1) * 20)), st = Math.Max(1, Math.Min(6, avgSt + (mul > 1.05 ? 1 : 0)));
                 int div = Math.Max(1, team.Count > 0 ? team.Count : n);

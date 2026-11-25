@@ -107,7 +107,19 @@ namespace Sigilbound.Core
             H("morwenna", "Morwenna Abyss-Crowned", Rarity.Legendary, Element.Shadow, Role.Attack, S("Abyssal Touch", E, 1.1, 0, Drain(0.15)), S("Crown of Night", AE, 1.1, 4, F(FxType.Stun, 1, 0.35)), S("Drown in Dark", E, 2.8, 4, Strip(), F(FxType.AtkDown, 2))),
             H("seraphine", "Seraphine of the Seventh Bell", Rarity.Legendary, Element.Light, Role.Support, S("Bell Toll", E, 1.0, 0, F(FxType.AtkDown, 2, 0.4)), S("Seventh Bell", AA, 0, 4, Heal(0.35), Shield(0.15)), S("Requiem", AA, 0, 5, TmUp(0.35), F(FxType.AtkUp, 2), F(FxType.DefUp, 2), Cleanse())),
             H("ulfgar", "Ulfgar Stormwall", Rarity.Legendary, Element.Gale, Role.Defense, S("Stormwall Bash", E, 1.0, 0, 1, Scale.Def, F(FxType.Slow, 2, 0.5)), S("Hold the Line", AA, 0, 4, F(FxType.DefUp, 3), F(FxType.Taunt, 2, -1, FxTo.Self), Shield(0.25, FxTo.Self)), S("Avalanche", AE, 0.9, 5, 1, Scale.Def, F(FxType.Stun, 1, 0.3), F(FxType.DefDown, 2, 0.5))),
+
+            // ---- Roster phase 1, Roadwardens (docs/sigilbound/ROSTER.md). Unity only: not in the
+            // frozen web game's data.js, so they come after the original 24 (see Classic below).
+            // Step 21:
+            H("bram", "Bram Wetherby", Rarity.Common, Element.Tide, Role.Hp, S("Oar Swing", E, 0.08, 0, 1, Scale.Hp), S("Weather the Storm", SELF, 0, 4, Shield(0.2), F(FxType.Regen, 2), F(FxType.Taunt, 2))),
+            H("nettle", "Nettle Quickfinch", Rarity.Common, Element.Gale, Role.Attack, S("Twin Sting", E, 0.48, 0, 2, Scale.Atk, F(FxType.Slow, 2, 0.2)), S("Hedge Dash", E, 1.4, 3)),
+            H("hobb", "Hobb Lanternjaw", Rarity.Common, Element.Light, Role.Defense, S("Lamp Bash", E, 0.9, 0, 1, Scale.Def), S("Waystone Ward", AA, 0, 4, Shield(0.04), F(FxType.DefUp, 2))),
+            H("greta", "Greta Brineknot", Rarity.Common, Element.Tide, Role.Support, S("Net Toss", E, 1.0, 0, F(FxType.Slow, 2, 0.4)), S("Mend the Nets", AA, 0, 4, Heal(0.12), Cleanse())),
         };
+        // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
+        // drawn from these with seeded picks, so stages stay exactly as they were (and match the web
+        // fixtures) as the roster grows. New heroes join the enemy pools deliberately, later.
+        public static readonly HeroDef[] Classic = Heroes.Take(24).ToArray();
         static readonly Dictionary<string, HeroDef> _byId = Heroes.ToDictionary(h => h.Id);
         public static HeroDef Hero(string id) => _byId.TryGetValue(id, out var h) ? h : null;
         public static readonly string[] Starters = { "ysolde", "hask", "corvan" };

@@ -171,7 +171,15 @@ Unfinished work saved from the stopped agents:
     - Robes follow the legs: weighted from the hips toward each thigh. The 7 robed heroes are rebaked. High-knee frames still show the thigh a little; true cloth would need simulation.
     - Stilt legs fixed (owner's build 31 screenshot, Morwenna and Hollow Mira): the Quaternius feet hang off the root as IK targets, and the shared UAL spell/hit clips have no foot keys, so the legs stretched. `FootFollow` keeps the feet on the shins while UAL clips play.
   - Still open: colour and glow levels (judge from the gallery shots), and device checks.
-- [ ] **21–24. Phase 1 heroes (Roadwardens), 4 per step.** Stats, skills, looks, tests and balance sims, plus the baked model and the new `anchor`/`net` kit.
+- [ ] **21–24. Phase 1 heroes (Roadwardens), 4 per step.** Step 21 DONE (2026-11-25): Bram, Nettle, Hobb, Greta (see below). Stats, skills, looks, tests and balance sims, plus the baked model and the new `anchor`/`net` kit.
+  - STEP 21 DONE (2026-11-25):
+    - Bram, Nettle, Hobb and Greta are in `GameData.Heroes` after the original 24, with looks, runtime art (`Core/HeroArt.Roster.cs`), stand-ins and baked models. New kit: anchor, net. Preview: `docs/sigilbound/art/prototype/step21-roadwardens.png`.
+    - Rules set in this step:
+      - The new heroes are Unity only. `GameData.Classic` (the first 24) is the web game's roster: parity tests check it, and every enemy pool (campaign, Hard, dungeons, rivals) still draws from it, so stages don't change.
+      - New heroes are summonable at once (summons pick from all heroes of the rolled rarity).
+      - A Unity save code holding a new hero would break the frozen web game if pasted there; the Unity app ignores unknown ids.
+    - `unity/Tests~/RosterTests.cs` checks: every hero has a look and a baked model; every new hero is in ROSTER.md; enemies are Classic only; balance sims against the classic hero of the same rarity and role (40–60%).
+    - Final balance: Bram 44% vs Odo, Nettle 55% vs Brannoc/Kettle, Hobb 51% vs Mira, Greta 51% vs Pell/Wren. Kits were tuned from the ROSTER hooks; the ROSTER rows are updated.
 - [ ] **25. Engine: phase 2 mechanics** (Burn, Pierce, Execute, Pull, spread on kill, counter Taunt), with tests.
 - [ ] **26–30. Phase 2 heroes (Glass and Storm).**
 - [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.
