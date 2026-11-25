@@ -166,6 +166,24 @@ def dome(name, loc, size, cut=0.0):
     bm.to_mesh(o.data); bm.free()
     return o
 
+def skin_robe(obj, arm, top_z, hem_z):
+    """Let a robe follow the legs (PLAN step 20): each vertex blends from the hips at the waist
+    toward the thigh on its side at the hem, so the skirt swings with each stride instead of the
+    legs poking through a rigid cone. Left is +x on the Quaternius rigs."""
+    xl, xr = bone_world(arm, "UpperLeg.L").x, bone_world(arm, "UpperLeg.R").x
+    for n in ("Hips", "UpperLeg.L", "UpperLeg.R"):
+        if n not in obj.vertex_groups: obj.vertex_groups.new(name=n)
+    g = {n: obj.vertex_groups[n] for n in ("Hips", "UpperLeg.L", "UpperLeg.R")}
+    for v in obj.data.vertices:
+        w = obj.matrix_world @ v.co
+        t = max(0.0, min(1.0, 1.8 * (top_z - w.z) / max(1e-6, top_z - hem_z))) * 0.95  # how much the legs lead (most of it by mid-skirt)
+        sl = max(0.0, min(1.0, (w.x - xr) / max(1e-6, xl - xr)))                 # 1 = left leg's side
+        sl = sl * sl * (3 - 2 * sl)                                              # smooth across the middle
+        g["Hips"].add([v.index], 1.0 - t, "REPLACE")
+        g["UpperLeg.L"].add([v.index], t * sl, "REPLACE")
+        g["UpperLeg.R"].add([v.index], t * (1 - sl), "REPLACE")
+    return obj
+
 def kit(h, arm, P, head_mesh):
     out = []
     head = bone_world(arm, "Head")
@@ -388,7 +406,7 @@ def kit(h, arm, P, head_mesh):
             prof = [(0.32, 0.42), (0.25, 0.7), (0.165, hips.z + 0.06)]
             robe = F.lathe("Robe", prof, seg=20, sy=0.85, cx=hips.x, cy=hips.y - 0.02, cap_top=False, cap_bottom=False)
             sol = robe.modifiers.new("Solid", "SOLIDIFY"); sol.thickness = 0.015; F.apply_mods(robe)
-            out.append(rigid(robe, arm, "Hips", P["Cloth"]))
+            out.append(skin_robe(rigid(robe, arm, "Hips", P["Cloth"]), arm, hips.z + 0.06, 0.42))
             out.append(rigid(F.torus("Sash", Vector((hips.x, hips.y - 0.02, hips.z + 0.05)), 0.165, 0.018, sy=0.85), arm, "Hips", P["Accent"]))
     return out
 

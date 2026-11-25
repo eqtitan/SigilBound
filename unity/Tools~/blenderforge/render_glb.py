@@ -7,14 +7,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import forge as 
 glb, base, out = sys.argv[-3], sys.argv[-2], sys.argv[-1]
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=base)
-idle = next(a for a in bpy.data.actions if a.name.endswith("|Idle"))
+# SB_CLIP=<name> picks another base clip (e.g. Walk, to check that robes follow the legs); SB_FRAME the frame.
+clip = os.environ.get("SB_CLIP", "Idle")
+idle = next(a for a in bpy.data.actions if a.name.endswith("|" + clip))
 for o in list(bpy.context.scene.objects): bpy.data.objects.remove(o, do_unlink=True)
 bpy.ops.import_scene.gltf(filepath=glb)
 for o in [o for o in bpy.context.scene.objects if o.type == "MESH" and not o.name.startswith("SB_Hero")]: bpy.data.objects.remove(o, do_unlink=True)
 arm = next(o for o in bpy.context.scene.objects if o.type == "ARMATURE")
 ad = arm.animation_data or arm.animation_data_create(); ad.action = idle
 if hasattr(ad, "action_slot") and idle.slots: ad.action_slot = idle.slots[0]
-bpy.context.scene.frame_set(12)
+bpy.context.scene.frame_set(int(os.environ.get("SB_FRAME", "12")))
 hero = next(o for o in bpy.context.scene.objects if o.name.startswith("SB_Hero"))
 stem = glb[:-len("_LOD0.glb")]
 m = bpy.data.materials.new("Baked"); m.use_nodes = True; nt = m.node_tree; b = nt.nodes["Principled BSDF"]
