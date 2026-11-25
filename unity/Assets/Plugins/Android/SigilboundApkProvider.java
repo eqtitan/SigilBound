@@ -17,8 +17,16 @@ import java.io.FileNotFoundException;
 
 public final class SigilboundApkProvider extends ContentProvider {
     static final String FILE = "sigilbound-update.apk";
+    // The exact file the game downloaded (Unity's temporaryCachePath is the EXTERNAL cache on most
+    // phones, not getCacheDir(): serving the internal path gave "There's a problem with the app file").
+    static volatile String path;
 
-    File apk() { return new File(getContext().getCacheDir(), FILE); }
+    File apk() {
+        if (path != null) { File f = new File(path); if (f.exists()) return f; }
+        File ext = getContext().getExternalCacheDir();
+        if (ext != null) { File f = new File(ext, FILE); if (f.exists()) return f; }
+        return new File(getContext().getCacheDir(), FILE);
+    }
 
     @Override public boolean onCreate() { return true; }
 
