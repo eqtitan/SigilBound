@@ -68,7 +68,9 @@ Unfinished work saved from the stopped agents:
     - Android autorotates between the two landscape orientations; Windows is 1600×900; the shots script defaults to 1280×720.
   - Steps 7–11 should design each screen for the wide canvas: use `Ui.Begin(true)` and lay out across `Ui.W`, instead of the column.
   - Check first in the screenshots: the battle HUD (turn bar, skill bar) is now stretched across the full width, and the tags clamp to the full width.
-- [ ] **7. Game modes hub.** Big illustrated cards for campaign, hard, trials, arena and titan, showing live status.
+- [x] **7. Game modes hub.** (2026-11-25, step/7) Big illustrated cards for campaign, hard, trials, arena and titan, showing live status.
+  - DONE: ModesScreen.cs (`ScreenId.Modes`). It's the Battle tab in the nav, replacing Campaign. It's full width in landscape (5 cards in a row) and two columns in portrait. The cards are code-drawn (gradient plate, rune ring, icon, status footer, badge, lock).
+  - Ideas for later: illustrated backdrops per mode (small 3D vignettes or painted textures), and the Trials tab is now redundant with the hub (consider replacing it with Codex or Achievements).
 - [ ] **8. Campaign world map.** Sigilbound's own painted-look map, chapter markers with stars, a reward track and a Normal/Hard switch.
 - [ ] **9. Stage list and team setup.**
   - Stage rows: stars, enemies, drops, Battle button.
