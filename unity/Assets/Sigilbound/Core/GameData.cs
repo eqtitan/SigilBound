@@ -183,6 +183,11 @@ namespace Sigilbound.Core
             H("kharra", "Kharra Titanborn", Rarity.Legendary, Element.Flame, Role.Hp, S("Titan Fist", E, 0.09, 0, 1, Scale.Hp, F(FxType.Stun, 1, 0.2)), S("Stoneblood", SELF, 0, 4, Shield(0.1), F(FxType.Taunt, 2), F(FxType.Regen, 2)), S("Caldera Quake", AE, 0.07, 4, 1, Scale.Hp, F(FxType.Burn, 2, 0.5), F(FxType.AtkUp, 2, -1, FxTo.Allies))),
             H("nocturne", "Nocturne", Rarity.Legendary, Element.Shadow, Role.Attack, S("Night Edge", E, 1.2, 0, F(FxType.DefDown, 2, 0.3)), S("Eclipse Strike", AE, 1.0, 4, F(FxType.Stun, 1, 0.35)), new SkillDef { Name = "Hunter's End", Target = E, Mult = 2.6, Cooldown = 4, Execute = 0.3 }),
             H("aelira", "Aelira Tidecrowned", Rarity.Legendary, Element.Tide, Role.Support, S("Tidal Grace", E, 1.0, 0, Drain(0.15, 0.5)), S("Queen's Tide", AA, 0, 4, Heal(0.35), Shield(0.12), Cleanse()), S("Sunken Crown", AA, 0, 5, TmUp(0.35), F(FxType.AtkUp, 2), F(FxType.DefUp, 2))),
+            // Step 37 (finishes phase 3):
+            H("zephyrine", "Zephyrine", Rarity.Legendary, Element.Gale, Role.Attack, S("Wind Edge", E, 1.3, 0, F(FxType.Slow, 2, 0.3)), S("Gale Dance", AE, 1.0, 4, F(FxType.SpdUp, 2, -1, FxTo.Allies)), S("Thousand Winds", E, 0.66, 4, 4, Scale.Atk)),
+            H("solenne", "Solenne Dawnborn", Rarity.Legendary, Element.Light, Role.Hp, S("Sun Hammer", E, 0.09, 0, 1, Scale.Hp), S("Dawn Vigil", AA, 0, 6, new FxDef { Type = FxType.Revive, Pct = 0.3, Turns = 3 }), S("Saint's Light", AA, 0, 4, F(FxType.Regen, 2), Shield(0.1), F(FxType.Taunt, 2, -1, FxTo.Self))),
+            H("nell", "Nell Shadowgrass", Rarity.Common, Element.Shadow, Role.Attack, S("Reed Hook", E, 0.88, 0, F(FxType.Poison, 2, 0.25)), S("Fen Snare", E, 1.15, 3, F(FxType.Slow, 2, 0.5))),
+            H("briar", "Briar Wildroot", Rarity.Rare, Element.Gale, Role.Attack, S("Thorn Lash", E, 0.6, 0, 2, Scale.Atk, F(FxType.Poison, 2, 0.3)), S("Bramble Whip", E, 2.0, 3, F(FxType.Slow, 2, 0.5)), S("Wild Thicket", AE, 0.9, 4, F(FxType.Poison, 2, 0.5))),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web

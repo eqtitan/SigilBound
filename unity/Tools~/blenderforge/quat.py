@@ -195,6 +195,15 @@ HEROES = {
                    hide=[], kit=["mask", "katana", "cape"], rim="#a050ff", height=1.06),
     "aelira": dict(base="hooded", skin="brown", hair="#0e3a5a", armor="#1a5a8a", accent="#7ae8ff", cloth="#0e3048", glow="#9af0ff", cape="#0e3048",
                    hide=["hood"], kit=["long_hair", "crown", "orb", "robe", "cape"], rim="#3a8ee8", height=1.06),
+    # Step 37:
+    "zephyrine": dict(base="adventurer", skin="pale", hair="#d8f0e8", armor="#4a8a7a", accent="#c8fff0", cloth="#2a5a50", glow="#c8fff0", cape="#2a5a50",
+                   hide=[], kit=["ponytail", "katana", "cape"], rim="#3fb57a", height=1.04),
+    "solenne": dict(base="monarch", skin="deep", hair="#f8e8b0", armor="#f0d890", accent="#fff0a0", cloth="#c89040", glow="#fff4b0", cape="#e8c870",
+                   hide=[], kit=["long_hair", "halo", "hammer", "cape"], rim="#ffe27a", height=1.08),
+    "nell":   dict(base="hooded", skin="tan", hair="#2a3020", armor="#3a4030", accent="#9ac060", cloth="#2a3020", glow=None,
+                   hide=[], kit=["mask", "hook"], rim="#a050ff", height=0.95),
+    "briar":  dict(base="hooded", skin="fair", hair="#4a6a2a", armor="#3a5a2a", accent="#d07050", cloth="#2a4020", glow="#a0ff80",
+                   hide=["hood"], kit=["braid", "whip"], rim="#3fb57a", height=0.98),
 }
 
 def palette(h):
@@ -228,8 +237,10 @@ ROLES = {
     "monarch": {"Metal": "armor", "Metal_Dark": "trim", "Blue": "cloth", "DarkBrown": "pants", "Beige": "accent", "Gold": "crown",
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
 }
-# Clean-shaven heroes (Shave = true in Core/Looks.cs): their beard is removed (adventurer heads only).
-SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin", "grimsby", "quill", "drift", "cinder"}
+# Clean-shaven heroes (Shave = true in Core/Looks.cs, or no beard on a monarch head that keeps its hair):
+# the lower-front hair faces (the beard) are removed.
+SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin", "grimsby", "quill", "drift", "cinder", "zephyrine",
+         "maelis", "marrow", "solenne"}  # monarch heads: the beard is part of the hair there too
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}
