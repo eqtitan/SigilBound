@@ -18,7 +18,7 @@ namespace Sigilbound.Core
         // High-detail heroes (phase F): the free CC0 UAL clips retargeted onto the 65-joint rig
         // (models/ubc_anims.glb). Clip choice per weapon family, as docs/sigilbound/MECHANICS.md section 3.
         // The free UAL clips retargeted onto the high-detail rig (models/ubc_anims.glb, MECHANICS.md 3.0).
-        public static readonly string[] HdClips = "A_TPose Crouch_Fwd_Loop Crouch_Idle_Loop Dance_Loop Death01 Driving_Loop Fixing_Kneeling Hit_Chest Hit_Head Idle_Loop Idle_Talking_Loop Idle_Torch_Loop Interact Jog_Fwd_Loop Jump_Land Jump_Loop Jump_Start PickUp_Table Pistol_Aim_Down Pistol_Aim_Neutral Pistol_Aim_Up Pistol_Idle_Loop Pistol_Reload Pistol_Shoot Punch_Cross Punch_Enter Punch_Jab Push_Loop Roll Roll_RM Sitting_Enter Sitting_Exit Sitting_Idle_Loop Sitting_Talking_Loop Spell_Simple_Enter Spell_Simple_Exit Spell_Simple_Idle_Loop Spell_Simple_Shoot Sprint_Loop Swim_Fwd_Loop Swim_Idle_Loop Sword_Attack Sword_Attack_RM Sword_Idle Walk_Formal_Loop Walk_Loop".Split(' ');
+        public static readonly string[] HdClips = "A_TPose Crouch_Fwd_Loop Crouch_Idle_Loop Dance_Loop Death01 Driving_Loop Fixing_Kneeling Hit_Chest Hit_Head Idle_Loop Idle_Talking_Loop Idle_Torch_Loop Interact Jog_Fwd_Loop Jump_Land Jump_Loop Jump_Start PickUp_Table Pistol_Aim_Down Pistol_Aim_Neutral Pistol_Aim_Up Pistol_Idle_Loop Pistol_Reload Pistol_Shoot Punch_Cross Punch_Enter Punch_Jab Push_Loop Roll Roll_RM Sitting_Enter Sitting_Exit Sitting_Idle_Loop Sitting_Talking_Loop Spell_Simple_Enter Spell_Simple_Exit Spell_Simple_Idle_Loop Spell_Simple_Shoot Sprint_Loop Swim_Fwd_Loop Swim_Idle_Loop Sword_Attack Sword_Attack_RM Sword_Idle Walk_Formal_Loop Walk_Loop Defeat_Slump".Split(' ');
 
         public static readonly Dictionary<string, string> HdAliases = new Dictionary<string, string>
         {
@@ -58,6 +58,9 @@ namespace Sigilbound.Core
                 case Role.Hp: st.Win = "Idle_Talking_Loop"; st.WinSpeed = 0.8f; st.Defeat = "Sitting_Enter"; st.HitScale = 0.8f; break;
                 default: st.Win = "Spell_Simple_Enter"; st.WinHold = true; st.Defeat = "Crouch_Idle_Loop"; st.DefeatSpeed = 0.6f; break;
             }
+            // Defeat (owner request): fall to the knees and slump forward onto the stomach, then hold
+            // (Defeat_Slump, hand-authored by blenderforge/make_clips.py).
+            st.Defeat = "Defeat_Slump"; st.DefeatSpeed = 1f;
             if (fam == WeaponFamily.Caster || fam == WeaponFamily.Support) st.Win = role == Role.Support ? "Spell_Simple_Enter" : st.Win;
             // Desync: breathing speed varies +/-8% by hero id, so a lineup never breathes in sync.
             int hsh = 17; foreach (char ch in heroId) hsh = hsh * 31 + ch;

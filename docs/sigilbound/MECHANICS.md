@@ -127,7 +127,7 @@ Fallbacks are the current base-rig clips (`Idle_Sword`, `Sword_Slash`, `Punch_Ri
 | Counter **new** | no | 0.05 | `Counter!` text event | the hero's Attack_1 at 1.3x, turning in place in 0.10 s | same | `impact` as Attack_1 |
 | Buffed / Debuffed **new**, additive | no | 0.10 | `EvType.Status` | additive layer: chest-up 4° (buff), shoulders down 4° (debuff), 0.4 s | the effect alone | |
 | Victory | yes | 0.25 | winners after the last wave, staggered 0.10–0.12 s | per role, see section 5 | `Wave`, `Yes` | |
-| Defeat **new** | clamp | 0.30 | the losing side's survivors when the battle is lost | `Sitting_Enter` ✓ or a kneel | Idle at 0.5x, slumped 12° | |
+| Defeat **new** | clamp | 0.30 | the losing side's survivors when the battle is lost | `Defeat_Slump` (owner decision 2026-11-25: fall to the knees, then slump forward onto the stomach and hold; hand-authored by `blenderforge/make_clips.py`, 2.0 s) | Idle at 0.5x, slumped 12° | |
 
 **Transition rules:**
 - **Priority order:** Death > Revive > Knocked_Down > Stunned > Hit_Big > Block or Dodge > Hit > Attack or Cast > Ready > Fidget > Idle.
