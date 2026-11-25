@@ -1,0 +1,7 @@
+{
+  "about": "Meshy animation-library action ids per battle state (Core.HeroClips). Fill each id from Meshy's animation library list before use; null means not requested, and the shared CC0 library in Unity covers that state. The only id seen during prep was 0 = Idle, from a third-party listing (unverified).",
+  "actions": {
+    "Idle": null, "Run": null, "Attack_1": null, "Attack_2": null, "Cast": null, "Cast_Support": null,
+    "Hit": null, "Death": null, "Victory": null, "Dodge": null
+  }
+}

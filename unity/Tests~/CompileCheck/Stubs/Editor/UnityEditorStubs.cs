@@ -108,7 +108,7 @@ namespace UnityEditor
 
     [Flags] public enum ImportAssetOptions { Default = 0, ForceUpdate = 1, ForceSynchronousImport = 8 }
 
-    public sealed class AssetDatabase
+    public sealed partial class AssetDatabase
     {
         public static void CreateAsset(UnityEngine.Object asset, string path) => throw new NotImplementedException();
         public static T LoadAssetAtPath<T>(string assetPath) where T : UnityEngine.Object => throw new NotImplementedException();
@@ -121,7 +121,7 @@ namespace UnityEditor
         public static string GUIDToAssetPath(string guid) => throw new NotImplementedException();
     }
 
-    public sealed class EditorUtility
+    public sealed partial class EditorUtility
     {
         public static void SetDirty(UnityEngine.Object target) => throw new NotImplementedException();
     }

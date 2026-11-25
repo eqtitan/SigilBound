@@ -4,6 +4,13 @@ Owned by the **art-director** agent (`.claude/agents/art-director.md`). This is 
 truth for how Sigilbound looks: the style rules, how 3D models are assigned and recolored,
 and a brief plus an image prompt for each of the 24 heroes.
 
+> **Hero revamp (2026-11-23):** Unity is the single engine from now on (web/WebGL and Godot are
+> frozen). New hero art follows `docs/sigilbound/art/ART_BIBLE.md` (visual target, budgets, naming,
+> sockets), with one sheet per hero in `docs/sigilbound/art/heroes/`, the route choice in
+> `docs/sigilbound/art/ROUTES.md`, and the import pipeline in `unity/ART_PIPELINE.md`. This file
+> still describes the current code-built heroes, which stay as the fallback until each hero's new
+> prefab passes the import checks.
+
 ## 1. Style pillars
 
 1. **Original, always.** No characters, names, logos, layouts or art from other games. Don't

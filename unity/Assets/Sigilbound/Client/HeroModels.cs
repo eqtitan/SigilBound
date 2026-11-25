@@ -16,39 +16,65 @@ using Sigilbound.Core;
 
 namespace Sigilbound.Client
 {
-    // A built hero with its animation controller (three3d.mjs makeAnim).
+    // A built hero with its animation controller (three3d.mjs makeAnim). Plays either legacy
+    // Animation clips (the CC0 GLB heroes, and imported hero prefabs that bring their own clips) or,
+    // for imported hero prefabs with a Humanoid avatar, Animator states built by the art import tool
+    // (Editor/Art/HeroImportPipeline): one state per battle state in Core.HeroClips, where loops and
+    // the return to Idle live in the controller.
     public sealed class HeroModel
     {
         public GameObject Root;
         public Animation Anim;
         public float Height;
         public AnimStyle Style;
+        readonly Animator _animator;
         readonly Dictionary<string, string> _names = new Dictionary<string, string>(); // short name -> state name
+        readonly Dictionary<string, float> _lengths = new Dictionary<string, float>();
+        static readonly int SpeedParam = Animator.StringToHash("Speed");
         int _strikeN;
 
-        public HeroModel(GameObject root, Animation anim, float height, AnimStyle style)
+        public HeroModel(GameObject root, Animation anim, float height, AnimStyle style, IDictionary<string, string> aliases = null)
         {
             Root = root; Anim = anim; Height = height; Style = style;
             if (anim != null) foreach (AnimationState s in anim) { var shortName = s.name.Split('|').Last(); if (!_names.ContainsKey(shortName)) _names[shortName] = s.name; }
+            // Canonical battle-state names (Core.HeroClips) pointing at the file's own clip names.
+            if (aliases != null) foreach (var kv in aliases) { var clip = kv.Value.Split('|').Last(); if (_names.TryGetValue(clip, out var st)) _names[kv.Key] = st; }
+            Idle(0);
+        }
+
+        // Animator-driven hero: states[name] = the controller state that plays for battle state `name`.
+        public HeroModel(GameObject root, Animator animator, IDictionary<string, string> states, IDictionary<string, float> lengths, float height, AnimStyle style)
+        {
+            Root = root; _animator = animator; Height = height; Style = style;
+            foreach (var kv in states) _names[kv.Key] = kv.Value;
+            if (lengths != null) foreach (var kv in lengths) _lengths[kv.Key] = kv.Value;
             Idle(0);
         }
 
         public bool Has(string name) => name != null && _names.ContainsKey(name);
         string IdleName => Has(Style.Idle) ? Style.Idle : _names.Keys.FirstOrDefault(n => n.StartsWith("Idle", StringComparison.Ordinal));
-        public float Length(string name) => Has(name) ? Anim[_names[name]].length : 0;
+        public float Length(string name) => !Has(name) ? 0 : _animator != null ? (_lengths.TryGetValue(name, out var l) ? l : 0.6f) : Anim[_names[name]].length;
 
         // Crossfade to `name`: loops when loop; otherwise plays once and returns to idle (or holds
-        // the last frame with clamp, e.g. deaths).
-        public AnimationState Play(string name, bool loop = false, float fade = 0.18f, float speed = 1f, bool clamp = false)
+        // the last frame with clamp, e.g. deaths). With an Animator the controller decides looping.
+        public bool Play(string name, bool loop = false, float fade = 0.18f, float speed = 1f, bool clamp = false)
         {
-            if (Anim == null || !Has(name)) return null;
+            if (!Has(name)) return false;
+            if (_animator != null)
+            {
+                if (!_animator.isActiveAndEnabled) return false;
+                _animator.SetFloat(SpeedParam, speed);
+                _animator.CrossFadeInFixedTime(_names[name], fade, 0, 0f);
+                return true;
+            }
+            if (Anim == null) return false;
             var st = Anim[_names[name]];
             st.wrapMode = loop ? WrapMode.Loop : clamp ? WrapMode.ClampForever : WrapMode.Once;
             st.speed = speed;
             st.time = 0;
             Anim.CrossFade(st.name, fade);
             if (!loop && !clamp && IdleName != null && IdleName != name) Anim.CrossFadeQueued(_names[IdleName], 0.22f, QueueMode.CompleteOthers).wrapMode = WrapMode.Loop;
-            return st;
+            return true;
         }
         public void Idle(float fade = 0.25f) { var n = IdleName; if (n != null) Play(n, true, fade, Style.Titan ? 0.7f : 1f); }
         public float Strike()
@@ -57,10 +83,19 @@ namespace Sigilbound.Client
             var n = list.Length > 0 ? list[_strikeN++ % list.Length] : "Sword_Slash";
             Play(n, false, 0.1f); return Length(n);
         }
-        public float Cast(bool support)
+        // ult: the third skill or an all-enemies skill; plays the hero's ultimate cast if it has one.
+        public float Cast(bool support, bool ult = false)
         {
-            var n = support && Has(Style.Support) ? Style.Support : Has(Style.Cast) ? Style.Cast : "Gun_Shoot";
+            var n = support && Has(Style.Support) ? Style.Support : ult && Has(Style.Ult) ? Style.Ult : Has(Style.Cast) ? Style.Cast : "Gun_Shoot";
             Play(n, false, 0.12f); return Length(n);
+        }
+        // The hero's own clip for skill index `skill` (0-based), if it has one (Core.HeroClips Skill_<n>).
+        public bool HasSkill(int skill) => skill >= 0 && Has($"Skill_{skill + 1}");
+        public float Skill(int skill)
+        {
+            var n = $"Skill_{skill + 1}";
+            if (!Has(n)) return -1;
+            Play(n, false, 0.1f); return Length(n);
         }
         public void Hit(bool big)
         {
@@ -68,8 +103,8 @@ namespace Sigilbound.Client
             var list = big ? Style.BigHit : Style.Hit;
             Play(list.FirstOrDefault(Has) ?? "HitRecieve", false, 0.08f);
         }
-        public bool Roll() => Has("Roll") && Play("Roll", false, 0.1f, 1.5f) != null;
-        public bool Die() { var n = Style.Death.FirstOrDefault(Has); return n != null && Play(n, false, 0.12f, 1f, true) != null; }
+        public bool Roll() => Has("Roll") && Play("Roll", false, 0.1f, 1.5f);
+        public bool Die() { var n = Style.Death.FirstOrDefault(Has); return n != null && Play(n, false, 0.12f, 1f, true); }
         public void Win() => Play(Style.Win, true, 0.25f);
         public void Run(bool back = false) => Play(back && Has("Run_Back") ? "Run_Back" : "Run", true, 0.15f, back ? 1.5f : 1.4f);
     }

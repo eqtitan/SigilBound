@@ -1,7 +1,8 @@
 // A hero on the battlefield. Loads the hero's recoloured CC0 GLB model with glTFast
 // (HeroModels) and plays its clips; while it loads, or if it can't, shows a stylized placeholder
 // built from Unity's primitive shapes in the hero's colours, animated in code. A prefab at
-// Resources/Heroes/<heroId> (with an Animator: triggers Attack / Cast / Hit / Die) overrides both.
+// Resources/Heroes/<heroId> overrides both: one made by the art import tool (with a HeroRig) plays
+// the full battle choreography; a hand-made one with an Animator gets triggers Attack / Cast / Hit / Die.
 using System.Collections;
 using System.Linq;
 using UnityEngine;
@@ -75,15 +76,33 @@ namespace Sigilbound.Client
             view.Model = Pivot("Model", root, Vector3.zero);
             view.Model.localScale = Vector3.one * scale;
 
-            var prefab = Resources.Load<GameObject>($"Heroes/{unit.Template.Id}");
-            if (prefab != null && !unit.Titan)
+            var prefab = unit.Titan ? null : Resources.Load<GameObject>($"Heroes/{unit.Template.Id}");
+            GameObject inst = null;
+            if (prefab != null)
             {
-                var inst = Instantiate(prefab, view.Model);
+                inst = Instantiate(prefab, view.Model);
                 inst.transform.localPosition = Vector3.zero; inst.transform.localRotation = Quaternion.identity;
-                view._animator = inst.GetComponentInChildren<Animator>();
-                view.HeadTop = Pivot("HeadTop", view.Model, new Vector3(0, 2.0f, 0));
+                // Imported hero art (HeroRig, from the art pipeline): driven like the GLB heroes. If the
+                // prefab can't animate, drop it and use today's GLB hero / placeholder path instead.
+                var rig = inst.GetComponent<HeroRig>();
+                if (rig != null)
+                {
+                    var built = rig.Setup(unit, gear);
+                    if (built != null)
+                    {
+                        view._model = built;
+                        view.HeadTop = Pivot("HeadTop", view.Model, new Vector3(0, built.Height * 0.87f, 0));
+                    }
+                    else { Destroy(inst); inst = null; }
+                }
+                else
+                {
+                    // A hand-made prefab with an Animator using the triggers Attack / Cast / Hit / Die.
+                    view._animator = inst.GetComponentInChildren<Animator>();
+                    view.HeadTop = Pivot("HeadTop", view.Model, new Vector3(0, 2.0f, 0));
+                }
             }
-            else
+            if (inst == null)
             {
                 if (unit.Titan) view.BuildTitan();
                 else view.BuildPlaceholder(!unit.Ally && !unit.Rival);
@@ -265,9 +284,10 @@ namespace Sigilbound.Client
         // The web's attack choreography (three3d.mjs attack()): melee heroes run in, stop short and
         // strike; casters step forward and cast (or the support cast for heals and buffs); the Titan
         // jump-slams or swings in place. onSlam fires when the Titan lands.
-        public IEnumerator Attack(Vector3 targetPos, bool melee, bool support = false, bool ult = false, System.Action onSlam = null)
+        // skill: the skill index (0-based) when known; a hero with its own Skill_<n> clip plays that.
+        public IEnumerator Attack(Vector3 targetPos, bool melee, bool support = false, bool ult = false, System.Action onSlam = null, int skill = -1)
         {
-            if (_model != null) { yield return ModelAttack(targetPos, melee, support, ult, onSlam); yield break; }
+            if (_model != null) { yield return ModelAttack(targetPos, melee, support, ult, onSlam, skill); yield break; }
             _busy = true;
             if (_animator != null) _animator.SetTrigger(melee ? "Attack" : "Cast");
             Vector3 dir = (targetPos - _home); dir.y = 0;
@@ -288,7 +308,7 @@ namespace Sigilbound.Client
             _busy = false;
         }
 
-        IEnumerator ModelAttack(Vector3 targetPos, bool melee, bool support, bool ult, System.Action onSlam)
+        IEnumerator ModelAttack(Vector3 targetPos, bool melee, bool support, bool ult, System.Action onSlam, int skill = -1)
         {
             _busy = true;
             var m = _model;
@@ -313,12 +333,12 @@ namespace Sigilbound.Client
                 m.Run();
                 for (float k = 0; k < 1; k += Time.deltaTime / 0.26f) { transform.position = Vector3.Lerp(_home, to, EaseIO(k)); yield return null; }
                 transform.position = to;
-                m.Strike();
+                if (!m.HasSkill(skill)) m.Strike(); else m.Skill(skill);
                 yield return new WaitForSeconds(0.35f);
             }
             else
             {
-                m.Cast(support);
+                if (!m.HasSkill(skill)) m.Cast(support, ult); else m.Skill(skill);
                 Vector3 to = _home + dir.normalized * 0.2f;
                 for (float k = 0; k < 1; k += Time.deltaTime / 0.2f) { transform.position = Vector3.Lerp(_home, to, Ease(k)); yield return null; }
                 yield return new WaitForSeconds(0.15f);

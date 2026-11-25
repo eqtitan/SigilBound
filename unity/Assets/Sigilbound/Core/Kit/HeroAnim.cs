@@ -8,7 +8,7 @@ namespace Sigilbound.Core
 {
     public sealed class AnimStyle
     {
-        public string Idle; public string[] Strike; public string Cast, Support; public string[] Hit, BigHit, Death, Fidget; public string Win; public bool Titan;
+        public string Idle; public string[] Strike; public string Cast, Support, Ult; public string[] Hit, BigHit, Death, Fidget; public string Win; public bool Titan;
 
         static readonly HashSet<string> Brawlers = new HashSet<string> { "odo", "kettle", "gorrum", "thrain" };
         static readonly HashSet<string> SmallFocus = new HashSet<string> { "candle", "mirror", "bell", "orb", "lantern" };
@@ -26,6 +26,14 @@ namespace Sigilbound.Core
                 Fidget = new[] { "Idle", "Idle_Neutral", "Interact" }, Win = "Wave",
             };
         }
+        // Imported hero prefabs (docs/sigilbound/art): the canonical battle states of Core.HeroClips.
+        // The import tool maps every state to a clip or its fallback, so these names always exist
+        // when the clip (or its fallback) does. "Roll" is the dodge, kept for HeroModel.Roll().
+        public static AnimStyle Revamp() => new AnimStyle
+        {
+            Idle = "Idle", Strike = new[] { "Attack_1", "Attack_2", "Attack_3" }, Cast = "Cast", Ult = "Cast_Ult", Support = "Cast_Support",
+            Hit = new[] { "Hit" }, BigHit = new[] { "Hit_Big", "Hit" }, Death = new[] { "Death" }, Fidget = new[] { "Idle_Fidget" }, Win = "Victory",
+        };
         public static readonly AnimStyle TitanStyle = new AnimStyle
         {
             Idle = "Idle", Strike = new[] { "Punch", "Weapon", "Punch" }, Cast = "Punch", Support = "Yes", Hit = new[] { "HitReact" }, BigHit = new[] { "HitReact" },

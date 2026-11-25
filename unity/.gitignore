@@ -24,3 +24,6 @@
 /Tests~/CompileCheck/obj/
 /Tools~/models/node_modules/
 /build-number.txt
+/Tools~/artcheck/bin/
+/Tools~/artcheck/obj/
+/Tools~/heroforge/node_modules/

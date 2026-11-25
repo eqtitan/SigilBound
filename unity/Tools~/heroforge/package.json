@@ -1,0 +1,17 @@
+{
+  "name": "sigilbound-heroforge",
+  "private": true,
+  "description": "Batch hero art flow for agents: prompt -> generate (Meshy/Tripo/Rodin API) -> download GLB -> rig/animate -> LODs -> offline validation -> Unity import. See unity/ART_PIPELINE.md. No keys in the repo: keys come from the environment or the session's credential proxy.",
+  "type": "module",
+  "scripts": {
+    "sheets": "node make-sheets.mjs",
+    "plan": "node heroforge.mjs plan",
+    "selftest": "node heroforge.mjs all --provider local --heroes brannoc,hask,wren --out .heroforge-selftest"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "meshoptimizer": "1.3.0"
+  }
+}
