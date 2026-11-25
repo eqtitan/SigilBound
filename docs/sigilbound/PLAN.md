@@ -286,7 +286,7 @@ Unfinished work saved from the stopped agents:
     - Arenas: `GameData.ThemeOf` gives act 2 chapters their own theme picks (teal shore, glow marsh, amethyst badlands, burning ruins, moonlit shore).
     - Hard mode extends naturally.
     - Not done: act 2 story text; its own scenery models (it reuses act 1 themes).
-- [ ] **39–43. Phase 4 heroes (The Sigil Bearers), 4 per step.** Step 39 DONE (2026-11-25):
+- [x] **39–43. Phase 4 heroes (The Sigil Bearers), 4 per step.** ALL DONE (2026-11-25): the roster is complete at 100 heroes. Step 39:
   - Perrin, Loam, Merrit, Sienna. Preview: `docs/sigilbound/art/prototype/step39-sigil-bearers.png`.
   - Balance: Perrin 54% and Loam 56% vs Mira, Merrit 54% vs Brannoc/Kettle, Sienna 46% vs Ysolde/Lumen/Nyx. 84 heroes.
   - Order of the rest:
@@ -294,6 +294,17 @@ Unfinished work saved from the stopped agents:
     - step 41: Gideon, Liora, Bastian, Elowen;
     - step 42: Faelan, Wick, Azura, Pyrrhus;
     - step 43: Kaelith, Aurex, Stormbearer, Vex.
+  - STEPS 40–43 DONE (2026-11-25), in one session:
+    - Calder, Dorian, Ivo, Saoirse; Gideon, Liora, Bastian, Elowen; Faelan, Wick, Azura, Pyrrhus; Kaelith, Aurex, Stormbearer, Vex.
+    - Previews: `docs/sigilbound/art/prototype/step40-…step43-sigil-bearers.png` and `steps40-43-sigil-bearers.png`.
+    - Each kit started from the pattern that balanced for the same rarity and role; 9 of 16 were in range first time.
+    - Final balance:
+      - 40–48%: Calder 51, Dorian 57, Ivo 45, Saoirse 42;
+      - Gideon 56, Liora 56, Bastian 42, Elowen 42;
+      - Faelan 59, Wick 48, Azura 43, Pyrrhus 44;
+      - Kaelith 58, Aurex 44, Stormbearer 45, Vex 42.
+    - Ivo swings on Taunt (27% none, 70% two turns), so he Taunts for one turn.
+  - THE ROSTER PLAN IS COMPLETE: 100 heroes (24 classic + 76 Unity-only), every one balanced in the sims and with a baked free-path model.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
 

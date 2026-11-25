@@ -213,6 +213,39 @@ HEROES = {
                    hide=[], kit=["spiky_hair", "sword"], rim="#ffe27a", height=0.96),
     "sienna": dict(base="hooded", skin="tan", hair="#c84a2a", armor="#7a3a20", accent="#ffb050", cloth="#4a2010", glow="#ffb040",
                    hide=["hood"], kit=["braid", "bow", "quiver"], rim="#ff7a3a", height=0.98),
+    # Steps 40-43 (Sigil Bearers 2-5; completes the roster of 100):
+    "calder": dict(base="monarch", skin="tan", hair="#8a8a8a", armor="#3a4a6a", accent="#fff0a0", cloth="#2a3450", glow="#fff0a0",
+                   hide=["crown"], kit=["beard", "lantern"], rim="#ffe27a", height=1.06),
+    "dorian": dict(base="monarch", skin="brown", hair="#4a4a4a", armor="#2a4a6a", accent="#c8b070", cloth="#1a2a40", glow=None, cape="#1a2a40",
+                   hide=["crown", "hair"], kit=["beard", "anchor", "cape"], rim="#3a8ee8", height=1.08),
+    "ivo": dict(base="monarch", skin="fair", hair="#d8c080", armor="#d8d0b8", accent="#ffd860", cloth="#8a6a3a", glow=None, cape="#c8a050",
+                   hide=["crown", "hair"], kit=["helm", "hammer", "cape"], rim="#ffe27a", height=1.04),
+    "saoirse": dict(base="hooded", skin="pale", hair="#2a3a3a", armor="#2a3434", accent="#9ad0c0", cloth="#1a2424", glow="#a8e8d8", cape="#141e1e",
+                   hide=["hood"], kit=["veil", "shield"], rim="#a050ff", height=1.0),
+    "gideon": dict(base="monarch", skin="tan", hair="#5a2a1a", armor="#7a2a1a", accent="#ffa040", cloth="#4a1a10", glow="#ffa040", cape="#5a1a10",
+                   hide=["crown", "hair"], kit=["helm", "shield", "cape", "runes"], rim="#ff7a3a", height=1.08),
+    "liora": dict(base="hooded", skin="fair", hair="#5ad0d0", armor="#1a6a7a", accent="#a8ffff", cloth="#0e4048", glow="#a8ffff",
+                   hide=["hood"], kit=["long_hair", "trident", "robe"], rim="#3a8ee8", height=1.0),
+    "bastian": dict(base="monarch", skin="ash", hair="#6a6a6a", armor="#3a3440", accent="#b080ff", cloth="#24202a", glow="#b080ff", cape="#1a161e",
+                   hide=["crown"], kit=["club", "cape"], rim="#a050ff", height=1.1),
+    "elowen": dict(base="adventurer", skin="fair", hair="#f0e0a0", armor="#e8e0c0", accent="#fff2b0", cloth="#6a8a5a", glow="#fff2b0",
+                   hide=[], kit=["ponytail", "bow", "quiver"], rim="#ffe27a", height=1.0),
+    "faelan": dict(base="monarch", skin="tan", hair="#a05a2a", armor="#4a6a5a", accent="#c8f0d0", cloth="#2a4a3a", glow=None, cape="#2a4a3a",
+                   hide=["crown"], kit=["long_hair", "beard", "spear", "cape"], rim="#3fb57a", height=1.1),
+    "wick": dict(base="adventurer", skin="fair", hair="#e8a050", armor="#a0502a", accent="#ffd060", cloth="#6a3018", glow="#ffd060", cape="#c8602a",
+                   hide=[], kit=["halo", "candle", "cape"], rim="#ff7a3a", height=0.96),
+    "azura": dict(base="adventurer", skin="brown", hair="#1a4a8a", armor="#1a3a7a", accent="#7ad0ff", cloth="#0e2050", glow="#9ae0ff", cape="#0e2050",
+                   hide=[], kit=["long_hair", "trident", "cape"], rim="#3a8ee8", height=1.06),
+    "pyrrhus": dict(base="monarch", skin="deep", hair="#2a1410", armor="#5a1a0e", accent="#ff8a20", cloth="#2a0e08", glow="#ffa030", cape="#3a0e08",
+                   hide=["crown", "hair"], kit=["helm", "horns", "shield", "hammer", "cape"], rim="#ff7a3a", height=1.12),
+    "kaelith": dict(base="hooded", skin="ash", hair="#1a1424", armor="#1a1028", accent="#c070ff", cloth="#0e0818", glow="#d090ff", cape="#0e0818",
+                   hide=["hood"], kit=["veil", "crown", "orb", "robe", "cape"], rim="#a050ff", height=1.08),
+    "aurex": dict(base="adventurer", skin="tan", hair="#f8f0d0", armor="#f0e8d0", accent="#ffe070", cloth="#c89a40", glow="#fff4b0", cape="#f0e0b0",
+                   hide=[], kit=["halo", "sword", "cape"], rim="#ffe27a", height=1.08),
+    "stormbearer": dict(base="monarch", skin="fair", hair="#c8d8e0", armor="#6a8aa0", accent="#c8f0ff", cloth="#3a5a70", glow="#c8f0ff", cape="#2a4a60",
+                   hide=["crown", "hair"], kit=["helm", "shield", "spear", "cape"], rim="#3fb57a", height=1.1),
+    "vex": dict(base="monarch", skin="ash", hair="#2a2a34", armor="#24202c", accent="#ff4a6a", cloth="#14101a", glow="#ff6a8a", cape="#14101a",
+                   hide=[], kit=["long_hair", "horns", "orb", "cape"], rim="#a050ff", height=1.12),
 }
 
 def palette(h):
@@ -249,7 +282,7 @@ ROLES = {
 # Clean-shaven heroes (Shave = true in Core/Looks.cs, or no beard on a monarch head that keeps its hair):
 # the lower-front hair faces (the beard) are removed.
 SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin", "grimsby", "quill", "drift", "cinder", "zephyrine",
-         "maelis", "marrow", "solenne", "merrit"}  # monarch heads: the beard is part of the hair there too
+         "maelis", "marrow", "solenne", "merrit", "elowen", "wick", "azura", "aurex", "vex"}  # monarch heads: the beard is part of the hair there too
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}
