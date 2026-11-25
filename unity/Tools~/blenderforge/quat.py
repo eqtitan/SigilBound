@@ -51,6 +51,15 @@ HEROES = {
                    hide=["crown"], kit=["beard", "hammer", "cape"], rim="#ff7a3a", height=0.88),
     "kaito":  dict(base="adventurer", skin="fair", hair="#1a1a1a", armor="#2f5a4a", accent="#7affc0", cloth="#1e3a30", glow="#a8ffdf",
                    hide=[], kit=["spiky_hair", "bandana", "katana"], rim="#3fb57a", height=1.02),
+    # Step 16.
+    "lumen":  dict(base="adventurer", skin="fair", hair="#f2d27a", armor="#c8d0dc", accent="#ffcc33", cloth="#4f5a6c", glow="#fff2b0", cape="#4f5a6c",
+                   hide=[], kit=["sword", "cape"], rim="#ffe27a", height=1.06),
+    "nyx":    dict(base="hooded", skin="pale", hair="#1e1a2a", armor="#26203a", accent="#b48cff", cloth="#1a1628", glow="#c9a3ff",
+                   hide=[], kit=["mask", "daggers"], rim="#a050ff", height=0.97),
+    "tamsin": dict(base="hooded", skin="tan", hair="#8a6a2a", armor="#5f7f3a", accent="#e8d07a", cloth="#4a6a2a", glow=None,
+                   hide=["hood"], kit=["braid", "bow", "quiver"], rim="#3fb57a", height=0.98),
+    "sable":  dict(base="hooded", skin="pale", hair="#3a2050", armor="#232a48", accent="#c8d8ff", cloth="#1c2240", glow="#c8d8ff", cape="#161a30",
+                   hide=["hood"], kit=["veil", "mirror", "cape", "robe"], rim="#a050ff", height=1.0),
 }
 
 def palette(h):
@@ -184,6 +193,21 @@ def kit(h, arm, P, head_mesh):
             for i, sx in enumerate((-1, 1)):
                 pts = [H(sx * 0.15, 1.0, 0.3), H(sx * 0.45, 1.5, 0.0), H(sx * 0.6, 1.8, -0.5)]
                 out.append(rigid(F.strand(f"BandanaTail{i}", pts, half.x * 0.1, half.x * 0.05), arm, "Head", P["Accent"]))
+        elif k == "mask":
+            # A cloth mask over the mouth and nose (Nyx); the glowing eyes stay visible.
+            out.append(rigid(dome("Mask", H(0, -0.6, -0.55), (half.x * 1.02, half.y * 0.5, half.z * 0.33), cut=-1.0), arm, "Head", P["Cloth"]))
+        elif k == "braid":
+            # A thick braid down the back: a chain of beads, tied with an accent band.
+            for i in range(7):
+                out.append(rigid(F.ellipsoid(f"Braid{i}", H(0, 1.05 + i * 0.05, 0.1 - i * 0.32), (half.x * 0.22, half.x * 0.2, half.z * 0.2), seg=10, rings=6), arm, "Head", P["Hair"]))
+            out.append(rigid(F.torus("BraidTie", H(0, 1.4, -2.1), half.x * 0.18, half.x * 0.05), arm, "Head", P["Accent"]))
+        elif k == "veil":
+            # A long veil from a band on the brow, falling down the back (Sable).
+            out.append(rigid(F.torus("VeilBand", H(0, 0.05, 0.5), half.x * 1.06, half.x * 0.06, sy=half.y / half.x * 0.9), arm, "Head", P["Accent"]))
+            for i in range(9):
+                t = -1 + i / 4.0
+                pts = [H(t * 0.95, 0.2, 0.85), H(t * 1.2, 1.2, 0.2), H(t * 1.35, 1.4, -2.2)]
+                out.append(rigid(F.strand(f"Veil{i}", pts, half.x * 0.22, half.x * 0.16), arm, "Head", P["Cape"]))
         elif k == "halo":
             out.append(rigid(F.torus("Halo", H(0, 0.2, 1.45), half.x * 0.95, half.x * 0.07), arm, "Head", P.get("Glow", P["Gold"])))
         elif k == "helm":
@@ -239,6 +263,35 @@ def kit(h, arm, P, head_mesh):
             out.append(rigid(F.strand("KatanaBlade", pts, 0.022, 0.004), arm, "Wrist.R", P["Steel"]))
             if "Glow" in P:
                 out.append(rigid(F.strand("KatanaEdge", [W(0.01, 0.08, -0.15), W(0.035, 0.08, -0.55), W(0.08, 0.08, -0.92)], 0.008, 0.002), arm, "Wrist.R", P["Glow"]))
+        elif k == "daggers":
+            # A curved dagger in each hand (Nyx), with a glowing edge when the hero has a glow colour.
+            for side in ("R", "L"):
+                W = lambda x, y, z, b="Wrist." + side: bp(arm, b, x, y, z)
+                out.append(rigid(F.strand(f"DaggerGrip{side}", [W(0, 0.08, 0.1), W(0, 0.08, -0.04)], 0.018, 0.018), arm, "Wrist." + side, P["Leather"]))
+                out.append(rigid(F.strand(f"DaggerGuard{side}", [W(-0.06, 0.08, -0.05), W(0.06, 0.08, -0.05)], 0.014, 0.014), arm, "Wrist." + side, P["Accent"]))
+                out.append(rigid(F.strand(f"DaggerBlade{side}", [W(0, 0.08, -0.06), W(0.03, 0.08, -0.25), W(0.08, 0.08, -0.38)], 0.026, 0.003), arm, "Wrist." + side, P.get("Glow", P["Steel"])))
+        elif k == "bow":
+            # A longbow in the left hand, limbs curving away from the archer, with a straight string.
+            W = lambda x, y, z: bp(arm, "Wrist.L", x, y, z)
+            limb = [W(0.05, 0.08, 0.7), W(-0.12, 0.08, 0.35), W(-0.15, 0.08, 0.0), W(-0.12, 0.08, -0.35), W(0.05, 0.08, -0.7)]
+            out.append(rigid(F.strand("Bow", limb, 0.022, 0.022), arm, "Wrist.L", P["Wood"]))
+            out.append(rigid(F.strand("BowString", [W(0.05, 0.08, 0.7), W(0.05, 0.08, -0.7)], 0.004, 0.004), arm, "Wrist.L", P["White"]))
+            out.append(rigid(F.strand("BowGrip", [W(-0.15, 0.08, 0.08), W(-0.15, 0.08, -0.08)], 0.03, 0.03), arm, "Wrist.L", P["Accent"]))
+        elif k == "quiver":
+            # A quiver slung across the back, arrows showing over the right shoulder.
+            chest = bone_world(arm, "Chest")
+            a, b = chest + Vector((-0.15, 0.24, -0.25)), chest + Vector((0.15, 0.24, 0.25))
+            out.append(rigid(F.strand("Quiver", [a, b], 0.065, 0.065), arm, "Chest", P["Leather"]))
+            for i in range(3):
+                tip = b + Vector((0.04 * (i - 1) + 0.06, 0.01 * i, 0.16))
+                out.append(rigid(F.strand(f"Arrow{i}", [b, tip], 0.006, 0.006), arm, "Chest", P["Wood"]))
+                out.append(rigid(F.ellipsoid(f"Fletch{i}", tip, (0.02, 0.008, 0.035), seg=8, rings=4), arm, "Chest", P["White"]))
+        elif k == "mirror":
+            # A round hand mirror in the left hand (Sable): a silver face in a gold rim.
+            c = bp(arm, "Wrist.L", 0, 0.17, 0)
+            out.append(rigid(F.strand("MirrorHandle", [bp(arm, "Wrist.L", 0, 0.04, 0), bp(arm, "Wrist.L", 0, 0.1, 0)], 0.016, 0.016), arm, "Wrist.L", P["Gold"]))
+            out.append(rigid(F.ellipsoid("MirrorFace", c, (0.1, 0.1, 0.018)), arm, "Wrist.L", P.get("Glow", P["Steel"])))
+            out.append(rigid(F.torus("MirrorRim", c, 0.1, 0.014), arm, "Wrist.L", P["Gold"]))
         elif k == "cape":
             # A cape hanging from the shoulders down the back, flaring toward the hem (rigid on the chest).
             chest = bone_world(arm, "Chest"); top = chest.z + 0.2; back = chest.y + 0.2
