@@ -250,6 +250,19 @@ namespace Sigilbound.Client
             var parts = new Dictionary<string, string>(body.Parts);
             if (kit.TryGetValue("robe", out var robe) && (robe as string) == "long" && !parts.ContainsKey("legs")) parts["legs"] = "none"; // a long robe replaces the legs
 
+            // A free-path hero baked in Blender (Tools~/blenderforge/quat.py) replaces the runtime build
+            // for that hero (not its Hollow enemy copy, nor the Titan); anything missing falls back below.
+            if (!titan && !hollow)
+            {
+                yield return EnsureBakedIndex();
+                if (_baked.Contains(id))
+                {
+                    HeroModel built = null;
+                    yield return BuildBaked(unit, look, body, parent, m => built = m);
+                    if (built != null) { done(built); yield break; }
+                }
+            }
+
             yield return EnsureLibrary(baseModel);
             foreach (var src in parts.Values.Where(v => v != "none" && v != baseModel).Distinct()) yield return EnsureLibrary(src);
             yield return EnsureUal();
@@ -305,6 +318,86 @@ namespace Sigilbound.Client
                 foreach (var c in lib.Ual) anim.AddClip(c, c.name);
             }
             done(new HeroModel(holder.gameObject, anim, (titan ? 4.7f : 2.3f) * (float)body.H, titan ? AnimStyle.TitanStyle : AnimStyle.For(id)));
+        }
+
+        // ---------- baked free-path heroes ----------
+        static HashSet<string> _baked;
+        static readonly Dictionary<string, (GLTFast.GltfImport gltf, Material mat)> _bakedLibs = new Dictionary<string, (GLTFast.GltfImport, Material)>();
+
+        static IEnumerator EnsureBakedIndex()
+        {
+            if (_baked != null) yield break;
+            _baked = new HashSet<string>();
+            byte[] bytes = null;
+            yield return ReadBytes(Path.Combine("heroes", "index.txt"), b => bytes = b);
+            if (bytes == null) yield break;
+            foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
+                if (line.Trim().Length > 0) _baked.Add(line.Trim());
+        }
+
+        static Texture2D LoadPng(byte[] bytes, bool linear)
+        {
+            if (bytes == null) return null;
+            var t = new Texture2D(2, 2, TextureFormat.RGBA32, true, linear);
+            return t.LoadImage(bytes) ? t : null;
+        }
+
+        // The baked GLB (same skeleton as its base model, no clips, no material) with the painted
+        // albedo + glow PNGs, animated by the base model's own clips (identical node names and rest
+        // transforms) plus the shared UAL clips.
+        static IEnumerator BuildBaked(Unit unit, HeroLook look, BodySpec body, Transform parent, Action<HeroModel> done)
+        {
+            string id = unit.Template.Id, baseModel = look.Base;
+            yield return EnsureLibrary(baseModel);
+            yield return EnsureUal();
+            var lib = _libs[baseModel];
+            if (lib.Failed || parent == null) { done(null); yield break; }
+            if (!_bakedLibs.TryGetValue(id, out var bk))
+            {
+                byte[] glb = null, alb = null, glow = null;
+                yield return ReadBytes(Path.Combine("heroes", $"SB_Hero_{id}_LOD0.glb"), b => glb = b);
+                yield return ReadBytes(Path.Combine("heroes", $"SB_Hero_{id}_albedo.png"), b => alb = b);
+                yield return ReadBytes(Path.Combine("heroes", $"SB_Hero_{id}_glow.png"), b => glow = b);
+                if (glb == null || alb == null) { done(null); yield break; }
+                var gltf = new GLTFast.GltfImport(null, null, new SigilMaterialGenerator());
+                var load = gltf.LoadGltfBinary(glb, null, new GLTFast.ImportSettings { AnimationMethod = GLTFast.AnimationMethod.Legacy, GenerateMipMaps = false });
+                while (!load.IsCompleted) yield return null;
+                if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the baked {id}"); done(null); yield break; }
+                var mat = new Material(Materials.Lit(Color.white, 0, 0.25f)) { name = "Baked_" + id };
+                var albTex = LoadPng(alb, false);
+                mat.mainTexture = albTex;
+                if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", albTex);
+                var glowTex = LoadPng(glow, false);
+                if (glowTex != null && mat.HasProperty("_EmissionMap"))
+                {
+                    mat.EnableKeyword("_EMISSION");
+                    mat.SetTexture("_EmissionMap", glowTex);
+                    mat.SetColor("_EmissionColor", Color.white * 1.5f);
+                }
+                bk = (gltf, mat); _bakedLibs[id] = bk;
+            }
+            var holder = new GameObject("Model").transform;
+            holder.SetParent(parent, false);
+            var inst = bk.gltf.InstantiateMainSceneAsync(holder);
+            while (!inst.IsCompleted) yield return null;
+            if (inst.IsFaulted || !inst.Result || holder == null || holder.childCount == 0) { if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
+            foreach (var r in holder.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = bk.mat;
+                r.sharedMaterials = mats;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                if (r is SkinnedMeshRenderer smr) smr.updateWhenOffscreen = true;
+            }
+            // Clips: the base model's own, on the same root the base instance gets its Animation on.
+            var root = holder.GetChild(0).gameObject;
+            var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
+            foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null) anim.AddClip(c, c.name);
+            if (lib.Ual == null) lib.Ual = BuildUal(baseModel, anim.transform);
+            foreach (var c in lib.Ual) anim.AddClip(c, c.name);
+            float k = 1.85f / Mathf.Max(0.1f, lib.HeadY) * (float)body.H;
+            holder.localScale = Vector3.one * k;
+            done(new HeroModel(holder.gameObject, anim, 2.3f * (float)body.H, AnimStyle.For(id)));
         }
 
         // Applies the hero's colour roles (three3d.mjs buildRigged recolour), trims hair for shaved

@@ -29,4 +29,19 @@ for (const f of fs.readdirSync(src).filter((n) => n.endsWith(".glb"))) {
   console.log(`${f}: ${(fs.statSync(path.join(src, f)).size / 1024).toFixed(0)} KB -> ${(bytes.length / 1024).toFixed(0)} KB, ${meshes} meshes, ${anims} clips`);
 }
 for (const f of ["anims_ual.json", "CREDITS.md"]) fs.copyFileSync(path.join(src, f), path.join(out, f));
+// Free-path heroes baked by unity/Tools~/blenderforge/quat.py (SB_Hero_<id>_LOD0.glb + _albedo/_glow
+// PNGs): copied as they are, with an index the game reads (HeroModels) to know which exist.
+const heroesSrc = path.resolve(here, "heroes");
+if (fs.existsSync(heroesSrc)) {
+  const heroesOut = path.join(out, "heroes");
+  fs.mkdirSync(heroesOut, { recursive: true });
+  const ids = [];
+  for (const f of fs.readdirSync(heroesSrc)) {
+    fs.copyFileSync(path.join(heroesSrc, f), path.join(heroesOut, f));
+    const m = /^SB_Hero_(.+)_LOD0\.glb$/.exec(f);
+    if (m) ids.push(m[1]);
+  }
+  fs.writeFileSync(path.join(heroesOut, "index.txt"), ids.join("\n") + "\n");
+  console.log(`Baked heroes: ${ids.join(", ") || "none"}`);
+}
 console.log(`Models ready in ${path.relative(process.cwd(), out)}`);

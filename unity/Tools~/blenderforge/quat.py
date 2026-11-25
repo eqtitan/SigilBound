@@ -100,7 +100,7 @@ def rigid(obj, arm, bone, mat):
 def kit(h, arm, P):
     out = []
     head = bone_world(arm, "Head"); head_top = bone_world(arm, "Head", tail=True)
-    hh = (head_top - head).length
+    hh = 0.12  # half a head, in metres (the Quaternius Head bone itself is nearly zero length)
     hand_r = bone_world(arm, "Wrist.R"); hand_l = bone_world(arm, "Wrist.L")
     for k in h["kit"]:
         if k == "long_hair":
@@ -131,9 +131,9 @@ def kit(h, arm, P):
         elif k == "hammer":
             # Haft through the fist (across the bone, along z), head at the far end.
             W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
-            out.append(rigid(F.strand("Haft", [W(0, 0.08, -0.3), W(0, 0.08, 0.8)], 0.028), arm, "Wrist.R", P["Wood"]))
-            out.append(rigid(F.ellipsoid("HammerHead", W(0, 0.08, 0.86), (0.18, 0.12, 0.12), seg=8, rings=4), arm, "Wrist.R", P["Steel"]))
-            if "Glow" in P: out.append(rigid(F.ellipsoid("HammerRune", W(0.0, 0.08, 0.86), (0.19, 0.06, 0.05), seg=8, rings=4), arm, "Wrist.R", P["Glow"]))
+            out.append(rigid(F.strand("Haft", [W(0, 0.08, 0.3), W(0, 0.08, -0.8)], 0.028), arm, "Wrist.R", P["Wood"]))
+            out.append(rigid(F.ellipsoid("HammerHead", W(0, 0.08, -0.86), (0.18, 0.12, 0.12), seg=8, rings=4), arm, "Wrist.R", P["Steel"]))
+            if "Glow" in P: out.append(rigid(F.ellipsoid("HammerRune", W(0.0, 0.08, -0.86), (0.19, 0.06, 0.05), seg=8, rings=4), arm, "Wrist.R", P["Glow"]))
         elif k == "runes" and "Glow" in P:
             chest = bone_world(arm, "Chest")
             for i, dx in enumerate((-0.06, 0.0, 0.06)):
@@ -146,8 +146,8 @@ def kit(h, arm, P):
             out.append(rigid(F.ellipsoid("ShieldBoss", c + Vector((0, -0.05, 0)), (0.06, 0.04, 0.06)), arm, "Wrist.L", P["Accent"]))
         elif k == "staff":
             W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
-            out.append(rigid(F.strand("Staff", [W(0, 0.08, -0.95), W(0, 0.08, 0.9)], 0.024), arm, "Wrist.R", P["Wood"]))
-            out.append(rigid(F.ellipsoid("Orb", W(0, 0.08, 0.98), (0.08, 0.08, 0.08)), arm, "Wrist.R", P.get("Glow", P["Accent"])))
+            out.append(rigid(F.strand("Staff", [W(0, 0.08, 0.95), W(0, 0.08, -0.9)], 0.024), arm, "Wrist.R", P["Wood"]))
+            out.append(rigid(F.ellipsoid("Orb", W(0, 0.08, -0.98), (0.08, 0.08, 0.08)), arm, "Wrist.R", P.get("Glow", P["Accent"])))
     return out
 
 def main():
