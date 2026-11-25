@@ -111,7 +111,7 @@ Unfinished work saved from the stopped agents:
     - Same or worse: stiff anatomy, crude faces; at about 70 px in battle the gain is small.
     - The prototypes haven't been rendered inside Unity: that needs the hero-art import job, which hasn't run yet.
   - The owner decides next: keep improving the free path (CC0 base bodies + scripted kit + baked painted textures), or allow a paid generator for higher quality. Steps 13–18 depend on that answer.
-- [ ] **13–18. Heroes in batches of 4 per session** (step 13 = the 4 starters: DONE 2026-11-25, see below) (24 heroes), with the shared idle/wait animation and unique skill animations where possible.
+- [ ] **13–18. Heroes in batches of 4 per session** (steps 13–15 DONE 2026-11-25, see below) (24 heroes), with the shared idle/wait animation and unique skill animations where possible.
   - OWNER DECISION (2026-11-25): improve the FREE path. No paid generator.
   - Per hero:
     - start from the CC0 Quaternius base bodies (better anatomy than the scripted skin-modifier bodies);
@@ -143,6 +143,9 @@ Unfinished work saved from the stopped agents:
     - BLOCKER FOUND: the real models (runtime-built and baked) have never shown in any Unity build. The build 27 tour and the owner's phone screenshots show only the code-built stand-ins (CharacterView.BuildPlaceholder), with no warning in the log. This is the step 4 'stand-in heroes' issue.
       - The Linux preview contains StreamingAssets/Models (bases, heroes/, index.txt) and glTFast, and SB_GLTFAST is compiled in.
       - Build 29+ logs every load stage as `SBMODEL ...` in player.log. Run `tools/unity-shots.sh` and `grep SBMODEL <out>/player.log` to see where it stops, then fix that before step 15.
+  - Model-load fix pushed (2026-11-25, build 30): shared loads now run on a persistent loader. A hero figure destroyed mid-load used to leave its base model 'loading' forever, so every hero kept its stand-in. Confirm with the build 30 tour (`grep SBMODEL player.log`).
+  - STEP 15 DONE (2026-11-25): Aurelia, Velka, Thrain, Kaito; new kit pieces: spiky hair, bandana, katana. Preview: `docs/sigilbound/art/prototype/step15-free-path.png`. 12 heroes baked.
+    - Left for steps 16–18: brannoc, mira, pell, odo, wren, kettle, lumen, nyx, tamsin, sable, maelis, seraphine.
   - Steps 14–18: add the next heroes to `HEROES` in quat.py (palette from Core/Looks.cs, kit list), run it, check the previews, commit the files. Adventurer-based heroes need an `adventurer` entry in ROLES (copy from Core/Looks.cs).
 - [ ] **19. Roster plan to 100 heroes.** Phases and concepts only. New heroes get designed (stats and skills) in their own later steps.
 
