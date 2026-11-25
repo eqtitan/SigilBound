@@ -36,7 +36,10 @@ Unfinished work saved from the stopped agents:
   - DONE: root cause was the serif font from `Font.CreateDynamicFontFromOSFont`. Unity 6's TextCore IMGUI doesn't generate text for OS fonts, so every serif label or button redrew the previous built-in-font string. Fixed by bundling Cinzel (OFL) in `Resources/Fonts` (regular and bold) and using the built-in font for strings with glyphs Cinzel lacks (`Ui.SerifCanDraw`).
   - Not yet verified visually; there are no screenshots until step 3. The owner should check the next build on a device. If any label is still wrong, the bug isn't only the font: look at TextCore caching per GUIStyle next.
   - Overflowing button text ("Come back tomorrow") and the empty gold button on Home are probably this same bug. Re-check them after step 3.
-- [ ] **2. Icons.** Replace the emoji icons (currency chips, bottom nav, tags) with code-drawn or texture icons (start from `unity-landscape`'s Icons.cs).
+- [x] **2. Icons.** (2026-11-25, step/2) Replace the emoji icons (currency chips, bottom nav, tags) with code-drawn or texture icons (start from `unity-landscape`'s Icons.cs).
+  - DONE: added Icons.cs (42 code-drawn icons, including element icons). Used for the currency chips, the settings menu button, the bottom-nav tab icons and the update banner's close button.
+  - The code had no real emoji: the ● ◆ ≡ ★ ‹ symbols render in the built-in font, and the "missing icons" on devices were step 1's font bug.
+  - Still text symbols, for later steps to swap to `Icons.Draw` while reworking those screens: ★ (stars in Ui.Stars and hero cards), ‹ › back/next links, → in tips and battle text, ▶ in battle.
 - [ ] **3. See the game ourselves.**
   - A `-sbShots=DIR` command-line mode that walks the main screens and saves PNGs.
   - A CI job that builds a StandaloneLinux64 player and publishes it to a `unity-preview` release.
