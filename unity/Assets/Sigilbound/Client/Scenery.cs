@@ -30,7 +30,7 @@ namespace Sigilbound.Client
             new Theme { Name = "burning ruins", Grass = "#665834", Grass2 = "#7a6238", Worn = "#8a7a6a", Hill = "#5a4a30", Rock = "#7a6e64", Bark = "#4a3a2e", Leaves = new[] { "#5a5a2a", "#7a5a26" }, Tuft = "#7a6a3a", Cloth = "#6a1a1a", Sil = "#381410", Motes = "embers", MoteColor = "#ff8a3a", Crystals = true },
         };
         static readonly Theme TitanTheme = new Theme { Name = "titan caldera", Grass = "#3a3436", Grass2 = "#463e3e", Worn = "#6a625e", Hill = "#332e30", Rock = "#2e2a2e", Bark = "#2a2222", Tuft = "#3a3030", Cloth = "#5a1a10", Sil = "#1e0c0a", Motes = "embers", MoteColor = "#ff7a2a" };
-        public static string ThemeName(int chapter, bool titan) => titan ? TitanTheme.Name : Themes[((chapter % 10) + 10) % 10].Name;
+        public static string ThemeName(int chapter, bool titan) => titan ? TitanTheme.Name : Themes[GameData.ThemeOf(chapter)].Name;
 
         const float AG = 0.42f, AP = 0.55f; // the web's albedo scaling for its bright rig
         static Color D(string hex, float k) { var c = Palette.Hex(hex) * k; c.a = 1; return c; }
@@ -38,7 +38,7 @@ namespace Sigilbound.Client
         // Builds the arena under `root`. scale: scatter density (quality tier).
         public static void Build(Transform root, int chapter, bool titan, float density, Color fog)
         {
-            var th = titan ? TitanTheme : Themes[((chapter % 10) + 10) % 10];
+            var th = titan ? TitanTheme : Themes[GameData.ThemeOf(chapter)];
             var rng = new System.Random(titan ? 1337 : 101 + chapter * 7);
             float R(float a, float b) => a + (float)rng.NextDouble() * (b - a);
 

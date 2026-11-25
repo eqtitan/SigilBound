@@ -245,13 +245,25 @@ namespace Sigilbound.Core
         {
             "Thornwick Road", "The Drowned Mill", "Ashgrave Pass", "Saltmarsh Reaches", "Bellspire Ruins",
             "The Glass Wastes", "Stormcrown Heights", "Hollow Deep", "Sunken Cathedral", "The Last Pyre",
+            // Act 2 (PLAN step 38; Unity only): the port city and the storm coast, where the Sigil Bearers rise.
+            "Saltreach Harbor", "The Black Fens", "Wraithmoor Barrows", "The Ember Groves", "The Storm Coast",
         };
         public const int StagesPerChapter = 6;
         public static int TotalStages => Chapters.Length * StagesPerChapter;
+        // Act 1 is the web game's campaign (10 chapters, 60 stages): its difficulty curve, enemy pools and
+        // dungeon floors stay pinned to these 60 stages. Act 2 (chapters 11-15) is Unity only.
+        public const int ClassicChapters = 10;
+        public static int ClassicStages => ClassicChapters * StagesPerChapter;
+        public static int ActOf(int chapter) => chapter < ClassicChapters ? 1 : 2;
+        // Scenery/colour-grade theme per chapter: act 2 picks act 1 themes that suit the coast and fens.
+        static readonly int[] Act2Themes = { 1, 8, 7, 9, 6 }; // teal shore, glow marsh, amethyst badlands, burning ruins, moonlit shore
+        public static int ThemeOf(int chapter) => chapter < ClassicChapters ? ((chapter % 10) + 10) % 10 : Act2Themes[(chapter - ClassicChapters) % Act2Themes.Length];
         // Enemy stat multiplier curve, tuned with the progression sim (see tools/sigilbound-balance-sim.cjs).
         public static class Curve
         {
             public const double Start = 1.0, End = 1.75, Shape = 1.3, SpdPerStage = 0.3, BossStat = 1.1, BossHp = 2.2;
+            // Act 2: level-50, 5-star enemies whose multiplier keeps rising from End, by this much per stage.
+            public const double Act2Ramp = 0.02;
             public static readonly double[] Chapter = { 1, 1.14, 0.97, 1, 1.08, 0.94, 1, 0.98, 0.95, 1.04 };
         }
 

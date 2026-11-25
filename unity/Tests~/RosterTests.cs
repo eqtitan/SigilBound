@@ -70,8 +70,10 @@ static class RosterTests
 
         // Enemy pools stay the original 24, so stages don't change as heroes are added.
         var classicIds = new HashSet<string>(Classic.Select(h => h.Id));
-        bool poolsOk = Enumerable.Range(0, TotalStages).All(i => Game.StageWaves(i).All(w => w.All(e => classicIds.Contains(e.Template.Id))));
-        check(poolsOk, "campaign enemies come only from the original 24");
+        bool poolsOk = Enumerable.Range(0, ClassicStages).All(i => Game.StageWaves(i).All(w => w.All(e => classicIds.Contains(e.Template.Id))));
+        check(poolsOk, "act 1 enemies come only from the original 24 (stages unchanged)");
+        int act2Roster = Enumerable.Range(ClassicStages, TotalStages - ClassicStages).Sum(i => Game.StageWaves(i).Sum(w => w.Count(e => !classicIds.Contains(e.Template.Id))));
+        check(Chapters.Length == 15 && act2Roster > 0, $"act 2: chapters 11-15, with {act2Roster} roster heroes among its enemies");
 
         // Balance: each new hero against the classic hero(es) of its rarity and role.
         foreach (var h in Heroes.Skip(24))

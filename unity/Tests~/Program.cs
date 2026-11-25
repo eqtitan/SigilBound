@@ -63,7 +63,7 @@ static class Program
         // Win-rate sweep like the web sim's fixed-team check (geared team at stage level).
         Console.WriteLine("\nStage win rates (fixed teams at stage level, 30 runs):");
         string[][] lineups = { new[] { "ysolde", "corvan", "hask", "kaito" }, new[] { "maelis", "oriel", "aurelia", "vaelith" } };
-        for (int idx = 0; idx < TotalStages; idx += 6)
+        for (int idx = 0; idx < TotalStages; idx += idx >= ClassicStages ? 3 : 6)
         {
             int lvl = Game.StageLevel(idx);
             var row = lineups.Select(ids =>
@@ -75,8 +75,8 @@ static class Program
                     gg.S.team = ids.Select(id =>
                     {
                         var hh = gg.AddHero(id);
-                        hh.stars = Math.Max(hh.stars, Math.Min(5, (int)Math.Ceiling(lvl / 10.0)));
-                        hh.level = Math.Min(MaxLevelFor(hh.stars), lvl);
+                        hh.stars = idx >= ClassicStages ? MaxStars : Math.Max(hh.stars, Math.Min(5, (int)Math.Ceiling(lvl / 10.0)));
+                        hh.level = idx >= ClassicStages ? MaxLevelFor(MaxStars) : Math.Min(MaxLevelFor(hh.stars), lvl); // act 2: endgame teams
                         foreach (Slot s in Enum.GetValues(typeof(Slot))) { var gr = gg.MakeGear(Math.Min(5, 1 + idx / 12), s); gr.level = Math.Min(10, idx / 6 + 2); gg.Equip(hh, gr); }
                         return hh.uid;
                     }).ToList();

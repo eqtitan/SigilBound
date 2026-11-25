@@ -55,7 +55,7 @@ namespace Sigilbound.Core
         // Today's dungeon foes' element: Math.floor(Date.now() / 864e5) % 5 (UTC days).
         public static Element TodayElement(DateTime now) => Elements[(int)(Js.UtcDays(now) % Elements.Length)];
 
-        public static int DungeonIdx(int floor) => Math.Min(TotalStages - 1, Js.RoundInt(floor * 6.3));
+        public static int DungeonIdx(int floor) => Math.Min(ClassicStages - 1, Js.RoundInt(floor * 6.3)); // act 1 stages (web parity)
         public static bool IsBossFloor(int floor) => floor == 4 || floor == 9;
         public static int ForgeRarity(int floor) => Math.Min(5, 1 + floor / 2);
 

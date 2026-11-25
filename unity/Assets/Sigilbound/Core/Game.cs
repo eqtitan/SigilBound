@@ -319,9 +319,15 @@ namespace Sigilbound.Core
 
         public static EnemySpec Grade(int idx)
         {
+            if (idx >= ClassicStages)
+            {
+                // Act 2: past the end of the act 1 curve, harder every stage.
+                double mul2 = Curve.End * (1 + Curve.Act2Ramp * (idx - ClassicStages + 1));
+                return new EnemySpec { Level = 50, Stars = 5, Mul = mul2, Spd = Js.RoundInt(idx * Curve.SpdPerStage), ShownLevel = StageLevel(idx) };
+            }
             int level = Math.Min(50, StageLevel(idx));
             double stars = Math.Min(5, 1 + (level - 1) / 10.0);
-            double t = idx / (double)(TotalStages - 1);
+            double t = idx / (double)(ClassicStages - 1); // act 1's curve (web parity): pinned to its 60 stages
             double chAdj = ChapterOf(idx) < Curve.Chapter.Length ? Curve.Chapter[ChapterOf(idx)] : 1;
             double mul = chAdj * (Curve.Start + (Curve.End - Curve.Start) * Math.Pow(t, Curve.Shape));
             return new EnemySpec { Level = level, Stars = stars, Mul = mul, Spd = Js.RoundInt(idx * Curve.SpdPerStage), ShownLevel = StageLevel(idx) };
@@ -331,6 +337,8 @@ namespace Sigilbound.Core
         {
             var rng = new Seeded(idx + 7);
             var g = Grade(idx);
+            // Act 1 draws enemies from the web game's 24 heroes (identical stages); act 2 from every hero.
+            var pool = idx < ClassicStages ? Classic : Heroes;
             var chapterEl = ChapterElement(ChapterOf(idx));
             var waves = new List<List<EnemySpec>>();
             int waveCount = IsBossStage(idx) ? 3 : 2;
@@ -340,12 +348,12 @@ namespace Sigilbound.Core
                 int n = idx < 2 ? 2 : 3;
                 for (int i = 0; i < n; i++)
                 {
-                    var t = Classic[(int)Math.Floor(rng.Next() * Classic.Length)];
+                    var t = pool[(int)Math.Floor(rng.Next() * pool.Length)];
                     wave.Add(new EnemySpec { Template = t, Level = g.Level, Stars = g.Stars, Mul = g.Mul, Spd = g.Spd, ShownLevel = g.ShownLevel, El = rng.Next() < 0.5 ? chapterEl : t.Element });
                 }
                 if (IsBossStage(idx) && w == waveCount - 1)
                 {
-                    var t = Classic[(int)Math.Floor(rng.Next() * Classic.Length)];
+                    var t = pool[(int)Math.Floor(rng.Next() * pool.Length)];
                     wave[1] = new EnemySpec { Template = t, Level = g.Level, Stars = g.Stars, Mul = g.Mul, Spd = g.Spd, ShownLevel = g.ShownLevel + 2, El = chapterEl, Boss = true };
                 }
                 waves.Add(wave);
