@@ -121,6 +121,15 @@ Unfinished work saved from the stopped agents:
     - import through Editor/Art (HeroRig) so the game uses it and falls back to today's model otherwise.
   - Step 13 = Ysolde, Gorrum, Hask, Corvan (the starters first). Check each in-game with the screenshot tour before moving on.
   - The hero-art CI import job still needs merging and testing (art-round2 commit 91ed352).
+  - RESUME (2026-11-25, branch `step/13`, not merged):
+    - `unity/Tools~/blenderforge/quat.py` builds a free-path hero: decoded Quaternius base (godot/models), forge.py painted materials in the hero palette (the 4 starters are defined), rigid kit on bones, one baked atlas, and a GLB keeping the 62-bone skeleton and 24 clips.
+    - `render_glb.py` previews an exported GLB with Cycles. EEVEE can't load textures headless here.
+    - Ysolde result: `docs/sigilbound/art/prototype/ysolde-quaternius-wip.png`.
+    - To fix next:
+      1. Hood removal: it isn't the Black slot; find the hood faces on Medieval_Head, e.g. by vertex group or position above the head bone.
+      2. Kit placement: the whip curls upward. Build kit pieces in the bone's local frame, not world offsets.
+      3. Applying the exported Idle clip hides the mesh in Blender. Check the root/scale keys (the armature is scaled ×100) before any Unity import.
+      4. Then do gorrum, hask and corvan; import via the hero-art job; and check with the screenshot tour.
 - [ ] **19. Roster plan to 100 heroes.** Phases and concepts only. New heroes get designed (stats and skills) in their own later steps.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
