@@ -13,6 +13,33 @@ namespace Sigilbound.Core
         static readonly HashSet<string> Brawlers = new HashSet<string> { "odo", "kettle", "gorrum", "thrain" };
         static readonly HashSet<string> SmallFocus = new HashSet<string> { "candle", "mirror", "bell", "orb", "lantern" };
 
+        // High-detail heroes (phase F): the free CC0 UAL clips retargeted onto the 65-joint rig
+        // (models/ubc_anims.glb). Clip choice per weapon family, as docs/sigilbound/MECHANICS.md section 3.
+        public static readonly Dictionary<string, string> HdAliases = new Dictionary<string, string>
+        {
+            ["Run"] = "Jog_Fwd_Loop", ["Run_Back"] = "Jog_Fwd_Loop", ["HitRecieve"] = "Hit_Chest", ["HitRecieve_2"] = "Hit_Head",
+            ["Death"] = "Death01", ["Wave"] = "Interact", ["Idle"] = "Idle_Loop",
+        };
+        public static bool HdGrips(string heroId)
+        {
+            string p = Looks.Of(heroId).Prop;
+            return !SmallFocus.Contains(p) && !Brawlers.Contains(heroId);
+        }
+        public static AnimStyle Hd(string heroId)
+        {
+            string p = Looks.Of(heroId).Prop;
+            bool caster = SmallFocus.Contains(p) || p == "staff" || p == "book" || p == "fan" || p == "lute";
+            return new AnimStyle
+            {
+                Idle = caster ? "Idle_Loop" : "Sword_Idle",
+                Strike = Brawlers.Contains(heroId) ? new[] { "Punch_Jab", "Punch_Cross" } : p == "daggers" ? new[] { "Sword_Attack", "Punch_Jab" }
+                    : p == "bow" ? new[] { "Pistol_Shoot" } : caster ? new[] { "Spell_Simple_Shoot" } : new[] { "Sword_Attack" },
+                Cast = p == "bow" ? "Pistol_Shoot" : "Spell_Simple_Shoot", Support = "Spell_Simple_Enter", Ult = "Spell_Simple_Shoot",
+                Hit = new[] { "Hit_Chest" }, BigHit = new[] { "Hit_Head" }, Death = new[] { "Death01" },
+                Fidget = new[] { "Idle_Loop", "Idle_Talking_Loop" }, Win = "Interact",
+            };
+        }
+
         public static AnimStyle For(string heroId)
         {
             string p = Looks.Of(heroId).Prop;

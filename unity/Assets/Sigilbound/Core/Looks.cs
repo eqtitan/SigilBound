@@ -28,6 +28,7 @@ namespace Sigilbound.Core
         {
             ["hooded"] = "hooded_adventurer.glb", ["adventurer"] = "adventurer.glb", ["monarch"] = "monarch.glb", ["titan"] = "yeti.glb",
             // Quaternius Ultimate Modular Women (CC0, phase E step 45): the "hooded" rig and clips.
+            ["ubc"] = "ubc_anims.glb", // high-detail rig: skeleton + the retargeted UAL clips (phase F)
             ["hooded_f"] = "women_medieval.glb", ["witch"] = "women_witch.glb", ["adventurer_f"] = "women_adventurer.glb",
         };
 
