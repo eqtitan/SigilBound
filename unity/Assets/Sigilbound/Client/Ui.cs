@@ -1,20 +1,31 @@
-// Code-only UI toolkit on Unity's immediate-mode GUI: a phone-sized logical canvas
-// (390 points wide, scaled to the screen), rounded panels/buttons from generated
-// textures, and touch drag-to-scroll. No editor setup or UI package needed.
+// Code-only UI toolkit on Unity's immediate-mode GUI. Landscape: a logical canvas 480 points
+// high (at least 800 wide), scaled to the screen by height, so 16:9 to 21:9 phones and resizable
+// windows all get the same vertical layout and more room sideways. Rounded panels and buttons come
+// from generated textures; touch drag-to-scroll. No editor setup or UI package needed.
 // Styled like the web game's gilded dark-fantasy skin (style.css): framed panels with a bronze
-// edge, gilded gradient buttons, gold rules, and serif display type for headings and buttons
-// (the phone's own serif font, e.g. Noto Serif on Android; nothing is bundled).
+// edge, gilded gradient buttons, gold rules, and serif display type for headings and buttons.
+// Fonts: Unity's built-in LegacyRuntime.ttf for body text and Cinzel (SIL OFL 1.1, bundled in
+// Resources/Fonts, see Resources/Fonts/OFL.txt) for display text. Never OS fonts: fonts made with
+// Font.CreateDynamicFontFromOSFont broke Unity 6's IMGUI text on Windows and Android (every control
+// using it showed another control's string), so nothing here uses them.
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Sigilbound.Client
 {
-    public static class Ui
+    public static partial class Ui
     {
-        public const float W = 390f;               // logical width
-        public static float Scale => Screen.width / W;
+        public const float RefH = 480f, MinW = 800f;   // logical height; narrow screens scale by width instead
+        public static float Scale => Mathf.Max(0.01f, Mathf.Min(Screen.height / RefH, Screen.width / MinW));
+        public static float ScreenW => Screen.width / Scale;   // the whole logical width
         public static float H => Screen.height / Scale;
-        public static Rect Safe                       // safe area in logical units
+        // Width of the current layout column (BeginColumn), else the whole screen. Screens written for
+        // a single column (Row(), Ui.W - Pad * 2...) run unchanged inside a column.
+        public static float W => _cols.Count > 0 ? _cols.Peek() : ScreenW;
+        static readonly Stack<float> _cols = new Stack<float>();
+        public static void BeginColumn(Rect r) { GUI.BeginGroup(r); _cols.Push(r.width); }
+        public static void EndColumn() { if (_cols.Count > 0) { _cols.Pop(); GUI.EndGroup(); } }
+        public static Rect Safe                       // safe area in logical units (notch side excluded)
         {
             get
             {
@@ -30,15 +41,10 @@ namespace Sigilbound.Client
 
         public static void Begin()
         {
+            _cols.Clear();
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(Scale, Scale, 1));
             if (_font == null) _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            if (_serif == null)
-            {
-                // Same preference order as the web's --display stack, ending with the system serif.
-                try { _serif = Font.CreateDynamicFontFromOSFont(new[] { "Cinzel", "Cormorant SC", "Palatino Linotype", "Palatino", "Book Antiqua", "Georgia", "Noto Serif", "NotoSerif", "Droid Serif", "serif", "Times New Roman" }, 16); }
-                catch (System.Exception) { }
-                if (_serif == null) _serif = _font;
-            }
+            if (_serif == null) _serif = Resources.Load<Font>("Fonts/Cinzel-Bold") ?? _font;
             GUI.skin.font = _font;
         }
 
@@ -197,7 +203,7 @@ namespace Sigilbound.Client
                 if (k != Kind.Ghost) s.active.background = GradientTex(Color.Lerp(top, Color.black, 0.2f), Color.Lerp(bottom, Color.black, 0.2f), border, rad, Color.Lerp(midA, Color.black, 0.2f), 0.45f, Color.Lerp(midB, Color.black, 0.2f));
                 s.fontSize = size; s.fontStyle = FontStyle.Bold; s.alignment = TextAnchor.MiddleCenter; s.wordWrap = true; s.richText = true;
                 s.normal.textColor = s.active.textColor = s.hover.textColor = text; s.hover.background = s.normal.background;
-                s.padding = new RectOffset(6, 6, 4, 4); s.font = k == Kind.Ghost ? _font : _serif;
+                s.clipping = TextClipping.Clip; s.padding = new RectOffset(6, 6, 4, 4); s.font = k == Kind.Ghost ? _font : _serif;
                 return s;
             });
         }
