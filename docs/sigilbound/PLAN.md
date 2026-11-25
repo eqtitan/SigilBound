@@ -111,7 +111,7 @@ Unfinished work saved from the stopped agents:
     - Same or worse: stiff anatomy, crude faces; at about 70 px in battle the gain is small.
     - The prototypes haven't been rendered inside Unity: that needs the hero-art import job, which hasn't run yet.
   - The owner decides next: keep improving the free path (CC0 base bodies + scripted kit + baked painted textures), or allow a paid generator for higher quality. Steps 13–18 depend on that answer.
-- [ ] **13–18. Heroes in batches of 4 per session** (24 heroes), with the shared idle/wait animation and unique skill animations where possible.
+- [ ] **13–18. Heroes in batches of 4 per session** (step 13 = the 4 starters: DONE 2026-11-25, see below) (24 heroes), with the shared idle/wait animation and unique skill animations where possible.
   - OWNER DECISION (2026-11-25): improve the FREE path. No paid generator.
   - Per hero:
     - start from the CC0 Quaternius base bodies (better anatomy than the scripted skin-modifier bodies);
@@ -130,6 +130,15 @@ Unfinished work saved from the stopped agents:
       2. Kit placement: the whip curls upward. Build kit pieces in the bone's local frame, not world offsets.
       3. Applying the exported Idle clip hides the mesh in Blender. Check the root/scale keys (the armature is scaled ×100) before any Unity import.
       4. Then do gorrum, hask and corvan; import via the hero-art job; and check with the screenshot tour.
+  - STEP 13 DONE (2026-11-25):
+    - Fixed: hood/crown/bald hair via the game's own colour roles; hand kit in the bone frame; skeleton identical to the base (no bind-pose guessing, rest pose exported, no clips); real head size for head kit.
+    - The 4 starters are in `unity/Tools~/models/heroes` (preview: `docs/sigilbound/art/prototype/starters-free-path.png`). The game loads them through `HeroModels.BuildBaked` with the base clips. This path, not the untested Editor/Art import job, is the route for steps 14–18.
+    - Check first in the screenshot tour or on a device:
+      - the base clips animate the baked heroes (the Animation goes on `holder.GetChild(0)`; if heroes stand in a T-pose, the clip root path differs);
+      - albedo colour space;
+      - glow strength.
+    - Known polish items: Hask's helm doesn't show; Ysolde's circlet doesn't show; the kit pieces are basic shapes.
+  - Steps 14–18: add the next heroes to `HEROES` in quat.py (palette from Core/Looks.cs, kit list), run it, check the previews, commit the files. Adventurer-based heroes need an `adventurer` entry in ROLES (copy from Core/Looks.cs).
 - [ ] **19. Roster plan to 100 heroes.** Phases and concepts only. New heroes get designed (stats and skills) in their own later steps.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
