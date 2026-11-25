@@ -71,7 +71,12 @@ Unfinished work saved from the stopped agents:
 - [x] **7. Game modes hub.** (2026-11-25, step/7) Big illustrated cards for campaign, hard, trials, arena and titan, showing live status.
   - DONE: ModesScreen.cs (`ScreenId.Modes`). It's the Battle tab in the nav, replacing Campaign. It's full width in landscape (5 cards in a row) and two columns in portrait. The cards are code-drawn (gradient plate, rune ring, icon, status footer, badge, lock).
   - Ideas for later: illustrated backdrops per mode (small 3D vignettes or painted textures), and the Trials tab is now redundant with the hub (consider replacing it with Codex or Achievements).
-- [ ] **8. Campaign world map.** Sigilbound's own painted-look map, chapter markers with stars, a reward track and a Normal/Hard switch.
+- [x] **8. Campaign world map.** (2026-11-25, step/8) Sigilbound's own painted-look map, chapter markers with stars, a reward track and a Normal/Hard switch.
+  - DONE: WorldMap.cs, full width in landscape. The map is generated once (512×256 noise parchment; preview checked).
+    - Markers show stages cleared as 6 pips: the game has no per-stage stars, so none were invented.
+    - The reward track shows the real boss first-clear rewards from `Game.StageRewards`.
+    - The chapter panel's stage buttons go to Prep. Step 9 should restyle that panel into the full stage list (enemies, drops).
+  - Ideas for later: painted landmarks per chapter (towers, ruins) on the map; an animated marker on the current chapter.
 - [ ] **9. Stage list and team setup.**
   - Stage rows: stars, enemies, drops, Battle button.
   - Team setup: you vs the enemy, the element wheel, power, a hero picker with filter, sort and presets.
