@@ -210,7 +210,13 @@ Unfinished work saved from the stopped agents:
     - Balance after tuning: Selene 48% vs Sable/Oriel, Brann 52% vs Thrain (he needed Thrain's team-wide ATK Up, not more shield), Ysra 45% and Oswin 43% vs Kaito/Maelis.
   - Phase 2 (Glass and Storm) is complete: 20 heroes, using every step 25 mechanic.
   - Next: phase 3 needs its mechanics first (revive, damage that grows with HP lost, a heal when an ally falls). Then the 20 Hollow Unbound heroes.
-- [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.
+- [x] **31. Engine: phase 3 mechanics** (Revive, damage that grows with HP lost, a heal when an ally falls), with tests.
+  - DONE (2026-11-25):
+    - `FxType.Revive` (a buff: back at Pct HP instead of falling, once); `SkillDef.Rage` (damage grows with the attacker's missing HP); `HeroDef.FallHeal` (the Last Light passive).
+    - The hero screen's Skills card shows a passive line (`SkillText.Passive`). 3 more checks in MechanicsTests (15 in all). Rules in ROSTER.md section 4.
+- [ ] **32–36. Phase 3 heroes (The Hollow Unbound), 4 per step.** Grimsby, Marrow (Rage), Ember (Last Light), Quill; Drift, Sprig, Tallow, Hollis; Auren, Cinder, Thessaly, Umbra; Lucan, Kharra, Nocturne (Execute), Aelira; Zephyrine, Solenne (Revive), Nell, Briar.
+- [ ] **37. Campaign act 2** (chapters 11–15: the port city and the storm coast), with new enemy pools that include roster heroes.
+- [ ] **38–42. Phase 4 heroes (The Sigil Bearers), 4 per step.**
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
 

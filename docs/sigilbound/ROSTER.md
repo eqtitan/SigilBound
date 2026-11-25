@@ -168,7 +168,15 @@ final ally. This phase needs the new chapters first (a separate campaign step).
 | Spread | `SkillDef.Spread` | If the target dies, its Poison and Burn move to the next enemy. |
 | Counter | `FxType.Counter` (buff) | Hit by a single-target attack, the holder strikes back with its basic skill at half power; Strip removes it. |
 
-They are tested in `unity/Tests~/MechanicsTests.cs`. They are Unity only: the web game's 24 heroes use none of them, and the web effect order is unchanged. The table below is the original plan; phase 3's mechanics (revive, damage that grows with HP lost, a heal when an ally falls) are still to build.
+**Phase 3 mechanics are built (PLAN step 31):**
+
+| Mechanic | In data | Rule |
+|---|---|---|
+| Revive | `FxType.Revive` (Pct, Turns) | A buff: if the holder would fall, it comes back at that share of max HP instead, once (the buff is used up). Not on the Titan. Strip removes it. |
+| Rage | `SkillDef.Rage` | Damage x (1 + Rage x the attacker's missing HP fraction): Rage 1.0 is +50% at half HP. |
+| Last Light | `HeroDef.FallHeal` (passive) | When an ally falls, a living hero with the passive heals all living allies that share of their max HP. The hero screen shows passives. |
+
+They are tested in `unity/Tests~/MechanicsTests.cs`. They are Unity only: the web game's 24 heroes use none of them, and the web effect order is unchanged. The table below is the original plan; phase 3's mechanics are built too (above).
 
 | Mechanic | Used by | Notes |
 |---|---|---|

@@ -81,14 +81,17 @@ namespace Sigilbound.Client
         // ---------- hero: skills with Skill Tome upgrades ----------
         float DrawSkills(HeroSave h, HeroDef t, float y)
         {
-            var r = Row(ref y, 52 + t.Skills.Length * 100);
+            var passive = SkillText.Passive(t);
+            float extra = passive != null ? 24 : 0;
+            var r = Row(ref y, 52 + extra + t.Skills.Length * 100);
             Ui.Card(r);
             Ui.Text(new Rect(r.x + 14, r.y + 6, 100, 24), "Skills", 15, Palette.Text, FontStyle.Bold);
+            if (passive != null) Ui.Text(new Rect(r.x + 14, r.y + 30, r.width - 28, 20), Ui.ColorTag("Passive · ", Palette.Gold) + passive, 12, Palette.Text, FontStyle.Normal);
             Ui.Text(new Rect(r.xMax - 174, r.y + 6, 160, 24), $"{G.S.tomes} Skill Tome{(G.S.tomes == 1 ? "" : "s")}", 12, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight);
             for (int i = 0; i < t.Skills.Length; i++)
             {
                 var s = t.Skills[i]; int lv = h.SkillLv(i), cd = Core.Battle.SkillCooldown(s, lv);
-                float sy = r.y + 32 + i * 100;
+                float sy = r.y + 32 + extra + i * 100;
                 Ui.Text(new Rect(r.x + 14, sy, r.width - 28, 20), $"A{i + 1} · {s.Name}  {Ui.ColorTag($"Lv {lv + 1}/5", Palette.Gold)}   {Ui.ColorTag(s.Cooldown > 0 ? $"cooldown {cd}" : "basic", Palette.Dim)}", 13, Palette.Text, FontStyle.Bold);
                 string bonus = lv > 0 ? Ui.ColorTag($"  +{Mathf.Min(lv, 3) * 8}% power{(lv >= 4 && s.Cooldown > 1 ? ", −1 cooldown" : "")}", Palette.Good) : "";
                 Ui.Text(new Rect(r.x + 14, sy + 20, r.width - 28, 40), SkillText.Describe(s) + bonus, 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
