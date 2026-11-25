@@ -311,6 +311,35 @@ Unfinished work saved from the stopped agents:
     - Ivo swings on Taunt (27% none, 70% two turns), so he Taunts for one turn.
   - THE ROSTER PLAN IS COMPLETE: 100 heroes (24 classic + 76 Unity-only), every one balanced in the sims and with a baked free-path model.
 
+## Phase E: every hero unique (owner request, 2026-11-25)
+
+Owner decision: do all four upgrades, all free (CC0 and code; no paid tools). Goal: no two of the 100 heroes look or move alike. Each one is recognisable at 70 px in battle and rewarding up close in the hero viewer.
+
+- [ ] **44. Uniqueness audit and rules.**
+  - A script lists every hero's base body, palette, kit, build and clips.
+  - A test fails when two heroes share the same base, the same main kit pieces and a similar palette (colour distance).
+  - Today's near-twins go in a fix list (e.g. Tamsin and Sienna, Ysolde and Juno, Gorrum and Kharra, Bram and Dorian, Aurelia and Rhea).
+  - Each hero gets a one-line "signature": the one feature only it has.
+  - Research for step 45: confirm which free CC0 modular character packs (Quaternius modular men/women and others) share the current 62-bone skeleton, so the base clips and the UAL clips keep working.
+- [ ] **45. More CC0 base bodies.**
+  - Import the compatible packs into `godot/models` (decoded GLBs) and add their colour roles and head meshes to quat.py and Core/Looks.cs.
+  - Mix heads, hair, torsos and legs per hero, so the roster spreads over many body combinations, not three.
+  - Each new body goes through the same checks: rest-pose skeleton identical, base clips play, no stilts or floating.
+- [ ] **46–50. Unique silhouettes, 20 heroes per step.**
+  - New kit pieces, built in quat.py in the bone frame:
+    - weapons: glaive, flail, scythe, sickle, mace, rapier, twin axes, crossbow, chakram, harp, tome-staff, lance;
+    - armour and dress: pauldrons, layered capes and hooded cloaks, masks of several shapes, belts and pouches;
+    - back items: wings, banner, scroll case, quiver styles.
+  - Body builds: height, bulk and head size per hero, applied to the mesh before export (the skeleton stays identical).
+  - The audit test must pass at the end of each step.
+- [ ] **51–52. Painted details.**
+  - A decal pass in forge.py's baking that paints per-hero patterns into the albedo and glow: tattoos, scars, embroidery, armour trim, face paint, element runes.
+  - Checked in the hero viewer close-up and at battle size.
+- [ ] **53–55. Signature animations and effects.**
+  - Every hero gets its own attack and cast clips from the free UAL animation library (more clips added to anims_ual.json, retargeted as today).
+  - Plus an element aura or trail and a signature skill effect (SkillFx), so heroes feel different in battle as well as looking different.
+  - The screenshot tour gallery checks every batch.
+
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
 
 - Text duplicated or misplaced everywhere; tip popups show the body text twice, and the heading is "3".
