@@ -82,6 +82,7 @@ namespace Sigilbound.Client
         }
         public void Save()
         {
+            if (NoSave) return; // screenshot mode (ShotsMode.cs) never touches the real save
             G.S.gameVersion = Application.version;
             var json = SaveCodec.ToJson(G.S);
             G.S.sourceJson = json;

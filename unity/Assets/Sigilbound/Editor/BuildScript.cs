@@ -65,6 +65,26 @@ namespace Sigilbound.EditorTools
             Build(BuildTarget.StandaloneWindows64, output);
         }
 
+        // Linux preview build (64-bit, Mono) for the screenshot mode: agents run it under xvfb to see
+        // the game (tools/unity-shots.sh, -sbShots=DIR in Client/ShotsMode.cs). Not for players.
+        public static void Linux()
+        {
+            ProjectSetup.Apply();
+            PlayerSettings.bundleVersion = Version();
+            var target = UnityEditor.Build.NamedBuildTarget.Standalone;
+            PlayerSettings.SetScriptingBackend(target, ScriptingImplementation.Mono2x);
+            PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
+            PlayerSettings.defaultScreenWidth = 540;
+            PlayerSettings.defaultScreenHeight = 960;
+            PlayerSettings.resizableWindow = true;
+            WriteBuildInfo(0); // no update check in the preview
+            var output = Environment.GetEnvironmentVariable("SB_OUTPUT");
+            if (string.IsNullOrEmpty(output)) output = Arg("-customBuildPath");
+            if (string.IsNullOrEmpty(output)) output = "Builds/Linux/Sigilbound.x86_64";
+            if (!output.EndsWith(".x86_64", StringComparison.OrdinalIgnoreCase)) output = Path.Combine(output, "Sigilbound.x86_64");
+            Build(BuildTarget.StandaloneLinux64, output);
+        }
+
         public static void iOS() { ProjectSetup.Apply(); PlayerSettings.bundleVersion = Version(); Build(BuildTarget.iOS, "Builds/iOS"); }
 
         // The build number the in-game update check (Client/Updater.cs) compares against the
