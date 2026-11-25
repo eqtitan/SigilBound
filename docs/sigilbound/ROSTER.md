@@ -113,10 +113,10 @@ revive effect, a heal when an ally falls, and damage that grows with HP lost.
 | `sprig` | Sprig Mosslight | Common | Gale | Support | hooded | braid, bell | Heal; SpdUp | Child druid of the Thornwick wood. |
 | `tallow` | Tallow Firth | Common | Flame | Defense | monarch | helm, shield | Burn on hit (small chance); team DefUp | Ashgrave watchman. |
 | `hollis` | Hollis Shade | Common | Shadow | Hp | hooded | club (hood kept) | Shield, Regen and Taunt on self | Gravedigger of Hollow Deep. |
-| `auren` | Auren Halewind | Epic | Gale | Support | hooded | long_hair, fan*, robe | Cleanse all; SpdUp all | Wind-singer of Stormcrown. |
-| `cinder` | Cinder Vale | Epic | Flame | Attack | adventurer | flame_hair, sword | Burst AoE; AtkDown | Survivor of the Titan's first eruption. |
-| `thessaly` | Thessaly Reefward | Epic | Tide | Defense | monarch | helm, shield, trident | Shield all; Taunt | Captain of the drowned fleet. |
-| `umbra` | Umbra Veilkin | Epic | Shadow | Support | hooded | mask, orb, robe | TmDrain all; DefDown | Hollow seer who serves the living now. |
+| `auren` | Auren Halewind | Epic | Gale | Support | hooded | long_hair, fan*, robe | Cleanse, SpdUp and Heal for all allies; team AtkUp and Turn Meter | Wind-singer of Stormcrown. |
+| `cinder` | Cinder Vale | Epic | Flame | Attack | adventurer | spiky_hair, sword, runes | Burn on hit; AoE AtkDown; a big hit that may Burn | Survivor of the Titan's first eruption. |
+| `thessaly` | Thessaly Reefward | Epic | Tide | Defense | monarch | helm, shield, trident | Small team Shield while she Taunts; AoE DefDown | Captain of the drowned fleet. |
+| `umbra` | Umbra Veilkin | Epic | Shadow | Support | hooded | mask, orb, robe | TmDrain on hit; AoE TmDrain and DefDown; team Heal, Cleanse and Turn Meter | Hollow seer who serves the living now. |
 | `lucan` | Lucan Brightshield | Epic | Light | Defense | monarch | helm, shield, cape | Shield all; Cleanse | Paladin of the Sunken Cathedral. |
 | `kharra` | Kharra Titanborn | Legendary | Flame | Hp | monarch | horns, hammer, cape | Huge HP; Regen; Taunt | Born in the Titan's shadow, half stone. |
 | `nocturne` | Nocturne | Legendary | Shadow | Attack | hooded | mask, katana, cape | Execute; Stun | The Hollow's first champion, now its hunter. |

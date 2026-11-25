@@ -220,7 +220,9 @@ Unfinished work saved from the stopped agents:
   - Marrow was redesigned as a grey, long-haired giant so he doesn't read as a second Gorrum.
   - STEP 33 DONE (2026-11-25): Drift, Sprig, Tallow, Hollis (Commons). Preview: `docs/sigilbound/art/prototype/step33-hollow-unbound.png`.
     - Balance after tuning: Drift 57% vs Brannoc/Kettle, Sprig 48% vs Pell/Wren, Tallow 53% vs Mira (his Burn is strong for a Common, so its chance is 10%), Hollis 44% vs Odo. 68 heroes.
-  - Next hero step (35, after the step 34 Android updates): Auren, Cinder, Thessaly, Umbra.
+  - STEP 35 DONE (2026-11-25): Auren, Cinder, Thessaly, Umbra (all Epic). New kit: fan. Preview: `docs/sigilbound/art/prototype/step35-hollow-unbound.png`.
+    - Balance: Auren 52% and Umbra 52% vs Sable/Oriel (Umbra needed team Turn Meter), Cinder 46% vs Kaito/Maelis, Thessaly 52% vs Aurelia. 72 heroes. Three of four balanced first time, starting from the kit patterns that worked before.
+  - Next (step 36): Lucan, Kharra, Nocturne (Execute), Aelira.
   Grimsby, Marrow (Rage), Ember (Last Light), Quill; Drift, Sprig, Tallow, Hollis; Auren, Cinder, Thessaly, Umbra; Lucan, Kharra, Nocturne (Execute), Aelira; Zephyrine, Solenne (Revive), Nell, Briar.
 - [x] **34. Android in-app updates (like Windows).** Owner request (2026-11-25). The phase 3 hero steps 35–37 follow it.
   - OWNER DECISIONS (2026-11-25):
