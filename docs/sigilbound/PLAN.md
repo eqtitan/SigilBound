@@ -375,7 +375,7 @@ Owner decisions (2026-11-25): frame rate defaults to **Auto (match the screen)**
   - Turn on Optimized Frame Pacing and Frame Timing Stats in Player settings.
   - Fix the frame-rate-dependent code (section 4.6): screen shake noise, spark spawn rates, a fixed substep for cloth springs.
   - Check: the performance overlay shows 120 on the S26+ with Auto, and 60 and 30 when chosen. Windows follows the monitor.
-- [ ] **66. UAL clip set on the new rig.**
+- [x] **66. UAL clip set on the new rig.** Done: all 46 free UAL clips retargeted (`ual_retarget.py` → `models/ubc_anims.glb`, loaded by `HeroModels.BuildHd`). Every *(verify)* name in MECHANICS.md checked: all present except `Sword_Block`, `Hit_Knockback`, `LayToIdle` and `Kick` (not in the free tier; their fallbacks apply). `AnimStyle.HdClips` + a test that every clip a hero plays exists. Provenance in `models/CREDITS.md`. Still to check in the screenshot tour: no stilts or floating.
   - Retarget the free UAL Standard clips the families need onto the 65-joint rig (`tools/anim-retarget`), and confirm every *(verify)* name in MECHANICS.md section 3.
   - Add them to the clip set and to `HeroClips.Aliases`.
   - Record their provenance in `models/CREDITS.md`.

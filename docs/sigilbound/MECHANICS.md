@@ -86,13 +86,19 @@ these exceptions:
 
 ## 3. The state machine every hero needs
 
+### 3.0 Verified UAL clips on the high-detail rig (step 66)
+
+The free CC0 Universal Animation Library (Standard tier, 46 clips), retargeted onto the 65-joint rig by `unity/Tools~/blenderforge/ual_retarget.py` into `unity/Tools~/models/ubc_anims.glb`. `Core/Kit/HeroAnim.cs` `UalClips.HdClips` holds the same list, and a test checks that every clip the game asks for is in it.
+
+`A_TPose`, `Crouch_Fwd_Loop`, `Crouch_Idle_Loop`, `Dance_Loop`, `Death01`, `Driving_Loop`, `Fixing_Kneeling`, `Hit_Chest`, `Hit_Head`, `Idle_Loop`, `Idle_Talking_Loop`, `Idle_Torch_Loop`, `Interact`, `Jog_Fwd_Loop`, `Jump_Land`, `Jump_Loop`, `Jump_Start`, `PickUp_Table`, `Pistol_Aim_Down`, `Pistol_Aim_Neutral`, `Pistol_Aim_Up`, `Pistol_Idle_Loop`, `Pistol_Reload`, `Pistol_Shoot`, `Punch_Cross`, `Punch_Enter`, `Punch_Jab`, `Push_Loop`, `Roll`, `Roll_RM`, `Sitting_Enter`, `Sitting_Exit`, `Sitting_Idle_Loop`, `Sitting_Talking_Loop`, `Spell_Simple_Enter`, `Spell_Simple_Exit`, `Spell_Simple_Idle_Loop`, `Spell_Simple_Shoot`, `Sprint_Loop`, `Swim_Fwd_Loop`, `Swim_Idle_Loop`, `Sword_Attack`, `Sword_Attack_RM`, `Sword_Idle`, `Walk_Formal_Loop`, `Walk_Loop`.
+
 ### 3.1 States
 
 Canonical state names follow `Core/Art/ArtSpec.cs HeroClips`. New states are marked **new**.
 
 Event times are normalized: `impact` is the moment of contact, `release` is when a projectile leaves the hand.
 
-Blend times are in seconds. UAL clip names are from the free Standard tier and are marked *(verify)*: they must be confirmed against the pack's clip list when the UAL set is retargeted (step 66). The clips already in the game (`anims_ual.json`) are certain:
+Blend times are in seconds. UAL clip names were checked against the free Standard pack in step 66 (✓ = present). Four named clips are not in the free tier (`Sword_Block`, `Hit_Knockback`, `LayToIdle`, `Kick`); their fallbacks apply. The full verified list is in section 3.0. The clips already in the game (`anims_ual.json`) are certain:
 - `Spell_Simple_Enter`, `Spell_Simple_Shoot`, `Spell_Simple_Exit`, `Spell_Simple_Idle_Loop`;
 - `Hit_Chest`, `Hit_Head`, `Death01`.
 
@@ -100,28 +106,28 @@ Fallbacks are the current base-rig clips (`Idle_Sword`, `Sword_Slash`, `Punch_Ri
 
 | State | Loop | Enter blend | Trigger (rules event) | UAL clip (first choice) | Fallback | Events |
 |---|---|---|---|---|---|---|
-| Idle | yes | 0.25 | default | `Idle_Loop` *(verify)*; per family, see 3.2 | `Idle_Sword`, `Idle_Neutral` | |
+| Idle | yes | 0.25 | default | `Idle_Loop` ✓; per family, see 3.2 | `Idle_Sword`, `Idle_Neutral` | |
 | Idle_Fidget | no | 0.30 | random, every 8–20 s, never two neighbours within 3 s | `Idle_Talking_Loop` (one cycle) *(verify)*, `Interact` | procedural: look around and shrug | |
-| Ready **new** | no, holds | 0.15 | the actor's turn starts | `Sword_Idle` *(verify)* / family stance | Idle at 1.1x with a 3° forward lean | |
-| Run | yes | 0.12 | melee travel | `Jog_Fwd_Loop` *(verify)* | `Run` | footfalls at 0.0 and 0.5 |
+| Ready **new** | no, holds | 0.15 | the actor's turn starts | `Sword_Idle` ✓ / family stance | Idle at 1.1x with a 3° forward lean | |
+| Run | yes | 0.12 | melee travel | `Jog_Fwd_Loop` ✓ | `Run` | footfalls at 0.0 and 0.5 |
 | Run_Back | yes | 0.10 | melee return | `Walk_Loop` at −1x speed *(verify)* | `Run` at 1.5x facing home | |
 | Attack_1..3 | no | 0.08 | basic attack (skill 1), rotating | per family, see 3.2 | `Sword_Slash`, `Punch_Right`, `Kick_Right` | `impact` per family |
-| Skill_2 / Cast | no | 0.10 | skill 2 | `Spell_Simple_Shoot` (ranged), `Sword_Attack` *(verify)* (melee) | `Gun_Shoot` | `release` 0.45 / `impact` 0.42 |
+| Skill_2 / Cast | no | 0.10 | skill 2 | `Spell_Simple_Shoot` (ranged), `Sword_Attack` ✓ (melee) | `Gun_Shoot` | `release` 0.45 / `impact` 0.42 |
 | Cast_Ult | no | 0.12 | skill 3 or all-enemies skill | `Spell_Simple_Enter` → `Spell_Simple_Idle_Loop` (channel) → `Spell_Simple_Shoot` | `Spell_Simple_Shoot` at 0.8x | `release` 0.45 of the Shoot |
 | Cast_Support | no | 0.12 | no-damage skill | `Spell_Simple_Enter` + `Spell_Simple_Exit` | `Interact`, `Yes` | `release` 0.60 |
 | Channel **new** | yes | 0.10 | multi-turn or long casts (ultimates over 0.6 s) | `Spell_Simple_Idle_Loop` | Idle plus a hand-glow effect | |
 | Hit | no | 0.06 | damage under 14% max HP | `Hit_Chest` | `HitRecieve` | |
 | Hit_Big | no | 0.05 | crit, or damage of 14% max HP or more | `Hit_Head` | `HitRecieve_2` | pushes back 0.34 m |
-| Block **new** | no | 0.05 | Defense role or shield prop and the hit is fully or mostly absorbed (`EvType.Absorb` ≥ 60% of the hit), or the unit has DefUp | `Sword_Block` *(verify)* | procedural: shield arm forward, 0.12 m slide back, crouch 6° | |
+| Block **new** | no | 0.05 | Defense role or shield prop and the hit is fully or mostly absorbed (`EvType.Absorb` ≥ 60% of the hit), or the unit has DefUp | `Sword_Block` *(not in the free tier: use the procedural block)* | procedural: shield arm forward, 0.12 m slide back, crouch 6° | |
 | Dodge | no | 0.06 | glancing blow (existing rule: weak element or under 4% HP, 35% chance); never for Defense | `Roll` (short) *(verify)* | `Roll` at 1.5x | sidestep 0.45 m sideways, back home by 0.9 |
 | Stunned **new** | yes | 0.20 | Stun applied; holds until the skipped turn ends | `Idle_Loop` at 0.6x plus a procedural head sway | Idle at 0.6x, slumped 8°, stars effect | |
-| Knocked_Down **new** | clamp, then get up | 0.05 | a heavy-family or ultimate hit that also applies Stun, or Pull | `Hit_Knockback` *(verify)* → `LayToIdle` *(verify)* | `Death01` up to 0.55, then reversed to stand | down at 0.35, rise starts after 0.6 s held |
+| Knocked_Down **new** | clamp, then get up | 0.05 | a heavy-family or ultimate hit that also applies Stun, or Pull | `Hit_Knockback` *(not in the free tier: use the fallback)* → `LayToIdle` *(not in the free tier: use the fallback)* | `Death01` up to 0.55, then reversed to stand | down at 0.35, rise starts after 0.6 s held |
 | Death | clamp | 0.10 | `EvType.Death` | `Death01` | `Death` | sinks after 1.2 s |
-| Revive **new** | no | 0.10 | `Revived!` from Revive (Battle.cs 368). Add `EvType.Revive` | `Death01` to 0.50, then `LayToIdle` *(verify)* | `Death01` played backwards from 0.6 to 0 at 1.4x, plus a light pillar | stands at 0.85 |
+| Revive **new** | no | 0.10 | `Revived!` from Revive (Battle.cs 368). Add `EvType.Revive` | `Death01` to 0.50, then `LayToIdle` *(not in the free tier: use the fallback)* | `Death01` played backwards from 0.6 to 0 at 1.4x, plus a light pillar | stands at 0.85 |
 | Counter **new** | no | 0.05 | `Counter!` text event | the hero's Attack_1 at 1.3x, turning in place in 0.10 s | same | `impact` as Attack_1 |
 | Buffed / Debuffed **new**, additive | no | 0.10 | `EvType.Status` | additive layer: chest-up 4° (buff), shoulders down 4° (debuff), 0.4 s | the effect alone | |
 | Victory | yes | 0.25 | winners after the last wave, staggered 0.10–0.12 s | per role, see section 5 | `Wave`, `Yes` | |
-| Defeat **new** | clamp | 0.30 | the losing side's survivors when the battle is lost | `Sitting_Enter` *(verify)* or a kneel | Idle at 0.5x, slumped 12° | |
+| Defeat **new** | clamp | 0.30 | the losing side's survivors when the battle is lost | `Sitting_Enter` ✓ or a kneel | Idle at 0.5x, slumped 12° | |
 
 **Transition rules:**
 - **Priority order:** Death > Revive > Knocked_Down > Stunned > Hit_Big > Block or Dodge > Hit > Attack or Cast > Ready > Fidget > Idle.
@@ -147,7 +153,7 @@ kit pieces from steps 46–50 are listed so they land in a family from day one.
 | **Shield** | shield (20 heroes) | Ulfgar, Aurelia, Hask, Mira | shield forward, weapon tucked | 0.20 | 0.40 (bash) | 0.30 | 0.09 |
 | **Unarmed brawler** | `Brawlers`: odo, kettle, gorrum, thrain; gauntlets* | Odo, Gorrum, Thrain | fists up, bouncing | 0.14 | 0.33 / 0.36 / 0.42 (jab, cross, kick) | 0.24 | 0.06, 0.10 on the finisher |
 
-Clips per family. The first choice is UAL *(verify)*; the second is the base rig:
+Clips per family. The first choice is UAL (checked in step 66: ✓ = in the free pack); the second is the base rig:
 
 | Family | Idle / stance | Attack_1 | Attack_2 | Attack_3 | Skill / Cast | Ultimate |
 |---|---|---|---|---|---|---|
@@ -159,7 +165,7 @@ Clips per family. The first choice is UAL *(verify)*; the second is the base rig
 | Staff / orb | `Spell_Simple_Idle_Loop` (subtle) / `Idle_Neutral` | `Spell_Simple_Shoot` | `Spell_Simple_Shoot` | `Spell_Simple_Shoot` | `Spell_Simple_Enter` + `Shoot` | Enter → Channel 0.5 s → Shoot |
 | Instrument / lantern | `Idle_Loop` / `Idle_Neutral` | `Spell_Simple_Shoot` (prop raised) | same | same | `Spell_Simple_Enter` + `Exit` (Cast_Support) | Enter → Channel 0.6 s → Exit with a ring pulse |
 | Shield | `Sword_Idle`, shield up / `Idle_Sword` | `Punch_Cross` (shield bash) / `Punch_Right` | `Sword_Attack` | `Kick_Right` | taunt: `Interact` + a chest beat / `Yes` | `Jump_Land` slam, shield first |
-| Unarmed | `Idle_Loop` + bounce / `Idle_Sword` | `Punch_Jab` / `Punch_Right` | `Punch_Cross` / `Punch_Left` | `Kick` *(verify)* / `Kick_Right` | `Punch_Cross` at 0.8x (haymaker) | `Jump_Land` ground pound |
+| Unarmed | `Idle_Loop` + bounce / `Idle_Sword` | `Punch_Jab` / `Punch_Right` | `Punch_Cross` / `Punch_Left` | `Kick` *(not in the free tier: use the fallback)* / `Kick_Right` | `Punch_Cross` at 0.8x (haymaker) | `Jump_Land` ground pound |
 
 `Skill_<n>` clips from a hero's own model always win over this table (ArtSpec). The table is the
 default each hero starts from, so no two families feel alike even before Phase E's signature clips.

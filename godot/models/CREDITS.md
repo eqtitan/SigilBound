@@ -39,3 +39,7 @@ The source files came from a public GitHub repository that redistributes the pac
 licence (github.com/flawlesshappiness/EmotionCreatures, `Assets/Quaternius/Ultimate Modular Women - April 2022`);
 converted from glTF to GLB without other changes. The female heroes' baked models are built on them
 (phase E, step 45).
+
+## Unity-only clips for the high-detail rig: `ubc_anims.glb` (phase F/G)
+
+All 46 clips of **Quaternius, Universal Animation Library (Standard / free tier)**, CC0 1.0, from the same GitHub mirror as above (github.com/J-Ponzo/gltf-universal-animation-library, `glTF/AnimationLibrary_Godot_Standard.gltf`, with the pack's CC0 LICENSE). Retargeted onto the Universal Base Characters 65-joint skeleton by `unity/Tools~/blenderforge/ual_retarget.py` (world-space rotation deltas per bone; hips translation scaled by leg length). **Before a store release, re-download from quaternius.com or itch and confirm the clips match.**

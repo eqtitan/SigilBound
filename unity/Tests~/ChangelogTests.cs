@@ -31,3 +31,22 @@ static class ChangelogTests
         check(Changelog.Unseen(demo, "2026-01-03 | C").Count == 0, "changelog: nothing new, no window");
     }
 }
+
+// Every clip a high-detail hero asks for is in the retargeted free UAL set (MECHANICS.md 3.0).
+static class HdClipTests
+{
+    public static void Run(System.Action<bool, string> check)
+    {
+        var have = new System.Collections.Generic.HashSet<string>(Sigilbound.Core.AnimStyle.HdClips);
+        check(have.Count == 46, "hd clips: 46 free UAL clips listed");
+        var bad = new System.Collections.Generic.List<string>();
+        foreach (var h in Sigilbound.Core.GameData.Heroes)
+        {
+            var st = Sigilbound.Core.AnimStyle.Hd(h.Id);
+            foreach (var n in new[] { st.Idle, st.Cast, st.Support, st.Ult, st.Win }.Concat(st.Strike).Concat(st.Hit).Concat(st.BigHit).Concat(st.Death).Concat(st.Fidget))
+                if (n != null && !have.Contains(n)) bad.Add(h.Id + ":" + n);
+        }
+        foreach (var kv in Sigilbound.Core.AnimStyle.HdAliases) if (!have.Contains(kv.Value)) bad.Add("alias " + kv.Key + ":" + kv.Value);
+        check(bad.Count == 0, "hd clips: every clip a hero plays exists" + (bad.Count > 0 ? " (missing " + string.Join(", ", bad.Distinct().Take(6)) + ")" : ""));
+    }
+}
