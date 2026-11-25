@@ -69,6 +69,15 @@ HEROES = {
                    hide=[], kit=["candle", "robe"], rim="#ff7a3a", height=0.9),
     "odo":    dict(base="monarch", skin="brown", hair="#1e1610", armor="#4e3626", accent="#9ab84a", cloth="#6b7a3a", glow=None,
                    hide=["crown", "hair"], kit=["beard", "club"], rim="#3fb57a", height=1.03),
+    # Step 18.
+    "wren":   dict(base="hooded", skin="fair", hair="#e8e2d0", armor="#7a5a3e", accent="#ffc84a", cloth="#5c4330", glow="#ffc84a",
+                   hide=[], kit=["lantern", "robe"], rim="#ffe27a", height=0.94),
+    "kettle": dict(base="adventurer", skin="ash", hair="#2a2a30", armor="#5a5560", accent="#9a5ae8", cloth="#2a2a30", glow=None,
+                   hide=[], kit=["long_hair", "hook"], rim="#a050ff", height=1.02),
+    "maelis": dict(base="monarch", skin="brown", hair="#163a5a", armor="#1a4a6a", accent="#4ad0ff", cloth="#123048", glow="#4ad0ff", cape="#123048",
+                   hide=[], kit=["long_hair", "trident", "cape"], rim="#3a8ee8", height=1.04),
+    "seraphine": dict(base="hooded", skin="pale", hair="#fff4d8", armor="#f0e8d8", accent="#ffd870", cloth="#f4eee0", glow="#fff0a0",
+                   hide=["hood"], kit=["long_hair", "halo", "bell", "robe"], rim="#ffe27a", height=1.02),
 }
 
 def palette(h):
@@ -324,6 +333,40 @@ def kit(h, arm, P, head_mesh):
             out.append(rigid(F.torus("CandleDish", W(0, 0.1, 0.0), 0.06, 0.015, rot=(math.radians(90), 0, 0)), arm, "Wrist.L", P["Gold"]))
             out.append(rigid(F.strand("Candle", [W(0, 0.1, 0.0), W(0, 0.1, -0.22)], 0.035, 0.032), arm, "Wrist.L", P["White"]))
             out.append(rigid(F.ellipsoid("Flame", W(0, 0.1, -0.28), (0.03, 0.03, 0.06), seg=10, rings=6), arm, "Wrist.L", P.get("Glow", P["Accent"])))
+        elif k == "lantern":
+            # A lantern hanging from the left hand: a brass cage round a glowing core (Wren).
+            W = lambda x, y, z: bp(arm, "Wrist.L", x, y, z)
+            out.append(rigid(F.strand("LanternHandle", [W(0, 0.08, 0.0), W(0, 0.08, 0.12)], 0.008, 0.008), arm, "Wrist.L", P["Gold"]))
+            c = W(0, 0.08, 0.24)
+            out.append(rigid(F.ellipsoid("LanternLight", c, (0.07, 0.07, 0.09), seg=10, rings=6), arm, "Wrist.L", P.get("Glow", P["Accent"])))
+            for i, rz in enumerate((0, 90)):
+                out.append(rigid(F.torus(f"LanternCage{i}", c, 0.085, 0.009, rot=(math.radians(90), 0, math.radians(rz))), arm, "Wrist.L", P["Gold"]))
+            out.append(rigid(F.ellipsoid("LanternCap", W(0, 0.08, 0.14), (0.06, 0.06, 0.025), seg=10, rings=4), arm, "Wrist.L", P["Gold"]))
+        elif k == "hook":
+            # A big iron hook on a short haft in the right hand (Kettle).
+            W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
+            out.append(rigid(F.strand("HookHaft", [W(0, 0.08, 0.15), W(0, 0.08, -0.35)], 0.024, 0.024), arm, "Wrist.R", P["Wood"]))
+            pts = [W(0, 0.08, -0.33), W(0, 0.08, -0.6), W(0.12, 0.08, -0.75), W(0.24, 0.08, -0.62), W(0.22, 0.08, -0.5)]
+            out.append(rigid(F.strand("Hook", pts, 0.03, 0.006), arm, "Wrist.R", P["Steel"]))
+            out.append(rigid(F.torus("HookBand", W(0, 0.08, -0.34), 0.03, 0.01), arm, "Wrist.R", P["Accent"]))
+        elif k == "trident":
+            # A trident through the right fist, three glowing prongs up (Maelis).
+            W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
+            out.append(rigid(F.strand("TridentShaft", [W(0, 0.08, 0.8), W(0, 0.08, -1.0)], 0.022, 0.022), arm, "Wrist.R", P["Gold"]))
+            out.append(rigid(F.strand("TridentBar", [W(-0.12, 0.08, -1.0), W(0.12, 0.08, -1.0)], 0.02, 0.02), arm, "Wrist.R", P["Gold"]))
+            for i, dx in enumerate((-0.12, 0.0, 0.12)):
+                tip = -1.32 if dx == 0 else -1.22
+                out.append(rigid(F.strand(f"Prong{i}", [W(dx, 0.08, -1.0), W(dx, 0.08, tip)], 0.018, 0.003), arm, "Wrist.R", P.get("Glow", P["Steel"])))
+        elif k == "bell":
+            # A golden hand bell in the left hand (Seraphine).
+            W = lambda x, y, z: bp(arm, "Wrist.L", x, y, z)
+            out.append(rigid(F.strand("BellHandle", [W(0, 0.08, 0.05), W(0, 0.08, -0.12)], 0.016, 0.016), arm, "Wrist.L", P["Wood"]))
+            c = W(0, 0.08, -0.12)
+            bell = F.lathe("Bell", [(0.09, -0.12), (0.075, -0.08), (0.055, -0.03), (0.03, 0.0)], seg=16, cap_bottom=False)
+            # lathe builds around the world Z axis at the origin: move it to the hand, mouth down.
+            bell.location = c
+            out.append(rigid(bell, arm, "Wrist.L", P["Gold"]))
+            out.append(rigid(F.ellipsoid("Clapper", c + Vector((0, 0, -0.11)), (0.022, 0.022, 0.022), seg=8, rings=4), arm, "Wrist.L", P.get("Glow", P["Accent"])))
         elif k == "cape":
             # A cape hanging from the shoulders down the back, flaring toward the hem (rigid on the chest).
             chest = bone_world(arm, "Chest"); top = chest.z + 0.2; back = chest.y + 0.2
