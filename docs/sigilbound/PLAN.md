@@ -92,7 +92,13 @@ Unfinished work saved from the stopped agents:
     - Tags are nudged apart: lowest first, each moves up 24 until it clears the others.
   - Also done: Windows in-place update (`Updater.UpdateWindows`). It downloads, then a hidden PowerShell script uses Expand-Archive and robocopy over the install folder and restarts the game. Any failure falls back to the link.
   - Check first in the screenshots: tag density with 7 units, and the skill buttons and description against the bottom safe area.
-- [ ] **11. Results screen.** Banner with stars and time, rewards, per-hero damage dealt / taken / healing, and Replay / Edit Team / Next.
+- [x] **11. Results screen.** (2026-11-25, step/11) Banner with stars and time, rewards, per-hero damage dealt / taken / healing, and Replay / Edit Team / Next.
+  - DONE: `BattleController.DrawResults` for campaign stages in landscape.
+    - Damage taken and healing done are tallied from BattleEvents (Damage, Heal) in the view. Damage dealt is `Unit.DmgDealt`.
+    - Shown instead of stars: heroes standing and the battle time.
+    - Edit Team calls `App.EditTeam(stage)`.
+  - Not done: Hard, Dungeon, Arena and Titan still use their old result boxes. Give them `DrawResults` too (same layout, mode-specific rewards) in a follow-up.
+  - Phase B (steps 6–11) is complete. Next is Phase C (art), plus checking every screen with the screenshot tour once the Linux preview works.
 
 ## Phase C: hero art (free tools first; the owner decides on paid tools after seeing the result)
 
