@@ -136,6 +136,11 @@ namespace Sigilbound.Core
             H("orla", "Orla Greywater", Rarity.Rare, Element.Tide, Role.Hp, S("Weed Lash", E, 0.08, 0, 1, Scale.Hp), S("River Brew", AA, 0, 4, Heal(0.17)), S("Marsh Tonic", AA, 0, 5, F(FxType.Regen, 2))),
             H("silas", "Silas Penumbra", Rarity.Rare, Element.Shadow, Role.Defense, S("Gate Strike", E, 0.9, 0, 1, Scale.Def, F(FxType.DefDown, 2, 0.3)), S("Penumbra Ward", SELF, 0, 4, Shield(0.32), F(FxType.Taunt, 2)), S("Black Gate", AE, 0.7, 5, 1, Scale.Def, F(FxType.DefDown, 2, 0.4))),
             H("wynn", "Wynn Brightfeather", Rarity.Rare, Element.Light, Role.Attack, S("Falcon Shot", E, 1.0, 0), S("Stooping Dive", E, 2.1, 3, Strip()), S("Feather Storm", AE, 0.8, 4, F(FxType.AtkDown, 2, 0.3))),
+            // ---- Roster phase 2, Glass and Storm. Step 26:
+            H("kestrel", "Kestrel Vane", Rarity.Rare, Element.Gale, Role.Attack, new SkillDef { Name = "Lance Thrust", Target = E, Mult = 0.9, Pierce = true }, new SkillDef { Name = "Skyfall Lance", Target = E, Mult = 1.8, Cooldown = 3, Pierce = true }, S("Gale Charge", AE, 0.8, 4, F(FxType.Slow, 2, 0.3))),
+            H("sorrel", "Sorrel Duskmere", Rarity.Rare, Element.Shadow, Role.Hp, S("Pick Strike", E, 0.08, 0, 1, Scale.Hp, F(FxType.Poison, 2, 0.3)), S("Deep Breath", AA, 0, 4, F(FxType.Regen, 2), Shield(0.15, FxTo.Self)), S("Cave-in", AE, 0.06, 4, 1, Scale.Hp, F(FxType.Poison, 2, 0.5))),
+            H("amber", "Amber Glasswright", Rarity.Rare, Element.Flame, Role.Defense, S("Glass Bash", E, 0.9, 0, 1, Scale.Def, F(FxType.Burn, 2, 0.3)), S("Kiln Shield", AA, 0, 4, Shield(0.15)), S("Molten Glass", SELF, 0, 5, Shield(0.2), F(FxType.Taunt, 2), F(FxType.Counter, 2))),
+            H("tobias", "Tobias Reed", Rarity.Rare, Element.Gale, Role.Support, S("Discord", E, 1.0, 0, F(FxType.AtkDown, 2, 0.3)), S("Marching Song", AA, 0, 4, F(FxType.SpdUp, 2), TmUp(0.2)), S("Hearthsong", AA, 0, 4, Heal(0.2), Cleanse())),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web

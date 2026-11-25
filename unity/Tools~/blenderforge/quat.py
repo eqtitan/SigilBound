@@ -114,6 +114,15 @@ HEROES = {
                    hide=["hood"], kit=["veil", "shield"], rim="#a050ff", height=1.02),
     "wynn":   dict(base="adventurer", skin="fair", hair="#e8e0c0", armor="#c8a860", accent="#fff0a0", cloth="#8a6a3a", glow="#fff2b0",
                    hide=[], kit=["spiky_hair", "bow", "quiver"], rim="#ffe27a", height=1.0),
+    # Roster phase 2, Glass and Storm. Step 26:
+    "kestrel": dict(base="adventurer", skin="tan", hair="#3a2a1a", armor="#5a7a9a", accent="#e0f0ff", cloth="#3a4a6a", glow="#c0e8ff",
+                   hide=[], kit=["bandana", "spear"], rim="#3fb57a", height=1.02),
+    "sorrel": dict(base="monarch", skin="brown", hair="#2a2a2a", armor="#4a3a4a", accent="#9aff6a", cloth="#3a2a3a", glow=None, cape="#2a1a2a",
+                   hide=["crown"], kit=["beard", "club", "cape"], rim="#a050ff", height=1.06),
+    "amber":  dict(base="hooded", skin="fair", hair="#e8a040", armor="#c87a30", accent="#ffe0a0", cloth="#7a4a20", glow="#ffb060",
+                   hide=["hood"], kit=["braid", "helm", "shield"], rim="#ff7a3a", height=0.98),
+    "tobias": dict(base="adventurer", skin="fair", hair="#a07040", armor="#6a8a5a", accent="#ffd080", cloth="#4a6a3a", glow=None,
+                   hide=[], kit=["long_hair", "lute"], rim="#3fb57a", height=1.0),
 }
 
 def palette(h):
@@ -148,7 +157,7 @@ ROLES = {
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
 }
 # Clean-shaven heroes (Shave = true in Core/Looks.cs): their beard is removed (adventurer heads only).
-SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn"}
+SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias"}
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}
@@ -454,6 +463,15 @@ def kit(h, arm, P, head_mesh):
             head.location = W(0.08, 0.08, -0.72)
             out.append(rigid(head, arm, "Wrist.R", P["Steel"]))
             out.append(rigid(F.box("AxePoll", W(-0.03, 0.08, -0.72), (0.04, 0.03, 0.06)), arm, "Wrist.R", P["Steel"]))
+        elif k == "lute":
+            # A lute held in the left hand (Tobias): a pear-shaped body, a long neck and a bent-back pegbox.
+            W = lambda x, y, z: bp(arm, "Wrist.L", x, y, z)
+            out.append(rigid(F.ellipsoid("LuteBody", W(0, 0.12, 0.05), (0.13, 0.17, 0.05), seg=16, rings=10), arm, "Wrist.L", P["Wood"]))
+            out.append(rigid(F.ellipsoid("LuteRose", W(0, 0.12, -0.002), (0.035, 0.035, 0.006), seg=12, rings=4), arm, "Wrist.L", P["Leather"]))
+            out.append(rigid(F.strand("LuteNeck", [W(0, 0.26, 0.04), W(0, 0.52, 0.04)], 0.018, 0.016), arm, "Wrist.L", P["Leather"]))
+            out.append(rigid(F.box("LutePegbox", W(0, 0.57, 0.07), (0.022, 0.05, 0.012), rot=(math.radians(35), 0, 0)), arm, "Wrist.L", P["Wood"]))
+            for i, dx in enumerate((-0.012, 0.0, 0.012)):
+                out.append(rigid(F.strand(f"LuteString{i}", [W(dx, 0.05, 0.0), W(dx, 0.53, 0.025)], 0.002, 0.002), arm, "Wrist.L", P["White"]))
         elif k == "cape":
             # A cape hanging from the shoulders down the back, flaring toward the hem (rigid on the chest).
             chest = bone_world(arm, "Chest"); top = chest.z + 0.2; back = chest.y + 0.2

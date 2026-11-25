@@ -27,9 +27,9 @@ X = [
 (1,"wynn","Wynn Brightfeather",R,Li,A,a,"spiky_hair, bow, quiver","Single big hit; Strip","Falconer of Stormcrown's foothills."),
 # Phase 2: Glass and Storm (chapters 6-10 regions; rare/epic)
 (2,"kestrel","Kestrel Vane",R,G,A,a,"bandana, spear","Pierce: hits the target and the one behind","Stormcrown lancer."),
-(2,"sorrel","Sorrel Duskmere",R,S,H,m,"cape, club","Regen while any enemy is Poisoned","Hollow Deep miner who survived the collapse."),
-(2,"amber","Amber Glasswright",R,F,D,h,"helm, shield","Shield on all allies (small)","Glass Wastes kiln-mistress with a fused-glass shield."),
-(2,"tobias","Tobias Reed",R,G,Su,a,"long_hair, lute*","SpdUp all allies; Tm boost","Wandering lute player of the high passes."),
+(2,"sorrel","Sorrel Duskmere",R,S,H,m,"cape, club","Poison on hit and on all enemies; team Regen with a self Shield","Hollow Deep miner who survived the collapse."),
+(2,"amber","Amber Glasswright",R,F,D,h,"helm, shield","Burn on hit; team Shield; self Shield, Taunt and Counter","Glass Wastes kiln-mistress with a fused-glass shield."),
+(2,"tobias","Tobias Reed",R,G,Su,a,"long_hair, lute*","SpdUp and Turn Meter for all allies; team Heal and Cleanse","Wandering lute player of the high passes."),
 (2,"nerys","Nerys Coldspring",R,T,Su,h,"circlet, mirror","Cleanse all allies; DefUp","Sunken Cathedral acolyte."),
 (2,"hale","Hale Sunforge",R,Li,H,m,"beard, hammer, cape","Heal self on hit; Taunt","Bellspire smith who forged the waystone lamps."),
 (2,"juno","Juno Ashveil",R,F,A,h,"veil, whip","Poison on hit; spreads on kill","Fire dancer of the Last Pyre."),
