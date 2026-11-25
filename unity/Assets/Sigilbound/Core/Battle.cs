@@ -188,6 +188,13 @@ namespace Sigilbound.Core
                     if (u.Titan) d = Math.Min(d, Allies.Max(a => a.Atk) * 3);
                     ApplyDamage(u, Js.RoundInt(d), null, ev, false, 1, true);
                 }
+                else if (e.Type == FxType.Burn && u.Alive)
+                {
+                    // Burn: 5% max HP a turn, a separate damage-over-time that stacks with Poison.
+                    double d = u.MaxHp * 0.05;
+                    if (u.Titan) d = Math.Min(d, Allies.Max(a => a.Atk) * 3);
+                    ApplyDamage(u, Js.RoundInt(d), null, ev, false, 1, true);
+                }
                 else if (e.Type == FxType.Regen) HealUnit(u, u.MaxHp * 0.08, ev);
             }
             bool stunned = u.Alive && u.Has(FxType.Stun);
@@ -271,9 +278,44 @@ namespace Sigilbound.Core
                 default: targets = new List<Unit> { u }; break;
             }
             targets = targets.Where(t => t != null).ToList();
+            // Spread: remember the target's damage-over-time before it can die (death clears effects).
+            var dots = sk.Spread ? targets.ToDictionary(t => t, t => t.Effects.Where(e => e.Type == FxType.Poison || e.Type == FxType.Burn).Select(e => new Effect { Type = e.Type, Turns = Math.Max(1, e.Turns) }).ToList()) : null;
             if (sk.Mult > 0)
                 foreach (var t in targets)
-                    for (int h = 0; h < sk.Hits && t.Alive; h++) Hit(u, t, sk, ev);
+                    for (int h = 0; h < sk.Hits && t.Alive; h++)
+                    {
+                        Hit(u, t, sk, ev);
+                        if (sk.Pierce && sk.Target == Target.Enemy) { var behind = Behind(t); if (behind != null) Hit(u, behind, sk, ev, 0.5); }
+                    }
+            if (sk.Execute > 0)
+                foreach (var t in targets.Where(t => t.Alive && t.Ally != u.Ally && t.Hp < t.MaxHp * sk.Execute))
+                {
+                    if (t.Boss || t.Titan) { ev.Add(new BattleEvent { Type = EvType.Text, Unit = t, Text = "Immune" }); continue; }
+                    ev.Add(new BattleEvent { Type = EvType.Text, Unit = t, Text = "Executed" });
+                    ApplyDamage(t, t.Hp, u, ev, false, 1, true);
+                }
+            if (sk.Spread)
+                foreach (var t in targets.Where(t => !t.Alive && dots[t].Count > 0))
+                {
+                    var next = Behind(t);
+                    if (next == null) continue;
+                    foreach (var d in dots[t])
+                    {
+                        var have = next.Effects.FirstOrDefault(e => e.Type == d.Type);
+                        if (have != null) have.Turns = Math.Max(have.Turns, d.Turns); else next.Effects.Add(d);
+                    }
+                    ev.Add(new BattleEvent { Type = EvType.Text, Unit = next, Text = "Spread!" });
+                }
+            // Counter: a unit with Counter strikes back at a single-target attacker with its basic skill
+            // at half power (counter hits never trigger counters).
+            if (sk.Mult > 0 && sk.Target == Target.Enemy && u.Alive)
+                foreach (var t in targets.Where(t => t.Alive && t.Has(FxType.Counter) && t.Ally != u.Ally))
+                {
+                    ev.Add(new BattleEvent { Type = EvType.Text, Unit = t, Text = "Counter!" });
+                    var basic = t.Template.Skills[0];
+                    if (basic.Mult > 0) Hit(t, u, basic, ev, 0.5);
+                    if (!u.Alive) break;
+                }
             foreach (var f in sk.Fx)
             {
                 var recips = f.To == FxTo.Self ? new List<Unit> { u } : f.To == FxTo.Allies ? Living(own) : f.To == FxTo.Enemies ? Living(foes) : targets.Where(t => t.Alive).ToList();
@@ -283,11 +325,22 @@ namespace Sigilbound.Core
             return ev;
         }
 
-        void Hit(Unit u, Unit t, SkillDef sk, List<BattleEvent> ev)
+        // The next living unit after `t` on its own side (the one "behind" it, for Pierce and Spread).
+        Unit Behind(Unit t)
+        {
+            var side = (t.Ally ? Allies : Enemies).Where(x => x.Alive && x != t).ToList();
+            if (side.Count == 0) return null;
+            var all = t.Ally ? Allies : Enemies;
+            int i = all.IndexOf(t);
+            for (int k = 1; k <= all.Count; k++) { var c = all[(i + k) % all.Count]; if (c.Alive && c != t) return c; }
+            return null;
+        }
+
+        void Hit(Unit u, Unit t, SkillDef sk, List<BattleEvent> ev, double part = 1)
         {
             double stat = sk.Scale == Scale.Def ? DefOf(u) : sk.Scale == Scale.Hp ? u.MaxHp : AtkOf(u);
             double em = ElementMultiplier(u.El, t.El);
-            double dmg = stat * sk.Mult * _boost * em * (650 / (650 + DefOf(t)));
+            double dmg = stat * sk.Mult * part * _boost * em * (650 / (650 + DefOf(t)));
             bool crit = _rng.NextDouble() * 100 < u.Crit && em >= 1;
             if (crit) dmg *= 1 + u.Cdmg / 100.0;
             dmg *= 0.95 + _rng.NextDouble() * 0.1;
@@ -333,6 +386,14 @@ namespace Sigilbound.Core
                 case FxType.Heal: HealUnit(r, r.MaxHp * f.Pct * _boost, ev); return;
                 case FxType.Tm: r.Tm += TmFull * f.Val; ev.Add(new BattleEvent { Type = EvType.Text, Unit = r, Text = "Turn Meter +" }); return;
                 case FxType.TmDrain: r.Tm = Math.Max(0, r.Tm - TmFull * f.Val); ev.Add(new BattleEvent { Type = EvType.Text, Unit = r, Text = "Turn Meter -" }); return;
+                case FxType.Pull:
+                {
+                    // Pull: take turn meter from the target and give it to the attacker.
+                    double taken = Math.Min(r.Tm, TmFull * f.Val);
+                    r.Tm -= taken; u.Tm += taken;
+                    ev.Add(new BattleEvent { Type = EvType.Text, Unit = r, Text = "Pulled" });
+                    return;
+                }
                 case FxType.Cleanse:
                     if (r.Effects.RemoveAll(e => !FxDef.IsBuff(e.Type)) > 0) ev.Add(new BattleEvent { Type = EvType.Text, Unit = r, Text = "Cleansed" });
                     return;

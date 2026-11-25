@@ -189,7 +189,9 @@ Unfinished work saved from the stopped agents:
     - Beards: the adventurer head's beard shares the hair material, and quat.py never applied Looks.cs `Shave`. Fixed with a SHAVE list (lower-front hair faces removed). Pell, Kettle, Lumen, Kaito, Oriel, Nettle, Cole and Marisol are rebaked clean-shaven, matching the game's looks.
   - STEP 24 DONE (2026-11-25): Fennick, Orla, Silas, Wynn. Preview: `docs/sigilbound/art/prototype/step24-roadwardens.png`. Balance after tuning: Fennick 55% vs Corvan/Tamsin (he started at 1%: Rare supports need a heal), Orla 46% vs Velka, Silas 43% vs Hask/Gorrum, Wynn 56% vs Ysolde/Lumen/Nyx.
     - Phase 1 (Roadwardens) is complete: 16 heroes. Their ROSTER rows hold the final kits.
-- [ ] **25. Engine: phase 2 mechanics** (Burn, Pierce, Execute, Pull, spread on kill, counter Taunt), with tests.
+- [x] **25. Engine: phase 2 mechanics** (Burn, Pierce, Execute, Pull, spread on kill, counter Taunt), with tests.
+  - DONE (2026-11-25): `FxType.Burn/Pull/Counter` (added after the web's 16 effects, so IsStatus/IsBuff and parity are unchanged), and `SkillDef.Pierce/Execute/Spread` in Core/Battle.cs. Skill text and status labels: BRN, CTR. 12 checks in `unity/Tests~/MechanicsTests.cs`. Rules in ROSTER.md section 4.
+  - Not done: battle VFX made for these mechanics. They show through the existing status, damage and floating-text events ("Executed", "Pulled", "Spread!", "Counter!").
 - [ ] **26–30. Phase 2 heroes (Glass and Storm).**
 - [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.
 

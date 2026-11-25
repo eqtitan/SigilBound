@@ -12,20 +12,26 @@ namespace Sigilbound.Core
     public enum Role { Attack, Defense, Hp, Support }
     public enum Target { Enemy, AllEnemies, Ally, AllAllies, Self }
     public enum Scale { Atk, Def, Hp }
-    public enum FxType { AtkUp, DefUp, SpdUp, Regen, Shield, Taunt, AtkDown, DefDown, Slow, Poison, Stun, Heal, Tm, TmDrain, Cleanse, Strip }
+    // The first 16 are the web game's (in its order: IsStatus/IsBuff compare by order). Burn, Pull and
+    // Counter are Unity-only roster mechanics (docs/sigilbound/ROSTER.md section 4), added at the end.
+    public enum FxType { AtkUp, DefUp, SpdUp, Regen, Shield, Taunt, AtkDown, DefDown, Slow, Poison, Stun, Heal, Tm, TmDrain, Cleanse, Strip, Burn, Pull, Counter }
     public enum FxTo { Target, Self, Allies, Enemies }
 
     public sealed class FxDef
     {
         public FxType Type; public int Turns = 1; public double Chance = -1; public double Pct; public double Val; public FxTo To = FxTo.Target;
-        public bool IsStatus => Type <= FxType.Stun;
-        public static bool IsBuff(FxType t) => t <= FxType.Taunt;
+        public bool IsStatus => Type <= FxType.Stun || Type == FxType.Burn || Type == FxType.Counter;
+        public static bool IsBuff(FxType t) => t <= FxType.Taunt || t == FxType.Counter;
     }
 
     public sealed class SkillDef
     {
         public string Name; public Target Target; public double Mult; public int Cooldown; public int Hits = 1; public Scale Scale = Scale.Atk;
         public FxDef[] Fx = Array.Empty<FxDef>();
+        // Roster mechanics (Unity only; all off for the web game's skills):
+        public bool Pierce;      // each hit also strikes the next enemy in line for half damage
+        public double Execute;   // a target left below this HP fraction falls at once (not bosses or the Titan)
+        public bool Spread;      // if the target dies, its Poison and Burn jump to the next enemy
     }
 
     public sealed class HeroDef

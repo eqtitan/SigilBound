@@ -157,6 +157,19 @@ final ally. This phase needs the new chapters first (a separate campaign step).
 
 ## 4. New mechanics (engine work, before the heroes that use them)
 
+**Phase 2 mechanics are built (PLAN step 25):**
+
+| Mechanic | In data | Rule |
+|---|---|---|
+| Burn | `FxType.Burn` | 5% max HP a turn; stacks with Poison; ignores shields; a debuff (Cleanse removes it); capped on the Titan like Poison. |
+| Pierce | `SkillDef.Pierce` | Each hit also strikes the next enemy in line for half damage. |
+| Execute | `SkillDef.Execute` (e.g. 0.25) | A target left below that HP fraction falls at once; bosses and the Titan are immune. |
+| Pull | `FxType.Pull` (Val) | Takes that much turn meter from the target and gives it to the attacker. |
+| Spread | `SkillDef.Spread` | If the target dies, its Poison and Burn move to the next enemy. |
+| Counter | `FxType.Counter` (buff) | Hit by a single-target attack, the holder strikes back with its basic skill at half power; Strip removes it. |
+
+They are tested in `unity/Tests~/MechanicsTests.cs`. They are Unity only: the web game's 24 heroes use none of them, and the web effect order is unchanged. The table below is the original plan; phase 3's mechanics (revive, damage that grows with HP lost, a heal when an ally falls) are still to build.
+
 | Mechanic | Used by | Notes |
 |---|---|---|
 | Burn (damage over time that stacks with Poison) | Ignis, Juno, Sienna, Gideon | Today's hooks say "Burn-style Poison": either a new FxType or Poison with a fire look |
