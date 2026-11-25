@@ -115,6 +115,11 @@ namespace Sigilbound.Core
             H("nettle", "Nettle Quickfinch", Rarity.Common, Element.Gale, Role.Attack, S("Twin Sting", E, 0.48, 0, 2, Scale.Atk, F(FxType.Slow, 2, 0.2)), S("Hedge Dash", E, 1.4, 3)),
             H("hobb", "Hobb Lanternjaw", Rarity.Common, Element.Light, Role.Defense, S("Lamp Bash", E, 0.9, 0, 1, Scale.Def), S("Waystone Ward", AA, 0, 4, Shield(0.04), F(FxType.DefUp, 2))),
             H("greta", "Greta Brineknot", Rarity.Common, Element.Tide, Role.Support, S("Net Toss", E, 1.0, 0, F(FxType.Slow, 2, 0.4)), S("Mend the Nets", AA, 0, 4, Heal(0.12), Cleanse())),
+            // Step 22:
+            H("cole", "Cole Ashworth", Rarity.Common, Element.Flame, Role.Attack, S("Cleave", E, 0.85, 0), S("Ash Split", E, 1.1, 3, F(FxType.AtkUp, 2, -1, FxTo.Self))),
+            H("tilly", "Tilly Mothwing", Rarity.Common, Element.Shadow, Role.Support, S("Moth Swarm", E, 1.0, 0, F(FxType.DefDown, 2, 0.3)), S("Dusk Wings", AE, 0.3, 4, F(FxType.DefDown, 2, 0.75), Drain(0.15, 0.5))),
+            H("ronan", "Ronan Stoutbarrow", Rarity.Common, Element.Gale, Role.Hp, S("Tankard Swing", E, 0.08, 0, 1, Scale.Hp), S("Hearth Feast", AA, 0, 4, F(FxType.Regen, 2), F(FxType.Taunt, 2, -1, FxTo.Self), Shield(0.2, FxTo.Self))),
+            H("isla", "Isla Fenlight", Rarity.Common, Element.Light, Role.Support, S("Chime", E, 1.0, 0), S("Fenlight Peal", AA, 0, 4, Heal(0.08), F(FxType.SpdUp, 2))),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web

@@ -116,6 +116,10 @@ namespace Sigilbound.Core
             ["nettle"] = new HeroLook { Skin = "fair", Hair = "#8a5a2a", Style = "messy", Gear = "bandana", Armor = "#6a8a3a", Accent = "#e8c84a", Cloth = "#4a5a2a", Prop = "daggers", Base = "adventurer", Height = 0.92, Shave = true },
             ["hobb"] = new HeroLook { Skin = "brown", Hair = "#3a2a1a", Style = "short", Gear = "helm", Armor = "#8a8070", Accent = "#ffd870", Cloth = "#5a4a3a", Prop = "shield", Beard = "stubble", Base = "monarch", Height = 1.0, Hide = new[] { "crown" } },
             ["greta"] = new HeroLook { Skin = "fair", Hair = "#c8b8a0", Style = "braid", Gear = "none", Armor = "#4a7a8a", Accent = "#e8d8b0", Cloth = "#2a4a5a", Prop = "staff", Base = "hooded", Height = 0.96, Hide = new[] { "hood" } },
+            ["cole"] = new HeroLook { Skin = "fair", Hair = "#2a2420", Style = "spiky", Gear = "none", Armor = "#5a4a3a", Accent = "#ff8a3a", Cloth = "#3a2a22", Prop = "hammer", Base = "adventurer", Height = 1.0, Shave = true },
+            ["tilly"] = new HeroLook { Skin = "pale", Hair = "#5a4a6a", Style = "long", Gear = "veil", Armor = "#3a3048", Accent = "#c8a8ff", Cloth = "#2a2238", Prop = "candle", Glow = "#e0c8ff", Base = "hooded", Height = 0.92, Hide = new[] { "hood" } },
+            ["ronan"] = new HeroLook { Skin = "tan", Hair = "#8a5a2a", Style = "short", Gear = "none", Armor = "#6a5a3a", Accent = "#c8d870", Cloth = "#4a6a3a", Prop = "hammer", Beard = "full", Base = "monarch", Height = 1.04, Hide = new[] { "crown" } },
+            ["isla"] = new HeroLook { Skin = "fair", Hair = "#e8d890", Style = "long", Gear = "none", Armor = "#e8e0c8", Accent = "#ffd870", Cloth = "#c8c0a8", Prop = "bell", Glow = "#fff0a0", Base = "hooded", Height = 0.97, Hide = new[] { "hood" } },
         };
     }
 }
