@@ -196,9 +196,43 @@ namespace Sigilbound.Client
             var g = new Gradient(); g.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(Color.white, 1) }, new[] { new GradientAlphaKey(0, 0), new GradientAlphaKey(glowy ? 1 : 0.8f, 0.2f), new GradientAlphaKey(glowy ? 1 : 0.8f, 0.8f), new GradientAlphaKey(0, 1) });
             col.color = g;
             var r = go.GetComponent<ParticleSystemRenderer>();
+            // Textured, blended particles: without a texture each mote drew as a solid square
+            // (the "orange squares" on devices). Leaves and petals get a leaf shape, the rest a soft dot.
+            bool leafy = th.Motes == "leaves" || th.Motes == "petals";
+            var tex = leafy ? MoteTex(true) : MoteTex(false);
             var add = Shader.Find("Legacy Shaders/Particles/Additive");
-            r.sharedMaterial = glowy && add != null ? new Material(add) : Materials.Unlit(Color.white);
+            var blend = Shader.Find("Sprites/Default");
+            var mat = glowy && add != null ? new Material(add) : blend != null ? new Material(blend) : Materials.Unlit(Color.white);
+            mat.mainTexture = tex;
+            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
+            r.sharedMaterial = mat;
             ps.Play();
+        }
+
+        static Texture2D _dotTex, _leafTex;
+        static Texture2D MoteTex(bool leaf)
+        {
+            if (leaf ? _leafTex != null : _dotTex != null) return leaf ? _leafTex : _dotTex;
+            const int n = 32;
+            var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = leaf ? "mote_leaf" : "mote_dot" };
+            var px = new Color[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float u = (x + 0.5f) / n * 2 - 1, v = (y + 0.5f) / n * 2 - 1, a;
+                    if (leaf)
+                    {
+                        // A pointed leaf along the diagonal: an ellipse pinched at both ends, with a soft edge.
+                        float pu = (u + v) * 0.7071f, pv = (v - u) * 0.7071f;
+                        float w = 0.42f * (1 - pu * pu);
+                        a = Mathf.Clamp01((w - Mathf.Abs(pv)) * 10f) * Mathf.Clamp01((1 - Mathf.Abs(pu)) * 6f);
+                    }
+                    else { float d = Mathf.Sqrt(u * u + v * v); a = Mathf.Clamp01(1 - d); a *= a; }
+                    px[y * n + x] = new Color(1, 1, 1, a);
+                }
+            t.SetPixels(px); t.Apply();
+            if (leaf) _leafTex = t; else _dotTex = t;
+            return t;
         }
     }
 
