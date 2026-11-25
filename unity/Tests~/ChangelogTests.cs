@@ -27,8 +27,9 @@ static class ChangelogTests
 
         var demo = Changelog.Parse("## 2026-01-03 | C\nnew: c\n## 2026-01-02 | B\nfix: b\n## 2026-01-01 | A\nchange: a\n");
         check(Changelog.Unseen(demo, "").Select(e => e.Title).SequenceEqual(new[] { "C" }), "changelog: first launch shows only the newest");
-        check(Changelog.Unseen(demo, "2026-01-01 | A").Select(e => e.Title).SequenceEqual(new[] { "C", "B" }), "changelog: after an update, everything since the last seen entry");
-        check(Changelog.Unseen(demo, "2026-01-03 | C").Count == 0, "changelog: nothing new, no window");
+        check(Changelog.Unseen(demo, "2026-01-01 | A | 1").Select(e => e.Title).SequenceEqual(new[] { "C", "B" }), "changelog: after an update, everything since the last seen entry");
+        check(Changelog.Unseen(demo, "2026-01-03 | C | 1").Count == 0, "changelog: nothing new, no window");
+        check(Changelog.Unseen(demo, "2026-01-03 | C | 0").Select(e => e.Title).SequenceEqual(new[] { "C" }), "changelog: an entry that gained lines shows again");
     }
 }
 
