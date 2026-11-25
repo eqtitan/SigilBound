@@ -125,7 +125,7 @@ namespace Sigilbound.Client
             Scroller.End();
             if (_settingsH > view.height + 1) // a hint that there's more below
                 GUI.DrawTexture(new Rect(view.x, view.yMax - 18, view.width, 18), Ui.GradientTex(new Color(0, 0, 0, 0), new Color(0, 0, 0, 0.45f), null, 2));
-            Ui.Text(new Rect(outer.x, outer.yMax - 70, outer.width, 18), $"Sigilbound (Unity) v{Application.version}", 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+            Ui.Text(new Rect(outer.x, outer.yMax - 70, outer.width, 18), $"Sigilbound (Unity) v{Application.version}{(Updater.MyBuild > 0 ? $" · build {Updater.MyBuild}" : "")}", 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
             if (Ui.Button(new Rect(outer.x, outer.yMax - 46, outer.width, 44), "Done")) CloseModal();
         }
 
