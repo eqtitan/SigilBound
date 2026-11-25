@@ -205,6 +205,20 @@ namespace Sigilbound.Core
             FaceTable["solenne"] = new FaceSpec { Brow = -6d, Mouth = "smile", Iris = "#ffd860" };
             FaceTable["nell"] = new FaceSpec { Brow = 10d, Mouth = "flat", Iris = "#8ab050" };
             FaceTable["briar"] = new FaceSpec { Brow = 12d, Mouth = "smirk", Iris = "#7ac040" };
+
+            // Step 39 (Sigil Bearers 1).
+            KitTable["perrin"] = new Dictionary<string, object> { ["band"] = "#e8e0c0", ["shield"] = "round", ["belt"] = true };
+            KitTable["loam"] = new Dictionary<string, object> { ["shield"] = "round", ["pack"] = false };
+            KitTable["merrit"] = new Dictionary<string, object> { ["belt"] = "#ffd860", ["pack"] = true };
+            KitTable["sienna"] = new Dictionary<string, object> { ["hair"] = "braid", ["back"] = "quiver" };
+            BodyTable["perrin"] = new BodySpec { Parts = new Dictionary<string, string>(), Hide = new string[0], H = 1.0d };
+            BodyTable["loam"] = new BodySpec { Parts = new Dictionary<string, string>(), Hide = new[] { "crown" }, H = 1.04d, Bulk = new[] { 1.15d, 1.05d, 1.1d } };
+            BodyTable["merrit"] = new BodySpec { Parts = new Dictionary<string, string>(), Hide = new string[0], Shave = true, H = 0.96d };
+            BodyTable["sienna"] = new BodySpec { Parts = new Dictionary<string, string>(), Hide = new[] { "hood" }, H = 0.98d };
+            FaceTable["perrin"] = new FaceSpec { Brow = 4d, Mouth = "flat", Iris = "#4a7a9a" };
+            FaceTable["loam"] = new FaceSpec { Brow = -4d, Mouth = "smile", Iris = "#6a7a3a" };
+            FaceTable["merrit"] = new FaceSpec { Brow = 6d, Mouth = "smile", Iris = "#c8a040" };
+            FaceTable["sienna"] = new FaceSpec { Brow = 10d, Mouth = "smirk", Iris = "#ff8a30" };
         }
     }
 }

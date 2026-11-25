@@ -188,6 +188,11 @@ namespace Sigilbound.Core
             H("solenne", "Solenne Dawnborn", Rarity.Legendary, Element.Light, Role.Hp, S("Sun Hammer", E, 0.09, 0, 1, Scale.Hp), S("Dawn Vigil", AA, 0, 6, new FxDef { Type = FxType.Revive, Pct = 0.3, Turns = 3 }), S("Saint's Light", AA, 0, 4, F(FxType.Regen, 2), Shield(0.1), F(FxType.Taunt, 2, -1, FxTo.Self))),
             H("nell", "Nell Shadowgrass", Rarity.Common, Element.Shadow, Role.Attack, S("Reed Hook", E, 0.88, 0, F(FxType.Poison, 2, 0.25)), S("Fen Snare", E, 1.15, 3, F(FxType.Slow, 2, 0.5))),
             H("briar", "Briar Wildroot", Rarity.Rare, Element.Gale, Role.Attack, S("Thorn Lash", E, 0.6, 0, 2, Scale.Atk, F(FxType.Poison, 2, 0.3)), S("Bramble Whip", E, 2.0, 3, F(FxType.Slow, 2, 0.5)), S("Wild Thicket", AE, 0.9, 4, F(FxType.Poison, 2, 0.5))),
+            // ---- Roster phase 4, The Sigil Bearers. Step 39:
+            H("perrin", "Perrin Gullsby", Rarity.Common, Element.Tide, Role.Defense, S("Harbor Bash", E, 0.85, 0, 1, Scale.Def, F(FxType.Slow, 2, 0.1)), S("Breakwater", AA, 0, 4, Shield(0.04), F(FxType.DefUp, 2))),
+            H("loam", "Loam Bracken", Rarity.Common, Element.Gale, Role.Defense, S("Plough Bash", E, 0.9, 0, 1, Scale.Def), S("Hold the Gate", AA, 0, 4, F(FxType.DefUp, 2), TmUp(0.03))),
+            H("merrit", "Merrit Vellum", Rarity.Common, Element.Light, Role.Attack, S("Squire's Cut", E, 0.9, 0, new FxDef { Type = FxType.Strip, Chance = 0.2 }), S("Oath Strike", E, 1.4, 3)),
+            H("sienna", "Sienna Firethorn", Rarity.Rare, Element.Flame, Role.Attack, S("Ember Arrow", E, 1.0, 0, F(FxType.Burn, 2, 0.4)), S("Grove Volley", AE, 0.85, 4, F(FxType.Burn, 2, 0.5)), S("Heartshot", E, 2.0, 3)),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web

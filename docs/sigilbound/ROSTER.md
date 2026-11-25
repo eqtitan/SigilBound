@@ -135,11 +135,11 @@ final ally. This phase needs the new chapters first (a separate campaign step).
 | Id | Name | Rarity | Element | Role | Body | Look and kit (* = new kit piece) | Mechanic hook | Concept |
 |---|---|---|---|---|---|---|---|---|
 | `wick` | Saint Wick of the Lamps | Legendary | Flame | Support | adventurer | halo, candle, cape | AtkUp all; Heal all; Cleanse | The urchin who lit the city lamps, grown into the keeper of the Flame shard's hearth. |
-| `perrin` | Perrin Gullsby | Common | Tide | Defense | adventurer | bandana, shield | Taunt; DefUp self | Harbour guard of the new act's port city. |
-| `loam` | Loam Bracken | Common | Gale | Defense | monarch | beard, shield | Taunt; Shield self | Farmer who held the gate with a plough-shield. |
-| `merrit` | Merrit Vellum | Common | Light | Attack | adventurer | spiky_hair, sword | Hit; Strip | Squire to the Sigil Bearers. |
+| `perrin` | Perrin Gullsby | Common | Tide | Defense | adventurer | bandana, shield | Slow on hit (small chance); small team Shield and DefUp | Harbour guard of the new act's port city. |
+| `loam` | Loam Bracken | Common | Gale | Defense | monarch | beard, shield | Team DefUp with a little Turn Meter | Farmer who held the gate with a plough-shield. |
+| `merrit` | Merrit Vellum | Common | Light | Attack | adventurer | spiky_hair, sword | May Strip on hit; a big hit | Squire to the Sigil Bearers. |
 | `calder` | Calder Stormglass | Epic | Light | Support | monarch | beard, lantern | SpdUp all allies; Heal the lowest | Lighthouse keeper whose beam guides ships, and allies, home. |
-| `sienna` | Sienna Firethorn | Rare | Flame | Attack | hooded | braid, bow, quiver | Burn-style Poison; AoE | Archer of the ember groves. |
+| `sienna` | Sienna Firethorn | Rare | Flame | Attack | hooded | braid, bow, quiver | Burn on hit and on all enemies; a big single hit | Archer of the ember groves. |
 | `dorian` | Dorian Lowe | Rare | Tide | Hp | monarch | beard, anchor* | Regen all; Taunt | Harbourmaster of the port city. |
 | `ivo` | Ivo Brightmantle | Rare | Light | Hp | monarch | helm, hammer, cape | Heal self; DefUp | Bell-tower guard. |
 | `saoirse` | Saoirse Wraithmoor | Rare | Shadow | Defense | hooded | veil, shield | Shield; TmDrain attacker | Moor-walker who guards the barrows. |
