@@ -120,6 +120,11 @@ namespace Sigilbound.Core
             H("tilly", "Tilly Mothwing", Rarity.Common, Element.Shadow, Role.Support, S("Moth Swarm", E, 1.0, 0, F(FxType.DefDown, 2, 0.3)), S("Dusk Wings", AE, 0.3, 4, F(FxType.DefDown, 2, 0.75), Drain(0.15, 0.5))),
             H("ronan", "Ronan Stoutbarrow", Rarity.Common, Element.Gale, Role.Hp, S("Tankard Swing", E, 0.08, 0, 1, Scale.Hp), S("Hearth Feast", AA, 0, 4, F(FxType.Regen, 2), F(FxType.Taunt, 2, -1, FxTo.Self), Shield(0.2, FxTo.Self))),
             H("isla", "Isla Fenlight", Rarity.Common, Element.Light, Role.Support, S("Chime", E, 1.0, 0), S("Fenlight Peal", AA, 0, 4, Heal(0.08), F(FxType.SpdUp, 2))),
+            // Step 23 (the first new Rares):
+            H("dunstan", "Dunstan Oaken", Rarity.Rare, Element.Gale, Role.Defense, S("Shield Bash", E, 0.9, 0, 1, Scale.Def), S("Muster", AA, 0, 4, F(FxType.DefUp, 2), F(FxType.Taunt, 2, -1, FxTo.Self)), S("Old Guard", AA, 0, 5, Shield(0.18))),
+            H("marisol", "Marisol Wavecrest", Rarity.Rare, Element.Tide, Role.Attack, S("Pearl Strike", E, 1.0, 0), S("Riptide Dive", E, 1.9, 3, F(FxType.Slow, 2, 0.5)), S("Wavebreak", AE, 0.85, 4, F(FxType.Slow, 2, 0.4))),
+            H("vesper", "Vesper Gloam", Rarity.Rare, Element.Shadow, Role.Attack, S("Gloom Cut", E, 0.6, 0, 2, Scale.Atk), S("Poisoned Edge", E, 2.1, 3, F(FxType.Poison, 2, 0.7)), S("Nightfall Feint", AE, 0.85, 4, F(FxType.DefDown, 2, 0.5))),
+            H("brega", "Brega Ironmoss", Rarity.Rare, Element.Tide, Role.Defense, S("Barnacle Bash", E, 0.9, 0, 1, Scale.Def, F(FxType.Slow, 2, 0.25)), S("Lockkeeper", SELF, 0, 4, Shield(0.2), F(FxType.Taunt, 2)), S("Floodgate", AE, 0.6, 5, 1, Scale.Def, F(FxType.Slow, 2, 0.5))),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web

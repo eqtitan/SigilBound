@@ -63,7 +63,7 @@ new mechanics apart from the `anchor` and `net` kit.
 | `dunstan` | Dunstan Oaken | Rare | Gale | Defense | monarch | helm, shield, cape | Taunt; DefUp on allies | Old shield-captain of the Thornwick militia. |
 | `marisol` | Marisol Wavecrest | Rare | Tide | Attack | adventurer | ponytail, trident | AoE hit; Slow | Drowned Mill pearl diver turned raider of the Hollow. |
 | `vesper` | Vesper Gloam | Rare | Shadow | Attack | hooded | mask, daggers | Poison; DefDown | Thief who works the Hollow Deep's edges. |
-| `brega` | Brega Ironmoss | Rare | Tide | Defense | monarch | helm, shield, beard | Shield on self; Taunt; DefUp self | Mill-lock keeper in barnacled plate. |
+| `brega` | Brega Ironmoss | Rare | Tide | Defense | monarch | helm, shield, beard | Shield and Taunt on self; AoE Slow | Mill-lock keeper in barnacled plate. |
 | `fennick` | Fennick Sootpaw | Rare | Flame | Support | adventurer | bandana, candle | AtkUp all allies; Poison on all enemies | Ashgrave firework maker. |
 | `orla` | Orla Greywater | Rare | Tide | Hp | hooded | long_hair, staff, robe | Regen; Heal scaling with HP | Marsh healer who brews from river weed. |
 | `silas` | Silas Penumbra | Rare | Shadow | Defense | hooded | veil, shield | Shield; DefDown on the attacker | Bellspire gatekeeper sworn to the dark. |

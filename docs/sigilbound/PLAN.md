@@ -45,7 +45,7 @@ Unfinished work saved from the stopped agents:
   - A CI job that builds a StandaloneLinux64 player and publishes it to a `unity-preview` release.
   - A script that runs it under xvfb here and saves the screenshots.
   - From now on, every step checks its screenshots before it's marked done.
-- [ ] **4. Shaders in builds.** (2026-11-25: the stand-in heroes were really two model-loading bugs, fixed in builds 30 and 35; see step 20. Close this together with step 20.) The GLB heroes, particles and Sigilbound/Character are stripped from builds, so stand-in figures and orange squares appear. Include them via Always Included Shaders, a ShaderVariantCollection or Resources materials, glTFast's shaders included. Done when the screenshots show the real heroes and soft particles.
+- [x] **4. Shaders in builds.** (DONE with step 20, 2026-11-25: the stand-in heroes were really two model-loading bugs, fixed in builds 30 and 35; see step 20. Close this together with step 20.) The GLB heroes, particles and Sigilbound/Character are stripped from builds, so stand-in figures and orange squares appear. Include them via Always Included Shaders, a ShaderVariantCollection or Resources materials, glTFast's shaders included. Done when the screenshots show the real heroes and soft particles.
   - 2026-11-25, partial (step/4):
     - Particles fixed. The orange squares were the arena motes (Scenery.cs) on an untextured material; they now use a leaf or soft-dot texture on a blended material.
     - Shaders were already handled: UrpSetup adds Always Included Shaders, and Resources holds the HeroLit, HeroGlow and Character materials. The GLB heroes use SigilMaterialGenerator → Materials.Lit, NOT glTFast's shaders, so shader stripping is probably NOT why the heroes fall back to stand-ins.
@@ -164,7 +164,7 @@ Unfinished work saved from the stopped agents:
 
 ## Phase D: the roster grows (from docs/sigilbound/ROSTER.md)
 
-- [ ] **20. Verify all 24 baked heroes in game.** Check the menu lineup, battle and hero viewer in the screenshot tour and on a device, then polish (robes that follow the legs, colour and glow levels).
+- [x] **20. Verify all 24 baked heroes in game.** DONE 2026-11-25: the build 37 gallery shows 24/24 real models on their spots (`docs/sigilbound/art/prototype/step20-gallery-build37.png`); colours and glows read well. The spell-clip fix (build 42) is to be confirmed on a device. Check the menu lineup, battle and hero viewer in the screenshot tour and on a device, then polish (robes that follow the legs, colour and glow levels).
   - Model-load fixes so far: shared loads on a persistent loader (build 30, confirmed in battle); the menu lineup was rebuilt every frame (build 35, CONFIRMED: real models on intro, home, heroes and battle; each figure loads once).
   - Work done (2026-11-25, to confirm in the next build):
     - Screenshot tour: a hero gallery (all 24, four at a time, menus hidden), with real-model counts in shots.log.
@@ -174,7 +174,7 @@ Unfinished work saved from the stopped agents:
       - The hooded UAL data also puts Body at about twice its rest height.
       - Fixed in `HeroModels.BuildUal`: bones match with or without dots, and position tracks are applied relative to the rest pose. The earlier `FootFollow` patch, which turned the stilts into floating, is removed.
   - Still open: colour and glow levels (judge from the gallery shots), and device checks.
-- [ ] **21–24. Phase 1 heroes (Roadwardens), 4 per step.** Steps 21–22 DONE (2026-11-25): Bram, Nettle, Hobb, Greta; Cole, Tilly, Ronan, Isla (see below). Stats, skills, looks, tests and balance sims, plus the baked model and the new `anchor`/`net` kit.
+- [ ] **21–24. Phase 1 heroes (Roadwardens), 4 per step.** Steps 21–23 DONE (2026-11-25): Bram, Nettle, Hobb, Greta; Cole, Tilly, Ronan, Isla; Dunstan, Marisol, Vesper, Brega (see below). Stats, skills, looks, tests and balance sims, plus the baked model and the new `anchor`/`net` kit.
   - STEP 21 DONE (2026-11-25):
     - Bram, Nettle, Hobb and Greta are in `GameData.Heroes` after the original 24, with looks, runtime art (`Core/HeroArt.Roster.cs`), stand-ins and baked models. New kit: anchor, net. Preview: `docs/sigilbound/art/prototype/step21-roadwardens.png`.
     - Rules set in this step:
@@ -185,6 +185,8 @@ Unfinished work saved from the stopped agents:
     - Final balance: Bram 44% vs Odo, Nettle 55% vs Brannoc/Kettle, Hobb 51% vs Mira, Greta 51% vs Pell/Wren. Kits were tuned from the ROSTER hooks; the ROSTER rows are updated.
   - STEP 22 DONE (2026-11-25): Cole, Tilly, Ronan, Isla. New kit: axe. Preview: `docs/sigilbound/art/prototype/step22-roadwardens.png`. Balance after tuning: Cole 57% vs Brannoc/Kettle, Tilly 44% vs Pell/Wren, Ronan 52% vs Odo, Isla 55% vs Pell/Wren.
     - Note: Brannoc is the weakest classic Common attacker, so new Attack heroes score high against him. Kettle is the fairer peer.
+  - STEP 23 DONE (2026-11-25): Dunstan, Marisol, Vesper, Brega, the first new Rares (3 skills each). Preview: `docs/sigilbound/art/prototype/step23-roadwardens.png`. Balance: Dunstan 43% vs Hask/Gorrum, Marisol 55% and Vesper 46% vs Ysolde/Lumen/Nyx, Brega 54%.
+    - Beards: the adventurer head's beard shares the hair material, and quat.py never applied Looks.cs `Shave`. Fixed with a SHAVE list (lower-front hair faces removed). Pell, Kettle, Lumen, Kaito, Oriel, Nettle, Cole and Marisol are rebaked clean-shaven, matching the game's looks.
 - [ ] **25. Engine: phase 2 mechanics** (Burn, Pierce, Execute, Pull, spread on kill, counter Taunt), with tests.
 - [ ] **26–30. Phase 2 heroes (Glass and Storm).**
 - [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.

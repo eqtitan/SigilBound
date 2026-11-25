@@ -96,6 +96,15 @@ HEROES = {
                    hide=["crown"], kit=["beard", "hammer"], rim="#3fb57a", height=1.04),
     "isla":   dict(base="hooded", skin="fair", hair="#e8d890", armor="#e8e0c8", accent="#ffd870", cloth="#c8c0a8", glow="#fff0a0",
                    hide=["hood"], kit=["long_hair", "bell"], rim="#ffe27a", height=0.97),
+    # Step 23:
+    "dunstan": dict(base="monarch", skin="tan", hair="#8a8a8a", armor="#6a7a5a", accent="#d8c890", cloth="#3a5a3a", glow=None, cape="#2a4a2a",
+                   hide=["crown", "hair"], kit=["beard", "helm", "shield", "cape"], rim="#3fb57a", height=1.04),
+    "marisol": dict(base="adventurer", skin="brown", hair="#1a1a2a", armor="#2a6a8a", accent="#7ae0ff", cloth="#1a4a5a", glow="#7ae0ff",
+                   hide=[], kit=["ponytail", "trident"], rim="#3a8ee8", height=0.98),
+    "vesper": dict(base="hooded", skin="pale", hair="#2a2030", armor="#2a2238", accent="#7ad07a", cloth="#1a1622", glow="#9aff9a",
+                   hide=[], kit=["mask", "daggers"], rim="#a050ff", height=0.96),
+    "brega":  dict(base="monarch", skin="deep", hair="#3a5a5a", armor="#4a6a6a", accent="#c8e8d0", cloth="#2a4a4a", glow=None,
+                   hide=["crown", "hair"], kit=["helm", "shield"], rim="#3a8ee8", height=1.0),
 }
 
 def palette(h):
@@ -129,6 +138,8 @@ ROLES = {
     "monarch": {"Metal": "armor", "Metal_Dark": "trim", "Blue": "cloth", "DarkBrown": "pants", "Beige": "accent", "Gold": "crown",
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
 }
+# Clean-shaven heroes (Shave = true in Core/Looks.cs): their beard is removed (adventurer heads only).
+SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol"}
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}
@@ -481,6 +492,17 @@ def main():
             bm = bmesh.new(); bm.from_mesh(o.data)
             bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index in drop], context="FACES")
             bm.to_mesh(o.data); bm.free()
+        if is_head and a.hero in SHAVE:
+            # Clean-shaven (Core/Looks.cs Shave): the adventurer head's beard shares the "hair"
+            # material, so remove hair faces on the lower front of the head (the face looks to -y).
+            hair = {i for i, r in enumerate(role) if r == "hair"}
+            mw = o.matrix_world; ws = [mw @ v.co for v in o.data.vertices]
+            cz = (min(w.z for w in ws) + max(w.z for w in ws)) / 2; cy = (min(w.y for w in ws) + max(w.y for w in ws)) / 2
+            bm = bmesh.new(); bm.from_mesh(o.data)
+            beard = [f for f in bm.faces if f.material_index in hair and (mw @ f.calc_center_median()).z < cz and (mw @ f.calc_center_median()).y < cy]
+            bmesh.ops.delete(bm, geom=beard, context="FACES")
+            bm.to_mesh(o.data); bm.free()
+            print(f"[quat] {a.hero}: shaved ({len(beard)} beard faces)")
         for i, r in enumerate(role):
             o.data.materials[i] = P[ROLE_PAL.get(r, "Cloth")]
     head_mesh = next(o for o in meshes if o.name.split(".")[0] == HEAD_MESH[h["base"]])
