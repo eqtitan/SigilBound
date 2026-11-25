@@ -112,6 +112,15 @@ Unfinished work saved from the stopped agents:
     - The prototypes haven't been rendered inside Unity: that needs the hero-art import job, which hasn't run yet.
   - The owner decides next: keep improving the free path (CC0 base bodies + scripted kit + baked painted textures), or allow a paid generator for higher quality. Steps 13–18 depend on that answer.
 - [ ] **13–18. Heroes in batches of 4 per session** (24 heroes), with the shared idle/wait animation and unique skill animations where possible.
+  - OWNER DECISION (2026-11-25): improve the FREE path. No paid generator.
+  - Per hero:
+    - start from the CC0 Quaternius base bodies (better anatomy than the scripted skin-modifier bodies);
+    - add the hero's identity kit with blenderforge (armour, hair, props from the hero sheet);
+    - bake the painted albedo plus glow mask;
+    - shared idle/hit from the CC0 clip set, with unique skill/attack motion where CC0 or scripted clips allow;
+    - import through Editor/Art (HeroRig) so the game uses it and falls back to today's model otherwise.
+  - Step 13 = Ysolde, Gorrum, Hask, Corvan (the starters first). Check each in-game with the screenshot tour before moving on.
+  - The hero-art CI import job still needs merging and testing (art-round2 commit 91ed352).
 - [ ] **19. Roster plan to 100 heroes.** Phases and concepts only. New heroes get designed (stats and skills) in their own later steps.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
