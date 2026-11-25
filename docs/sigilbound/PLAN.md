@@ -57,10 +57,17 @@ Unfinished work saved from the stopped agents:
 
 ## Phase B: landscape (the owner chose landscape for phone and PC)
 
-- [ ] **6. Landscape foundation.**
+- [x] **6. Landscape foundation.** (2026-11-25, step/6)
   - Android landscape, both directions. Windows 1600×900 resizable.
   - Height-based UI scaling from 16:9 to 21:9 with safe areas.
   - Existing screens reflowed so nothing overlaps.
+  - DONE:
+    - `Ui.Begin(fullWidth)` scales to the height in landscape (RefH 480 on phones, 600 on PC).
+    - Menus draw in a centred 390 column (`Ui.W`, `Ui.Offset`/`Ui.Left`, `Ui.FullW`, `Ui.Screen01`); the battle uses the full width.
+    - Bars and modal backdrops span the full width.
+    - Android autorotates between the two landscape orientations; Windows is 1600×900; the shots script defaults to 1280×720.
+  - Steps 7–11 should design each screen for the wide canvas: use `Ui.Begin(true)` and lay out across `Ui.W`, instead of the column.
+  - Check first in the screenshots: the battle HUD (turn bar, skill bar) is now stretched across the full width, and the tags clamp to the full width.
 - [ ] **7. Game modes hub.** Big illustrated cards for campaign, hard, trials, arena and titan, showing live status.
 - [ ] **8. Campaign world map.** Sigilbound's own painted-look map, chapter markers with stars, a reward track and a Normal/Hard switch.
 - [ ] **9. Stage list and team setup.**
