@@ -75,7 +75,7 @@ namespace Sigilbound.Client
             yield return Shot("modal");
             CloseModal();
 
-            foreach (var s in new[] { ScreenId.Home, ScreenId.Campaign, ScreenId.Heroes, ScreenId.Summon, ScreenId.Trials, ScreenId.Achievements })
+            foreach (var s in new[] { ScreenId.Home, ScreenId.Modes, ScreenId.Campaign, ScreenId.Heroes, ScreenId.Summon, ScreenId.Trials, ScreenId.Achievements })
             {
                 Go(s);
                 yield return Shot(s.ToString().ToLowerInvariant());

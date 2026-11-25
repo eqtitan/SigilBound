@@ -22,7 +22,7 @@ namespace Sigilbound.Client
         }
     }
 
-    public enum ScreenId { Intro, Home, Campaign, Prep, Heroes, Hero, Equip, Summon, Titan, Battle, Friends, FriendProfile, Chat, Blocked, Trials, Dungeon, ArenaPvp, Achievements }
+    public enum ScreenId { Intro, Home, Campaign, Prep, Heroes, Hero, Equip, Summon, Titan, Battle, Friends, FriendProfile, Chat, Blocked, Trials, Dungeon, ArenaPvp, Achievements, Modes }
 
     public sealed partial class App : MonoBehaviour
     {
@@ -240,7 +240,7 @@ namespace Sigilbound.Client
         // ---------- GUI ----------
         void OnGUI()
         {
-            Ui.Begin(Screen == ScreenId.Battle); // battles lay out across the whole width; menus in a column
+            Ui.Begin(Screen == ScreenId.Battle || Screen == ScreenId.Modes); // battle and the modes hub use the whole width; menus a column
             GUI.enabled = !ModalOpen; // a modal blocks taps on the screen behind it
             if (Screen == ScreenId.Battle) { Battle.DrawHud(); DrawModalAndToasts(); return; }
             var safe = Ui.Safe;
@@ -252,6 +252,7 @@ namespace Sigilbound.Client
             switch (Screen)
             {
                 case ScreenId.Home: DrawHome(content); break;
+                case ScreenId.Modes: DrawModes(content); break;
                 case ScreenId.Campaign: if (_hardTab && G.S.cleared > 0) DrawHardCampaign(content); else DrawCampaign(content); break;
                 case ScreenId.Prep: DrawPrep(content); break;
                 case ScreenId.Heroes: if (_codex) DrawCodex(content); else DrawHeroes(content); break;
@@ -302,12 +303,12 @@ namespace Sigilbound.Client
             // Stone bar with a gold edge and a glowing active tab (style.css .nav).
             GUI.DrawTexture(new Rect(Ui.Left, r.y, Ui.FullW, r.height), Ui.GradientTex(Palette.Hex("#1a1522"), Palette.Hex("#0d0a12"), null, 2));
             Ui.GoldRule(new Rect(Ui.Left, r.y, Ui.FullW, 1));
-            var items = new (ScreenId id, string label, Icon icon)[] { (ScreenId.Home, "Home", Icon.Home), (ScreenId.Campaign, "Campaign", Icon.Map), (ScreenId.Heroes, "Heroes", Icon.Helm), (ScreenId.Summon, "Summon", Icon.Portal), (ScreenId.Trials, "Trials", Icon.Tower), (ScreenId.Friends, "Friends", Icon.Friends) };
+            var items = new (ScreenId id, string label, Icon icon)[] { (ScreenId.Home, "Home", Icon.Home), (ScreenId.Modes, "Battle", Icon.Sword), (ScreenId.Heroes, "Heroes", Icon.Helm), (ScreenId.Summon, "Summon", Icon.Portal), (ScreenId.Trials, "Trials", Icon.Tower), (ScreenId.Friends, "Friends", Icon.Friends) };
             float w = Ui.W / items.Length;
             for (int i = 0; i < items.Length; i++)
             {
                 var it = items[i];
-                bool on = Screen == it.id || (it.id == ScreenId.Home && Screen == ScreenId.Achievements) || (it.id == ScreenId.Heroes && (Screen == ScreenId.Hero || Screen == ScreenId.Equip))
+                bool on = Screen == it.id || (it.id == ScreenId.Home && Screen == ScreenId.Achievements) || (it.id == ScreenId.Modes && (Screen == ScreenId.Campaign || Screen == ScreenId.Prep)) || (it.id == ScreenId.Heroes && (Screen == ScreenId.Hero || Screen == ScreenId.Equip))
                     || (it.id == ScreenId.Trials && (Screen == ScreenId.Titan || Screen == ScreenId.Dungeon || Screen == ScreenId.ArenaPvp))
                     || (it.id == ScreenId.Friends && (Screen == ScreenId.FriendProfile || Screen == ScreenId.Chat || Screen == ScreenId.Blocked));
                 var cell = new Rect(i * w, r.y, w, 64);
