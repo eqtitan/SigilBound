@@ -45,7 +45,7 @@ namespace Sigilbound.EditorTools
 
         // Windows 10+ test build (64-bit). Built on the Linux CI runner, which can only make Mono
         // Windows players (IL2CPP for Windows needs a Windows machine); fine for testing.
-        // Runs as a phone-shaped window you can resize; the UI scales to the window's width.
+        // Opens as a 1600x900 landscape window you can resize; the UI scales to the window's height.
         public static void Windows()
         {
             ProjectSetup.Apply();
@@ -54,8 +54,8 @@ namespace Sigilbound.EditorTools
             PlayerSettings.SetScriptingBackend(target, ScriptingImplementation.Mono2x);
             WriteBuildInfo(BuildNumber());
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
-            PlayerSettings.defaultScreenWidth = 540;
-            PlayerSettings.defaultScreenHeight = 960;
+            PlayerSettings.defaultScreenWidth = 1600;
+            PlayerSettings.defaultScreenHeight = 900;
             PlayerSettings.resizableWindow = true;
             PlayerSettings.runInBackground = false;
             var output = Environment.GetEnvironmentVariable("SB_OUTPUT");
@@ -74,8 +74,8 @@ namespace Sigilbound.EditorTools
             var target = UnityEditor.Build.NamedBuildTarget.Standalone;
             PlayerSettings.SetScriptingBackend(target, ScriptingImplementation.Mono2x);
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
-            PlayerSettings.defaultScreenWidth = 540;
-            PlayerSettings.defaultScreenHeight = 960;
+            PlayerSettings.defaultScreenWidth = 1600;
+            PlayerSettings.defaultScreenHeight = 900;
             PlayerSettings.resizableWindow = true;
             WriteBuildInfo(0); // no update check in the preview
             var output = Environment.GetEnvironmentVariable("SB_OUTPUT");

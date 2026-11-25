@@ -2,12 +2,12 @@
 # Screenshots of the Unity build's main screens, taken from the Linux preview build that CI
 # publishes to the "unity-preview" release, run headless under xvfb with software OpenGL.
 # Usage: tools/unity-shots.sh [out-dir] [width] [height]
-#   out-dir defaults to ./unity-shots; size defaults to 540x960 (phone portrait).
+#   out-dir defaults to ./unity-shots; size defaults to 1280x720 (landscape).
 # Needs: curl, unzip, xvfb-run (and Mesa's software GL, which xvfb uses).
 # Prints the PNG paths at the end. See docs/sigilbound/PLAN.md (step 3) and Client/ShotsMode.cs.
 set -euo pipefail
 OUT="$(realpath -m "${1:-unity-shots}")"
-W="${2:-540}"; H="${3:-960}"
+W="${2:-1280}"; H="${3:-720}"
 URL="https://github.com/eqtitan/SigilBound/releases/download/unity-preview/Sigilbound-Linux.zip"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT

@@ -11,26 +11,42 @@ namespace Sigilbound.Client
 {
     public static class Ui
     {
-        public const float W = 390f;               // logical width
-        public static float Scale => Screen.width / W;
+        // Layout canvas. Portrait: 390 logical units wide, scaled to the screen width (as before).
+        // Landscape: scaled to the screen HEIGHT (RefH logical units tall), so text stays readable
+        // from 16:9 to 21:9; menu screens keep their 390-wide layout as a centred column (W = 390,
+        // offset by Left), while full-width screens (the battle) get W = the whole width.
+        public const float ColumnW = 390f;
+        public static bool Landscape => Screen.width > Screen.height;
+        static float RefH => Application.isMobilePlatform ? 480f : 600f;
+        public static float Scale => Landscape ? Screen.height / RefH : Screen.width / ColumnW;
+        public static float FullW => Screen.width / Scale;        // the whole screen, logical units
+        public static float W { get; private set; } = ColumnW;    // the width screens lay out in
+        public static float Offset { get; private set; }          // logical x of the layout's left edge
+        public static float Left => -Offset;                       // the screen's left edge, in layout x
         public static float H => Screen.height / Scale;
-        public static Rect Safe                       // safe area in logical units
+        public static Rect Safe                       // safe area in layout units
         {
             get
             {
                 var s = Screen.safeArea; float k = Scale;
-                return new Rect(s.x / k, (Screen.height - s.yMax) / k, s.width / k, s.height / k);
+                return new Rect(s.x / k - Offset, (Screen.height - s.yMax) / k, s.width / k, s.height / k);
             }
         }
+        // Full-screen rect in layout coordinates (backdrops, bars that span the whole width).
+        public static Rect Screen01 => new Rect(Left, 0, FullW, H);
 
         static readonly Dictionary<string, Texture2D> _tex = new Dictionary<string, Texture2D>();
         static readonly Dictionary<string, GUIStyle> _styles = new Dictionary<string, GUIStyle>();
         static Font _font, _serif, _serifBold;
         public static Font Serif => _serif;
 
-        public static void Begin()
+        // fullWidth: lay out across the whole screen (battle HUD). Otherwise a ColumnW-wide column,
+        // centred in landscape. Call once per OnGUI before drawing.
+        public static void Begin(bool fullWidth = false)
         {
-            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(Scale, Scale, 1));
+            W = fullWidth || !Landscape ? FullW : Mathf.Min(ColumnW, FullW);
+            Offset = (FullW - W) / 2f;
+            GUI.matrix = Matrix4x4.TRS(new Vector3(Offset * Scale, 0, 0), Quaternion.identity, new Vector3(Scale, Scale, 1));
             if (_font == null) _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (_serif == null)
             {

@@ -44,7 +44,12 @@ namespace Sigilbound.Client
 
         void Awake()
         {
-            UnityEngine.Screen.orientation = ScreenOrientation.Portrait;
+            // Landscape on phones, either way round (the owner chose landscape for phone and PC).
+            UnityEngine.Screen.autorotateToPortrait = false;
+            UnityEngine.Screen.autorotateToPortraitUpsideDown = false;
+            UnityEngine.Screen.autorotateToLandscapeLeft = true;
+            UnityEngine.Screen.autorotateToLandscapeRight = true;
+            UnityEngine.Screen.orientation = ScreenOrientation.AutoRotation;
             UnityEngine.Screen.sleepTimeout = SleepTimeout.NeverSleep;
             G = new Game(Load());
             G.EnsureDaily();
@@ -235,7 +240,7 @@ namespace Sigilbound.Client
         // ---------- GUI ----------
         void OnGUI()
         {
-            Ui.Begin();
+            Ui.Begin(Screen == ScreenId.Battle); // battles lay out across the whole width; menus in a column
             GUI.enabled = !ModalOpen; // a modal blocks taps on the screen behind it
             if (Screen == ScreenId.Battle) { Battle.DrawHud(); DrawModalAndToasts(); return; }
             var safe = Ui.Safe;
@@ -270,8 +275,8 @@ namespace Sigilbound.Client
         // Carved top bar with a gold rule: currencies and the settings button.
         void DrawTopBar(Rect r)
         {
-            GUI.DrawTexture(new Rect(0, 0, Ui.W, r.yMax), Ui.GradientTex(Palette.Hex("#1d1726"), Palette.Hex("#120e19"), null, 2));
-            Ui.GoldRule(new Rect(0, r.yMax - 1, Ui.W, 1));
+            GUI.DrawTexture(new Rect(Ui.Left, 0, Ui.FullW, r.yMax), Ui.GradientTex(Palette.Hex("#1d1726"), Palette.Hex("#120e19"), null, 2));
+            Ui.GoldRule(new Rect(Ui.Left, r.yMax - 1, Ui.FullW, 1));
             float x = 8;
             // Currency chips: a drawn icon (Icons.cs) plus the amount.
             void Chip(Icon icon, string text, Color c)
@@ -295,8 +300,8 @@ namespace Sigilbound.Client
         void DrawNav(Rect r)
         {
             // Stone bar with a gold edge and a glowing active tab (style.css .nav).
-            GUI.DrawTexture(r, Ui.GradientTex(Palette.Hex("#1a1522"), Palette.Hex("#0d0a12"), null, 2));
-            Ui.GoldRule(new Rect(r.x, r.y, r.width, 1));
+            GUI.DrawTexture(new Rect(Ui.Left, r.y, Ui.FullW, r.height), Ui.GradientTex(Palette.Hex("#1a1522"), Palette.Hex("#0d0a12"), null, 2));
+            Ui.GoldRule(new Rect(Ui.Left, r.y, Ui.FullW, 1));
             var items = new (ScreenId id, string label, Icon icon)[] { (ScreenId.Home, "Home", Icon.Home), (ScreenId.Campaign, "Campaign", Icon.Map), (ScreenId.Heroes, "Heroes", Icon.Helm), (ScreenId.Summon, "Summon", Icon.Portal), (ScreenId.Trials, "Trials", Icon.Tower), (ScreenId.Friends, "Friends", Icon.Friends) };
             float w = Ui.W / items.Length;
             for (int i = 0; i < items.Length; i++)
@@ -333,7 +338,7 @@ namespace Sigilbound.Client
             GUI.enabled = true;
             if (ModalOpen)
             {
-                GUI.DrawTexture(new Rect(0, 0, Ui.W, Ui.H), Ui.Solid(new Color(0, 0, 0, 0.7f)));
+                GUI.DrawTexture(Ui.Screen01, Ui.Solid(new Color(0, 0, 0, 0.7f)));
                 var box = new Rect(16, Mathf.Max(Ui.Safe.y + 20, (Ui.H - _modalHeight) / 2), Ui.W - 32, _modalHeight);
                 Ui.Card(box, true); // the web's framed .mbox
                 if (!string.IsNullOrEmpty(_modalTitle)) Ui.Heading(new Rect(box.x, box.y + 14, box.width, 34), _modalTitle, 24, TextAnchor.MiddleCenter);
