@@ -28,34 +28,29 @@ namespace Sigilbound.Client
             return null;
         }
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        static void BootShots()
+        // Called at the end of App.Awake (which certainly runs): a separate RuntimeInitializeOnLoad
+        // hook never fired in the Linux preview build. Progress also goes to <dir>/shots.log, so the
+        // tour can be followed without relying on the player log.
+        void StartShotsIfAsked()
         {
             var dir = ShotsArg();
             if (string.IsNullOrEmpty(dir)) return;
             NoSave = true;
-            var go = new GameObject("Sigilbound Shots");
-            DontDestroyOnLoad(go);
-            go.AddComponent<ShotsRunner>().Dir = dir;
+            try { Directory.CreateDirectory(dir); File.WriteAllText(Path.Combine(dir, "shots.log"), $"started {DateTime.Now:O}\n"); } catch (Exception) { }
+            StartCoroutine(RunShots(dir));
         }
 
-        sealed class ShotsRunner : MonoBehaviour
+        void ShotLog(string line)
         {
-            public string Dir;
-            IEnumerator Start()
-            {
-                App app = null;
-                for (int i = 0; i < 300 && app == null; i++) { app = FindAnyObjectByType<App>(); yield return null; }
-                if (app == null) { Debug.LogError("SBSHOTS FAILED: no App"); Application.Quit(1); yield break; }
-                yield return app.RunShots(Dir);
-            }
+            Debug.Log("SBSHOTS " + line);
+            try { File.AppendAllText(Path.Combine(_shotDir, "shots.log"), line + "\n"); } catch (Exception) { }
         }
 
         IEnumerator RunShots(string dir)
         {
             _shotDir = dir;
             Directory.CreateDirectory(dir);
-            Debug.Log($"SBSHOTS start: {Screen} {UnityEngine.Screen.width}x{UnityEngine.Screen.height} -> {Path.GetFullPath(dir)}");
+            ShotLog($"start {UnityEngine.Screen.width}x{UnityEngine.Screen.height} -> {Path.GetFullPath(dir)}");
             // Fresh game, beginner tips held back so they don't cover every screen (one is shot on purpose).
             G = new Game(new SaveData());
             G.EnsureDaily();
@@ -105,7 +100,7 @@ namespace Sigilbound.Client
             yield return new WaitForSecondsRealtime(2f);
             yield return Shot("battle-result");
 
-            Debug.Log($"SBSHOTS DONE {_shotCount}");
+            ShotLog($"DONE {_shotCount}");
             Application.Quit(0);
         }
 
@@ -119,7 +114,7 @@ namespace Sigilbound.Client
                 _shotCount++;
                 var path = Path.Combine(_shotDir, $"{_shotCount:00}-{name}.png");
                 File.WriteAllBytes(path, tex.EncodeToPNG());
-                Debug.Log("SBSHOTS saved " + path);
+                ShotLog("saved " + path);
             }
             finally { Destroy(tex); }
         }

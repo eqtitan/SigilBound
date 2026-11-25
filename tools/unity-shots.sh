@@ -22,14 +22,15 @@ chmod +x "$BIN"
 rm -rf "$OUT" && mkdir -p "$OUT"
 echo "== running the screenshot mode (${W}x${H})"
 # Software GL (llvmpipe) is slow but enough for screenshots. -force-glcore avoids Vulkan.
-LIBGL_ALWAYS_SOFTWARE=1 timeout 600 xvfb-run -a -s "-screen 0 ${W}x${H}x24" \
+LIBGL_ALWAYS_SOFTWARE=1 timeout 1500 xvfb-run -a -s "-screen 0 ${W}x${H}x24" \
   "$BIN" -screen-fullscreen 0 -screen-width "$W" -screen-height "$H" -force-glcore \
   -logFile "$OUT/player.log" -sbShots="$OUT" || true
 
-if grep -q "SBSHOTS DONE" "$OUT/player.log"; then
-  echo "== done: $(grep -o 'SBSHOTS DONE [0-9]*' "$OUT/player.log")"
+if grep -q "^DONE" "$OUT/shots.log" 2>/dev/null; then
+  echo "== done: $(grep '^DONE' "$OUT/shots.log")"
 else
   echo "!! the screenshot mode did not finish; see $OUT/player.log"
-  grep -iE "error|exception|SBSHOTS" "$OUT/player.log" | head -40 || true
+  cat "$OUT/shots.log" 2>/dev/null || echo "(no shots.log: the tour never started)"
+  grep -iE "error|exception" "$OUT/player.log" | grep -v ALSA | head -40 || true
 fi
 ls -1 "$OUT"/*.png 2>/dev/null || true

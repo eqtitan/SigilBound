@@ -71,6 +71,7 @@ namespace Sigilbound.Client
             Tips.Seed(G); // existing players skip beginner tips for things they've done
             Arena.Build(Math.Min(GameData.Chapters.Length - 1, G.S.cleared / GameData.StagesPerChapter), false);
             Arena.FrameMenu();
+            StartShotsIfAsked(); // -sbShots=DIR: screenshot tour (ShotsMode.cs)
         }
 
         // ---------- save ----------
