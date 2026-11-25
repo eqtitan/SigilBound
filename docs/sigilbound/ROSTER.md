@@ -84,10 +84,10 @@ mechanics: Pierce, Execute, Pull, Burn, spread-on-kill and the counter Taunt.
 | `hale` | Hale Sunforge | Rare | Light | Hp | monarch | beard, hammer, cape | Small self Shield and Taunt; team Regen | Bellspire smith who forged the waystone lamps. |
 | `juno` | Juno Ashveil | Rare | Flame | Attack | hooded | veil, whip, robe | Burn on hit; Burn spreads on a kill | Fire dancer of the Last Pyre. |
 | `pike` | Pike Saltgrave | Rare | Tide | Attack | adventurer | bandana, hook | Pull: takes the target's turn meter | Smuggler of the Saltmarsh reaches. |
-| `rhea` | Rhea Lumen-Kin | Rare | Light | Defense | monarch | helm, shield, cape | Shield on self; Cleanse self | Sister of Lumen Varro, sworn to the light-guard. |
+| `rhea` | Rhea Lumen-Kin | Rare | Light | Defense | monarch | helm, shield, cape | Shield, Taunt and Cleanse on self; team DefUp and Shield | Sister of Lumen Varro, sworn to the light-guard. |
 | `corwin` | Corwin Blackthorn | Rare | Shadow | Attack | adventurer | spiky_hair, katana | Execute below 25% HP | Duelist exiled from the Stormcrown court. |
-| `astrid` | Astrid Windrider | Epic | Gale | Attack | adventurer | ponytail, spear, cape | AoE hit; SpdUp self | Sky-rider of Stormcrown Heights. |
-| `caspian` | Caspian Deepwell | Epic | Tide | Hp | monarch | crown, trident, cape | Regen all allies; Shield self | Drowned king's heir, guardian of the Sunken Cathedral. |
+| `astrid` | Astrid Windrider | Epic | Gale | Attack | adventurer | ponytail, spear, cape | Piercing basic; a big hit that speeds her up; AoE Slow | Sky-rider of Stormcrown Heights. |
+| `caspian` | Caspian Deepwell | Epic | Tide | Hp | monarch | crown, trident, cape | Team Shield while he Taunts; team Regen and DefUp | Drowned king's heir, guardian of the Sunken Cathedral. |
 | `ignis` | Ignis Kael | Epic | Flame | Support | adventurer | flame_hair, staff | AtkUp all; Burn-style Poison on enemies | Pyre-priest who tends the eternal flame. |
 | `lyra` | Lyra Starglass | Epic | Light | Support | hooded | halo, mirror, robe | Heal all allies; Cleanse | Glass Wastes oracle who reads the shattered Sigil. |
 | `malachar` | Malachar Gloomhand | Epic | Shadow | Defense | monarch | helm, shield, cape | Taunt; DefDown on attackers | Hollow knight who broke free of the Hollow. |

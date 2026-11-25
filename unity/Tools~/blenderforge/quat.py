@@ -132,6 +132,15 @@ HEROES = {
                    hide=["hood"], kit=["veil", "whip", "robe"], rim="#ff7a3a", height=0.97),
     "pike":   dict(base="adventurer", skin="tan", hair="#4a3a2a", armor="#4a5a6a", accent="#c8d8e0", cloth="#2a3a4a", glow=None,
                    hide=[], kit=["bandana", "hook"], rim="#3a8ee8", height=1.0),
+    # Step 28:
+    "rhea":   dict(base="monarch", skin="fair", hair="#f2d27a", armor="#d8dce4", accent="#ffd860", cloth="#5a6a8a", glow="#fff2b0", cape="#5a6a8a",
+                   hide=["crown", "hair"], kit=["long_hair", "helm", "shield", "cape"], rim="#ffe27a", height=1.0),
+    "corwin": dict(base="adventurer", skin="pale", hair="#1a1a24", armor="#2a2238", accent="#c070ff", cloth="#1a1428", glow="#d090ff",
+                   hide=[], kit=["spiky_hair", "katana"], rim="#a050ff", height=1.03),
+    "astrid": dict(base="adventurer", skin="fair", hair="#e8e8f0", armor="#6a90b0", accent="#c8f0ff", cloth="#3a5a7a", glow="#c8f0ff", cape="#2a4a6a",
+                   hide=[], kit=["ponytail", "spear", "cape"], rim="#3fb57a", height=1.04),
+    "caspian": dict(base="monarch", skin="brown", hair="#1a3a4a", armor="#1a5a6a", accent="#5ae0e0", cloth="#0e3a48", glow="#5ae0e0", cape="#0e3a48",
+                   hide=[], kit=["long_hair", "beard", "trident", "cape"], rim="#3a8ee8", height=1.08),
 }
 
 def palette(h):
@@ -166,7 +175,7 @@ ROLES = {
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
 }
 # Clean-shaven heroes (Shave = true in Core/Looks.cs): their beard is removed (adventurer heads only).
-SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias"}
+SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid"}
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}

@@ -198,7 +198,9 @@ Unfinished work saved from the stopped agents:
   - STEP 27 DONE (2026-11-25): Nerys, Hale, Juno (Burn and Spread), Pike (Pull). Preview: `docs/sigilbound/art/prototype/step27-glass-and-storm.png`.
     - Balance after tuning: Nerys 55% vs Corvan/Tamsin, Hale 57% vs Velka (Taunt swings him from about 21% to 74%, so his shield is tiny), Juno 45% and Pike 45% vs Ysolde/Lumen/Nyx. 48 heroes.
     - Juno got a dancer's skirt, so she doesn't read as a second Ysolde.
-  - Next (step 28): Rhea, Corwin (Execute), Astrid, Caspian.
+  - STEP 28 DONE (2026-11-25): Rhea, Corwin (Execute), and the first new Epics, Astrid (Pierce) and Caspian. Preview: `docs/sigilbound/art/prototype/step28-glass-and-storm.png`.
+    - Balance after tuning: Rhea 43% vs Hask/Gorrum, Corwin 51% vs Ysolde/Lumen/Nyx, Astrid 51% vs Kaito/Maelis, Caspian 45% vs Thrain. 52 heroes.
+  - Next (step 29): Ignis (Burn), Lyra, Malachar, Rowan.
 - [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)

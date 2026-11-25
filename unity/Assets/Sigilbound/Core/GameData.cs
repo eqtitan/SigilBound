@@ -146,6 +146,11 @@ namespace Sigilbound.Core
             H("hale", "Hale Sunforge", Rarity.Rare, Element.Light, Role.Hp, S("Forge Strike", E, 0.08, 0, 1, Scale.Hp), S("Anvil Heart", SELF, 0, 4, Shield(0.05), F(FxType.Taunt, 2)), S("Lamplight", AA, 0, 5, F(FxType.Regen, 2))),
             H("juno", "Juno Ashveil", Rarity.Rare, Element.Flame, Role.Attack, S("Fire Whirl", E, 1.0, 0, F(FxType.Burn, 2, 0.4)), new SkillDef { Name = "Ember Lash", Target = E, Mult = 1.9, Cooldown = 3, Spread = true, Fx = new[] { F(FxType.Burn, 2, 0.6) } }, S("Pyre Dance", AE, 0.8, 4, F(FxType.Burn, 2, 0.4))),
             H("pike", "Pike Saltgrave", Rarity.Rare, Element.Tide, Role.Attack, S("Hook Swing", E, 1.05, 0, new FxDef { Type = FxType.Pull, Val = 0.15, Chance = 0.5 }), S("Reel In", E, 2.0, 3, new FxDef { Type = FxType.Pull, Val = 0.3 }), S("Smuggler's Volley", AE, 0.9, 4, F(FxType.DefDown, 2, 0.3))),
+            // Step 28 (the first new Epics: Astrid, Caspian):
+            H("rhea", "Rhea Lumen-Kin", Rarity.Rare, Element.Light, Role.Defense, S("Lumen Bash", E, 0.9, 0, 1, Scale.Def, F(FxType.AtkDown, 2, 0.3)), S("Sister's Ward", SELF, 0, 4, Shield(0.32), F(FxType.Taunt, 2), Cleanse()), S("Dawnguard", AA, 0, 5, F(FxType.DefUp, 2), Shield(0.1))),
+            H("corwin", "Corwin Blackthorn", Rarity.Rare, Element.Shadow, Role.Attack, S("Duel Cut", E, 1.0, 0), S("Shadow Lunge", E, 1.8, 3, F(FxType.DefDown, 2, 0.5)), new SkillDef { Name = "Final Verdict", Target = E, Mult = 1.6, Cooldown = 4, Execute = 0.25 }),
+            H("astrid", "Astrid Windrider", Rarity.Epic, Element.Gale, Role.Attack, new SkillDef { Name = "Sky Lance", Target = E, Mult = 1.1, Pierce = true }, S("Windrider", E, 1.7, 3, F(FxType.SpdUp, 2, -1, FxTo.Self)), S("Stormdive", AE, 1.2, 4, F(FxType.Slow, 2, 0.5))),
+            H("caspian", "Caspian Deepwell", Rarity.Epic, Element.Tide, Role.Hp, S("Tide Crown", E, 0.085, 0, 1, Scale.Hp), S("Deep Ward", AA, 0, 4, Shield(0.16), F(FxType.Taunt, 2, -1, FxTo.Self)), S("Drowned King's Grace", AA, 0, 5, F(FxType.Regen, 2), F(FxType.DefUp, 2))),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web
