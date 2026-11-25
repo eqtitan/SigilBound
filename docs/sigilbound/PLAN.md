@@ -321,7 +321,7 @@ Owner decision: do all four upgrades, all free (CC0 and code; no paid tools). Go
   - Today's near-twins go in a fix list (e.g. Tamsin and Sienna, Ysolde and Juno, Gorrum and Kharra, Bram and Dorian, Aurelia and Rhea).
   - Each hero gets a one-line "signature": the one feature only it has.
   - Research for step 45: confirm which free CC0 modular character packs (Quaternius modular men/women and others) share the current 62-bone skeleton, so the base clips and the UAL clips keep working.
-- [ ] **45. More CC0 base bodies.**
+- [x] **45. More CC0 base bodies.** Done: three bodies from Quaternius Ultimate Modular Women (CC0): `women_medieval.glb` (hooded), `women_witch.glb` and `women_adventurer.glb` in `godot/models`. They share the hooded rig and its 24 clips, and the UAL clips come from `hooded_adventurer`. All 40 female heroes (owner decision) are rebaked on them: 14 hooded, 14 witch, 12 adventurer. The list is quat.py `WOMEN` = `Core/Looks.cs BakedBases`, and audit.py checks they match. The witch hat stays only on Tilly. The code-built stand-in and the Hollow enemies keep their old base. Near-twins went from 48 to 39.
   - Import the compatible packs into `godot/models` (decoded GLBs) and add their colour roles and head meshes to quat.py and Core/Looks.cs.
   - Mix heads, hair, torsos and legs per hero, so the roster spreads over many body combinations, not three.
   - Each new body goes through the same checks: rest-pose skeleton identical, base clips play, no stilts or floating.
@@ -339,6 +339,15 @@ Owner decision: do all four upgrades, all free (CC0 and code; no paid tools). Go
   - Every hero gets its own attack and cast clips from the free UAL animation library (more clips added to anims_ual.json, retargeted as today).
   - Plus an element aura or trail and a signature skill effect (SkillFx), so heroes feel different in battle as well as looking different.
   - The screenshot tour gallery checks every batch.
+
+## Phase F: high-detail bodies (owner decision, 2026-11-25)
+
+Owner decision: rebuild the heroes on **Quaternius Universal Base Characters + Modular Character Outfits – Fantasy** (CC0; Source editions, mirrored with their licence files and SHA256SUMS in github.com/slopwarefactory/terra `art/characters/quaternius/`). These are detailed male and female bodies (about 14k triangles) with 4K PBR textures (BaseColor, Normal, ORM). Outfits come as separate pieces: Knight (armet, horned helm, pauldrons), Noble (crown), Wizard, Ranger and Peasant, each in 3 colourways, plus 10 hair and beard styles. The rig is a 65-joint, Unreal-style skeleton, the one the Universal Animation Library (CC0, already our clip source) was made for. Runs next, before steps 46–55, which then build on these bodies.
+
+- [ ] **56. Import and verify.** Copy the bodies, outfit pieces, hair and licence files into `godot/models/ubc/`. Scale textures down for phones (1024 for albedo and normal, 512 for ORM). Check every piece's skeleton matches the base body and that the full UAL clip set plays on it (no stilts, no floating).
+- [ ] **57. New build tool.** `blenderforge/ubc.py`: per hero, pick the body, head, hair or beard, outfit pieces and colourway, tint the BaseColor by mask to the hero's palette, and add quat.py kit pieces on the new bone names (pelvis, spine_03, hand_r…). Export one skinned GLB with albedo, normal and glow, and set a triangle budget (about 25k at LOD0, plus an LOD1).
+- [ ] **58. Game loading.** HeroModels loads the new rig with the full UAL clip set (more attack, cast and hit clips than today), the Hollow enemies use the new bodies too, and there is a performance check on a Galaxy S26+ (10 heroes on screen) with a lower LOD on Low quality.
+- [ ] **59–63. Rebuild all 100 heroes, 20 per step**, each with its own outfit combination and its signature (signatures.py). The uniqueness audit (audit.py) extends to outfit pieces and must pass at the end of each step.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
 

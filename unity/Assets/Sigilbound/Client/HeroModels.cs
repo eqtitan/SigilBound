@@ -434,7 +434,7 @@ namespace Sigilbound.Client
         // transforms) plus the shared UAL clips.
         static IEnumerator BuildBaked(Unit unit, HeroLook look, BodySpec body, Transform parent, Action<HeroModel> done)
         {
-            string id = unit.Template.Id, baseModel = look.Base;
+            string id = unit.Template.Id, baseModel = Looks.BakedBaseOf(id);
             yield return EnsureLibrary(baseModel);
             yield return EnsureUal();
             var lib = Lib(baseModel);

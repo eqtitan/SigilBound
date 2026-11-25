@@ -29,6 +29,12 @@ for (const f of fs.readdirSync(src).filter((n) => n.endsWith(".glb"))) {
   console.log(`${f}: ${(fs.statSync(path.join(src, f)).size / 1024).toFixed(0)} KB -> ${(bytes.length / 1024).toFixed(0)} KB, ${meshes} meshes, ${anims} clips`);
 }
 for (const f of ["anims_ual.json", "CREDITS.md"]) fs.copyFileSync(path.join(src, f), path.join(out, f));
+// Unity-only CC0 bodies (phase E step 45: Quaternius Ultimate Modular Women), plain GLBs in godot/models.
+const extra = path.resolve(here, "../../../godot/models");
+for (const f of fs.readdirSync(extra).filter((n) => /^women_.*\.glb$/.test(n))) {
+  fs.copyFileSync(path.join(extra, f), path.join(out, f));
+  console.log(`${f}: copied (Unity-only body)`);
+}
 // Free-path heroes baked by unity/Tools~/blenderforge/quat.py (SB_Hero_<id>_LOD0.glb + _albedo/_glow
 // PNGs): copied as they are, with an index the game reads (HeroModels) to know which exist.
 const heroesSrc = path.resolve(here, "heroes");
