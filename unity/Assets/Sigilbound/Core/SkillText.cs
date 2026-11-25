@@ -15,7 +15,10 @@ namespace Sigilbound.Core
                 parts.Add($"Hits {tgt}{(sk.Hits > 1 ? $" {sk.Hits}×" : "")} for {sk.Mult * 100:0}% {scale}");
             }
             else parts.Add($"Targets {tgt}");
+            if (sk.Pierce) parts.Add("pierces to the enemy behind (50%)");
             foreach (var f in sk.Fx) parts.Add(Fx(f));
+            if (sk.Execute > 0) parts.Add($"executes below {sk.Execute * 100:0}% HP (not bosses)");
+            if (sk.Spread) parts.Add("on a kill, Poison and Burn spread to the next enemy");
             return string.Join(" · ", parts);
         }
 
@@ -28,6 +31,7 @@ namespace Sigilbound.Core
                 FxType.Heal => $"heals {f.Pct * 100:0}% HP{who}",
                 FxType.Tm => $"fills Turn Meter by {f.Val * 100:0}%",
                 FxType.TmDrain => $"{ch}drains {f.Val * 100:0}% Turn Meter",
+                FxType.Pull => $"{ch}takes {f.Val * 100:0}% Turn Meter",
                 FxType.Cleanse => "removes debuffs",
                 FxType.Strip => "removes buffs",
                 FxType.Shield => $"Shield = {f.Pct * 100:0}% of caster HP{who}",
@@ -39,13 +43,15 @@ namespace Sigilbound.Core
         {
             FxType.AtkUp => "ATK Up", FxType.DefUp => "DEF Up", FxType.SpdUp => "SPD Up", FxType.AtkDown => "ATK Down",
             FxType.DefDown => "DEF Down", FxType.Slow => "Slow", FxType.Poison => "Poison", FxType.Stun => "Stun",
-            FxType.Regen => "Regen", FxType.Shield => "Shield", FxType.Taunt => "Taunt", _ => t.ToString(),
+            FxType.Regen => "Regen", FxType.Shield => "Shield", FxType.Taunt => "Taunt",
+            FxType.Burn => "Burn", FxType.Counter => "Counter", _ => t.ToString(),
         };
         public static string EffectShort(FxType t) => t switch
         {
             FxType.AtkUp => "ATK+", FxType.DefUp => "DEF+", FxType.SpdUp => "SPD+", FxType.AtkDown => "ATK-",
             FxType.DefDown => "DEF-", FxType.Slow => "SLW", FxType.Poison => "PSN", FxType.Stun => "STN",
-            FxType.Regen => "RGN", FxType.Shield => "SHD", FxType.Taunt => "TNT", _ => "",
+            FxType.Regen => "RGN", FxType.Shield => "SHD", FxType.Taunt => "TNT",
+            FxType.Burn => "BRN", FxType.Counter => "CTR", _ => "",
         };
 
         public static string StatName(GameData.Stat s, int v) => s switch
