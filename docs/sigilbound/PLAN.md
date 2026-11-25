@@ -40,12 +40,12 @@ Unfinished work saved from the stopped agents:
   - DONE: added Icons.cs (42 code-drawn icons, including element icons). Used for the currency chips, the settings menu button, the bottom-nav tab icons and the update banner's close button.
   - The code had no real emoji: the ● ◆ ≡ ★ ‹ symbols render in the built-in font, and the "missing icons" on devices were step 1's font bug.
   - Still text symbols, for later steps to swap to `Icons.Draw` while reworking those screens: ★ (stars in Ui.Stars and hero cards), ‹ › back/next links, → in tips and battle text, ▶ in battle.
-- [ ] **3. See the game ourselves.**
+- [x] **3. See the game ourselves.** (DONE 2026-11-25: the screenshot tour works since build 27, once screenshot mode kept running without window focus; `tools/unity-shots.sh`.)
   - A `-sbShots=DIR` command-line mode that walks the main screens and saves PNGs.
   - A CI job that builds a StandaloneLinux64 player and publishes it to a `unity-preview` release.
   - A script that runs it under xvfb here and saves the screenshots.
   - From now on, every step checks its screenshots before it's marked done.
-- [ ] **4. Shaders in builds.** The GLB heroes, particles and Sigilbound/Character are stripped from builds, so stand-in figures and orange squares appear. Include them via Always Included Shaders, a ShaderVariantCollection or Resources materials, glTFast's shaders included. Done when the screenshots show the real heroes and soft particles.
+- [ ] **4. Shaders in builds.** (2026-11-25: the stand-in heroes were really two model-loading bugs, fixed in builds 30 and 35; see step 20. Close this together with step 20.) The GLB heroes, particles and Sigilbound/Character are stripped from builds, so stand-in figures and orange squares appear. Include them via Always Included Shaders, a ShaderVariantCollection or Resources materials, glTFast's shaders included. Done when the screenshots show the real heroes and soft particles.
   - 2026-11-25, partial (step/4):
     - Particles fixed. The orange squares were the arena motes (Scenery.cs) on an untextured material; they now use a leaf or soft-dot texture on a blended material.
     - Shaders were already handled: UrpSetup adds Always Included Shaders, and Resources holds the HeroLit, HeroGlow and Character materials. The GLB heroes use SigilMaterialGenerator → Materials.Lit, NOT glTFast's shaders, so shader stripping is probably NOT why the heroes fall back to stand-ins.
