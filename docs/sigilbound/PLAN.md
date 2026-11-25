@@ -223,6 +223,9 @@ Unfinished work saved from the stopped agents:
   - Next hero step (35, after the step 34 Android updates): Auren, Cinder, Thessaly, Umbra.
   Grimsby, Marrow (Rage), Ember (Last Light), Quill; Drift, Sprig, Tallow, Hollis; Auren, Cinder, Thessaly, Umbra; Lucan, Kharra, Nocturne (Execute), Aelira; Zephyrine, Solenne (Revive), Nell, Briar.
 - [ ] **34. Android in-app updates (like Windows).** Owner request (2026-11-25). The phase 3 hero steps 35–37 follow it.
+  - OWNER DECISIONS (2026-11-25):
+    - Build this as the next step, before the remaining phase 3 heroes.
+    - Auto-update is ON by default: new builds download in the background on Wi-Fi and install at the home screen, never mid-battle. The Settings toggle can turn it off.
   - Today: the update banner on Android opens the APK link in the browser. The owner then downloads, opens the file and installs.
   - Goal: tap **Update now** in the game. It downloads the APK with a progress bar (as on Windows), then Android's installer opens directly, so one tap installs it and the save is kept. Later updates are silent where Android allows it.
   - What Android allows:
