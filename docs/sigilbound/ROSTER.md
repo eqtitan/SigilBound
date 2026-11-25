@@ -92,9 +92,9 @@ mechanics: Pierce, Execute, Pull, Burn, spread-on-kill and the counter Taunt.
 | `lyra` | Lyra Starglass | Epic | Light | Support | hooded | halo, mirror, robe | Heal and Cleanse all allies; team AtkUp and SpdUp | Glass Wastes oracle who reads the shattered Sigil. |
 | `malachar` | Malachar Gloomhand | Epic | Shadow | Defense | monarch | helm, horns, shield, cape | Taunt and Counter; DefDown on hit and on all enemies | Hollow knight who broke free of the Hollow. |
 | `rowan` | Rowan Thornheart | Epic | Gale | Defense | monarch | long_hair, beard, shield, cape | Small team Shield; Taunt with a turn of DefUp | Warden of the Thornwick old wood. |
-| `selene` | Selene Tidewhisper | Epic | Tide | Support | hooded | long_hair, orb, robe | TmDrain enemies; Tm boost allies | Moon-priestess of the tides. |
-| `brann` | Brann Emberfist | Epic | Flame | Hp | monarch | beard, gauntlets* | Regen on self; counter-style Taunt | Pit fighter of the Ashgrave pass. |
-| `ysra` | Ysra Nightbloom | Epic | Shadow | Attack | hooded | veil, daggers | Poison all; Stun on crit | Hollow Deep assassin who poisons with flowers. |
+| `selene` | Selene Tidewhisper | Epic | Tide | Support | hooded | long_hair, orb, robe | TmDrain on hit; AoE TmDrain that fills allies' Turn Meter; team Heal and Cleanse | Moon-priestess of the tides. |
+| `brann` | Brann Emberfist | Epic | Flame | Hp | monarch | beard, gauntlets | Team Shield while he Taunts and Counters; AoE Burn and team AtkUp | Pit fighter of the Ashgrave pass. |
+| `ysra` | Ysra Nightbloom | Epic | Shadow | Attack | hooded | veil, daggers | Poison on hit and on all enemies; a big hit that may Stun | Hollow Deep assassin who poisons with flowers. |
 | `oswin` | Oswin Dawnspear | Epic | Light | Attack | adventurer | helm, spear | Pierce; AtkUp self | Light-lancer of the Bellspire order. |
 
 ### Phase 3: The Hollow Unbound (20 heroes, all rarities)

@@ -121,6 +121,20 @@ namespace Sigilbound.Core
             FaceTable["lyra"] = new FaceSpec { Brow = -10d, Mouth = "flat", Iris = "#a8d0ff" };
             FaceTable["malachar"] = new FaceSpec { Brow = 16d, Mouth = "frown", Iris = "#b080ff" };
             FaceTable["rowan"] = new FaceSpec { Brow = -2d, Mouth = "flat", Iris = "#6a8a3a" };
+
+            // Step 30 (Glass and Storm 5).
+            KitTable["selene"] = new Dictionary<string, object> { ["robe"] = "long", ["robeColor"] = "#1a2448", ["belt"] = "#a8c8ff" };
+            KitTable["brann"] = new Dictionary<string, object> { ["pack"] = false, ["belt"] = "#ff8a30" };
+            KitTable["ysra"] = new Dictionary<string, object> { ["belt"] = "#ff6ac8", ["pack"] = false };
+            KitTable["oswin"] = new Dictionary<string, object> { ["pennant"] = "#ffd860", ["belt"] = true };
+            BodyTable["selene"] = new BodySpec { Parts = new Dictionary<string, string>(), Hide = new[] { "hood" }, H = 1.02d };
+            BodyTable["brann"] = new BodySpec { Parts = new Dictionary<string, string>(), Hide = new[] { "crown" }, Bald = true, H = 1.08d, Bulk = new[] { 1.3d, 1.1d, 1.25d }, Arms = 1.3d };
+            BodyTable["ysra"] = new BodySpec { Parts = new Dictionary<string, string>(), Hide = new[] { "hood" }, H = 0.98d };
+            BodyTable["oswin"] = new BodySpec { Parts = new Dictionary<string, string>(), Hide = new string[0], Shave = true, H = 1.05d };
+            FaceTable["selene"] = new FaceSpec { Brow = -10d, Mouth = "flat", Iris = "#a8c8ff" };
+            FaceTable["brann"] = new FaceSpec { Brow = 18d, Mouth = "smirk", Iris = "#ff8a30" };
+            FaceTable["ysra"] = new FaceSpec { Brow = 14d, Mouth = "smirk", Iris = "#ff6ac8" };
+            FaceTable["oswin"] = new FaceSpec { Brow = 8d, Mouth = "flat", Iris = "#e8c860" };
         }
     }
 }
