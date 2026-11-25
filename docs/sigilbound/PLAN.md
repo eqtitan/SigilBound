@@ -195,7 +195,10 @@ Unfinished work saved from the stopped agents:
 - [ ] **26–30. Phase 2 heroes (Glass and Storm).** Step 26 DONE (2026-11-25):
   - Kestrel (Pierce on both attacks), Sorrel, Amber (Burn and Counter) and Tobias, with the new lute kit. Preview: `docs/sigilbound/art/prototype/step26-glass-and-storm.png`.
   - Balance after tuning: Kestrel 46% vs Ysolde/Lumen/Nyx, Sorrel 55% vs Velka, Amber 43% vs Hask/Gorrum, Tobias 46% vs Corvan/Tamsin. 44 heroes.
-  - Next (step 27): Nerys, Hale, Juno (Burn and Spread), Pike (Pull).
+  - STEP 27 DONE (2026-11-25): Nerys, Hale, Juno (Burn and Spread), Pike (Pull). Preview: `docs/sigilbound/art/prototype/step27-glass-and-storm.png`.
+    - Balance after tuning: Nerys 55% vs Corvan/Tamsin, Hale 57% vs Velka (Taunt swings him from about 21% to 74%, so his shield is tiny), Juno 45% and Pike 45% vs Ysolde/Lumen/Nyx. 48 heroes.
+    - Juno got a dancer's skirt, so she doesn't read as a second Ysolde.
+  - Next (step 28): Rhea, Corwin (Execute), Astrid, Caspian.
 - [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
