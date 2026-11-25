@@ -120,7 +120,9 @@ namespace Sigilbound.Client
             EnsureStyles();
             float k = Mathf.Max(1f, Screen.dpi > 0 ? Screen.dpi / 160f : 1f);
             var safe = Screen.safeArea;
-            float h = 64 * k, pad = 10 * k;
+            string sub = _installing != null ? _installing : _failText != null ? _failText : $"v{LatestVersion} · build {LatestBuild} (you have build {MyBuild})";
+            bool tall = sub.Length > 60; // long reasons (e.g. the Samsung Auto Blocker hint) wrap onto more lines
+            float h = (tall ? 104 : 64) * k, pad = 10 * k;
             float w = Mathf.Min(Screen.width - 2 * pad, 560 * k);
             var r = new Rect((Screen.width - w) / 2f, Screen.height - safe.yMax + pad, w, h);
             GUI.Box(r, GUIContent.none, _box);
@@ -128,9 +130,9 @@ namespace Sigilbound.Client
             _btn.fontSize = Mathf.RoundToInt(15 * k); _close.fontSize = Mathf.RoundToInt(16 * k);
             float closeW = 36 * k, btnW = 120 * k;
             GUI.Label(new Rect(r.x + pad, r.y + 8 * k, w - btnW - closeW - 3 * pad, 24 * k), "Update available", _title);
-            GUI.Label(new Rect(r.x + pad, r.y + 34 * k, w - btnW - closeW - 3 * pad, 20 * k),
-                _installing != null ? _installing : _failText != null ? _failText : $"v{LatestVersion} · build {LatestBuild} (you have build {MyBuild})", _sub);
-            var btn = new Rect(r.xMax - btnW - closeW - pad, r.y + 12 * k, btnW, h - 24 * k);
+            _sub.wordWrap = tall;
+            GUI.Label(new Rect(r.x + pad, r.y + 34 * k, w - btnW - closeW - 3 * pad, (tall ? 62 : 20) * k), sub, _sub);
+            var btn = new Rect(r.xMax - btnW - closeW - pad, r.y + 12 * k, btnW, 40 * k);
             if (_installing != null)
             {
                 // Download progress bar in place of the button.
@@ -208,6 +210,10 @@ namespace Sigilbound.Client
         }
         const string InstallerClass = "com.sigilbound.updater.SigilboundUpdateInstaller";
         string _apkPath; int _apkBuild;
+        // Samsung's Auto Blocker (One UI 6+) stops every install that isn't from the Play Store or Galaxy
+        // Store, ours included, and tells the app nothing. On Samsung phones the banner says how to turn it off.
+        static bool Samsung => SystemInfo.deviceModel.IndexOf("samsung", StringComparison.OrdinalIgnoreCase) >= 0 || SystemInfo.deviceModel.StartsWith("SM-", StringComparison.Ordinal);
+        static string Blocked(string text) => Samsung ? text + " · \"Unknown app blocked\"? Turn off Auto Blocker in Settings › Security and privacy" : text;
         string _failText; bool _linkMode; // after a failed install: Android's reason, and the Download link
         bool _useIntent; // after the PackageInstaller route failed or was cancelled: Android's standard installer
         bool _autoTried, _autoBlocked, _awaitPermission, _installStarted, _userStarted;
@@ -288,7 +294,7 @@ namespace Sigilbound.Client
                     }
                     if (_useIntent)
                     {
-                        _installing = "Tap Install in Android's installer";
+                        _installing = Blocked("Tap Install in Android's installer");
                         cls.CallStatic("installViaIntent", activity, _apkPath);
                     }
                     else
@@ -327,7 +333,7 @@ namespace Sigilbound.Client
                 string st = "";
                 try { using (var cls = new AndroidJavaClass(InstallerClass)) st = cls.CallStatic<string>("getStatus") ?? ""; }
                 catch (Exception) { }
-                if (st == "intent") { _installStarted = false; _installing = null; _failText = "Finish in Android's installer (Install), then reopen"; }
+                if (st == "intent") { _installStarted = false; _installing = null; _failText = Blocked("Finish in Android's installer (Install), then reopen"); }
                 else if (st == "user-action") _installing = "Confirm the update in Android's window";
                 else if (st == "success") _installing = "Updated: open Sigilbound again";
                 else if (st.StartsWith("failed", StringComparison.Ordinal))
@@ -351,7 +357,7 @@ namespace Sigilbound.Client
                     }
                     else
                     {
-                        _failText = $"Install failed ({code}): {why}";
+                        _failText = Blocked($"Install failed ({code}): {why}");
                         _linkMode = true;
                     }
                 }
