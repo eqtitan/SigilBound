@@ -338,6 +338,15 @@ namespace Sigilbound.Client
             if (!titan && !hollow)
             {
                 yield return EnsureBakedIndex();
+                // A high-detail hero (phase F, blenderforge/ubc.py) wins over the free-path bake.
+                yield return EnsureHdIndex();
+                if (_hd != null && _hd.Contains(id))
+                {
+                    HeroModel hd = null;
+                    yield return BuildHd(unit, body, parent, m => hd = m);
+                    Trace($"hd {id}: {(hd != null ? "ok" : "FAILED, falling back")}");
+                    if (hd != null) { done(hd); yield break; }
+                }
                 bool isBaked = _baked != null && _baked.Contains(id);
                 Trace($"baked index: {(_baked == null ? "none" : string.Join(",", _baked))}; {id} baked={isBaked}");
                 if (isBaked)
@@ -405,6 +414,91 @@ namespace Sigilbound.Client
             }
             Trace($"build {id}: done, anim={(anim != null ? anim.GetClipCount() + " clips" : "none")}");
             done(new HeroModel(holder.gameObject, anim, (titan ? 4.7f : 2.3f) * (float)body.H, titan ? AnimStyle.TitanStyle : AnimStyle.For(id)));
+        }
+
+        // ---------- high-detail heroes (phase F) ----------
+        static HashSet<string> _hd;
+        static readonly Dictionary<string, (GLTFast.GltfImport gltf, Material mat)> _hdLibs = new Dictionary<string, (GLTFast.GltfImport, Material)>();
+        static IEnumerator EnsureHdIndex() => Shared("hd-index", LoadHdIndex);
+        static IEnumerator LoadHdIndex()
+        {
+            var set = new HashSet<string>();
+            byte[] bytes = null;
+            yield return ReadBytes(Path.Combine("heroes_hd", "index.txt"), b => bytes = b);
+            if (bytes != null)
+                foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
+                    if (line.Trim().Length > 0) set.Add(line.Trim());
+            _hd = set;
+        }
+
+        // The painted-character material for the baked atlas: albedo, tangent normal, and a mask whose
+        // blue channel is the glow (from the _glow PNG) so the eyes, runes and auras light up.
+        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D glow, Element el)
+        {
+            var sh = Shader.Find("Sigilbound/CharacterPainted");
+            var tmpl = Resources.Load<Material>("SigilMaterials/HeroPainted");
+            Material mat = tmpl != null ? new Material(tmpl) : sh != null ? new Material(sh) : new Material(Materials.Lit(Color.white, 0, 0.3f));
+            mat.name = "HD_" + id;
+            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", alb);
+            mat.mainTexture = alb;
+            if (nrm != null && mat.HasProperty("_BumpMap")) { mat.SetTexture("_BumpMap", nrm); mat.EnableKeyword("_NORMALMAP"); }
+            if (mat.HasProperty("_MaskMap") && glow != null)
+            {
+                var g = glow.GetPixels32(); var mask = new Color32[g.Length];
+                for (int i = 0; i < g.Length; i++) { byte lum = (byte)Mathf.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2); mask[i] = new Color32(0, 255, lum, 90); }
+                var mt = new Texture2D(glow.width, glow.height, TextureFormat.RGBA32, true, true); mt.SetPixels32(mask); mt.Apply(true, true);
+                mat.SetTexture("_MaskMap", mt);
+                if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", Palette.Element(el) * 2.2f);
+            }
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", Palette.Element(el));
+            return mat;
+        }
+
+        static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done)
+        {
+            string id = unit.Template.Id;
+            yield return EnsureLibrary("ubc");
+            var lib = Lib("ubc");
+            if (lib == null || lib.Failed || parent == null) { done(null); yield break; }
+            if (!_hdLibs.TryGetValue(id, out var bk))
+            {
+                byte[] glb = null, alb = null, nrm = null, glow = null;
+                bool low = Quality.I != null && Quality.I.Tier == 0;
+                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD{(low ? "_LOD1" : "")}.glb"), b => glb = b);
+                if (glb == null && low) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD.glb"), b => glb = b);
+                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.png"), b => alb = b);
+                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.png"), b => nrm = b);
+                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_glow.png"), b => glow = b);
+                if (glb == null || alb == null) { done(null); yield break; }
+                var gltf = new GLTFast.GltfImport(null, null, new SigilMaterialGenerator());
+                var load = gltf.LoadGltfBinary(glb, null, new GLTFast.ImportSettings { AnimationMethod = GLTFast.AnimationMethod.Legacy, GenerateMipMaps = false });
+                while (!load.IsCompleted) yield return null;
+                if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the high-detail {id}"); done(null); yield break; }
+                bk = (gltf, HdMaterial(id, LoadPng(alb, false), LoadPng(nrm, true), LoadPng(glow, false), unit.El)); _hdLibs[id] = bk;
+            }
+            var holder = new GameObject("Model").transform;
+            holder.SetParent(parent, false);
+            var inst = bk.gltf.InstantiateMainSceneAsync(holder);
+            while (!inst.IsCompleted) yield return null;
+            if (inst.IsFaulted || !inst.Result || holder == null || holder.childCount == 0) { if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
+            foreach (var r in holder.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = bk.mat;
+                r.sharedMaterials = mats;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                if (r is SkinnedMeshRenderer smr) smr.updateWhenOffscreen = true;
+            }
+            var root = holder.GetChild(0).gameObject;
+            var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
+            foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null) anim.AddClip(c, c.name);
+            if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>();
+            // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
+            float headY = 1.6f;
+            var head = BodyShaper.Find(holder, "Head");
+            if (head != null) headY = Mathf.Max(0.5f, holder.InverseTransformPoint(head.position).y);
+            holder.localScale = Vector3.one * (1.85f / headY * (float)body.H);
+            done(new HeroModel(holder.gameObject, anim, 2.3f * (float)body.H, AnimStyle.Hd(id), AnimStyle.HdAliases));
         }
 
         // ---------- baked free-path heroes ----------

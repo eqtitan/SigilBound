@@ -50,4 +50,19 @@ if (fs.existsSync(heroesSrc)) {
   fs.writeFileSync(path.join(heroesOut, "index.txt"), ids.join("\n") + "\n");
   console.log(`Baked heroes: ${ids.join(", ") || "none"}`);
 }
+// High-detail heroes (phase F, blenderforge/ubc.py) and the retargeted UAL clips for their rig.
+const hdSrc = path.resolve(here, "heroes_hd");
+if (fs.existsSync(hdSrc)) {
+  const hdOut = path.join(out, "heroes_hd");
+  fs.mkdirSync(hdOut, { recursive: true });
+  const ids = [];
+  for (const f of fs.readdirSync(hdSrc)) {
+    fs.copyFileSync(path.join(hdSrc, f), path.join(hdOut, f));
+    const m = /^SB_Hero_(.+)_HD\.glb$/.exec(f);
+    if (m) ids.push(m[1]);
+  }
+  fs.writeFileSync(path.join(hdOut, "index.txt"), ids.join("\n") + "\n");
+  console.log(`High-detail heroes: ${ids.join(", ") || "none"}`);
+}
+if (fs.existsSync(path.resolve(here, "ubc_anims.glb"))) fs.copyFileSync(path.resolve(here, "ubc_anims.glb"), path.join(out, "ubc_anims.glb"));
 console.log(`Models ready in ${path.relative(process.cwd(), out)}`);

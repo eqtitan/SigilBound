@@ -31,6 +31,7 @@ namespace Sigilbound.EditorTools
             }
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
 
+            EnsureHeroPaintedMaterial();
             PlayerSettings.companyName = "Sigilbound";
             // Frame pacing at 120/60/30 Hz on high-refresh phones (MECHANICS.md 6.1), and frame timings for Quality.
 #if UNITY_2022_2_OR_NEWER
@@ -61,5 +62,18 @@ namespace Sigilbound.EditorTools
             AssetDatabase.SaveAssets();
             Debug.Log("Sigilbound: project settings applied. Press Play to start the game.");
         }
-    }
+        // A material on Sigilbound/CharacterPainted in Resources, so the shader ships in builds and the
+        // high-detail heroes (HeroModels.BuildHd) can clone it at runtime.
+        static void EnsureHeroPaintedMaterial()
+        {
+            const string dir = "Assets/Resources/SigilMaterials", path = dir + "/HeroPainted.mat";
+            if (AssetDatabase.LoadAssetAtPath<Material>(path) != null) return;
+            var sh = Shader.Find("Sigilbound/CharacterPainted");
+            if (sh == null) { Debug.LogWarning("Sigilbound: Sigilbound/CharacterPainted shader not found"); return; }
+            if (!AssetDatabase.IsValidFolder("Assets/Resources")) AssetDatabase.CreateFolder("Assets", "Resources");
+            if (!AssetDatabase.IsValidFolder(dir)) AssetDatabase.CreateFolder("Assets/Resources", "SigilMaterials");
+            AssetDatabase.CreateAsset(new Material(sh) { name = "HeroPainted" }, path);
+            AssetDatabase.SaveAssets();
+        }
+}
 }
