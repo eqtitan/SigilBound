@@ -13,7 +13,9 @@ namespace Sigilbound.Core
     {
         public string Date, Title;
         public readonly List<(string Tag, string Text)> Items = new List<(string, string)>();
-        public string Key => Date + " | " + Title; // what "seen" remembers
+        // What "seen" remembers: the header plus the number of lines, so an entry that gains lines after
+        // it was seen shows again (it used to stay silent when notes were added to the same entry).
+        public string Key => Date + " | " + Title + " | " + Items.Count;
     }
 
     public static class Changelog

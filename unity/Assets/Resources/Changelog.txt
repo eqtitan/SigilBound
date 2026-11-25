@@ -1,7 +1,8 @@
 # Sigilbound "What's new" (player-facing; newest first). Tags: new, fix, change, balance.
 # Keep lines short and friendly; this is shown in the game after each update.
+# Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
-## 2026-11-25 | Heroines and a smoother updater
+## 2026-11-25 | Battle feel, frame rate and a clearer camera
 new: High-detail heroes move by weapon type: daggers, bows, casters, shields and brawlers each have their own stance and attacks; defenders block, and the losing team shows it.
 new: Hits land on contact and freeze for a split second (hit-stop), so attacks feel heavier, at any frame rate.
 fix: Low camera views (Cinematic) no longer get stuck behind or inside rocks and trees: scenery in the way is hidden.
@@ -10,6 +11,9 @@ new: Frame rate "Auto" matches your screen (up to 120 Hz on phones that support 
 new: Screen shake setting: Full, Reduced or Off.
 change: Screen shake looks the same at any frame rate.
 fix: On Samsung phones, the update banner now explains Auto Blocker ("Unknown app blocked") and where to turn it off.
+fix: The "What's new" window shows again after updates.
+
+## 2026-11-25 | Heroines and a smoother updater
 new: Forty heroines now have their own bodies: knights and rogues in hooded leathers, witches and mages in flowing dresses, and rangers in light gear.
 new: A "What's new" window like this one appears after every update. Find it again any time in Settings.
 fix: In-app updates on Android work again ("There's a problem with the app file").
