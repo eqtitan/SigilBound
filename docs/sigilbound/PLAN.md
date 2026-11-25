@@ -365,7 +365,7 @@ Owner decisions (2026-11-25): frame rate defaults to **Auto (match the screen)**
   - the hit-stop, shake and flash numbers;
   - role personality;
   - the frame-rate design and 12 animation tests.
-- [ ] **65. Frame-rate matching.**
+- [x] **65. Frame-rate matching.** Done: Settings has Frame rate **Auto · <screen Hz> / 60 · Smooth / 30 · Battery** (saved on the device as `sb.fpsMode`, so the save stays identical to the web's; old 30 choices stay 30) and Screen shake **Full / Reduced / Off** (`sb.shake`). Quality: `DisplayHz`, phones set the exact target, desktop Auto follows the monitor by vsync; under load Auto lowers 120 → 60 before graphics and retries between battles (wait doubles, max 8 min). Optimized Frame Pacing and Frame Timing Stats are on. Shake is now time-based noise. The performance overlay shows target/screen Hz. Still to do: spark spawn accumulators and the cloth substep (with steps 67–68).
   - Frame rate setting: Auto (match the display, up to 120), 60 or 30, saved as the new `settings.fpsMode` (`fpsCap` stays for web saves).
   - `Quality.cs` changes as in MECHANICS.md section 6.3:
     - `DisplayHz`;

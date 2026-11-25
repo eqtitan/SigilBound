@@ -61,7 +61,7 @@ namespace Sigilbound.Client
             string fpsCol = q == null || _fps >= q.TargetFps * 0.9f ? "#7CFC9A" : _fps >= q.TargetFps * 0.7f ? "#FFD166" : "#FF6B6B";
             string text = $"<color={fpsCol}><b>{_fps:0} fps</b></color>  {_ms:0.0} ms (worst {_worst:0})\n" +
                           $"draws {Count(_draws)}  batches {Count(_batches)}  setpass {Count(_setPass)}\n" +
-                          (q == null ? "" : $"{q.TierName}{(q.Choice == "auto" ? " (auto)" : "")}  cap {q.TargetFps}" +
+                          (q == null ? "" : $"{q.TierName}{(q.Choice == "auto" ? " (auto)" : "")}  target {q.TargetFps}/{Quality.DisplayHz} Hz{(q.HzLowered ? " (lowered)" : "")}" +
                                             $"  thermal {(q.ThermalStatus < 0 ? "n/a" : Thermal[Mathf.Clamp(q.ThermalStatus, 0, 6)])}{(q.ThermalLimited ? " (limited)" : "")}");
             var size = _style.CalcSize(new GUIContent(text));
             var safe = Screen.safeArea;
