@@ -162,6 +162,34 @@ jobs:
             unity-library-android-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}-
             unity-library-android-
       - name: Build the APK (game-ci)
+        id: apk1
+        # Gradle downloads the Android build tools from Maven Central on every build; when Maven
+        # answers 429 (Too Many Requests), the step fails before our code is built, so it is retried
+        # once after a pause (below).
+        continue-on-error: true
+        # unity-builder v6 runs the game-ci CLI. With UNITY_EMAIL + UNITY_PASSWORD and no
+        # UNITY_LICENSE it activates a Personal license through Unity's licensing client
+        # ("personal" method); with UNITY_LICENSE it uses the file and falls back to the account.
+        # The seat is returned when the job ends.
+        uses: game-ci/unity-builder@eb1b9fba120c6e62c9fb7a7a81d6c107ce004c45 # v6.0.0
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          cliVersion: v0.1.77
+          projectPath: unity
+          targetPlatform: Android
+          buildMethod: Sigilbound.EditorTools.BuildScript.Android
+          versioning: None
+          androidVersionCode: ${{ github.run_number }}
+          androidExportType: androidPackage
+          allowDirtyBuild: true
+      - name: Wait before retrying the APK build
+        if: steps.apk1.outcome == 'failure'
+        run: sleep 180
+      - name: Build the APK (retry after a failure)
+        if: steps.apk1.outcome == 'failure'
         # unity-builder v6 runs the game-ci CLI. With UNITY_EMAIL + UNITY_PASSWORD and no
         # UNITY_LICENSE it activates a Personal license through Unity's licensing client
         # ("personal" method); with UNITY_LICENSE it uses the file and falls back to the account.
