@@ -109,50 +109,6 @@ namespace Sigilbound.Client
         public void Run(bool back = false) => Play(back && Has("Run_Back") ? "Run_Back" : "Run", true, 0.15f, back ? 1.5f : 1.4f);
     }
 
-    // The Quaternius rigs hang the feet off the root bone (Foot.L/R are IK targets, not children of
-    // the shins). Their own clips key the feet, but the shared UAL spell/hit/death clips (retargeted
-    // from another rig) have no foot keys, so during those clips the feet stayed where they were
-    // while the body moved, and the legs stretched into stilts (owner's build 31 screenshot).
-    // While UAL clips play, this puts each foot back where the shin carries it, at its rest offset,
-    // blended by how much the UAL clips weigh in the current crossfade.
-    public sealed class FootFollow : MonoBehaviour
-    {
-        Animation _anim; readonly List<string> _ual = new List<string>();
-        Transform _footL, _footR, _shinL, _shinR;
-        Vector3 _posL, _posR; Quaternion _rotL, _rotR; // foot rest pose in its shin's space
-
-        public static void Attach(Animation anim, IEnumerable<AnimationClip> ual)
-        {
-            if (anim == null || anim.GetComponent<FootFollow>() != null) return;
-            Transform Find(string n) => anim.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == n);
-            Transform fl = Find("Foot.L"), fr = Find("Foot.R"), sl = Find("LowerLeg.L"), sr = Find("LowerLeg.R");
-            if (fl == null || fr == null || sl == null || sr == null || fl.IsChildOf(sl)) return; // not this rig, or feet already follow
-            var f = anim.gameObject.AddComponent<FootFollow>();
-            f._anim = anim; f._footL = fl; f._footR = fr; f._shinL = sl; f._shinR = sr;
-            foreach (var c in ual) if (c != null) f._ual.Add(c.name);
-            // Called right after instantiation, before any clip has sampled: transforms are the rest pose.
-            f._posL = sl.InverseTransformPoint(fl.position); f._rotL = Quaternion.Inverse(sl.rotation) * fl.rotation;
-            f._posR = sr.InverseTransformPoint(fr.position); f._rotR = Quaternion.Inverse(sr.rotation) * fr.rotation;
-        }
-
-        void LateUpdate()
-        {
-            if (_anim == null) return;
-            float w = 0;
-            foreach (var n in _ual) { var st = _anim[n]; if (st != null && st.enabled) w += st.weight; }
-            if (w <= 0.001f) return;
-            w = Mathf.Clamp01(w);
-            Follow(_footL, _shinL, _posL, _rotL, w);
-            Follow(_footR, _shinR, _posR, _rotR, w);
-        }
-
-        static void Follow(Transform foot, Transform shin, Vector3 pos, Quaternion rot, float w)
-        {
-            foot.position = Vector3.Lerp(foot.position, shin.TransformPoint(pos), w);
-            foot.rotation = Quaternion.Slerp(foot.rotation, shin.rotation * rot, w);
-        }
-    }
-
     public static class HeroModels
     {
         public static bool Available
@@ -294,13 +250,38 @@ namespace Sigilbound.Client
         }
 
         // Legacy clips from the retargeted UAL data, with paths relative to the Animation component.
+        // The UAL tracks use three.js node names, which drop the dots ("UpperLegL", "FootL"); the
+        // Unity bones keep them ("UpperLeg.L"). Bones are matched both ways: matching only the exact
+        // name bound just the dot-free bones (hips, spine, head), so in spells the arms, legs and the
+        // root-parented feet never moved and the legs stretched into stilts.
+        // Position tracks are applied as motion relative to the bone's rest position (from the
+        // untouched library prototype): the hooded data puts Body at about twice its rest height,
+        // which floated hooded heroes about a metre while casting.
         static List<AnimationClip> BuildUal(string baseModel, Transform animRoot)
         {
             var src = UalClips.SourceFor(baseModel);
             if (_ualData == null || src == null || !_ualData.TryGetValue(src, out var clips)) return new List<AnimationClip>();
             var paths = new Dictionary<string, string>();
-            void Index(Transform t, string p) { foreach (Transform c in t) { var cp = p.Length == 0 ? c.name : p + "/" + c.name; if (!paths.ContainsKey(c.name)) paths[c.name] = cp; Index(c, cp); } }
+            void Index(Transform t, string p)
+            {
+                foreach (Transform c in t)
+                {
+                    var cp = p.Length == 0 ? c.name : p + "/" + c.name;
+                    if (!paths.ContainsKey(c.name)) paths[c.name] = cp;
+                    var bare = c.name.Replace(".", "");
+                    if (!paths.ContainsKey(bare)) paths[bare] = cp;
+                    Index(c, cp);
+                }
+            }
             Index(animRoot, "");
+            var proto = Lib(baseModel)?.Prototype;
+            Vector3? Rest(string bone)
+            {
+                if (proto == null) return null;
+                foreach (var t in proto.GetComponentsInChildren<Transform>(true))
+                    if (t.name == bone || t.name.Replace(".", "") == bone) return t.localPosition;
+                return null;
+            }
             var outp = new List<AnimationClip>();
             foreach (var c in clips)
             {
@@ -325,7 +306,11 @@ namespace Sigilbound.Client
                 {
                     if (!paths.TryGetValue(tr.Key, out var path)) continue;
                     var px = new AnimationCurve(); var py = new AnimationCurve(); var pz = new AnimationCurve();
-                    for (int i = 0; i < c.Frames; i++) { float t = i / (float)c.Fps; var v = tr.Value; px.AddKey(t, -v[i * 3]); py.AddKey(t, v[i * 3 + 1]); pz.AddKey(t, v[i * 3 + 2]); }
+                    var v = tr.Value;
+                    // Offset so the clip's first frame sits at the bone's rest position (Unity space: X mirrored).
+                    var rest = Rest(tr.Key);
+                    var off = rest.HasValue ? rest.Value - new Vector3(-v[0], v[1], v[2]) : Vector3.zero;
+                    for (int i = 0; i < c.Frames; i++) { float t = i / (float)c.Fps; px.AddKey(t, -v[i * 3] + off.x); py.AddKey(t, v[i * 3 + 1] + off.y); pz.AddKey(t, v[i * 3 + 2] + off.z); }
                     clip.SetCurve(path, typeof(Transform), "localPosition.x", px); clip.SetCurve(path, typeof(Transform), "localPosition.y", py); clip.SetCurve(path, typeof(Transform), "localPosition.z", pz);
                 }
                 clip.EnsureQuaternionContinuity();
@@ -416,7 +401,7 @@ namespace Sigilbound.Client
             if (anim != null && !titan)
             {
                 if (lib.Ual == null) lib.Ual = BuildUal(baseModel, anim.transform);
-                foreach (var c in lib.Ual) anim.AddClip(c, c.name); FootFollow.Attach(anim, lib.Ual);
+                foreach (var c in lib.Ual) anim.AddClip(c, c.name);
             }
             Trace($"build {id}: done, anim={(anim != null ? anim.GetClipCount() + " clips" : "none")}");
             done(new HeroModel(holder.gameObject, anim, (titan ? 4.7f : 2.3f) * (float)body.H, titan ? AnimStyle.TitanStyle : AnimStyle.For(id)));
@@ -496,7 +481,7 @@ namespace Sigilbound.Client
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
             foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null) anim.AddClip(c, c.name);
             if (lib.Ual == null) lib.Ual = BuildUal(baseModel, anim.transform);
-            foreach (var c in lib.Ual) anim.AddClip(c, c.name); FootFollow.Attach(anim, lib.Ual);
+            foreach (var c in lib.Ual) anim.AddClip(c, c.name);
             float k = 1.85f / Mathf.Max(0.1f, lib.HeadY) * (float)body.H;
             holder.localScale = Vector3.one * k;
             done(new HeroModel(holder.gameObject, anim, 2.3f * (float)body.H, AnimStyle.For(id)));
