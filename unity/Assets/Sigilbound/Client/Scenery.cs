@@ -74,18 +74,18 @@ namespace Sigilbound.Client
                 if (Clear(x, z)) continue;
                 float s = R(0.6f, 1.6f), pick = R(0, 1);
                 if (th.Leaves != null && pick < 0.35f) Tree(root, new Vector3(x, 0, z), s, bark, th.Leaves, R);
-                else if (pick < 0.6f) Prop(root, PrimitiveType.Sphere, new Vector3(x, 0.25f * s, z), new Vector3(1.1f, 0.6f, 0.9f) * s, rock, new Vector3(R(-20, 20), R(0, 360), R(-20, 20)));
+                else if (pick < 0.6f) Rock(root, new Vector3(x, 0, z), s, rock, R);
                 else if (th.Strata != null && pick < 0.8f) Mesa(root, new Vector3(x, 0, z), s, th.Strata, R);
                 else if (th.Crystals && pick < 0.75f) Prop(root, PrimitiveType.Cube, new Vector3(x, 0.6f * s, z), new Vector3(0.3f, 1.2f, 0.3f) * s, Materials.Glow(Palette.Hex(th.MoteColor) * 0.4f, Palette.Hex(th.MoteColor), 1.2f), new Vector3(R(-15, 15), 45, R(-15, 15)));
                 else if (th.Mushrooms && pick < 0.8f) { Prop(root, PrimitiveType.Cylinder, new Vector3(x, 0.2f * s, z), new Vector3(0.12f, 0.2f, 0.12f) * s, bark); Prop(root, PrimitiveType.Sphere, new Vector3(x, 0.42f * s, z), new Vector3(0.6f, 0.25f, 0.6f) * s, Materials.Glow(Palette.Hex("#103038"), Palette.Hex(th.MoteColor), 0.9f)); }
-                else for (int k = 0; k < 3; k++) Prop(root, PrimitiveType.Capsule, new Vector3(x + R(-0.3f, 0.3f), 0.15f, z + R(-0.3f, 0.3f)), new Vector3(0.05f, 0.18f, 0.05f) * s, tuft, new Vector3(R(-25, 25), 0, R(-25, 25)));
+                else for (int k = 0; k < 3; k++) MeshProp(root, LowPoly.Tuft((int)R(0, LowPoly.Variants - 0.01f)), new Vector3(x + R(-0.4f, 0.4f), 0, z + R(-0.4f, 0.4f)), Vector3.one * 0.45f * s, tuft, new Vector3(0, R(0, 360), 0));
             }
             // grass tufts near the arena edge (drawn small; they read as texture)
             for (int i = 0; i < Mathf.RoundToInt(60 * density); i++)
             {
                 float a = R(0, Mathf.PI * 2), k = R(1.05f, 1.5f); float x = Mathf.Sin(a) * 6.2f * k, z = 0.6f + Mathf.Cos(a) * 5.6f * k;
                 if (z < -6.5f) continue;
-                Prop(root, PrimitiveType.Capsule, new Vector3(x, 0.08f, z), new Vector3(0.04f, 0.1f, 0.04f), tuft, new Vector3(R(-30, 30), 0, R(-30, 30)));
+                MeshProp(root, LowPoly.Tuft((int)R(0, LowPoly.Variants - 0.01f)), new Vector3(x, 0, z), Vector3.one * R(0.22f, 0.32f), tuft, new Vector3(0, R(0, 360), 0));
             }
 
             // ---- horizon silhouettes ----
@@ -117,14 +117,52 @@ namespace Sigilbound.Client
             go.GetComponent<Renderer>().sharedMaterial = m;
         }
 
+        // Faceted low-poly trees as in scenery.mjs: a broadleaf (tapered trunk, clustered faceted
+        // canopy) or, about a third of the time, a pine of stacked cones.
         static void Tree(Transform root, Vector3 p, float s, Material bark, string[] leaves, System.Func<float, float, float> R)
         {
-            Prop(root, PrimitiveType.Cylinder, p + Vector3.up * 0.9f * s, new Vector3(0.22f, 0.9f, 0.22f) * s, bark);
-            for (int i = 0; i < 4; i++)
+            int V() => (int)R(0, LowPoly.Variants - 0.01f);
+            if (R(0, 1) < 0.33f)
+            {
+                var pine = Materials.Lit(D(leaves[0], AP) * 0.8f, 0, 0.08f);
+                float h = R(2.6f, 3.6f) * s;
+                MeshProp(root, LowPoly.Trunk(6, 0.6f), p, new Vector3(0.16f, 0.8f, 0.16f) * s, bark, new Vector3(0, R(0, 360), 0));
+                for (int i = 0; i < 3; i++)
+                {
+                    float k = 1 - i * 0.28f;
+                    MeshProp(root, LowPoly.Cone(7), p + Vector3.up * (0.55f * s + i * h * 0.24f), new Vector3(0.95f * k, h * 0.42f, 0.95f * k) * s, pine, new Vector3(0, R(0, 360), 0));
+                }
+                return;
+            }
+            float trunkH = R(1.3f, 1.8f) * s;
+            MeshProp(root, LowPoly.Trunk(6, 0.55f), p, new Vector3(0.2f * s, trunkH, 0.2f * s), bark, new Vector3(0, R(0, 360), 0));
+            int clumps = (int)R(3, 5.99f);
+            for (int i = 0; i < clumps; i++)
             {
                 var c = D(leaves[(int)R(0, leaves.Length - 0.01f)], AP);
-                Prop(root, PrimitiveType.Sphere, p + new Vector3(R(-0.5f, 0.5f), R(1.8f, 2.6f), R(-0.5f, 0.5f)) * s, Vector3.one * R(0.9f, 1.4f) * s, Materials.Lit(c, 0, 0.1f));
+                float r = R(0.75f, 1.15f) * s;
+                var at = p + new Vector3(R(-0.55f, 0.55f) * s, trunkH + R(0.2f, 0.9f) * s, R(-0.55f, 0.55f) * s);
+                MeshProp(root, LowPoly.Blob(V(), 0.12f), at, new Vector3(r, r * R(0.8f, 1f), r), Materials.Lit(c, 0, 0.08f), new Vector3(R(0, 360), R(0, 360), R(0, 360)));
             }
+        }
+
+        // A faceted boulder, half sunk into the ground, sometimes with a smaller one beside it.
+        static void Rock(Transform root, Vector3 p, float s, Material rock, System.Func<float, float, float> R)
+        {
+            int V() => (int)R(0, LowPoly.Variants - 0.01f);
+            float w = R(0.45f, 0.7f) * s;
+            MeshProp(root, LowPoly.Blob(V(), 0.22f), p + Vector3.up * w * 0.25f, new Vector3(w, w * R(0.55f, 0.8f), w * R(0.8f, 1.1f)), rock, new Vector3(R(-15, 15), R(0, 360), R(-15, 15)));
+            if (R(0, 1) < 0.4f)
+                MeshProp(root, LowPoly.Blob(V(), 0.25f), p + new Vector3(w * 1.1f, w * 0.1f, R(-0.3f, 0.3f)), Vector3.one * w * 0.45f, rock, new Vector3(R(0, 360), R(0, 360), R(0, 360)));
+        }
+
+        static void MeshProp(Transform root, Mesh mesh, Vector3 pos, Vector3 scale, Material m, Vector3 euler)
+        {
+            var go = new GameObject(mesh.name);
+            go.transform.SetParent(root, false);
+            go.transform.localPosition = pos; go.transform.localScale = scale; go.transform.localEulerAngles = euler;
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = m;
         }
 
         static void Mesa(Transform root, Vector3 p, float s, string[] strata, System.Func<float, float, float> R)
