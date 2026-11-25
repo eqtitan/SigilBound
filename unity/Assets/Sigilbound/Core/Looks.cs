@@ -156,6 +156,10 @@ namespace Sigilbound.Core
             ["sprig"] = new HeroLook { Skin = "fair", Hair = "#7aa04a", Style = "braid", Gear = "none", Armor = "#5a8a3a", Accent = "#e8d870", Cloth = "#3a5a2a", Prop = "bell", Base = "hooded", Height = 0.86, Hide = new[] { "hood" } },
             ["tallow"] = new HeroLook { Skin = "tan", Hair = "#4a3020", Style = "short", Gear = "helm", Armor = "#7a5a3a", Accent = "#ff9a40", Cloth = "#4a3020", Prop = "shield", Cape = true, CapeColor = "#a04a1a", Base = "monarch", Height = 1.0, Hide = new[] { "crown" } },
             ["hollis"] = new HeroLook { Skin = "deep", Hair = "#2a2a2a", Style = "hood", Gear = "none", Armor = "#3a3a3a", Accent = "#8aa08a", Cloth = "#2a2a2a", Prop = "club", Base = "hooded", Height = 1.04 },
+            ["auren"] = new HeroLook { Skin = "fair", Hair = "#e8f0e0", Style = "long", Gear = "none", Armor = "#7ab0a0", Accent = "#e0fff0", Cloth = "#4a8070", Prop = "staff", Glow = "#c8ffe8", Robe = "long", RobeColor = "#4a8070", Base = "hooded", Height = 1.0, Hide = new[] { "hood" } },
+            ["cinder"] = new HeroLook { Skin = "fair", Hair = "#ff7a2a", Style = "spiky", Gear = "none", Armor = "#4a2418", Accent = "#ffa040", Cloth = "#2a120c", Prop = "sword", Glow = "#ffb040", Base = "adventurer", Height = 1.04, Shave = true },
+            ["thessaly"] = new HeroLook { Skin = "tan", Hair = "#3a5a6a", Style = "short", Gear = "helm", Armor = "#2a6a7a", Accent = "#a8f0f0", Cloth = "#1a4a5a", Prop = "shield", Glow = "#a8f0f0", Cape = true, CapeColor = "#123a48", Base = "monarch", Height = 1.06, Hide = new[] { "crown" } },
+            ["umbra"] = new HeroLook { Skin = "ash", Hair = "#3a3a4a", Style = "hood", Gear = "mask", Armor = "#2a2a3a", Accent = "#9a8aff", Cloth = "#1a1a28", Prop = "orb", Glow = "#b0a0ff", Robe = "long", RobeColor = "#1a1a28", Base = "hooded", Height = 1.0 },
         };
     }
 }

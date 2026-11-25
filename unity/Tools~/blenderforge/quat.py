@@ -177,6 +177,15 @@ HEROES = {
                    hide=["crown", "hair"], kit=["helm", "shield", "cape"], rim="#ff7a3a", height=1.0),
     "hollis": dict(base="hooded", skin="deep", hair="#2a2a2a", armor="#3a3a3a", accent="#8aa08a", cloth="#2a2a2a", glow=None,
                    hide=[], kit=["club"], rim="#a050ff", height=1.04),
+    # Step 35:
+    "auren":  dict(base="hooded", skin="fair", hair="#e8f0e0", armor="#7ab0a0", accent="#e0fff0", cloth="#4a8070", glow="#c8ffe8",
+                   hide=["hood"], kit=["long_hair", "fan", "robe"], rim="#3fb57a", height=1.0),
+    "cinder": dict(base="adventurer", skin="fair", hair="#ff7a2a", armor="#4a2418", accent="#ffa040", cloth="#2a120c", glow="#ffb040",
+                   hide=[], kit=["spiky_hair", "sword", "runes"], rim="#ff7a3a", height=1.04),
+    "thessaly": dict(base="monarch", skin="tan", hair="#3a5a6a", armor="#2a6a7a", accent="#a8f0f0", cloth="#1a4a5a", glow="#a8f0f0", cape="#123a48",
+                   hide=["crown", "hair"], kit=["helm", "shield", "trident", "cape"], rim="#3a8ee8", height=1.06),
+    "umbra":  dict(base="hooded", skin="ash", hair="#3a3a4a", armor="#2a2a3a", accent="#9a8aff", cloth="#1a1a28", glow="#b0a0ff",
+                   hide=[], kit=["mask", "orb", "robe"], rim="#a050ff", height=1.0),
 }
 
 def palette(h):
@@ -211,7 +220,7 @@ ROLES = {
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
 }
 # Clean-shaven heroes (Shave = true in Core/Looks.cs): their beard is removed (adventurer heads only).
-SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin", "grimsby", "quill", "drift"}
+SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin", "grimsby", "quill", "drift", "cinder"}
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}
@@ -541,6 +550,19 @@ def kit(h, arm, P, head_mesh):
             # F.box takes full sizes: a 22 x 30 cm tome, 5 cm thick, pages showing on the open edge.
             out.append(rigid(F.box("BookCover", W(0, 0.15, 0.03), (0.22, 0.3, 0.05)), arm, "Wrist.L", P["Cloth"]))
             out.append(rigid(F.box("BookPages", W(0.012, 0.15, 0.03), (0.2, 0.28, 0.056)), arm, "Wrist.L", P["White"]))
+        elif k == "fan":
+            # A war fan in the right hand (Auren): ribs fanning out from the grip, a cloth edge and a glowing rim.
+            W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
+            tips = []
+            for i in range(7):
+                a = math.radians(-50 + i * (100 / 6))
+                tip = W(math.sin(a) * 0.3, 0.06 + math.cos(a) * 0.3, 0)
+                tips.append(tip)
+                out.append(rigid(F.strand(f"FanRib{i}", [W(0, 0.06, 0), tip], 0.008, 0.006), arm, "Wrist.R", P["Wood"]))
+            out.append(rigid(F.strand("FanEdge", tips, 0.022, 0.022), arm, "Wrist.R", P["Accent"]))
+            mids = [W(math.sin(math.radians(-50 + i * (100 / 6))) * 0.2, 0.06 + math.cos(math.radians(-50 + i * (100 / 6))) * 0.2, 0) for i in range(7)]
+            out.append(rigid(F.strand("FanCloth", mids, 0.05, 0.05), arm, "Wrist.R", P["Cloth"]))
+            if "Glow" in P: out.append(rigid(F.strand("FanGlow", tips, 0.008, 0.008), arm, "Wrist.R", P["Glow"]))
         elif k == "cape":
             # A cape hanging from the shoulders down the back, flaring toward the hem (rigid on the chest).
             chest = bone_world(arm, "Chest"); top = chest.z + 0.2; back = chest.y + 0.2

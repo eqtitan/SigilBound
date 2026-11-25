@@ -173,6 +173,11 @@ namespace Sigilbound.Core
             H("sprig", "Sprig Mosslight", Rarity.Common, Element.Gale, Role.Support, S("Twig Poke", E, 1.0, 0), S("Bloom Song", AA, 0, 4, Heal(0.07), F(FxType.SpdUp, 2))),
             H("tallow", "Tallow Firth", Rarity.Common, Element.Flame, Role.Defense, S("Torch Bash", E, 0.85, 0, 1, Scale.Def, F(FxType.Burn, 2, 0.1)), S("Watch Fire", AA, 0, 4, F(FxType.DefUp, 2))),
             H("hollis", "Hollis Shade", Rarity.Common, Element.Shadow, Role.Hp, S("Grave Thump", E, 0.08, 0, 1, Scale.Hp), S("Gravedigger's Rest", SELF, 0, 4, Shield(0.2), F(FxType.Regen, 2), F(FxType.Taunt, 2))),
+            // Step 35:
+            H("auren", "Auren Halewind", Rarity.Epic, Element.Gale, Role.Support, S("Gust Fan", E, 1.0, 0, F(FxType.Slow, 2, 0.3)), S("Clearing Wind", AA, 0, 4, Cleanse(), F(FxType.SpdUp, 2), Heal(0.2)), S("Skysong", AA, 0, 5, F(FxType.AtkUp, 2), TmUp(0.2))),
+            H("cinder", "Cinder Vale", Rarity.Epic, Element.Flame, Role.Attack, S("Ember Edge", E, 1.1, 0, F(FxType.Burn, 2, 0.3)), S("Eruption Slash", AE, 1.2, 4, F(FxType.AtkDown, 2, 0.5)), S("Titan's Scar", E, 2.4, 4, F(FxType.Burn, 2, 0.6))),
+            H("thessaly", "Thessaly Reefward", Rarity.Epic, Element.Tide, Role.Defense, S("Reef Strike", E, 0.95, 0, 1, Scale.Def, F(FxType.Slow, 2, 0.3)), S("Fleet Shield", AA, 0, 4, Shield(0.06), F(FxType.Taunt, 2, -1, FxTo.Self)), S("Undertow Wall", AE, 0.8, 5, 1, Scale.Def, F(FxType.DefDown, 2, 0.4))),
+            H("umbra", "Umbra Veilkin", Rarity.Epic, Element.Shadow, Role.Support, S("Void Touch", E, 1.0, 0, Drain(0.15, 0.5)), S("Hollow Eclipse", AE, 0.5, 4, Drain(0.2), F(FxType.DefDown, 2, 0.6)), S("Seer's Mercy", AA, 0, 4, Heal(0.25), Cleanse(), TmUp(0.2))),
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web
