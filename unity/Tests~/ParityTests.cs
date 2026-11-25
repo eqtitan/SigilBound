@@ -213,7 +213,7 @@ static class ParityTests
         var cv = Json.Obj(data, "curve");
         Same(Curve.Start == N(cv, "start") && Curve.End == N(cv, "end") && Curve.Shape == N(cv, "shape") && Curve.SpdPerStage == N(cv, "spdPerStage") && Curve.BossStat == N(cv, "bossStat") && Curve.BossHp == N(cv, "bossHp")
             && Curve.Chapter.SequenceEqual(Json.Arr(cv, "chapter").Cast<double>()), "enemy curve");
-        Same(Chapters.SequenceEqual(Json.Arr(data, "chapters").Cast<string>()) && Starters.SequenceEqual(Json.Arr(data, "starters").Cast<string>()), "chapters and starters");
+        Same(Chapters.Take(ClassicChapters).SequenceEqual(Json.Arr(data, "chapters").Cast<string>()) && Starters.SequenceEqual(Json.Arr(data, "starters").Cast<string>()), "chapters and starters");
         var roles = Json.Obj(data, "roles");
         foreach (Role r in Enum.GetValues(typeof(Role)))
         {

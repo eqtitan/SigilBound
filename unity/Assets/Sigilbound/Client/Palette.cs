@@ -46,7 +46,7 @@ namespace Sigilbound.Client
                 { "#101a2e", "#5a7ab0", "#1a2440", "#0c1220" }, { "#0e0a16", "#3a2a5a", "#180f26", "#b080ff" },
                 { "#0e1a2a", "#2a5a7a", "#10283c", "#80e0ff" }, { "#1a0a0a", "#ff6a2a", "#24100c", "#100606" },
             };
-            int c = ((chapter % 10) + 10) % 10;
+            int c = GameData.ThemeOf(chapter); // act 2 chapters use their own theme picks
             return (Hex(s[c, 0]), Hex(s[c, 1]), Hex(s[c, 2]), Hex(s[c, 3]));
         }
 

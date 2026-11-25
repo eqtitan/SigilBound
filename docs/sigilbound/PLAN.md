@@ -248,6 +248,7 @@ Unfinished work saved from the stopped agents:
       - Signing is ruled out: every APK carries the committed test certificate (SHA-256 ea8347b4…).
       - Fix 1: the banner shows PackageInstaller's code and message.
       - Fix 2: if that route fails or is cancelled, the game opens Android's standard package installer for the same file (`SigilboundApkProvider`, the same screen as installing from a file manager). If that fails too, the button becomes Download.
+    - VERIFIED ON DEVICE (2026-11-25): the owner updated from build 57 to build 58 in the game.
   - Today: the update banner on Android opens the APK link in the browser. The owner then downloads, opens the file and installs.
   - Goal: tap **Update now** in the game. It downloads the APK with a progress bar (as on Windows), then Android's installer opens directly, so one tap installs it and the save is kept. Later updates are silent where Android allows it.
   - What Android allows:
@@ -272,7 +273,19 @@ Unfinished work saved from the stopped agents:
     3. When N+2 is out, check the update installs without a prompt (Android 12+).
     4. Turn on airplane mode mid-download and check the fallback link works.
   - CI: compile checks cover the C#, but the Java builds only in the Android job. The plugin goes in its own commit so a build failure is easy to spot.
-- [ ] **38. Campaign act 2** (chapters 11–15: the port city and the storm coast), with new enemy pools that include roster heroes.
+- [x] **38. Campaign act 2** (chapters 11–15: the port city and the storm coast), with new enemy pools that include roster heroes.
+  - DONE (2026-11-25):
+    - Five chapters: Saltreach Harbor, The Black Fens, Wraithmoor Barrows, The Ember Groves, The Storm Coast (stages 61–90).
+    - Act 1 is pinned to its 60 stages (`GameData.ClassicStages`), so its stages and dungeon floors are unchanged and parity holds:
+      - the difficulty curve (`Grade`) divides by the act 1 length;
+      - `Trials.DungeonIdx` caps at act 1;
+      - act 1 enemies are Classic only.
+    - Act 2 enemies come from all heroes (124 roster heroes among its waves): level 50, 5-star, multiplier `Curve.End x (1 + 0.02 per stage)`, about 1.79 to 2.8.
+    - The test sweep uses endgame teams (6 stars, level 60) for act 2. The Epic/Legendary team wins 93–100% until chapter 15 (about 53% at 15-1); the Rare/Epic team struggles from chapter 13. It's endgame content.
+    - World map: an Act I / Act II switch (Act II opens after stage 60), its own generated storm-coast map and its own boss-reward track.
+    - Arenas: `GameData.ThemeOf` gives act 2 chapters their own theme picks (teal shore, glow marsh, amethyst badlands, burning ruins, moonlit shore).
+    - Hard mode extends naturally.
+    - Not done: act 2 story text; its own scenery models (it reuses act 1 themes).
 - [ ] **39–43. Phase 4 heroes (The Sigil Bearers), 4 per step.**
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)

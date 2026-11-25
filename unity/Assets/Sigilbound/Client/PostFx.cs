@@ -74,7 +74,7 @@ namespace Sigilbound.Client
         {
 #if SB_URP
             Ensure();
-            var g = !battle ? Neutral : titan ? Titan : Themes[((chapter % 10) + 10) % 10];
+            var g = !battle ? Neutral : titan ? Titan : Themes[Sigilbound.Core.GameData.ThemeOf(chapter)];
             _wb.temperature.Override(g.Temp * 60f); _wb.tint.Override(g.Tint * 60f);
             _color.saturation.Override((g.Sat - 1) * 100f); _color.contrast.Override(g.Contrast * 100f);
             _split.shadows.Override(Toned(g.ShHue, g.ShAmt)); _split.highlights.Override(Toned(g.HiHue, g.HiAmt)); _split.balance.Override(g.Balance * 100f);
