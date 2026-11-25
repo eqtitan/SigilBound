@@ -3,7 +3,7 @@
 // textures, and touch drag-to-scroll. No editor setup or UI package needed.
 // Styled like the web game's gilded dark-fantasy skin (style.css): framed panels with a bronze
 // edge, gilded gradient buttons, gold rules, and serif display type for headings and buttons
-// (the phone's own serif font, e.g. Noto Serif on Android; nothing is bundled).
+// (Cinzel, OFL, bundled in Resources/Fonts; see OFL.txt there).
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -25,7 +25,7 @@ namespace Sigilbound.Client
 
         static readonly Dictionary<string, Texture2D> _tex = new Dictionary<string, Texture2D>();
         static readonly Dictionary<string, GUIStyle> _styles = new Dictionary<string, GUIStyle>();
-        static Font _font, _serif;
+        static Font _font, _serif, _serifBold;
         public static Font Serif => _serif;
 
         public static void Begin()
@@ -34,10 +34,13 @@ namespace Sigilbound.Client
             if (_font == null) _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (_serif == null)
             {
-                // Same preference order as the web's --display stack, ending with the system serif.
-                try { _serif = Font.CreateDynamicFontFromOSFont(new[] { "Cinzel", "Cormorant SC", "Palatino Linotype", "Palatino", "Book Antiqua", "Georgia", "Noto Serif", "NotoSerif", "Droid Serif", "serif", "Times New Roman" }, 16); }
-                catch (System.Exception) { }
+                // The web's display face, bundled. Never Font.CreateDynamicFontFromOSFont: with Unity 6's
+                // TextCore-based IMGUI, text in an OS font is not generated, and those controls redraw the
+                // previous built-in-font string instead (labels and buttons showing other controls' text).
+                _serif = Resources.Load<Font>("Fonts/Cinzel-Regular");
+                _serifBold = Resources.Load<Font>("Fonts/Cinzel-Bold");
                 if (_serif == null) _serif = _font;
+                if (_serifBold == null) _serifBold = _serif;
             }
             GUI.skin.font = _font;
         }
@@ -140,9 +143,30 @@ namespace Sigilbound.Client
             var c = color ?? Palette.Text;
             return Style($"lbl{size}{ColorUtility.ToHtmlStringRGBA(c)}{fs}{align}{wrap}{serif}", () => new GUIStyle
             {
-                fontSize = size, fontStyle = fs, alignment = align, wordWrap = wrap, richText = true, clipping = TextClipping.Clip,
-                normal = { textColor = c }, font = serif ? _serif : _font,
+                // Bold serif uses Cinzel's real bold face rather than a synthesized one.
+                fontSize = size, fontStyle = serif && fs == FontStyle.Bold ? FontStyle.Normal : fs, alignment = align, wordWrap = wrap, richText = true, clipping = TextClipping.Clip,
+                normal = { textColor = c }, font = serif ? (fs == FontStyle.Bold ? _serifBold : _serif) : _font,
             });
+        }
+
+        // Cinzel only covers Latin text; strings with symbols it lacks (★ ≡ ✕ ◆ …) use the built-in
+        // font so nothing renders blank. Cached per string.
+        static readonly Dictionary<string, bool> _serifOk = new Dictionary<string, bool>();
+        public static bool SerifCanDraw(string s)
+        {
+            if (string.IsNullOrEmpty(s) || _serif == null || _serif == _font) return true;
+            if (_serifOk.TryGetValue(s, out var ok)) return ok;
+            ok = true;
+            bool tag = false;
+            foreach (var ch in s)
+            {
+                if (ch == '<') tag = true;
+                if (!tag && ch > 127 && !_serif.HasCharacter(ch)) { ok = false; break; }
+                if (ch == '>') tag = false;
+            }
+            if (_serifOk.Count > 4000) _serifOk.Clear();
+            _serifOk[s] = ok;
+            return ok;
         }
 
         public static void Panel(Rect r, Color? fill = null, Color? border = null, int radius = 14) =>
@@ -173,9 +197,9 @@ namespace Sigilbound.Client
         }
 
         public enum Kind { Primary, Secondary, Blue, Red, Chip, ChipOn, Ghost }
-        static GUIStyle ButtonStyle(Kind k, int size)
+        static GUIStyle ButtonStyle(Kind k, int size, bool serif = true)
         {
-            return Style($"btn{k}{size}", () =>
+            return Style($"btn{k}{size}{serif}", () =>
             {
                 // Gilded plates as in style.css: gradient stops top / upper-mid / lower-mid / bottom.
                 (Color top, Color midA, Color midB, Color bottom, Color text, Color? border) = k switch
@@ -195,9 +219,10 @@ namespace Sigilbound.Client
                     border = new RectOffset(rad + 2, rad + 2, rad + 2, rad + 2),
                 };
                 if (k != Kind.Ghost) s.active.background = GradientTex(Color.Lerp(top, Color.black, 0.2f), Color.Lerp(bottom, Color.black, 0.2f), border, rad, Color.Lerp(midA, Color.black, 0.2f), 0.45f, Color.Lerp(midB, Color.black, 0.2f));
-                s.fontSize = size; s.fontStyle = FontStyle.Bold; s.alignment = TextAnchor.MiddleCenter; s.wordWrap = true; s.richText = true;
+                bool display = serif && k != Kind.Ghost;
+                s.fontSize = size; s.fontStyle = display ? FontStyle.Normal : FontStyle.Bold; s.alignment = TextAnchor.MiddleCenter; s.wordWrap = true; s.richText = true;
                 s.normal.textColor = s.active.textColor = s.hover.textColor = text; s.hover.background = s.normal.background;
-                s.padding = new RectOffset(6, 6, 4, 4); s.font = k == Kind.Ghost ? _font : _serif;
+                s.padding = new RectOffset(6, 6, 4, 4); s.font = display ? _serifBold : _font;
                 return s;
             });
         }
@@ -207,7 +232,7 @@ namespace Sigilbound.Client
         {
             var was = GUI.enabled; GUI.enabled = was && enabled;
             var col = GUI.color; if (!enabled) GUI.color = new Color(1, 1, 1, 0.4f);
-            bool hit = GUI.Button(r, text, ButtonStyle(k, size));
+            bool hit = GUI.Button(r, text, ButtonStyle(k, size, SerifCanDraw(text)));
             GUI.color = col; GUI.enabled = was;
             hit = hit && !Scroller.WasDragging;
             if (hit && k != Kind.Ghost) Sound.I?.Play("tap", 0.45f, 1, 0); // every button taps, as the web
@@ -215,7 +240,7 @@ namespace Sigilbound.Client
         }
 
         public static void Text(Rect r, string text, int size = 15, Color? color = null, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleLeft, bool wrap = false, bool serif = false) =>
-            GUI.Label(r, text, Label(size, color, fs, align, wrap, serif));
+            GUI.Label(r, text, Label(size, color, fs, align, wrap, serif && SerifCanDraw(text)));
 
         // Multi-line text box (save codes, promo codes). Tapping it opens the phone keyboard.
         public static string Field(Rect r, string value, int maxLength, bool multiline)
