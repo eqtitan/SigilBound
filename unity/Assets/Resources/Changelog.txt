@@ -2,6 +2,7 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 
 ## 2026-11-25 | Heroines and a smoother updater
+new: Hits land on contact and freeze for a split second (hit-stop), so attacks feel heavier, at any frame rate.
 fix: Low camera views (Cinematic) no longer get stuck behind or inside rocks and trees: scenery in the way is hidden.
 new: Test: Brannoc, Lumen, Morwenna and Aurelia appear as the first high-detail models (work in progress).
 new: Frame rate "Auto" matches your screen (up to 120 Hz on phones that support it); 60 and 30 are still in Settings.

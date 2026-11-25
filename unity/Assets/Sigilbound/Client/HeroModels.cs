@@ -68,6 +68,7 @@ namespace Sigilbound.Client
                 return true;
             }
             if (Anim == null) return false;
+            _current = name;
             var st = Anim[_names[name]];
             st.wrapMode = loop ? WrapMode.Loop : clamp ? WrapMode.ClampForever : WrapMode.Once;
             st.speed = speed;
@@ -76,6 +77,37 @@ namespace Sigilbound.Client
             if (!loop && !clamp && IdleName != null && IdleName != name) Anim.CrossFadeQueued(_names[IdleName], 0.22f, QueueMode.CompleteOthers).wrapMode = WrapMode.Loop;
             return true;
         }
+        string _current; bool _frozen; readonly Dictionary<AnimationState, float> _frozenSpeeds = new Dictionary<AnimationState, float>();
+
+        // Normalized time of the clip last started with Play (time-based: identical at any frame rate).
+        public float CurrentNormalized
+        {
+            get
+            {
+                if (_animator != null) return _animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+                if (Anim == null || _current == null || !Has(_current)) return 1f;
+                var st = Anim[_names[_current]];
+                return st == null ? 1f : st.length > 0 ? st.time / st.length : 1f;
+            }
+        }
+
+        // Waits (scaled time) until the current clip reaches normalized time t, or maxSeconds pass.
+        public IEnumerator WaitNormalized(float t, float maxSeconds)
+        {
+            for (float w = 0; w < maxSeconds && CurrentNormalized < t; w += Time.deltaTime) yield return null;
+        }
+
+        // Hit-stop: holds the pose (every playing clip at speed 0), then resumes at the speeds it had.
+        public void SetFrozen(bool on)
+        {
+            if (on == _frozen) return;
+            _frozen = on;
+            if (_animator != null) { _animator.speed = on ? 0f : 1f; return; }
+            if (Anim == null) return;
+            if (on) { _frozenSpeeds.Clear(); foreach (AnimationState s in Anim) if (s.enabled) { _frozenSpeeds[s] = s.speed; s.speed = 0f; } }
+            else { foreach (var kv in _frozenSpeeds) if (kv.Key != null) kv.Key.speed = kv.Value; _frozenSpeeds.Clear(); }
+        }
+
         public void Idle(float fade = 0.25f) { var n = IdleName; if (n != null) Play(n, true, fade, Style.Titan ? 0.7f : 1f); }
         public float Strike()
         {

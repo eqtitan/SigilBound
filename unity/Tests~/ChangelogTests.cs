@@ -50,3 +50,26 @@ static class HdClipTests
         check(bad.Count == 0, "hd clips: every clip a hero plays exists" + (bad.Count > 0 ? " (missing " + string.Join(", ", bad.Distinct().Take(6)) + ")" : ""));
     }
 }
+
+// Impact timing and hit-stop (MECHANICS.md 3.2, 4.1): time-based, so frame rate changes nothing but smoothness.
+static class ImpactTests
+{
+    public static void Run(System.Action<bool, string> check)
+    {
+        foreach (var len in new[] { 0.9, 1.2, 1.6 })
+            foreach (var f in (Sigilbound.Core.WeaponFamily[])System.Enum.GetValues(typeof(Sigilbound.Core.WeaponFamily)))
+            {
+                double imp = Sigilbound.Core.Impact.ImpactTime(f);
+                double t30 = Sigilbound.Core.Impact.CrossingTime(len, imp, 30), t60 = Sigilbound.Core.Impact.CrossingTime(len, imp, 60), t120 = Sigilbound.Core.Impact.CrossingTime(len, imp, 120);
+                if (System.Math.Abs(t30 - imp * len) > 1 / 30.0 + 1e-9 || System.Math.Abs(t120 - imp * len) > 1 / 120.0 + 1e-9 || System.Math.Abs(t60 - imp * len) > 1 / 60.0 + 1e-9)
+                { check(false, $"impact: {f} at {len}s lands within one frame at 30/60/120 fps"); return; }
+            }
+        check(true, "impact: every family lands within one frame of its exact time at 30, 60 and 120 fps");
+        var B = Sigilbound.Core.WeaponFamily.Blade;
+        check(System.Math.Abs(Sigilbound.Core.Impact.HitStop(B, false, false, false, 1) - 0.07) < 1e-9, "hit-stop: blade 0.07 s at 1x");
+        check(Sigilbound.Core.Impact.HitStop(Sigilbound.Core.WeaponFamily.Heavy, true, true, false, 1) <= Sigilbound.Core.Impact.MaxHitStop + 1e-9, "hit-stop: capped at 0.25 s");
+        double real3 = Sigilbound.Core.Impact.HitStop(B, false, false, false, 3) / 3; // real seconds at 3x
+        check(real3 < 0.07 && real3 > 0.07 * 0.5, "hit-stop: shorter in real time at 3x but still visible (speed^-0.55)");
+        check(Sigilbound.Core.Impact.FamilyOf("lumen") == B && Sigilbound.Core.Impact.FamilyOf("odo") == Sigilbound.Core.WeaponFamily.Unarmed, "impact: families from the hero's prop");
+    }
+}

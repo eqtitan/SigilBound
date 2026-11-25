@@ -70,7 +70,17 @@ namespace Sigilbound.Client
             Vector3 eye = Cam.transform.position;
             var c = ToUnity(BattleLayout.CamTarget);
             Vector3 right = Vector3.Cross(Vector3.up, (c - eye).normalized).normalized;
-            var targets = new[] { c, c + right * 4.2f, c - right * 4.2f, c + Vector3.up * 1.2f, new Vector3(c.x, 0.4f, c.z - 3f), c + right * 2.5f + Vector3.up * 1f, c - right * 2.5f + Vector3.up * 1f };
+            // Sight lines to the whole battle ring (where every hero stands, plus a margin for the
+            // name tags above them): centre, two rings of points, at foot, chest and tag height.
+            var targets = new List<Vector3> { c };
+            var ctr = ToUnity(BattleLayout.Centre);
+            foreach (float k in new[] { 0.55f, 1.12f })
+                for (int a = 0; a < 16; a++)
+                {
+                    float ang = a * Mathf.PI / 8f;
+                    var p = ctr + new Vector3(Mathf.Cos(ang) * (float)BattleLayout.RimRx * k, 0, Mathf.Sin(ang) * (float)BattleLayout.RimRz * k);
+                    foreach (float h in new[] { 0.3f, 1.2f, 2.4f }) targets.Add(p + Vector3.up * h);
+                }
             foreach (var r in _scenery.GetComponentsInChildren<Renderer>(true))
             {
                 if (!r.enabled) continue;
@@ -86,7 +96,7 @@ namespace Sigilbound.Client
                     foreach (var t in targets)
                     {
                         var d = t - eye; float len = d.magnitude;
-                        if (bb.IntersectRay(new Ray(eye, d / len), out float hit) && hit < len - 0.6f) { block = true; break; }
+                        if (bb.IntersectRay(new Ray(eye, d / len), out float hit) && hit < len - 0.45f) { block = true; break; }
                     }
                 }
                 if (block) { r.enabled = false; _hidden.Add(r); }

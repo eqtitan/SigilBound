@@ -337,7 +337,8 @@ namespace Sigilbound.Client
                 for (float k = 0; k < 1; k += Time.deltaTime / 0.26f) { transform.position = Vector3.Lerp(_home, to, EaseIO(k)); yield return null; }
                 transform.position = to;
                 if (!m.HasSkill(skill)) m.Strike(); else m.Skill(skill);
-                yield return new WaitForSeconds(0.35f);
+                // Contact at the family's impact time in the clip (MECHANICS.md 3.2), not a fixed wait.
+                yield return m.WaitNormalized((float)Impact.ImpactTime(Impact.FamilyOf(Unit.Template.Id)), 0.6f);
             }
             else
             {
@@ -364,6 +365,15 @@ namespace Sigilbound.Client
             yield return Attack(transform.position + transform.forward * 0.6f, melee);
             yield return Recover();
             _home = home;
+        }
+
+        // Hit-stop (MECHANICS.md 4.1): freezes this hero's pose for `seconds` of scaled time.
+        public IEnumerator FreezeFor(float seconds)
+        {
+            if (_model == null || seconds <= 0) yield break;
+            _model.SetFrozen(true);
+            yield return new WaitForSeconds(seconds);
+            _model.SetFrozen(false);
         }
 
         public IEnumerator Recover()

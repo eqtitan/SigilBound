@@ -212,6 +212,16 @@ namespace Sigilbound.Client
                     foreach (var f in flights) yield return f;
                 }
                 if (melee) foreach (var h in hit) if (_views.ContainsKey(h)) { if (fx != null) fx.Slash(_views[h].Center, u.El, _views[h].transform.position - view.transform.position); else Vfx.I.Slash(_views[h].Center, color); }
+                // Hit-stop at the impact: attacker and targets (melee) or targets only (ranged) hold their
+                // poses briefly, so the hit has weight; time-based, the same at 30/60/120 fps.
+                if (!support && hit.Count > 0 && !u.Titan)
+                {
+                    bool crit = events.Any(e => e.Type == EvType.Damage && e.Crit), kill = events.Any(e => e.Type == EvType.Death);
+                    float stop = (float)Impact.HitStop(Impact.FamilyOf(u.Template.Id), crit, kill, ult, G.S.settings.speed);
+                    if (melee) StartCoroutine(view.FreezeFor(stop));
+                    foreach (var h in hit) if (_views.TryGetValue(h, out var hv) && hv != null) StartCoroutine(hv.FreezeFor(stop));
+                    yield return new WaitForSeconds(stop);
+                }
             }
             yield return ShowEvents(events, color);
             if (view != null) { yield return view.Recover(); view.FaceHome(); }
