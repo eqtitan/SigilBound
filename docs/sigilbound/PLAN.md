@@ -111,7 +111,7 @@ Unfinished work saved from the stopped agents:
     - Same or worse: stiff anatomy, crude faces; at about 70 px in battle the gain is small.
     - The prototypes haven't been rendered inside Unity: that needs the hero-art import job, which hasn't run yet.
   - The owner decides next: keep improving the free path (CC0 base bodies + scripted kit + baked painted textures), or allow a paid generator for higher quality. Steps 13–18 depend on that answer.
-- [ ] **13–18. Heroes in batches of 4 per session** (steps 13–16 DONE 2026-11-25, see below) (24 heroes), with the shared idle/wait animation and unique skill animations where possible.
+- [ ] **13–18. Heroes in batches of 4 per session** (steps 13–17 DONE 2026-11-25, see below) (24 heroes), with the shared idle/wait animation and unique skill animations where possible.
   - OWNER DECISION (2026-11-25): improve the FREE path. No paid generator.
   - Per hero:
     - start from the CC0 Quaternius base bodies (better anatomy than the scripted skin-modifier bodies);
@@ -146,7 +146,8 @@ Unfinished work saved from the stopped agents:
   - Model-load fix pushed (2026-11-25, build 30): shared loads now run on a persistent loader. A hero figure destroyed mid-load used to leave its base model 'loading' forever, so every hero kept its stand-in. Confirm with the build 30 tour (`grep SBMODEL player.log`).
   - STEP 15 DONE (2026-11-25): Aurelia, Velka, Thrain, Kaito; new kit pieces: spiky hair, bandana, katana. Preview: `docs/sigilbound/art/prototype/step15-free-path.png`. 12 heroes baked.
   - STEP 16 DONE (2026-11-25): Lumen, Nyx, Tamsin, Sable; new kit pieces: mask, twin daggers, braid, bow, quiver, veil, hand mirror. Preview: `docs/sigilbound/art/prototype/step16-free-path.png`. 16 heroes baked.
-    - Left for steps 17–18: brannoc, mira, pell, odo, wren, kettle, maelis, seraphine.
+  - STEP 17 DONE (2026-11-25): Brannoc, Mira, Pell, Odo; new kit pieces: spear, ponytail, candle, club. Preview: `docs/sigilbound/art/prototype/step17-free-path.png`. 20 heroes baked.
+    - Left for step 18: wren, kettle, maelis, seraphine.
   - Steps 14–18: add the next heroes to `HEROES` in quat.py (palette from Core/Looks.cs, kit list), run it, check the previews, commit the files. Adventurer-based heroes need an `adventurer` entry in ROLES (copy from Core/Looks.cs).
 - [ ] **19. Roster plan to 100 heroes.** Phases and concepts only. New heroes get designed (stats and skills) in their own later steps.
 
