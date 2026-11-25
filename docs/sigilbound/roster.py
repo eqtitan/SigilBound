@@ -20,7 +20,7 @@ X = [
 (1,"dunstan","Dunstan Oaken",R,G,D,m,"helm, shield, cape","Taunt; DefUp on allies","Old shield-captain of the Thornwick militia."),
 (1,"marisol","Marisol Wavecrest",R,T,A,a,"ponytail, trident","AoE hit; Slow","Drowned Mill pearl diver turned raider of the Hollow."),
 (1,"vesper","Vesper Gloam",R,S,A,h,"mask, daggers","Poison; DefDown","Thief who works the Hollow Deep's edges."),
-(1,"brega","Brega Ironmoss",R,T,D,m,"helm, shield, beard","Shield on self; Taunt; DefUp self","Mill-lock keeper in barnacled plate."),
+(1,"brega","Brega Ironmoss",R,T,D,m,"helm, shield, beard","Shield and Taunt on self; AoE Slow","Mill-lock keeper in barnacled plate."),
 (1,"fennick","Fennick Sootpaw",R,F,Su,a,"bandana, candle","AtkUp all allies; Poison on all enemies","Ashgrave firework maker."),
 (1,"orla","Orla Greywater",R,T,H,h,"long_hair, staff, robe","Regen; Heal scaling with HP","Marsh healer who brews from river weed."),
 (1,"silas","Silas Penumbra",R,S,D,h,"veil, shield","Shield; DefDown on the attacker","Bellspire gatekeeper sworn to the dark."),

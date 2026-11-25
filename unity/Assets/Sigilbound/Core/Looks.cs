@@ -120,6 +120,10 @@ namespace Sigilbound.Core
             ["tilly"] = new HeroLook { Skin = "pale", Hair = "#5a4a6a", Style = "long", Gear = "veil", Armor = "#3a3048", Accent = "#c8a8ff", Cloth = "#2a2238", Prop = "candle", Glow = "#e0c8ff", Base = "hooded", Height = 0.92, Hide = new[] { "hood" } },
             ["ronan"] = new HeroLook { Skin = "tan", Hair = "#8a5a2a", Style = "short", Gear = "none", Armor = "#6a5a3a", Accent = "#c8d870", Cloth = "#4a6a3a", Prop = "hammer", Beard = "full", Base = "monarch", Height = 1.04, Hide = new[] { "crown" } },
             ["isla"] = new HeroLook { Skin = "fair", Hair = "#e8d890", Style = "long", Gear = "none", Armor = "#e8e0c8", Accent = "#ffd870", Cloth = "#c8c0a8", Prop = "bell", Glow = "#fff0a0", Base = "hooded", Height = 0.97, Hide = new[] { "hood" } },
+            ["dunstan"] = new HeroLook { Skin = "tan", Hair = "#8a8a8a", Style = "short", Gear = "helm", Armor = "#6a7a5a", Accent = "#d8c890", Cloth = "#3a5a3a", Prop = "shield", Beard = "full", Cape = true, CapeColor = "#2a4a2a", Base = "monarch", Height = 1.04, Hide = new[] { "crown" } },
+            ["marisol"] = new HeroLook { Skin = "brown", Hair = "#1a1a2a", Style = "ponytail", Gear = "none", Armor = "#2a6a8a", Accent = "#7ae0ff", Cloth = "#1a4a5a", Prop = "trident", Glow = "#7ae0ff", Base = "adventurer", Height = 0.98, Shave = true },
+            ["vesper"] = new HeroLook { Skin = "pale", Hair = "#2a2030", Style = "hood", Gear = "mask", Armor = "#2a2238", Accent = "#7ad07a", Cloth = "#1a1622", Prop = "daggers", Glow = "#9aff9a", Base = "hooded", Height = 0.96 },
+            ["brega"] = new HeroLook { Skin = "deep", Hair = "#3a5a5a", Style = "short", Gear = "helm", Armor = "#4a6a6a", Accent = "#c8e8d0", Cloth = "#2a4a4a", Prop = "shield", Base = "monarch", Height = 1.0, Hide = new[] { "crown" } },
         };
     }
 }
