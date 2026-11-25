@@ -168,6 +168,10 @@ namespace Sigilbound.Core
             ["solenne"] = new HeroLook { Skin = "deep", Hair = "#f8e8b0", Style = "long", Gear = "halo", Armor = "#f0d890", Accent = "#fff0a0", Cloth = "#c89040", Prop = "hammer", Glow = "#fff4b0", Cape = true, CapeColor = "#e8c870", Base = "monarch", Height = 1.08 },
             ["nell"] = new HeroLook { Skin = "tan", Hair = "#2a3020", Style = "hood", Gear = "mask", Armor = "#3a4030", Accent = "#9ac060", Cloth = "#2a3020", Prop = "hook", Base = "hooded", Height = 0.95 },
             ["briar"] = new HeroLook { Skin = "fair", Hair = "#4a6a2a", Style = "braid", Gear = "none", Armor = "#3a5a2a", Accent = "#d07050", Cloth = "#2a4020", Prop = "whip", Glow = "#a0ff80", Base = "hooded", Height = 0.98, Hide = new[] { "hood" } },
+            ["perrin"] = new HeroLook { Skin = "tan", Hair = "#3a2a1a", Style = "short", Gear = "bandana", Armor = "#3a6a8a", Accent = "#e8e0c0", Cloth = "#2a4a5a", Prop = "shield", Beard = "stubble", Base = "adventurer", Height = 1.0 },
+            ["loam"] = new HeroLook { Skin = "tan", Hair = "#7a5a30", Style = "short", Gear = "none", Armor = "#6a7a3a", Accent = "#d8c070", Cloth = "#4a5a2a", Prop = "shield", Beard = "full", Base = "monarch", Height = 1.04, Hide = new[] { "crown" } },
+            ["merrit"] = new HeroLook { Skin = "fair", Hair = "#d8b060", Style = "spiky", Gear = "none", Armor = "#c8c0b0", Accent = "#ffd860", Cloth = "#5a6a8a", Prop = "sword", Base = "adventurer", Height = 0.96, Shave = true },
+            ["sienna"] = new HeroLook { Skin = "tan", Hair = "#c84a2a", Style = "braid", Gear = "none", Armor = "#7a3a20", Accent = "#ffb050", Cloth = "#4a2010", Prop = "bow", Glow = "#ffb040", Base = "hooded", Height = 0.98, Hide = new[] { "hood" } },
         };
     }
 }

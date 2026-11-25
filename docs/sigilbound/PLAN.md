@@ -286,7 +286,14 @@ Unfinished work saved from the stopped agents:
     - Arenas: `GameData.ThemeOf` gives act 2 chapters their own theme picks (teal shore, glow marsh, amethyst badlands, burning ruins, moonlit shore).
     - Hard mode extends naturally.
     - Not done: act 2 story text; its own scenery models (it reuses act 1 themes).
-- [ ] **39–43. Phase 4 heroes (The Sigil Bearers), 4 per step.**
+- [ ] **39–43. Phase 4 heroes (The Sigil Bearers), 4 per step.** Step 39 DONE (2026-11-25):
+  - Perrin, Loam, Merrit, Sienna. Preview: `docs/sigilbound/art/prototype/step39-sigil-bearers.png`.
+  - Balance: Perrin 54% and Loam 56% vs Mira, Merrit 54% vs Brannoc/Kettle, Sienna 46% vs Ysolde/Lumen/Nyx. 84 heroes.
+  - Order of the rest:
+    - step 40: Calder, Dorian, Ivo, Saoirse;
+    - step 41: Gideon, Liora, Bastian, Elowen;
+    - step 42: Faelan, Wick, Azura, Pyrrhus;
+    - step 43: Kaelith, Aurex, Stormbearer, Vex.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
 

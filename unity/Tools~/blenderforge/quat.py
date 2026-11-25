@@ -204,6 +204,15 @@ HEROES = {
                    hide=[], kit=["mask", "hook"], rim="#a050ff", height=0.95),
     "briar":  dict(base="hooded", skin="fair", hair="#4a6a2a", armor="#3a5a2a", accent="#d07050", cloth="#2a4020", glow="#a0ff80",
                    hide=["hood"], kit=["braid", "whip"], rim="#3fb57a", height=0.98),
+    # Roster phase 4, The Sigil Bearers. Step 39:
+    "perrin": dict(base="adventurer", skin="tan", hair="#3a2a1a", armor="#3a6a8a", accent="#e8e0c0", cloth="#2a4a5a", glow=None,
+                   hide=[], kit=["bandana", "shield"], rim="#3a8ee8", height=1.0),
+    "loam":   dict(base="monarch", skin="tan", hair="#7a5a30", armor="#6a7a3a", accent="#d8c070", cloth="#4a5a2a", glow=None,
+                   hide=["crown"], kit=["beard", "shield"], rim="#3fb57a", height=1.04),
+    "merrit": dict(base="adventurer", skin="fair", hair="#d8b060", armor="#c8c0b0", accent="#ffd860", cloth="#5a6a8a", glow=None,
+                   hide=[], kit=["spiky_hair", "sword"], rim="#ffe27a", height=0.96),
+    "sienna": dict(base="hooded", skin="tan", hair="#c84a2a", armor="#7a3a20", accent="#ffb050", cloth="#4a2010", glow="#ffb040",
+                   hide=["hood"], kit=["braid", "bow", "quiver"], rim="#ff7a3a", height=0.98),
 }
 
 def palette(h):
@@ -240,7 +249,7 @@ ROLES = {
 # Clean-shaven heroes (Shave = true in Core/Looks.cs, or no beard on a monarch head that keeps its hair):
 # the lower-front hair faces (the beard) are removed.
 SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin", "grimsby", "quill", "drift", "cinder", "zephyrine",
-         "maelis", "marrow", "solenne"}  # monarch heads: the beard is part of the hair there too
+         "maelis", "marrow", "solenne", "merrit"}  # monarch heads: the beard is part of the hair there too
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}
