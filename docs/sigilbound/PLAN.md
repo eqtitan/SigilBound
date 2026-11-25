@@ -50,7 +50,10 @@ Unfinished work saved from the stopped agents:
     - Particles fixed. The orange squares were the arena motes (Scenery.cs) on an untextured material; they now use a leaf or soft-dot texture on a blended material.
     - Shaders were already handled: UrpSetup adds Always Included Shaders, and Resources holds the HeroLit, HeroGlow and Character materials. The GLB heroes use SigilMaterialGenerator → Materials.Lit, NOT glTFast's shaders, so shader stripping is probably NOT why the heroes fall back to stand-ins.
     - RESUME: read player.log from `tools/unity-shots.sh` (step 3's Linux preview). Look for "couldn't load <file>.glb" warnings or glTFast errors. Check that StreamingAssets/Models is in the build, the Android jar: path read in HeroModels.ReadBytes, and glTFast's meshopt/Draco support. Then fix and confirm with screenshots.
-- [ ] **5. Scenery.** Replace the sphere trees and plain ground with the web game's scenery recipes (`game3d/scenery.mjs`). The Godot build 4 forest is the minimum bar.
+- [x] **5. Scenery.** (2026-11-25, step/5; first pass) Replace the sphere trees and plain ground with the web game's scenery recipes (`game3d/scenery.mjs`). The Godot build 4 forest is the minimum bar.
+  - DONE (first pass): LowPoly.cs adds faceted canopies and boulders, pine cones, tapered trunks and grass blades, replacing the sphere, capsule and cylinder primitives in Scenery.cs.
+  - Not yet: the winding path and worn earth, logs and stumps, the gradient sky, and a check of the ground texture against the Godot forest. Pick these up in step 10 (battle presentation) or a follow-up, after looking at screenshots.
+  - Also fixed: all build workflows now publish from `main` only. WIP branches had published builds 9 and 10.
 
 ## Phase B: landscape (the owner chose landscape for phone and PC)
 
