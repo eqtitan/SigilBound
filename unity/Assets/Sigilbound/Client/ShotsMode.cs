@@ -60,7 +60,7 @@ namespace Sigilbound.Client
             _tipAt = float.MaxValue;
             CloseModal();
             Go(ScreenId.Intro);
-            yield return new WaitForSecondsRealtime(3f); // models, arena and fonts settle
+            yield return new WaitForSecondsRealtime(12f); // models (slow on software GL), arena and fonts settle
             yield return Shot("intro");
 
             G.StartWith(GameData.Starters[0]);

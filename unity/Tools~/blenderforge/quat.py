@@ -15,22 +15,33 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 MODELS = os.path.normpath(os.path.join(HERE, "..", "..", "..", "godot", "models"))
 BASE_FILES = {"hooded": "hooded_adventurer.glb", "adventurer": "adventurer.glb", "monarch": "monarch.glb"}
 SKIN = {"fair": ("#f0c4a4", "#c98a70", "#ffe2cc"), "tan": ("#d9a074", "#a06a48", "#f4c8a0"),
-        "brown": ("#9a6440", "#5e3a22", "#c88a60"), "deep": ("#6a4028", "#3a2014", "#9a6440")}
+        "brown": ("#9a6440", "#5e3a22", "#c88a60"), "deep": ("#6a4028", "#3a2014", "#9a6440"),
+        "pale": ("#f3d6c1", "#c9a08a", "#fff0e4"), "ash": ("#b9b4c4", "#7a7488", "#dcd8e6"), "blue": ("#8fb3d9", "#56769a", "#c0d8f0")}
 
 def shade(h, k):
     h = h.lstrip("#"); c = [int(h[i:i + 2], 16) for i in (0, 2, 4)]
     return "#" + "".join(f"{max(0, min(255, int(v * k))):02x}" for v in c)
 
-# The four starters (Core/Looks.cs colours). parts: base material name -> palette entry.
+# Heroes (Core/Looks.cs colours). hide: colour roles whose faces are removed; kit: identity pieces
+# (see kit()); cape: cape colour (default: cloth). Step 13: the starters; step 14: Ulfgar, Morwenna,
+# Oriel, Vaelith (the owner's team in the build 27 screenshots).
 HEROES = {
     "ysolde": dict(base="hooded", skin="fair", hair="#c8281e", armor="#5a1e1e", accent="#ff7a3a", cloth="#3e1414", glow="#ffb347",
                    hide=["hood"], kit=["long_hair", "circlet", "whip"], rim="#ff7a3a"),
     "gorrum": dict(base="monarch", skin="deep", hair="#1a1410", armor="#3a2a22", accent="#ff5a1a", cloth="#2a1e18", glow="#ff7a2a",
                    hide=["hair", "crown"], kit=["horns", "hammer", "runes"], rim="#ff7a3a", height=1.1),
     "hask":   dict(base="monarch", skin="tan", hair="#4a4036", armor="#5c656e", accent="#d8e8c8", cloth="#2f6b3a", glow=None,
-                   hide=["crown"], kit=["helm", "shield"], rim="#3fb57a"),
+                   hide=["crown", "hair"], kit=["helm", "shield"], rim="#3fb57a"),
     "corvan": dict(base="monarch", skin="brown", hair="#d0e6f0", armor="#20507a", accent="#7fd4ff", cloth="#173a5a", glow="#7fd4ff",
                    hide=["crown"], kit=["staff"], rim="#3a8ee8", height=0.97),
+    "ulfgar": dict(base="monarch", skin="tan", hair="#c8ccd0", armor="#8a9aac", accent="#bfe8ff", cloth="#3a4a62", glow=None, cape="#2a3a52",
+                   hide=["crown", "hair"], kit=["long_hair", "beard", "helm", "shield", "cape"], rim="#3fb57a", height=1.08),
+    "morwenna": dict(base="hooded", skin="ash", hair="#120a1a", armor="#1a0f24", accent="#a050ff", cloth="#140b1e", glow="#d090ff",
+                   hide=["hood"], kit=["long_hair", "crown", "orb", "cape", "robe"], rim="#a050ff", height=1.06),
+    "oriel":  dict(base="adventurer", skin="deep", hair="#f0e6c8", armor="#e08a2c", accent="#ffe27a", cloth="#b5521f", glow="#ffe27a",
+                   hide=[], kit=["halo", "staff", "robe"], rim="#ffe27a", height=1.04),
+    "vaelith": dict(base="adventurer", skin="fair", hair="#ff5a2a", armor="#3a1010", accent="#ffb020", cloth="#24100a", glow="#ffd060", cape="#5a1410",
+                   hide=["hair"], kit=["flame_hair", "crown", "sword", "cape"], rim="#ff7a3a", height=1.06),
 }
 
 def palette(h):
@@ -46,6 +57,8 @@ def palette(h):
         "White": F.painted("P_White", "#f4efe6", strokes=0.02, edge=0.0, ao=0.2),
         "Eye": (F.painted("P_Eye", h["glow"], glow=h["glow"], glow_strength=4, strokes=0.0, edge=0) if h.get("glow") else F.painted("P_Eye", "#1a1410", strokes=0.0, edge=0.0)),
         "Wood": F.painted("P_Wood", "#7a5232", shade="#3e2614", light="#b07a4a", strokes=0.4, edge=0.2),
+        "Boot": F.painted("P_Boot", "#2a1f1a", shade="#140e0a", light="#4a3a2e", strokes=0.2, edge=0.3),
+        "Cape": F.painted("P_Cape", h.get("cape") or h["cloth"], shade=shade(h.get("cape") or h["cloth"], 0.45), light=shade(h.get("cape") or h["cloth"], 1.6), strokes=0.28, edge=0.15),
         "Steel": F.painted("P_Steel", "#9aa4ae", shade="#4a525a", light="#e8f0f8", metal=0.85, rough=0.3, edge=0.55, strokes=0.06),
     }
     if h.get("glow"):
@@ -57,12 +70,14 @@ def palette(h):
 ROLES = {
     "hooded": {"DarkBrown": "armor", "Black": "cloth", "Brown": "cloth", "LightBrown": "accent", "Gold": "accent", "Metal": "trim",
                "Metal_Dark": "blade", "Brown2": "wood", "Skin": "skin", "head:Black": "cloth", "head:Brown": "eye", "head:DarkBrown": "hood", "White": "hair"},
+    "adventurer": {"LightGreen": "armor", "Green": "cloth", "Brown": "pants", "Brown2": "pants", "Black": "boot", "Grey": "boot", "Hair": "hair",
+                   "Eyebrows": "hair", "Gold": "accent", "Skin": "skin", "Eye": "eye"},
     "monarch": {"Metal": "armor", "Metal_Dark": "trim", "Blue": "cloth", "DarkBrown": "pants", "Beige": "accent", "Gold": "crown",
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
 }
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
-            "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold"}
+            "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}
 
 def import_base(h):
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -71,7 +86,7 @@ def import_base(h):
     bpy.ops.import_scene.gltf(filepath=os.path.join(MODELS, BASE_FILES[h["base"]]), guess_original_bind_pose=False)
     arm = next(o for o in bpy.context.scene.objects if o.type == "ARMATURE")
     for o in list(bpy.context.scene.objects):
-        if o.type == "MESH" and (o.name.startswith(("Sword", "Icosphere", "Axe", "Shield", "Staff", "Bow", "Crown")) or len(o.data.vertices) < 60):
+        if o.type == "MESH" and (o.name.startswith(("Sword", "Icosphere", "Axe", "Shield", "Staff", "Bow", "Crown", "Backpack")) or len(o.data.vertices) < 60):
             bpy.data.objects.remove(o, do_unlink=True)
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     return arm, meshes
@@ -97,32 +112,68 @@ def rigid(obj, arm, bone, mat):
     obj.matrix_parent_inverse = arm.matrix_world.inverted()  # keep its world placement (the base armature is scaled x100)
     return obj
 
-def kit(h, arm, P):
+def head_frame(head_mesh):
+    """H(x, y, z): a point in the head mesh's own box, -1..1 per axis (x right, y BACK, z up; the
+    face looks toward -y), measured after hidden faces are removed. Head kit is placed with this:
+    a fixed head size put the helm and circlet inside the (large, chibi) Quaternius heads."""
+    ws = [head_mesh.matrix_world @ v.co for v in head_mesh.data.vertices]
+    lo = Vector([min(w[i] for w in ws) for i in range(3)]); hi = Vector([max(w[i] for w in ws) for i in range(3)])
+    c, half = (lo + hi) / 2, (hi - lo) / 2
+    return (lambda x, y, z: c + Vector((x * half.x, y * half.y, z * half.z))), half
+
+def dome(name, loc, size, cut=0.0):
+    """The upper part of an ellipsoid (a helm cap): vertices below loc.z + cut*size.z are removed."""
+    import bmesh
+    o = F.ellipsoid(name, loc, size, seg=20, rings=12)
+    bm = bmesh.new(); bm.from_mesh(o.data)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < cut * size[2]], context="VERTS")
+    bm.to_mesh(o.data); bm.free()
+    return o
+
+def kit(h, arm, P, head_mesh):
     out = []
-    head = bone_world(arm, "Head"); head_top = bone_world(arm, "Head", tail=True)
-    hh = 0.12  # half a head, in metres (the Quaternius Head bone itself is nearly zero length)
+    head = bone_world(arm, "Head")
+    H, half = head_frame(head_mesh)
+    hh = 0.12  # a small unit for props on the head (horns)
     hand_r = bone_world(arm, "Wrist.R"); hand_l = bone_world(arm, "Wrist.L")
     for k in h["kit"]:
         if k == "long_hair":
             # A fall of tapered strands from the crown down the back.
             for i in range(9):
-                a = math.radians(-70 + i * 17.5)
-                top = head + Vector((math.sin(a) * hh * 0.55, math.cos(a) * hh * 0.35 + hh * 0.25, hh * 0.95))
-                pts = [top, top + Vector((math.sin(a) * hh * 0.25, hh * 0.45, -hh * 0.9)), top + Vector((math.sin(a) * hh * 0.3, hh * 0.55, -hh * 2.0))]
-                out.append(rigid(F.strand(f"Hair{i}", pts, hh * 0.16, hh * 0.04), arm, "Head", P["Hair"]))
-        elif k == "circlet":
-            c = F.torus("Circlet", head + Vector((0, 0, hh * 0.72)), hh * 0.58, hh * 0.05, rot=(math.radians(8), 0, 0))
-            out.append(rigid(c, arm, "Head", P["Gold"]))
-            gem = F.ellipsoid("Gem", head + Vector((0, -hh * 0.6, hh * 0.78)), (hh * 0.08, hh * 0.05, hh * 0.08))
+                t = -1 + i / 4.0
+                pts = [H(t * 0.8, 0.35, 0.8), H(t * 1.0, 1.15, 0.0), H(t * 0.9, 1.25, -1.6)]
+                out.append(rigid(F.strand(f"Hair{i}", pts, half.x * 0.28, half.x * 0.08), arm, "Head", P["Hair"]))
+        elif k == "flame_hair":
+            # Hair as rising flames (Vaelith): strands swept up and back from the crown.
+            for i in range(7):
+                t = -1 + i / 3.0
+                pts = [H(t * 0.7, 0.1, 0.6), H(t * 0.9, 0.5, 1.4), H(t * 0.5, 1.0, 2.1 - abs(t) * 0.5)]
+                out.append(rigid(F.strand(f"Flame{i}", pts, half.x * 0.32, half.x * 0.03), arm, "Head", P.get("Glow", P["Hair"]) if i % 2 else P["Hair"]))
+        elif k == "beard":
+            for i, t in enumerate((-0.45, 0.0, 0.45)):
+                pts = [H(t, -0.85, -0.55), H(t * 0.8, -1.05, -1.2), H(t * 0.4, -1.0, -1.9 + abs(t))]
+                out.append(rigid(F.strand(f"Beard{i}", pts, half.x * 0.3, half.x * 0.06), arm, "Head", P["Hair"]))
+        elif k in ("circlet", "crown"):
+            ring = H(0, 0, 0.55)
+            out.append(rigid(F.torus("Circlet", ring, half.x * 1.06, half.x * 0.08, sy=half.y / half.x * 0.85), arm, "Head", P["Gold"]))
+            gem = F.ellipsoid("Gem", H(0, -0.92, 0.6), (half.x * 0.14, half.x * 0.08, half.x * 0.14))
             out.append(rigid(gem, arm, "Head", P.get("Glow", P["Accent"])))
+            if k == "crown":
+                for i in range(7):
+                    a = math.radians(-90 + (i - 3) * 30)
+                    base_p = ring + Vector((math.cos(a) * half.x * 1.06, math.sin(a) * half.y * 0.9, 0))
+                    out.append(rigid(F.strand(f"Spike{i}", [base_p, base_p + Vector((0, 0, half.z * (0.55 if i % 2 else 0.35)))], half.x * 0.12, half.x * 0.01), arm, "Head", P["Gold"]))
+        elif k == "halo":
+            out.append(rigid(F.torus("Halo", H(0, 0.2, 1.45), half.x * 0.95, half.x * 0.07), arm, "Head", P.get("Glow", P["Gold"])))
+        elif k == "helm":
+            # A steel cap over the top of the head, down to the brow, with a nose guard.
+            out.append(rigid(dome("Helm", H(0, 0.1, 0.32), (half.x * 1.12, half.y * 1.0, half.z * 0.95), cut=0.0), arm, "Head", P["Steel"]))
+            out.append(rigid(F.torus("HelmRim", H(0, 0.1, 0.34), half.x * 1.12, half.x * 0.07, sy=half.y / half.x * 1.0 / 1.12), arm, "Head", P["Accent"]))
+            out.append(rigid(F.box("Nasal", H(0, -1.0, 0.15), (half.x * 0.09, half.x * 0.05, half.z * 0.25)), arm, "Head", P["Steel"]))
         elif k == "horns":
             for s in (-1, 1):
                 pts = [head + Vector((s * hh * 0.45, 0, hh * 0.75)), head + Vector((s * hh * 1.0, 0, hh * 1.05)), head + Vector((s * hh * 1.15, -hh * 0.1, hh * 1.6))]
                 out.append(rigid(F.strand(f"Horn{s}", pts, hh * 0.16, hh * 0.02), arm, "Head", P["White"]))
-        elif k == "helm":
-            dome = F.ellipsoid("Helm", head + Vector((0, 0, hh * 0.7)), (hh * 0.68, hh * 0.68, hh * 0.55))
-            out.append(rigid(dome, arm, "Head", P["Steel"]))
-            out.append(rigid(F.box("Nasal", head + Vector((0, -hh * 0.66, hh * 0.45)), (hh * 0.06, hh * 0.04, hh * 0.32)), arm, "Head", P["Steel"]))
         elif k == "whip":
             W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
             out.append(rigid(F.strand("Grip", [W(0, 0.02, 0), W(0, 0.16, 0)], 0.022), arm, "Wrist.R", P["Accent"]))
@@ -148,6 +199,39 @@ def kit(h, arm, P):
             W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
             out.append(rigid(F.strand("Staff", [W(0, 0.08, 0.95), W(0, 0.08, -0.9)], 0.024), arm, "Wrist.R", P["Wood"]))
             out.append(rigid(F.ellipsoid("Orb", W(0, 0.08, -0.98), (0.08, 0.08, 0.08)), arm, "Wrist.R", P.get("Glow", P["Accent"])))
+        elif k == "orb":
+            # A glowing orb held in the left hand, in a little gold cage.
+            c = bp(arm, "Wrist.L", 0, 0.12, 0)
+            out.append(rigid(F.ellipsoid("HandOrb", c, (0.09, 0.09, 0.09)), arm, "Wrist.L", P.get("Glow", P["Accent"])))
+            out.append(rigid(F.torus("OrbCage", c, 0.1, 0.008, rot=(math.radians(90), 0, 0)), arm, "Wrist.L", P["Gold"]))
+        elif k == "sword":
+            W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
+            out.append(rigid(F.strand("SwordGrip", [W(0, 0.08, 0.14), W(0, 0.08, -0.06)], 0.022), arm, "Wrist.R", P["Leather"]))
+            out.append(rigid(F.strand("Guard", [W(-0.11, 0.08, -0.08), W(0.11, 0.08, -0.08)], 0.02, 0.02), arm, "Wrist.R", P["Gold"]))
+            out.append(rigid(F.strand("Blade", [W(0, 0.08, -0.09), W(0, 0.08, -0.55), W(0, 0.08, -0.95)], 0.035, 0.004), arm, "Wrist.R", P.get("Glow", P["Steel"]) if h.get("glow") else P["Steel"]))
+        elif k == "cape":
+            # A cape hanging from the shoulders down the back, flaring toward the hem (rigid on the chest).
+            chest = bone_world(arm, "Chest"); top = chest.z + 0.2; back = chest.y + 0.2
+            verts, faces, cols, rows = [], [], 7, 6
+            for j in range(rows):
+                t = j / (rows - 1); z = top - t * (top - 0.42); w = 0.22 + 0.16 * t
+                for i in range(cols):
+                    u = -1 + 2 * i / (cols - 1)
+                    verts.append((chest.x + u * w, back + 0.05 * t + 0.04 * (1 - u * u), z))
+            for j in range(rows - 1):
+                for i in range(cols - 1):
+                    a = j * cols + i; faces.append((a, a + 1, a + 1 + cols, a + cols))
+            cape = F.mesh_obj("Cape", verts, faces)
+            sol = cape.modifiers.new("Solid", "SOLIDIFY"); sol.thickness = 0.02; F.apply_mods(cape)
+            out.append(rigid(cape, arm, "Chest", P["Cape"]))
+        elif k == "robe":
+            # A flared skirt from the waist (rigid on the hips; the legs stay inside it at rest).
+            hips = bone_world(arm, "Hips")
+            prof = [(0.32, 0.42), (0.25, 0.7), (0.165, hips.z + 0.06)]
+            robe = F.lathe("Robe", prof, seg=20, sy=0.85, cx=hips.x, cy=hips.y - 0.02, cap_top=False, cap_bottom=False)
+            sol = robe.modifiers.new("Solid", "SOLIDIFY"); sol.thickness = 0.015; F.apply_mods(robe)
+            out.append(rigid(robe, arm, "Hips", P["Cloth"]))
+            out.append(rigid(F.torus("Sash", Vector((hips.x, hips.y - 0.02, hips.z + 0.05)), 0.165, 0.018, sy=0.85), arm, "Hips", P["Accent"]))
     return out
 
 def main():
@@ -174,7 +258,8 @@ def main():
             bm.to_mesh(o.data); bm.free()
         for i, r in enumerate(role):
             o.data.materials[i] = P[ROLE_PAL.get(r, "Cloth")]
-    pieces = kit(h, arm, P)
+    head_mesh = next(o for o in meshes if o.name.split(".")[0] == HEAD_MESH[h["base"]])
+    pieces = kit(h, arm, P, head_mesh)
     # One skinned mesh: join the body parts and the kit (kit pieces carry rigid weights).
     F.select_only(meshes + pieces); bpy.context.view_layer.objects.active = meshes[0]
     bpy.ops.object.join()

@@ -107,6 +107,7 @@ namespace Sigilbound.Client
                 if (unit.Titan) view.BuildTitan();
                 else view.BuildPlaceholder(!unit.Ally && !unit.Rival);
                 if (HeroModels.Available) view.StartCoroutine(view.LoadModel());
+                else Debug.Log("SBMODEL glTFast not compiled in: stand-in for " + unit.Template.Id);
             }
 
             // Element aura disc and selection ring at the feet.
@@ -124,10 +125,12 @@ namespace Sigilbound.Client
         // Swap the placeholder for the real model once glTFast has built it.
         IEnumerator LoadModel()
         {
+            Debug.Log($"SBMODEL view {Unit?.Template?.Id}: loading (active={gameObject.activeInHierarchy})");
             var holder = new GameObject("GLB").transform;
             holder.SetParent(Model, false);
             HeroModel built = null;
             yield return HeroModels.Build(Unit, Gear, holder, m => built = m);
+            Debug.Log($"SBMODEL view {Unit?.Template?.Id}: {(built != null ? "model shown" : "kept the stand-in")}");
             if (built == null || this == null) { if (holder) Destroy(holder.gameObject); yield break; }
             foreach (Transform child in Model) if (child != holder) child.gameObject.SetActive(false);
             _model = built;

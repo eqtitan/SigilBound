@@ -203,14 +203,15 @@ jobs:
             (Windows may warn about an unknown publisher: More info > Run anyway).
         # Replace the APK in place (never delete the release first, so the link keeps working).
         run: |
+          retry() { for i in 1 2 3 4 5; do "$@" && return 0; echo "retry $i: $*"; sleep $((i * 15)); done; return 1; }  # GitHub API 500s happen
           NOTES="Sigilbound (Unity) v$VERSION, build $BUILD (${GITHUB_SHA::7}, branch ${GITHUB_REF_NAME}, $(date -u +%Y-%m-%d)). $NOTES_TAIL"
           TITLE="Sigilbound (Unity) for Android v$VERSION (build $BUILD)"
           if gh release view unity-latest >/dev/null 2>&1; then
             for a in $(gh release view unity-latest --json assets -q '.assets[].name' | grep '^Sigilbound-Unity-' || true); do
               gh release delete-asset unity-latest "$a" --yes || true
             done
-            gh release upload unity-latest Sigilbound-Unity.apk "Sigilbound-Unity-$VERSION-build$BUILD.apk" --clobber
-            gh release edit unity-latest --title "$TITLE" --notes "$NOTES"
+            retry gh release upload unity-latest Sigilbound-Unity.apk "Sigilbound-Unity-$VERSION-build$BUILD.apk" --clobber
+            retry gh release edit unity-latest --title "$TITLE" --notes "$NOTES"
           else
             gh release create unity-latest Sigilbound-Unity.apk "Sigilbound-Unity-$VERSION-build$BUILD.apk" --prerelease \
               --title "$TITLE" --notes "$NOTES"
@@ -288,6 +289,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         # Only touches the Windows files, so the Android APKs on the same release stay as they are.
         run: |
+          retry() { for i in 1 2 3 4 5; do "$@" && return 0; echo "retry $i: $*"; sleep $((i * 15)); done; return 1; }  # GitHub API 500s happen
           if ! gh release view unity-latest >/dev/null 2>&1; then
             gh release create unity-latest --prerelease --title "Sigilbound (Unity) test builds" \
               --notes "Sigilbound (Unity) test builds. Android: Sigilbound-Unity.apk. Windows 10+: Sigilbound-Windows.zip (unzip, then run Sigilbound.exe)." || true
@@ -295,7 +297,7 @@ jobs:
           for a in $(gh release view unity-latest --json assets -q '.assets[].name' | grep '^Sigilbound-Windows-' || true); do
             gh release delete-asset unity-latest "$a" --yes || true
           done
-          gh release upload unity-latest Sigilbound-Windows.zip "Sigilbound-Windows-$VERSION-build$BUILD.zip" --clobber
+          retry gh release upload unity-latest Sigilbound-Windows.zip "Sigilbound-Windows-$VERSION-build$BUILD.zip" --clobber
 
   linux-preview:
     needs: [checks, secrets, windows]
@@ -356,10 +358,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          retry() { for i in 1 2 3 4 5; do "$@" && return 0; echo "retry $i: $*"; sleep $((i * 15)); done; return 1; }  # GitHub API 500s happen
           NOTES="Linux preview build for automated screenshots (tools/unity-shots.sh), commit ${GITHUB_SHA::7}. Not for players."
           if gh release view unity-preview >/dev/null 2>&1; then
-            gh release upload unity-preview Sigilbound-Linux.zip --clobber
-            gh release edit unity-preview --notes "$NOTES"
+            retry gh release upload unity-preview Sigilbound-Linux.zip --clobber
+            retry gh release edit unity-preview --notes "$NOTES"
           else
             gh release create unity-preview Sigilbound-Linux.zip --prerelease --title "Sigilbound (Unity) Linux preview" --notes "$NOTES"
           fi
