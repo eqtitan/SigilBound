@@ -193,8 +193,8 @@ namespace Sigilbound.Client
             GearLook GearAt(int i) => gear != null && i < gear.Count ? gear[i] : null;
             string key = string.Join(",", want.Select((w, i) => w.def.Id + ":" + (GearAt(i)?.Key ?? "-"))) + (single ? "!" : "");
             if (key == _lineupKey) return;
-            _lineupKey = key;
-            ClearLineup();
+            ClearLineup();       // resets _lineupKey, so set the key after it (the other way round rebuilt
+            _lineupKey = key;    // the menu heroes every frame, and their models never finished loading)
             for (int i = 0; i < want.Count; i++)
             {
                 var u = new Unit { Template = want[i].def, Name = want[i].def.Name, El = want[i].el, Ally = true, Key = "L" + i };
