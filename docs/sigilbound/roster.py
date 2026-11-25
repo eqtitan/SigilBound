@@ -9,10 +9,10 @@ h,a,m = "hooded","adventurer","monarch"
 # (phase, id, name, rarity, element, role, base, kit, hook, concept)
 X = [
 # Phase 1: Roadwardens (chapters 1-5 locals; fill Tide/Shadow and the Hp/Defense roles; common/rare)
-(1,"bram","Bram Wetherby",C,T,H,m,"beard, anchor*","Regen on self; Taunt when below half HP","Drowned Mill ferryman who hauled the mill wheel back by hand."),
-(1,"nettle","Nettle Quickfinch",C,G,A,a,"bandana, daggers","Hits twice; Slow on the second hit","Thornwick hedge-runner, fastest courier on the road."),
-(1,"hobb","Hobb Lanternjaw",C,Li,D,m,"helm, shield, lantern","Shield on the lowest ally; Taunt","Road warden who keeps the waystone lamps lit."),
-(1,"greta","Greta Brineknot",C,T,Su,h,"braid, net*","Slow all enemies; Cleanse one ally","Saltmarsh net-mender."),
+(1,"bram","Bram Wetherby",C,T,H,m,"beard, anchor*","Shield, Regen and Taunt on self","Drowned Mill ferryman who hauled the mill wheel back by hand."),
+(1,"nettle","Nettle Quickfinch",C,G,A,a,"bandana, daggers","Hits twice with a chance to Slow; a big single hit","Thornwick hedge-runner, fastest courier on the road."),
+(1,"hobb","Hobb Lanternjaw",C,Li,D,m,"helm, shield, lantern","DefUp and a small Shield on all allies","Road warden who keeps the waystone lamps lit."),
+(1,"greta","Greta Brineknot",C,T,Su,h,"braid, net*","Slow on hit; small Heal and Cleanse on all allies","Saltmarsh net-mender."),
 (1,"cole","Cole Ashworth",C,F,A,a,"spiky_hair, axe*","Burst hit; AtkUp on self after a kill","Ashgrave charcoal burner with a woodsman's axe."),
 (1,"tilly","Tilly Mothwing",C,S,Su,h,"veil, candle","DefDown on all enemies; TmDrain","Moth-keeper of the Bellspire ruins."),
 (1,"ronan","Ronan Stoutbarrow",C,G,H,m,"beard, hammer","Regen on all allies; big HP pool","Thornwick innkeeper, never lets a guest go hungry."),

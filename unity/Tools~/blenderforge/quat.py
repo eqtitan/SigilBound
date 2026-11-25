@@ -78,6 +78,15 @@ HEROES = {
                    hide=[], kit=["long_hair", "trident", "cape"], rim="#3a8ee8", height=1.04),
     "seraphine": dict(base="hooded", skin="pale", hair="#fff4d8", armor="#f0e8d8", accent="#ffd870", cloth="#f4eee0", glow="#fff0a0",
                    hide=["hood"], kit=["long_hair", "halo", "bell", "robe"], rim="#ffe27a", height=1.02),
+    # Roster phase 1, Roadwardens (docs/sigilbound/ROSTER.md). Step 21:
+    "bram":   dict(base="monarch", skin="tan", hair="#6a5a4a", armor="#2f5a6e", accent="#c8b070", cloth="#3a4a52", glow=None,
+                   hide=["crown"], kit=["beard", "anchor"], rim="#3a8ee8", height=1.05),
+    "nettle": dict(base="adventurer", skin="fair", hair="#8a5a2a", armor="#6a8a3a", accent="#e8c84a", cloth="#4a5a2a", glow=None,
+                   hide=[], kit=["bandana", "daggers"], rim="#3fb57a", height=0.92),
+    "hobb":   dict(base="monarch", skin="brown", hair="#3a2a1a", armor="#8a8070", accent="#ffd870", cloth="#5a4a3a", glow="#ffd870",
+                   hide=["crown", "hair"], kit=["helm", "shield", "lantern"], rim="#ffe27a", height=1.0),
+    "greta":  dict(base="hooded", skin="fair", hair="#c8b8a0", armor="#4a7a8a", accent="#e8d8b0", cloth="#2a4a5a", glow=None,
+                   hide=["hood"], kit=["braid", "net"], rim="#3a8ee8", height=0.96),
 }
 
 def palette(h):
@@ -385,6 +394,29 @@ def kit(h, arm, P, head_mesh):
             bell.location = c
             out.append(rigid(bell, arm, "Wrist.L", P["Gold"]))
             out.append(rigid(F.ellipsoid("Clapper", c + Vector((0, 0, -0.11)), (0.022, 0.022, 0.022), seg=8, rings=4), arm, "Wrist.L", P.get("Glow", P["Accent"])))
+        elif k == "anchor":
+            # A ship's anchor carried as a weapon (Bram): iron shank through the fist, ring at the
+            # bottom, stock bar, and two curved flukes at the top end.
+            W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
+            out.append(rigid(F.strand("AnchorShank", [W(0, 0.08, 0.3), W(0, 0.08, -0.72)], 0.03, 0.03), arm, "Wrist.R", P["Steel"]))
+            out.append(rigid(F.torus("AnchorRing", W(0, 0.08, 0.36), 0.06, 0.014, rot=(0, math.radians(90), 0)), arm, "Wrist.R", P["Steel"]))
+            out.append(rigid(F.strand("AnchorStock", [W(-0.16, 0.08, 0.16), W(0.16, 0.08, 0.16)], 0.022, 0.022), arm, "Wrist.R", P["Wood"]))
+            flukes = [W(-0.26, 0.08, -0.5), W(-0.22, 0.08, -0.7), W(0, 0.08, -0.78), W(0.22, 0.08, -0.7), W(0.26, 0.08, -0.5)]
+            out.append(rigid(F.strand("AnchorArms", flukes, 0.03, 0.03), arm, "Wrist.R", P["Steel"]))
+            for i, sx in enumerate((-1, 1)):
+                out.append(rigid(F.ellipsoid(f"Fluke{i}", W(sx * 0.27, 0.08, -0.47), (0.05, 0.02, 0.07), seg=8, rings=4), arm, "Wrist.R", P["Steel"]))
+        elif k == "net":
+            # A fishing net hanging from the left hand (Greta): a fan of cords with cross cords and
+            # cork floats along the bottom edge.
+            W = lambda x, y, z: bp(arm, "Wrist.L", x, y, z)
+            for i in range(5):
+                u = -1 + i / 2.0
+                out.append(rigid(F.strand(f"NetCord{i}", [W(u * 0.04, 0.1, 0), W(u * 0.14, 0.35, 0.02), W(u * 0.24, 0.62, 0.04)], 0.006, 0.006), arm, "Wrist.L", P["Accent"]))
+            for j, y in enumerate((0.25, 0.42, 0.6)):
+                w = 0.04 + (y - 0.1) * 0.38
+                out.append(rigid(F.strand(f"NetCross{j}", [W(-w, y, 0.02), W(0, y + 0.02, 0.03), W(w, y, 0.02)], 0.005, 0.005), arm, "Wrist.L", P["Accent"]))
+            for i in range(4):
+                out.append(rigid(F.ellipsoid(f"Float{i}", W(-0.18 + i * 0.12, 0.63, 0.04), (0.025, 0.02, 0.025), seg=8, rings=4), arm, "Wrist.L", P["Wood"]))
         elif k == "cape":
             # A cape hanging from the shoulders down the back, flaring toward the hem (rigid on the chest).
             chest = bone_world(arm, "Chest"); top = chest.z + 0.2; back = chest.y + 0.2

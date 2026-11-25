@@ -340,12 +340,12 @@ namespace Sigilbound.Core
                 int n = idx < 2 ? 2 : 3;
                 for (int i = 0; i < n; i++)
                 {
-                    var t = Heroes[(int)Math.Floor(rng.Next() * Heroes.Length)];
+                    var t = Classic[(int)Math.Floor(rng.Next() * Classic.Length)];
                     wave.Add(new EnemySpec { Template = t, Level = g.Level, Stars = g.Stars, Mul = g.Mul, Spd = g.Spd, ShownLevel = g.ShownLevel, El = rng.Next() < 0.5 ? chapterEl : t.Element });
                 }
                 if (IsBossStage(idx) && w == waveCount - 1)
                 {
-                    var t = Heroes[(int)Math.Floor(rng.Next() * Heroes.Length)];
+                    var t = Classic[(int)Math.Floor(rng.Next() * Classic.Length)];
                     wave[1] = new EnemySpec { Template = t, Level = g.Level, Stars = g.Stars, Mul = g.Mul, Spd = g.Spd, ShownLevel = g.ShownLevel + 2, El = chapterEl, Boss = true };
                 }
                 waves.Add(wave);

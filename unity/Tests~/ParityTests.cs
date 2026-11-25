@@ -159,7 +159,7 @@ static class ParityTests
             }
         }
         var heroes = Json.Arr(data, "heroes");
-        Same(heroes.Count == Heroes.Length, "hero count");
+        Same(heroes.Count == Classic.Length, "hero count (the 24 classic heroes; roster heroes are Unity only)");
         foreach (var o in heroes)
         {
             var h = Hero(Json.Str(o, "id"));
