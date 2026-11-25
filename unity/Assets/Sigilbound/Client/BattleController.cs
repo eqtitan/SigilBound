@@ -276,7 +276,7 @@ namespace Sigilbound.Client
             {
                 if (kv.Key.Ally != allies || !kv.Key.Alive || kv.Value == null) continue;
                 yield return new WaitForSeconds(i++ == 0 ? 0.1f : 0.12f);
-                if (kv.Value != null) kv.Value.Win();
+                if (kv.Value != null) { if (allies && _b.Result != BattleResult.Victory) kv.Value.Lose(); else kv.Value.Win(); }
             }
         }
 
@@ -287,6 +287,7 @@ namespace Sigilbound.Client
             _finished = true;
             Time.timeScale = 1; _paused = false;
             if (_b.Result == BattleResult.Victory) StartCoroutine(Celebrate(true));
+            else StartCoroutine(Celebrate(true)); // the survivors take their defeat poses (MECHANICS.md 3.1)
             Sound.I?.StopMusic();
             if (_spec.Mode == BattleMode.Titan) { Sound.I?.Play("bigKill"); StartCoroutine(Later(0.6f, () => Sound.I?.Play("coin"))); }
             else if (_b.Result == BattleResult.Victory) { Sound.I?.Play("victory", 1, 1, 0); StartCoroutine(Later(0.45f, () => Sound.I?.Play("coin"))); }

@@ -43,7 +43,7 @@ static class HdClipTests
         foreach (var h in Sigilbound.Core.GameData.Heroes)
         {
             var st = Sigilbound.Core.AnimStyle.Hd(h.Id);
-            foreach (var n in new[] { st.Idle, st.Cast, st.Support, st.Ult, st.Win }.Concat(st.Strike).Concat(st.Hit).Concat(st.BigHit).Concat(st.Death).Concat(st.Fidget))
+            foreach (var n in new[] { st.Idle, st.Cast, st.Support, st.Ult, st.Win, st.Block, st.Defeat }.Concat(st.Strike).Concat(st.Hit).Concat(st.BigHit).Concat(st.Death).Concat(st.Fidget))
                 if (n != null && !have.Contains(n)) bad.Add(h.Id + ":" + n);
         }
         foreach (var kv in Sigilbound.Core.AnimStyle.HdAliases) if (!have.Contains(kv.Value)) bad.Add("alias " + kv.Key + ":" + kv.Value);
