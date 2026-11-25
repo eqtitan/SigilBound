@@ -12,6 +12,7 @@ new: Screen shake setting: Full, Reduced or Off.
 change: Screen shake looks the same at any frame rate.
 fix: On Samsung phones, the update banner now explains Auto Blocker ("Unknown app blocked") and where to turn it off.
 fix: The "What's new" window shows again after updates.
+new: Defeated heroes on the losing side now fall to their knees and slump forward.
 
 ## 2026-11-25 | Heroines and a smoother updater
 new: Forty heroines now have their own bodies: knights and rogues in hooded leathers, witches and mages in flowing dresses, and rangers in light gear.
