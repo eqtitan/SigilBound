@@ -223,13 +223,16 @@ namespace Sigilbound.Client
                     yield return new WaitForSeconds(stop);
                 }
             }
-            yield return ShowEvents(events, color);
+            yield return ShowEvents(events, color, sk.Hits > 1);
             if (view != null) { yield return view.Recover(); view.FaceHome(); }
             yield return new WaitForSeconds(0.25f);
         }
 
-        IEnumerator ShowEvents(List<BattleEvent> events, Color color)
+        IEnumerator ShowEvents(List<BattleEvent> events, Color color, bool multiHit = false)
         {
+            // Multi-hit skills: each hit on a target lands on its own beat with a short stop between.
+            var hitsLeft = new Dictionary<Unit, int>();
+            if (multiHit) foreach (var e in events) if (e.Type == EvType.Damage && !e.Dot && e.Unit != null && e.Amount > 0) hitsLeft[e.Unit] = (hitsLeft.TryGetValue(e.Unit, out var n) ? n : 0) + 1;
             foreach (var e in events)
             {
                 if (e.Type == EvType.Damage && e.Unit != null && e.Amount > 0) _taken[e.Unit] = (_taken.TryGetValue(e.Unit, out var tk) ? tk : 0) + e.Amount;
@@ -249,7 +252,14 @@ namespace Sigilbound.Client
                         Vfx.I.Number(c + Vector3.up * 0.3f, (e.Crit ? "CRIT " : "") + Ui.Fmt(e.Amount),
                             e.Crit ? new Color(1f, 0.85f, 0.2f) : e.Elem > 1 ? new Color(1f, 0.55f, 0.3f) : e.Elem < 1 ? new Color(0.7f, 0.7f, 0.8f) : Color.white, e.Crit ? 1.3f : 1f);
                         if (e.Crit) Vfx.I.Shake();
-                        yield return new WaitForSeconds(0.12f);
+                        if (multiHit && hitsLeft.TryGetValue(e.Unit, out var left) && left > 1)
+                        {
+                            hitsLeft[e.Unit] = left - 1;
+                            StartCoroutine(v.FreezeFor((float)Impact.MultiHitStop));
+                            if (e.Source != null && _views.TryGetValue(e.Source, out var sv) && sv != null) StartCoroutine(sv.FreezeFor((float)Impact.MultiHitStop));
+                            yield return new WaitForSeconds((float)Impact.MultiHitGap);
+                        }
+                        else yield return new WaitForSeconds(0.12f);
                         break;
                     case EvType.Heal: Sound.I?.Play("heal", 0.5f); if (SkillFx.I != null) SkillFx.I.Heal(v.transform.position); else Vfx.I.Heal(v.transform.position); Vfx.I.Number(c, "+" + Ui.Fmt(e.Amount), new Color(0.45f, 1f, 0.5f)); break;
                     case EvType.Absorb: Vfx.I.Number(c + Vector3.up * 0.5f, "Shield " + Ui.Fmt(e.Amount), new Color(0.6f, 0.85f, 1f), 0.7f); break;

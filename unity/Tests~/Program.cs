@@ -62,6 +62,7 @@ static class Program
         ChangelogTests.Run(Check);
         HdClipTests.Run(Check);
         ImpactTests.Run(Check);
+        FlightTests.Run(Check);
 
         // Win-rate sweep like the web sim's fixed-team check (geared team at stage level).
         Console.WriteLine("\nStage win rates (fixed teams at stage level, 30 runs):");

@@ -441,14 +441,13 @@ namespace Sigilbound.Client
         public void Lose() { if (!_dead && _model != null) { _busy = true; _model.Defeat(); } }
         IEnumerator HitRoutine(bool big)
         {
-            Vector3 back = -transform.forward * (big ? 0.34f : 0.2f);
-            float dur = big ? 0.24f : 0.18f;
-            for (float k = 0; k < 1; k += Time.deltaTime / dur)
-            {
-                transform.position = _home + back * Mathf.Sin(k * Mathf.PI);
-                Model.localScale = Vector3.one * Model.localScale.x; // keep uniform
-                yield return null;
-            }
+            // Knockback (MECHANICS.md 4.4): out in 0.08 s (ease-out), hold 0.05 s, back in 0.30 s (ease-in-out).
+            // HP heroes shrug hits off (smaller push).
+            Vector3 back = -transform.forward * (big ? 0.34f : 0.2f) * (Unit.Template.Role == Role.Hp ? 0.8f : 1f);
+            for (float t = 0; t < 0.08f; t += Time.deltaTime) { float k = t / 0.08f; transform.position = _home + back * (1 - (1 - k) * (1 - k)); yield return null; }
+            transform.position = _home + back;
+            yield return new WaitForSeconds(0.05f);
+            for (float t = 0; t < 0.30f; t += Time.deltaTime) { float k = t / 0.30f; transform.position = _home + back * (1 - EaseIO(k)); yield return null; }
             transform.position = _home;
         }
 

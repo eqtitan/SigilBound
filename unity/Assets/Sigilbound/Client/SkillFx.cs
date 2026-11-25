@@ -255,7 +255,8 @@ namespace Sigilbound.Client
             trail.sharedMaterial = _over.GetComponent<ParticleSystemRenderer>().sharedMaterial;
             trail.colorGradient = Grad(Hdr(P.Core, 1), Hdr(P.Main, 1));
             trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            float dur = kind == "arrow" ? 0.22f : 0.32f, arc = kind == "arrow" ? 0.25f : kind == "bolt" ? 0.15f : 0.7f;
+            float dist = Vector3.Distance(from, to);
+            float dur = (float)Sigilbound.Core.Impact.FlightTime(kind, dist), arc = (kind == "arrow" ? 0.05f : kind == "bolt" ? 0.03f : 0.14f) * dist; // speed-based; arc relative to distance
             for (float t = 0; t < dur; t += Time.deltaTime)
             {
                 float u = t / dur;
