@@ -109,6 +109,50 @@ namespace Sigilbound.Client
         public void Run(bool back = false) => Play(back && Has("Run_Back") ? "Run_Back" : "Run", true, 0.15f, back ? 1.5f : 1.4f);
     }
 
+    // The Quaternius rigs hang the feet off the root bone (Foot.L/R are IK targets, not children of
+    // the shins). Their own clips key the feet, but the shared UAL spell/hit/death clips (retargeted
+    // from another rig) have no foot keys, so during those clips the feet stayed where they were
+    // while the body moved, and the legs stretched into stilts (owner's build 31 screenshot).
+    // While UAL clips play, this puts each foot back where the shin carries it, at its rest offset,
+    // blended by how much the UAL clips weigh in the current crossfade.
+    public sealed class FootFollow : MonoBehaviour
+    {
+        Animation _anim; readonly List<string> _ual = new List<string>();
+        Transform _footL, _footR, _shinL, _shinR;
+        Vector3 _posL, _posR; Quaternion _rotL, _rotR; // foot rest pose in its shin's space
+
+        public static void Attach(Animation anim, IEnumerable<AnimationClip> ual)
+        {
+            if (anim == null || anim.GetComponent<FootFollow>() != null) return;
+            Transform Find(string n) => anim.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == n);
+            Transform fl = Find("Foot.L"), fr = Find("Foot.R"), sl = Find("LowerLeg.L"), sr = Find("LowerLeg.R");
+            if (fl == null || fr == null || sl == null || sr == null || fl.IsChildOf(sl)) return; // not this rig, or feet already follow
+            var f = anim.gameObject.AddComponent<FootFollow>();
+            f._anim = anim; f._footL = fl; f._footR = fr; f._shinL = sl; f._shinR = sr;
+            foreach (var c in ual) if (c != null) f._ual.Add(c.name);
+            // Called right after instantiation, before any clip has sampled: transforms are the rest pose.
+            f._posL = sl.InverseTransformPoint(fl.position); f._rotL = Quaternion.Inverse(sl.rotation) * fl.rotation;
+            f._posR = sr.InverseTransformPoint(fr.position); f._rotR = Quaternion.Inverse(sr.rotation) * fr.rotation;
+        }
+
+        void LateUpdate()
+        {
+            if (_anim == null) return;
+            float w = 0;
+            foreach (var n in _ual) { var st = _anim[n]; if (st != null && st.enabled) w += st.weight; }
+            if (w <= 0.001f) return;
+            w = Mathf.Clamp01(w);
+            Follow(_footL, _shinL, _posL, _rotL, w);
+            Follow(_footR, _shinR, _posR, _rotR, w);
+        }
+
+        static void Follow(Transform foot, Transform shin, Vector3 pos, Quaternion rot, float w)
+        {
+            foot.position = Vector3.Lerp(foot.position, shin.TransformPoint(pos), w);
+            foot.rotation = Quaternion.Slerp(foot.rotation, shin.rotation * rot, w);
+        }
+    }
+
     public static class HeroModels
     {
         public static bool Available
@@ -372,7 +416,7 @@ namespace Sigilbound.Client
             if (anim != null && !titan)
             {
                 if (lib.Ual == null) lib.Ual = BuildUal(baseModel, anim.transform);
-                foreach (var c in lib.Ual) anim.AddClip(c, c.name);
+                foreach (var c in lib.Ual) anim.AddClip(c, c.name); FootFollow.Attach(anim, lib.Ual);
             }
             Trace($"build {id}: done, anim={(anim != null ? anim.GetClipCount() + " clips" : "none")}");
             done(new HeroModel(holder.gameObject, anim, (titan ? 4.7f : 2.3f) * (float)body.H, titan ? AnimStyle.TitanStyle : AnimStyle.For(id)));
@@ -452,7 +496,7 @@ namespace Sigilbound.Client
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
             foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null) anim.AddClip(c, c.name);
             if (lib.Ual == null) lib.Ual = BuildUal(baseModel, anim.transform);
-            foreach (var c in lib.Ual) anim.AddClip(c, c.name);
+            foreach (var c in lib.Ual) anim.AddClip(c, c.name); FootFollow.Attach(anim, lib.Ual);
             float k = 1.85f / Mathf.Max(0.1f, lib.HeadY) * (float)body.H;
             holder.localScale = Vector3.one * k;
             done(new HeroModel(holder.gameObject, anim, 2.3f * (float)body.H, AnimStyle.For(id)));

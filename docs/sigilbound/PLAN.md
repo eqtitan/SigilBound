@@ -166,6 +166,11 @@ Unfinished work saved from the stopped agents:
 
 - [ ] **20. Verify all 24 baked heroes in game.** Check the menu lineup, battle and hero viewer in the screenshot tour and on a device, then polish (robes that follow the legs, colour and glow levels).
   - Model-load fixes so far: shared loads on a persistent loader (build 30, confirmed in battle); the menu lineup was rebuilt every frame (build 35, to confirm).
+  - Work done (2026-11-25, to confirm in the next build):
+    - Screenshot tour: a hero gallery (all 24, four at a time, menus hidden), with real-model counts in shots.log.
+    - Robes follow the legs: weighted from the hips toward each thigh. The 7 robed heroes are rebaked. High-knee frames still show the thigh a little; true cloth would need simulation.
+    - Stilt legs fixed (owner's build 31 screenshot, Morwenna and Hollow Mira): the Quaternius feet hang off the root as IK targets, and the shared UAL spell/hit clips have no foot keys, so the legs stretched. `FootFollow` keeps the feet on the shins while UAL clips play.
+  - Still open: colour and glow levels (judge from the gallery shots), and device checks.
 - [ ] **21–24. Phase 1 heroes (Roadwardens), 4 per step.** Stats, skills, looks, tests and balance sims, plus the baked model and the new `anchor`/`net` kit.
 - [ ] **25. Engine: phase 2 mechanics** (Burn, Pierce, Execute, Pull, spread on kill, counter Taunt), with tests.
 - [ ] **26–30. Phase 2 heroes (Glass and Storm).**

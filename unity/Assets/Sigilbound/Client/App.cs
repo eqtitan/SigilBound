@@ -36,6 +36,7 @@ namespace Sigilbound.Client
         int _heroUid; GameData.Slot _slot; int _chapterOpen = -1; int _prepStage = -1; bool _prepTitan; ScreenId _prepBack;
         Vector2 _scroll; string _sort = "power";
         readonly List<CharacterView> _lineup = new List<CharacterView>();
+        List<string> _shotLineup; bool _shotNoUi; // screenshot mode: a chosen lineup, menus hidden (ShotsMode gallery)
         string _lineupKey = "";
 
         // modal + toasts
@@ -190,6 +191,11 @@ namespace Sigilbound.Client
                     want = G.Team.Select(x => (GameData.Hero(x.id), GameData.Hero(x.id).Element)).ToList();
                     gear = G.Team.Select(x => G.GearLookOf(x)).ToList(); break;
             }
+            if (_shotLineup != null)
+            {
+                want = _shotLineup.Select(id => (GameData.Hero(id), GameData.Hero(id).Element)).ToList();
+                gear = null; scale = 1f; single = false;
+            }
             GearLook GearAt(int i) => gear != null && i < gear.Count ? gear[i] : null;
             string key = string.Join(",", want.Select((w, i) => w.def.Id + ":" + (GearAt(i)?.Key ?? "-"))) + (single ? "!" : "");
             if (key == _lineupKey) return;
@@ -242,6 +248,7 @@ namespace Sigilbound.Client
         // ---------- GUI ----------
         void OnGUI()
         {
+            if (_shotNoUi) return;
             Ui.Begin(Screen == ScreenId.Battle || Screen == ScreenId.Modes || ((Screen == ScreenId.Campaign || Screen == ScreenId.Prep) && Ui.Landscape)); // battle and the modes hub use the whole width; menus a column
             GUI.enabled = !ModalOpen; // a modal blocks taps on the screen behind it
             if (Screen == ScreenId.Battle) { Battle.DrawHud(); DrawModalAndToasts(); return; }

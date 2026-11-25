@@ -5,6 +5,7 @@
 // Used by tools/unity-shots.sh on the Linux preview build (see docs/sigilbound/PLAN.md, step 3).
 using System;
 using System.Collections;
+using System.Linq;
 using System.IO;
 using Sigilbound.Core;
 using UnityEngine;
@@ -90,6 +91,24 @@ namespace Sigilbound.Client
             yield return new WaitForSecondsRealtime(1.2f);
             yield return Shot("tip");
             CloseModal(); _tipAt = float.MaxValue;
+
+            // Hero gallery (PLAN step 20): every hero, four at a time, menus hidden, after their
+            // models have loaded (or 25 s), with a count of real models vs stand-ins in shots.log.
+            _shotNoUi = true;
+            var ids = GameData.Heroes.Where(h => h.Id != "titan").Select(h => h.Id).ToList();
+            for (int b = 0; b < ids.Count; b += 4)
+            {
+                _shotLineup = ids.Skip(b).Take(4).ToList();
+                Go(ScreenId.Home);
+                yield return null; yield return null;
+                float wait = Time.realtimeSinceStartup + 25f;
+                while (Time.realtimeSinceStartup < wait && !_lineup.All(v => v != null && v.Hero != null)) yield return null;
+                yield return new WaitForSecondsRealtime(1.5f); // let idle clips settle into a pose
+                ShotLog($"gallery {string.Join(",", _shotLineup)}: {_lineup.Count(v => v != null && v.Hero != null)}/{_lineup.Count} real models");
+                yield return Shot($"gallery-{b / 4 + 1}");
+            }
+            _shotLineup = null; _shotNoUi = false; _lineupKey = "";
+            Go(ScreenId.Home);
 
             // A short auto battle: start, mid-fight, and the result.
             G.S.settings.auto = true; G.S.settings.speed = 1;
