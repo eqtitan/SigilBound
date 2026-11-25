@@ -85,7 +85,13 @@ Unfinished work saved from the stopped agents:
     - Team setup (`DrawPrepWide`) is three columns: team and presets; element wheel and waves; hero picker with filter and sort.
   - There's no leader or aura: the game has no auras, so none were invented. There are no stars either, only the cleared ticks.
   - Check first in the screenshots: the density of the stage rows on a 480-tall canvas (rows are about 40 high), and the wave chip widths with 3 enemies.
-- [ ] **10. Battle presentation.** Wide camera, slim HP bars with level, wave counter and timer, corner Auto/speed/pause, slim skill bar, tags that don't overlap.
+- [x] **10. Battle presentation.** (2026-11-25, step/10) Wide camera, slim HP bars with level, wave counter and timer, corner Auto/speed/pause, slim skill bar, tags that don't overlap.
+  - DONE: `BattleController.DrawHudWide` (landscape; portrait keeps `DrawHud`).
+    - The camera was already aspect-aware (`Arena.FrameBattle`).
+    - Pause is new: timeScale 0, cleared on leaving a battle.
+    - Tags are nudged apart: lowest first, each moves up 24 until it clears the others.
+  - Also done: Windows in-place update (`Updater.UpdateWindows`). It downloads, then a hidden PowerShell script uses Expand-Archive and robocopy over the install folder and restarts the game. Any failure falls back to the link.
+  - Check first in the screenshots: tag density with 7 units, and the skill buttons and description against the bottom safe area.
 - [ ] **11. Results screen.** Banner with stars and time, rewards, per-hero damage dealt / taken / healing, and Replay / Edit Team / Next.
 
 ## Phase C: hero art (free tools first; the owner decides on paid tools after seeing the result)
