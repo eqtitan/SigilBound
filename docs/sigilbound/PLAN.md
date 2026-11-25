@@ -285,7 +285,12 @@ Unfinished work saved from the stopped agents:
     - World map: an Act I / Act II switch (Act II opens after stage 60), its own generated storm-coast map and its own boss-reward track.
     - Arenas: `GameData.ThemeOf` gives act 2 chapters their own theme picks (teal shore, glow marsh, amethyst badlands, burning ruins, moonlit shore).
     - Hard mode extends naturally.
-    - Not done: act 2 story text; its own scenery models (it reuses act 1 themes).
+    - Story and scenery (2026-11-25, owner request):
+      - an Act II introduction shown once when Act II opens, and a few lines per act 2 chapter at the top of its stage list (`GameData.Act2Intro`, `ChapterStory`);
+      - five act 2 themes with new scatter: harbour pier posts, crates and lanterns; fen dead trees and reeds over black water; barrow standing stones and mounds; ember groves with glowing leaves; storm-coast rain;
+      - each theme has its own sky colours and colour grade;
+      - a crash fix: the stage list read `MapPoints[c]` for act 2 chapters;
+      - the screenshot tour photographs the five act 2 arenas.
 - [x] **39–43. Phase 4 heroes (The Sigil Bearers), 4 per step.** ALL DONE (2026-11-25): the roster is complete at 100 heroes. Step 39:
   - Perrin, Loam, Merrit, Sienna. Preview: `docs/sigilbound/art/prototype/step39-sigil-bearers.png`.
   - Balance: Perrin 54% and Loam 56% vs Mira, Merrit 54% vs Brannoc/Kettle, Sienna 46% vs Ysolde/Lumen/Nyx. 84 heroes.

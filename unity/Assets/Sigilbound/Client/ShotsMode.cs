@@ -50,6 +50,8 @@ namespace Sigilbound.Client
             try { File.AppendAllText(Path.Combine(_shotDir, "shots.log"), line + "\n"); } catch (Exception) { }
         }
 
+        const int ClassicChaptersForShots = GameData.ClassicChapters;
+
         IEnumerator RunShots(string dir)
         {
             _shotDir = dir;
@@ -107,6 +109,15 @@ namespace Sigilbound.Client
                 ShotLog($"gallery {string.Join(",", _shotLineup)}: {_lineup.Count(v => v != null && v.Hero != null)}/{_lineup.Count} real models");
                 yield return Shot($"gallery-{b / 4 + 1}");
             }
+            // Act 2 arenas (chapters 11-15): each theme behind a lineup.
+            for (int c = ClassicChaptersForShots; c < GameData.Chapters.Length; c++)
+            {
+                Arena.Build(c, false);
+                yield return new WaitForSecondsRealtime(1.5f);
+                ShotLog($"arena {GameData.Chapters[c]}");
+                yield return Shot($"arena-{c + 1}");
+            }
+            Arena.Build(0, false);
             _shotLineup = null; _shotNoUi = false; _lineupKey = "";
             Go(ScreenId.Home);
 

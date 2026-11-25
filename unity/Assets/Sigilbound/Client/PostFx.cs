@@ -27,6 +27,12 @@ namespace Sigilbound.Client
             new Grade { ShHue = 268, ShAmt = 0.14f, HiHue = 340, HiAmt = 0.07f, Contrast = 0.11f },                            // amethyst badlands
             new Grade { ShHue = 182, ShAmt = 0.15f, HiHue = 175, HiAmt = 0.05f, Contrast = 0.09f, Sat = 0.96f },               // glow marsh
             new Grade { Temp = 0.18f, ShHue = 200, ShAmt = 0.07f, HiHue = 26, HiAmt = 0.16f, Contrast = 0.15f },               // burning ruins
+            // act 2
+            new Grade { Temp = 0.08f, ShHue = 210, ShAmt = 0.12f, HiHue = 36, HiAmt = 0.12f, Contrast = 0.1f },                // saltreach harbor
+            new Grade { Tint = -0.08f, ShHue = 150, ShAmt = 0.16f, HiHue = 80, HiAmt = 0.05f, Contrast = 0.12f, Sat = 0.85f },  // black fens
+            new Grade { Temp = -0.1f, ShHue = 230, ShAmt = 0.12f, HiHue = 210, HiAmt = 0.06f, Contrast = 0.08f, Sat = 0.8f },   // wraithmoor barrows
+            new Grade { Temp = 0.22f, ShHue = 350, ShAmt = 0.1f, HiHue = 24, HiAmt = 0.18f, Contrast = 0.16f, Sat = 1.05f },   // ember groves
+            new Grade { Temp = -0.18f, ShHue = 215, ShAmt = 0.16f, HiHue = 200, HiAmt = 0.08f, Contrast = 0.14f, Sat = 0.82f }, // storm coast
         };
         static readonly Grade Titan = new Grade { Temp = 0.14f, ShHue = 350, ShAmt = 0.12f, HiHue = 28, HiAmt = 0.13f, Contrast = 0.17f, Sat = 1.02f };
         static readonly Grade Neutral = new Grade();
