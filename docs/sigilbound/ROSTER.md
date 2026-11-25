@@ -105,10 +105,10 @@ revive effect, a heal when an ally falls, and damage that grows with HP lost.
 
 | Id | Name | Rarity | Element | Role | Body | Look and kit (* = new kit piece) | Mechanic hook | Concept |
 |---|---|---|---|---|---|---|---|---|
-| `grimsby` | Grimsby Boneweaver | Rare | Shadow | Support | adventurer | mask, staff | DefDown all; Strip | Hollow bone-reader who sees the Sigil's cracks. |
-| `marrow` | Marrow Cinderhulk | Epic | Flame | Attack | monarch | horns, club | Hit that grows with HP lost; AtkUp self | A Hollow giant who woke with fire in his chest and remembers his name. |
-| `ember` | Ember Tallow | Rare | Flame | Hp | hooded | candle, robe | Regen all; Heal on death of an ally | Candle-nun of the Last Pyre. |
-| `quill` | Quill Inkwell | Rare | Light | Support | adventurer | book*, circlet | Strip enemy buffs; AtkUp ally | Royal archivist who writes the Sigil's history. |
+| `grimsby` | Grimsby Boneweaver | Rare | Shadow | Support | adventurer | mask, staff | DefDown on hit; AoE DefDown that may Strip; team Heal | Hollow bone-reader who sees the Sigil's cracks. |
+| `marrow` | Marrow Cinderhulk | Epic | Flame | Attack | monarch | long_hair, club, runes, cape | Rage: hits grow with his lost HP; AoE that raises his ATK | A Hollow giant who woke with fire in his chest and remembers his name. |
+| `ember` | Ember Tallow | Rare | Flame | Hp | hooded | candle, robe | Last Light passive (heals all when an ally falls); Burn on hit; team Regen; self Shield | Candle-nun of the Last Pyre. |
+| `quill` | Quill Inkwell | Rare | Light | Support | adventurer | circlet, book | Strip on hit and a big Strip; team AtkUp and Heal | Royal archivist who writes the Sigil's history. |
 | `drift` | Drift Coldfoot | Common | Tide | Attack | adventurer | bandana, daggers | Slow; double hit | Ice skater of the frozen mill pond. |
 | `sprig` | Sprig Mosslight | Common | Gale | Support | hooded | braid, bell | Heal; SpdUp | Child druid of the Thornwick wood. |
 | `tallow` | Tallow Firth | Common | Flame | Defense | monarch | helm, shield | Shield self; Taunt | Ashgrave watchman. |

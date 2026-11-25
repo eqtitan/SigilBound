@@ -159,6 +159,15 @@ HEROES = {
                    hide=["hood"], kit=["veil", "daggers"], rim="#a050ff", height=0.98),
     "oswin":  dict(base="adventurer", skin="brown", hair="#f0e0a0", armor="#e8d8a8", accent="#ffd860", cloth="#8a6a2a", glow="#fff2b0",
                    hide=["hair"], kit=["helm", "spear"], rim="#ffe27a", height=1.05),
+    # Roster phase 3, The Hollow Unbound. Step 32:
+    "grimsby": dict(base="adventurer", skin="ash", hair="#d8d0c0", armor="#4a4450", accent="#e8dcc0", cloth="#2a2630", glow="#b8a8ff",
+                   hide=[], kit=["mask", "staff"], rim="#a050ff", height=0.96),
+    "marrow": dict(base="monarch", skin="ash", hair="#b8b4ac", armor="#6a6660", accent="#ff6a2a", cloth="#3a3632", glow="#ff7a2a", cape="#2a2622",
+                   hide=["crown"], kit=["long_hair", "club", "runes", "cape"], rim="#ff7a3a", height=1.15),
+    "ember":  dict(base="hooded", skin="fair", hair="#f0e0c0", armor="#e8d8c0", accent="#ffb050", cloth="#c8b090", glow="#ffb050", cape="#a89070",
+                   hide=["hood"], kit=["veil", "candle", "robe"], rim="#ff7a3a", height=0.97),
+    "quill":  dict(base="adventurer", skin="fair", hair="#5a3a2a", armor="#3a4a6a", accent="#e8d8a0", cloth="#2a3450", glow=None,
+                   hide=[], kit=["circlet", "book"], rim="#ffe27a", height=0.98),
 }
 
 def palette(h):
@@ -193,7 +202,7 @@ ROLES = {
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
 }
 # Clean-shaven heroes (Shave = true in Core/Looks.cs): their beard is removed (adventurer heads only).
-SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin"}
+SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin", "grimsby", "quill"}
 HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
             "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}
@@ -517,6 +526,12 @@ def kit(h, arm, P, head_mesh):
                 out.append(rigid(F.torus(f"Bracer{side}", W(0, -0.02, 0), 0.07, 0.022, rot=(math.radians(90), 0, 0)), arm, "Wrist." + side, P["Accent"]))
                 for i, dx in enumerate((-0.04, 0.0, 0.04)):
                     out.append(rigid(F.ellipsoid(f"Knuckle{side}{i}", W(dx, 0.16, -0.05), (0.018, 0.018, 0.018), seg=8, rings=4), arm, "Wrist." + side, P.get("Glow", P["Accent"])))
+        elif k == "book":
+            # A thick tome in the left hand (Quill): a cloth cover with the pages showing.
+            W = lambda x, y, z: bp(arm, "Wrist.L", x, y, z)
+            # F.box takes full sizes: a 22 x 30 cm tome, 5 cm thick, pages showing on the open edge.
+            out.append(rigid(F.box("BookCover", W(0, 0.15, 0.03), (0.22, 0.3, 0.05)), arm, "Wrist.L", P["Cloth"]))
+            out.append(rigid(F.box("BookPages", W(0.012, 0.15, 0.03), (0.2, 0.28, 0.056)), arm, "Wrist.L", P["White"]))
         elif k == "cape":
             # A cape hanging from the shoulders down the back, flaring toward the hem (rigid on the chest).
             chest = bone_world(arm, "Chest"); top = chest.z + 0.2; back = chest.y + 0.2
