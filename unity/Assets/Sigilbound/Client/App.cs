@@ -56,6 +56,7 @@ namespace Sigilbound.Client
             Arena = Arena.Create();
             // Frame-rate cap (60, or 30 to run cooler) and graphics tier mapped to URP settings.
             Quality.Create(gameObject, G.S.settings.quality, G.S.settings.fpsCap).Sun = Arena.Sun;
+            Quality.Busy = () => Battle != null && Battle.InProgress; // Auto holds tier changes until the battle ends
             Quality.I.Apply();
             Quality.Notice = Toast; // thermal fallback messages
             PerfOverlay.Sync();     // debug FPS / draw-call overlay, if turned on in Settings

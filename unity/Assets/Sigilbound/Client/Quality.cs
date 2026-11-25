@@ -24,6 +24,11 @@ namespace Sigilbound.Client
 
         float _acc; int _frames; float _settle; float _noUpUntil;
         public static System.Action<string> Notice; // toasts (App.Toast)
+        // True while a battle runs. Auto never changes tier mid-battle: Low turns post-processing off,
+        // so a switch flips the whole arena's look (grade, shadows, sharpness) in front of the player.
+        // The decision waits in _pending and is applied when the battle ends.
+        public static System.Func<bool> Busy;
+        int _pending = -1;
         public bool ThermalLimited { get; private set; }
         public int ThermalStatus { get; private set; } = -1; // -1 unknown, 0 none .. 6 shutdown
         float _thermalPoll, _coolSince = -1;
@@ -79,22 +84,32 @@ namespace Sigilbound.Client
 #endif
             SkillFx.I?.SetTier(Tier);
             PostFx.SetTier(Tier);
-            _acc = 0; _frames = 0; _settle = 3f;
+            _acc = 0; _frames = 0; _settle = 3f; _pending = -1;
         }
 
         // Auto: average the frame rate over 4-second windows (after a settle period) and step.
         void Update()
         {
             PollThermals();
-            if (Choice != "auto") return;
+            if (Choice != "auto") { _pending = -1; return; }
+            bool busy = Busy != null && Busy();
+            if (_pending >= 0 && !busy) { Tier = _pending; _pending = -1; Apply(); return; }
             if (_settle > 0) { _settle -= Time.unscaledDeltaTime; return; }
             _acc += Time.unscaledDeltaTime; _frames++;
             if (_acc < 4f) return;
             float fps = _frames / _acc;
+            int from = _pending >= 0 ? _pending : Tier;
             int target = Application.targetFrameRate;
-            if (fps < target * 0.85f && Tier > 0) { Tier--; _noUpUntil = Time.unscaledTime + 60f; Apply(); }
-            else if (fps > target * 0.97f && Tier < 2 && !ThermalLimited && Time.unscaledTime > _noUpUntil) { Tier++; Apply(); }
-            else { _acc = 0; _frames = 0; }
+            // Low runs capped at 30 fps, so holding 30 there says nothing about holding the player's
+            // cap on Medium: from Low, only step up when the cap itself is 30 (else it would bounce).
+            int upTarget = from == 0 ? FpsCap : target;
+            int next = from;
+            if (fps < target * 0.85f && from > 0) { next = from - 1; _noUpUntil = Time.unscaledTime + 60f; }
+            else if (fps > upTarget * 0.97f && from < 2 && !ThermalLimited && Time.unscaledTime > _noUpUntil) next = from + 1;
+            _acc = 0; _frames = 0;
+            if (next == from) return;
+            if (busy) { _pending = next; return; }
+            Tier = next; Apply();
         }
 
         // ---------- thermals ----------
