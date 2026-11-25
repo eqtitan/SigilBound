@@ -21,13 +21,15 @@ static class RosterTests
         return null;
     }
 
-    static Unit U(HeroDef t, bool ally)
+    static Unit U(HeroDef t, bool ally, Rarity? asRarity = null)
     {
-        var s = Game.BaseStats(t, 30, NaturalStars(t.Rarity) + 1, Element.Flame); // one element for all: no matchup skew
+        var r = asRarity ?? t.Rarity;
+        var s = Game.BaseStats(t, 30, NaturalStars(r) + 1, Element.Flame, r); // one element for all: no matchup skew
         return Battle.MakeUnit(ally, t, new Stats { El = Element.Flame, Hp = (int)s.Hp, Atk = (int)s.Atk, Def = (int)s.Def, Spd = (int)s.Spd, Crit = (int)s.Crit, Cdmg = (int)s.Cdmg });
     }
 
     // Win rate of the team holding `hero` against the same team holding `peer` instead, both ways round.
+    // A peer of a lower rarity (no classic hero of the same rarity and role) is raised to the hero's rarity.
     public static double WinRate(HeroDef hero, HeroDef peer, int seeds = 150)
     {
         var fill = Classic.Where(x => x.Rarity == hero.Rarity && x.Id != peer.Id).Take(3).ToList();
@@ -35,8 +37,8 @@ static class RosterTests
         for (int seed = 1; seed <= seeds; seed++)
             foreach (bool heroAllied in new[] { true, false })
             {
-                var a = new List<Unit> { U(heroAllied ? hero : peer, true) }; a.AddRange(fill.Select(f => U(f, true)));
-                var b = new List<Unit> { U(heroAllied ? peer : hero, false) }; b.AddRange(fill.Select(f => U(f, false)));
+                var a = new List<Unit> { U(heroAllied ? hero : peer, true, hero.Rarity) }; a.AddRange(fill.Select(f => U(f, true)));
+                var b = new List<Unit> { U(heroAllied ? peer : hero, false, hero.Rarity) }; b.AddRange(fill.Select(f => U(f, false)));
                 var r = new Battle(a, new List<List<Unit>> { b }, new Random(seed * 7919)).RunAuto();
                 bool alliesWon = r == BattleResult.Victory;
                 if (alliesWon == heroAllied) wins++;
