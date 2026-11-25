@@ -165,7 +165,7 @@ Unfinished work saved from the stopped agents:
 ## Phase D: the roster grows (from docs/sigilbound/ROSTER.md)
 
 - [ ] **20. Verify all 24 baked heroes in game.** Check the menu lineup, battle and hero viewer in the screenshot tour and on a device, then polish (robes that follow the legs, colour and glow levels).
-  - Model-load fixes so far: shared loads on a persistent loader (build 30, confirmed in battle); the menu lineup was rebuilt every frame (build 35, to confirm).
+  - Model-load fixes so far: shared loads on a persistent loader (build 30, confirmed in battle); the menu lineup was rebuilt every frame (build 35, CONFIRMED: real models on intro, home, heroes and battle; each figure loads once).
   - Work done (2026-11-25, to confirm in the next build):
     - Screenshot tour: a hero gallery (all 24, four at a time, menus hidden), with real-model counts in shots.log.
     - Robes follow the legs: weighted from the hips toward each thigh. The 7 robed heroes are rebaked. High-knee frames still show the thigh a little; true cloth would need simulation.
