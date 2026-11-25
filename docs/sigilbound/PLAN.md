@@ -192,7 +192,10 @@ Unfinished work saved from the stopped agents:
 - [x] **25. Engine: phase 2 mechanics** (Burn, Pierce, Execute, Pull, spread on kill, counter Taunt), with tests.
   - DONE (2026-11-25): `FxType.Burn/Pull/Counter` (added after the web's 16 effects, so IsStatus/IsBuff and parity are unchanged), and `SkillDef.Pierce/Execute/Spread` in Core/Battle.cs. Skill text and status labels: BRN, CTR. 12 checks in `unity/Tests~/MechanicsTests.cs`. Rules in ROSTER.md section 4.
   - Not done: battle VFX made for these mechanics. They show through the existing status, damage and floating-text events ("Executed", "Pulled", "Spread!", "Counter!").
-- [ ] **26–30. Phase 2 heroes (Glass and Storm).**
+- [ ] **26–30. Phase 2 heroes (Glass and Storm).** Step 26 DONE (2026-11-25):
+  - Kestrel (Pierce on both attacks), Sorrel, Amber (Burn and Counter) and Tobias, with the new lute kit. Preview: `docs/sigilbound/art/prototype/step26-glass-and-storm.png`.
+  - Balance after tuning: Kestrel 46% vs Ysolde/Lumen/Nyx, Sorrel 55% vs Velka, Amber 43% vs Hask/Gorrum, Tobias 46% vs Corvan/Tamsin. 44 heroes.
+  - Next (step 27): Nerys, Hale, Juno (Burn and Spread), Pike (Pull).
 - [ ] Later: phase 3 mechanics and heroes, campaign act 2 (chapters 11–15), then phase 4.
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)

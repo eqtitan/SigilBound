@@ -77,9 +77,9 @@ mechanics: Pierce, Execute, Pull, Burn, spread-on-kill and the counter Taunt.
 | Id | Name | Rarity | Element | Role | Body | Look and kit (* = new kit piece) | Mechanic hook | Concept |
 |---|---|---|---|---|---|---|---|---|
 | `kestrel` | Kestrel Vane | Rare | Gale | Attack | adventurer | bandana, spear | Pierce: hits the target and the one behind | Stormcrown lancer. |
-| `sorrel` | Sorrel Duskmere | Rare | Shadow | Hp | monarch | cape, club | Regen while any enemy is Poisoned | Hollow Deep miner who survived the collapse. |
-| `amber` | Amber Glasswright | Rare | Flame | Defense | hooded | helm, shield | Shield on all allies (small) | Glass Wastes kiln-mistress with a fused-glass shield. |
-| `tobias` | Tobias Reed | Rare | Gale | Support | adventurer | long_hair, lute* | SpdUp all allies; Tm boost | Wandering lute player of the high passes. |
+| `sorrel` | Sorrel Duskmere | Rare | Shadow | Hp | monarch | cape, club | Poison on hit and on all enemies; team Regen with a self Shield | Hollow Deep miner who survived the collapse. |
+| `amber` | Amber Glasswright | Rare | Flame | Defense | hooded | helm, shield | Burn on hit; team Shield; self Shield, Taunt and Counter | Glass Wastes kiln-mistress with a fused-glass shield. |
+| `tobias` | Tobias Reed | Rare | Gale | Support | adventurer | long_hair, lute* | SpdUp and Turn Meter for all allies; team Heal and Cleanse | Wandering lute player of the high passes. |
 | `nerys` | Nerys Coldspring | Rare | Tide | Support | hooded | circlet, mirror | Cleanse all allies; DefUp | Sunken Cathedral acolyte. |
 | `hale` | Hale Sunforge | Rare | Light | Hp | monarch | beard, hammer, cape | Heal self on hit; Taunt | Bellspire smith who forged the waystone lamps. |
 | `juno` | Juno Ashveil | Rare | Flame | Attack | hooded | veil, whip | Poison on hit; spreads on kill | Fire dancer of the Last Pyre. |
