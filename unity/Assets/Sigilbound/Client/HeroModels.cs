@@ -116,6 +116,19 @@ namespace Sigilbound.Client
             // First idle starts at a random phase (MECHANICS.md 5), so neighbours don't breathe together.
             if (!_idlePhased && _animator == null && Anim != null) { _idlePhased = true; var st = Anim[_names[n]]; if (st != null) st.time = UnityEngine.Random.value * st.length; }
         }
+        // Plays `name` from `fromT` (normalized) at `speed` (negative = backwards), holding when done.
+        public bool PlayFrom(string name, float fromT, float speed)
+        {
+            if (Anim == null || !Has(name)) return false;
+            _current = name;
+            var st = Anim[_names[name]];
+            st.wrapMode = WrapMode.ClampForever; st.speed = speed; st.time = Mathf.Clamp01(fromT) * st.length;
+            Anim.CrossFade(st.name, 0.08f);
+            return true;
+        }
+        // Stunned: a dazed, slumped loop (crouched idle, slowed) until the next action or Idle.
+        public bool Stunned() => Has("Crouch_Idle_Loop") && Play("Crouch_Idle_Loop", true, 0.15f, 0.55f);
+
         // Guard against a light hit (Defense role, shields).
         public bool Block() => Style.Block != null && Has(Style.Block) && Play(Style.Block, false, 0.06f, 1.4f);
         // The losing side's survivors (held pose or slow loop).

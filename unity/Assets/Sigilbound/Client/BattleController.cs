@@ -257,8 +257,10 @@ namespace Sigilbound.Client
                         Sound.I?.Play("buff", 0.35f);
                         if (SkillFx.I == null) Vfx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
                         else if (e.Fx == FxType.Shield) SkillFx.I.Shield(v.transform.position);
-                        else SkillFx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx)); Vfx.I.Number(c + Vector3.up * 0.6f, SkillText.EffectName(e.Fx), FxDef.IsBuff(e.Fx) ? new Color(1f, 0.85f, 0.4f) : new Color(0.8f, 0.55f, 1f), 0.7f); break;
-                    case EvType.Text: Vfx.I.Number(c + Vector3.up * 0.6f, e.Text, new Color(0.8f, 0.9f, 1f), 0.7f); break;
+                        else SkillFx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
+                        if (e.Fx == FxType.Stun) v.Stun();
+                        Vfx.I.Number(c + Vector3.up * 0.6f, SkillText.EffectName(e.Fx), FxDef.IsBuff(e.Fx) ? new Color(1f, 0.85f, 0.4f) : new Color(0.8f, 0.55f, 1f), 0.7f); break;
+                    case EvType.Text: Vfx.I.Number(c + Vector3.up * 0.6f, e.Text, new Color(0.8f, 0.9f, 1f), 0.7f); if (e.Text == "Revived!") v.Revived(); break;
                     case EvType.Death: Sound.I?.Play(e.Unit.Ally ? "downed" : "kill", 0.9f); v.Die(); if (SkillFx.I != null) SkillFx.I.DeathFade(v.transform.position, e.Unit.El); else Vfx.I.Dissolve(v.transform.position + Vector3.up * 0.8f); break;
                 }
             }

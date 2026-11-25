@@ -417,6 +417,27 @@ namespace Sigilbound.Client
             if (!Unit.Titan) StartCoroutine(HitRoutine(big));
         }
         public void Win() { if (!_dead && _model != null) { _busy = true; _model.Win(); } }
+        // "Revived!": the Revive effect saved this hero from falling. Buckle toward the ground (the death
+        // clip to its middle), hold a beat, then rise back up (the same clip played backwards).
+        public void Revived() { if (!_dead && _model != null && !Unit.Titan) StartCoroutine(ReviveRoutine()); }
+        IEnumerator ReviveRoutine()
+        {
+            _busy = true;
+            var death = _model.Style.Death.FirstOrDefault(_model.Has);
+            if (death != null && _model.PlayFrom(death, 0f, 1.6f))
+            {
+                yield return _model.WaitNormalized(0.45f, 0.8f);
+                _model.SetFrozen(true); yield return new WaitForSeconds(0.25f); _model.SetFrozen(false);
+                _model.PlayFrom(death, 0.45f, -1.4f);
+                yield return new WaitForSeconds(0.55f);
+            }
+            _model.Idle(0.2f);
+            _busy = false;
+        }
+        // Stunned: dazed loop, back to the stance after a moment (the skipped turn has no animation).
+        public void Stun() { if (!_dead && _model != null && !Unit.Titan && !_busy && _model.Stunned()) StartCoroutine(StunRoutine()); }
+        IEnumerator StunRoutine() { yield return new WaitForSeconds(2.4f); if (!_dead && !_busy) _model.Idle(0.3f); }
+
         public void Lose() { if (!_dead && _model != null) { _busy = true; _model.Defeat(); } }
         IEnumerator HitRoutine(bool big)
         {
