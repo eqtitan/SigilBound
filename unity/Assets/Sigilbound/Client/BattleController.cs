@@ -68,7 +68,7 @@ namespace Sigilbound.Client
             Clear();
             Spawn(_b.Allies, true); Spawn(_b.Enemies, false);
             _finished = false; _awaiting = false; _banner = ""; _actor = null;
-            _t0 = Time.unscaledTime; _paused = false;
+            _t0 = Time.unscaledTime; _paused = false; _taken.Clear(); _healed.Clear();
             App.Go(ScreenId.Battle);
             Sound.I?.StartMusic();
             Time.timeScale = Mathf.Clamp(G.S.settings.speed, 1, 3);
@@ -222,6 +222,8 @@ namespace Sigilbound.Client
         {
             foreach (var e in events)
             {
+                if (e.Type == EvType.Damage && e.Unit != null && e.Amount > 0) _taken[e.Unit] = (_taken.TryGetValue(e.Unit, out var tk) ? tk : 0) + e.Amount;
+                if (e.Type == EvType.Heal && e.Source != null && e.Amount > 0) _healed[e.Source] = (_healed.TryGetValue(e.Source, out var hl) ? hl : 0) + e.Amount;
                 if (e.Unit == null || !_views.TryGetValue(e.Unit, out var v) || v == null) continue;
                 var c = v.Center;
                 switch (e.Type)
@@ -302,6 +304,13 @@ namespace Sigilbound.Client
                     _auto.Record(true, res.Reward, res.Gear != null, res.LevelUps.Select(l => $"{Hero(l.hero.id).ShortName} Lv {l.hero.level}"));
                     if (!replay) { ShowAutoSummary("auto-replay switched off", stage); return; }
                 }
+                if (Ui.Landscape && !(replay && _auto != null))
+                {
+                    App.Modal("VICTORY", ResultsHeight, r => DrawResults(r, true, res.Reward, res.FirstClear,
+                        res.LevelUps.Select(l => (l.hero.uid, l.hero.level)).ToList(), res.Gear, stage, canNext));
+                    if (G.S.settings.autoReplay) StartCoroutine(AutoReplay());
+                    return;
+                }
                 App.Modal("VICTORY", 330, r =>
                 {
                     if (replay && _auto != null)
@@ -325,6 +334,7 @@ namespace Sigilbound.Client
             {
                 G.S.settings.autoReplay = false; App.Save();
                 if (_auto != null) { _auto.Record(false, null, false, null); ShowAutoSummary("ended by a defeat", _spec.Stage); return; }
+                if (Ui.Landscape) { App.Modal("DEFEAT", ResultsHeight, r => DrawResults(r, false, null, false, null, null, _spec.Stage, false)); return; }
                 App.Modal("DEFEAT", 250, r =>
                 {
                     Ui.Text(new Rect(r.x, r.y, r.width, 80), "Level heroes with training, equip and upgrade gear, bring elements that beat the enemy, and summon new heroes.", 13, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
@@ -715,6 +725,80 @@ namespace Sigilbound.Client
                 string state = Auto ? "Auto battle" : _actor != null && !_actor.Ally ? "Enemy turn…" : "";
                 if (state.Length > 0) Ui.Text(new Rect(right - 200, bottom - 24, 200, 24), state, 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
             }
+        }
+
+        // ---------- results screen (docs/sigilbound/PLAN.md step 11; landscape, campaign stages) ----------
+        readonly Dictionary<Unit, long> _taken = new Dictionary<Unit, long>(), _healed = new Dictionary<Unit, long>();
+        float ResultsHeight => Mathf.Min(Ui.H - 24, 400);
+
+        void DrawResults(Rect r, bool win, Reward reward, bool first, List<(int uid, int level)> ups, GearSave gear, int stage, bool canNext)
+        {
+            var allies = _b.Allies;
+            int standing = allies.Count(u => u.Alive);
+            int secs = Mathf.FloorToInt(Time.unscaledTime - _t0);
+            // Banner line: heroes standing and the battle time (the game has no star rating).
+            Ui.Text(new Rect(r.x, r.y - 14, r.width, 20), $"Stage {Game.StageLabel(stage)}   ·   {standing}/{allies.Count} heroes standing   ·   {secs / 60}:{secs % 60:00}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+            float y = r.y + 10;
+            // Rewards strip.
+            var strip = new Rect(r.x, y, r.width, 46);
+            GUI.DrawTexture(strip, Ui.RoundTex(new Color(0.12f, 0.2f, 0.3f, 0.55f), Palette.Bronze, 10));
+            if (win && reward != null)
+            {
+                var items = new List<(Icon icon, Color c, string text)> { (Icon.Coin, Palette.Gold, Ui.Fmt(reward.Gold)), (Icon.Star, Palette.Blue, $"{Ui.Fmt(reward.Xp)} XP each") };
+                if (reward.Common > 0) items.Add((Icon.Shard, Palette.Hex("#c9a37b"), $"{reward.Common} worn"));
+                if (reward.Mystic > 0) items.Add((Icon.Shard, Palette.Blue, $"{reward.Mystic} mystic"));
+                if (reward.Radiant > 0) items.Add((Icon.Shard, Palette.Hex("#ffb02e"), $"{reward.Radiant} radiant"));
+                if (gear != null) items.Add((Icon.Shield, Palette.GearRarity(gear.rarity), $"{GearRarityNames[gear.rarity]} {gear.Slot}"));
+                float iw = Mathf.Min(170, (strip.width - 20) / items.Count), ix = strip.center.x - iw * items.Count / 2;
+                foreach (var it in items)
+                {
+                    Icons.Draw(new Rect(ix + 6, strip.y + 13, 20, 20), it.icon, it.c);
+                    Ui.Text(new Rect(ix + 30, strip.y, iw - 32, strip.height), it.text, 12, Palette.Text, FontStyle.Bold);
+                    ix += iw;
+                }
+                if (first) Ui.Text(new Rect(strip.xMax - 140, strip.y - 16, 136, 14), "First clear bonus!", 11, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight);
+            }
+            else Ui.Text(strip, "No rewards this time. Level and gear up your heroes, bring elements that beat these foes, or summon new heroes.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter, true);
+            y = strip.yMax + 10;
+
+            // Per-hero columns: damage dealt, damage taken, healing done.
+            float bottomH = 52, colH = r.yMax - bottomH - y;
+            long maxDealt = System.Math.Max(1, allies.Max(u => u.DmgDealt));
+            long maxTaken = System.Math.Max(1, allies.Max(u => _taken.TryGetValue(u, out var t) ? t : 0));
+            long maxHeal = System.Math.Max(1, allies.Max(u => _healed.TryGetValue(u, out var h) ? h : 0));
+            float cw = Mathf.Min(190, (r.width - (allies.Count - 1) * 10) / allies.Count), cx = r.center.x - (cw * allies.Count + 10 * (allies.Count - 1)) / 2;
+            foreach (var u in allies)
+            {
+                var col = new Rect(cx, y, cw, colH); cx += cw + 10;
+                GUI.DrawTexture(col, Ui.RoundTex(new Color(0.08f, 0.06f, 0.1f, 0.8f), u.Alive ? Palette.Rarity(u.Template.Rarity) : Palette.Bronze, 10));
+                Icons.Draw(new Rect(col.x + 8, col.y + 8, 18, 18), Icons.ForElement(u.El), Palette.Element(u.El));
+                Ui.Text(new Rect(col.x + 30, col.y + 4, col.width - 36, 22), u.Template.ShortName, 13, u.Alive ? Palette.Text : Palette.Dim, FontStyle.Bold);
+                var up = ups?.FirstOrDefault(l => l.uid == u.HeroUid);
+                string lv = up.HasValue && up.Value.uid != 0 ? Ui.ColorTag($"Level up! Lv {up.Value.level}", Palette.Good) : $"Lv {u.Level}";
+                Ui.Text(new Rect(col.x + 8, col.y + 26, col.width - 16, 16), lv + (u.Alive ? "" : Ui.ColorTag("  · fell", Palette.Bad)), 11, Palette.Dim);
+                float by = col.y + 48, bh = Mathf.Max(10, (col.yMax - by - 10) / 3f - 18);
+                void Stat(Icon ic, Color c, long v, long max)
+                {
+                    Icons.Draw(new Rect(col.x + 8, by, 14, 14), ic, c);
+                    Ui.Text(new Rect(col.x + 26, by - 2, col.width - 34, 18), Ui.Fmt(v), 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
+                    Ui.Bar(new Rect(col.x + 8, by + 17, col.width - 16, Mathf.Min(6, bh)), v / (float)max, c);
+                    by += 34;
+                }
+                Stat(Icon.Sword, Palette.Bad, u.DmgDealt, maxDealt);
+                Stat(Icon.Shield, Palette.Blue, _taken.TryGetValue(u, out var tk) ? tk : 0, maxTaken);
+                Stat(Icon.Heart, Palette.Good, _healed.TryGetValue(u, out var hl) ? hl : 0, maxHeal);
+            }
+
+            // Buttons: Replay, Edit Team, Next (or Heroes on a defeat).
+            float bw = Mathf.Min(200, (r.width - 20) / 3f), bx = r.center.x - (bw * 3 + 20) / 2, btnY = r.yMax - 46;
+            if (Ui.Button(new Rect(bx, btnY, bw, 44), win ? "Replay" : "Retry", Ui.Kind.Blue)) { App.CloseModal(); Begin(stage); }
+            if (Ui.Button(new Rect(bx + bw + 10, btnY, bw, 44), "Edit Team", Ui.Kind.Blue)) { End(ScreenId.Campaign); App.EditTeam(stage); }
+            if (win)
+            {
+                if (Ui.Button(new Rect(bx + 2 * (bw + 10), btnY, bw, 44), canNext ? "Next" : "Map", Ui.Kind.Primary))
+                { if (canNext) { App.CloseModal(); Begin(Mathf.Min(G.S.cleared, TotalStages - 1)); } else End(ScreenId.Campaign); }
+            }
+            else if (Ui.Button(new Rect(bx + 2 * (bw + 10), btnY, bw, 44), "Heroes", Ui.Kind.Primary)) End(ScreenId.Heroes);
         }
     }
 }

@@ -146,6 +146,7 @@ namespace Sigilbound.Client
         }
 
         // ---------- team prep ----------
+        public void EditTeam(int stage, bool hard = false) => OpenPrep(stage, false, ScreenId.Campaign, hard); // from the results screen
         void OpenPrep(int stage, bool titan, ScreenId back, bool hard = false) { _prepStage = stage; _prepTitan = titan; _prepHard = hard && !titan; _prepBack = back; Go(ScreenId.Prep); }
 
         void DrawPrep(Rect area)
