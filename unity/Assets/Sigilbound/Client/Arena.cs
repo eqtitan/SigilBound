@@ -54,6 +54,43 @@ namespace Sigilbound.Client
             Cam.fieldOfView = (float)BattleLayout.FovFor(aspect);
             Cam.transform.position = ToUnity(BattleLayout.CameraPosition(preset, BattleLayout.FitDistance(preset, aspect, titan)));
             Cam.transform.LookAt(ToUnity(BattleLayout.CamTarget));
+            HideOccluders();
+        }
+
+        // Scenery that would block the battle from this camera (low presets such as Cinematic can sit
+        // inside a rock or behind a tree): hide every prop the camera is inside or near, or that cuts a
+        // sight line from the camera to the battle circle (its centre, its left/right/front edges and
+        // head height). Restored when the camera changes. Ground, sky, water and the rune circle stay.
+        readonly List<Renderer> _hidden = new List<Renderer>();
+        void HideOccluders()
+        {
+            foreach (var r in _hidden) if (r) r.enabled = true;
+            _hidden.Clear();
+            if (!_scenery || !_framedBattle) return;
+            Vector3 eye = Cam.transform.position;
+            var c = ToUnity(BattleLayout.CamTarget);
+            Vector3 right = Vector3.Cross(Vector3.up, (c - eye).normalized).normalized;
+            var targets = new[] { c, c + right * 4.2f, c - right * 4.2f, c + Vector3.up * 1.2f, new Vector3(c.x, 0.4f, c.z - 3f), c + right * 2.5f + Vector3.up * 1f, c - right * 2.5f + Vector3.up * 1f };
+            foreach (var r in _scenery.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!r.enabled) continue;
+                string n = r.gameObject.name;
+                if (n == "Ground" || n.StartsWith("Sky") || n.StartsWith("Water") || n.StartsWith("Circle") || n.StartsWith("Rune") || n.StartsWith("Shaft")) continue;
+                var b = r.bounds;
+                if (b.extents.magnitude > 18f) continue; // sky domes, backdrop hills far away
+                if (b.max.y < 0.15f) continue;            // flat ground decals never block
+                bool block = b.SqrDistance(eye) < 1.2f * 1.2f;
+                if (!block)
+                {
+                    var bb = b; bb.Expand(0.25f);
+                    foreach (var t in targets)
+                    {
+                        var d = t - eye; float len = d.magnitude;
+                        if (bb.IntersectRay(new Ray(eye, d / len), out float hit) && hit < len - 0.6f) { block = true; break; }
+                    }
+                }
+                if (block) { r.enabled = false; _hidden.Add(r); }
+            }
         }
 
         void LateUpdate()
@@ -87,7 +124,7 @@ namespace Sigilbound.Client
             RenderSettings.ambientLight = Color.Lerp(bottom, Color.white, 0.35f) * 0.55f;
 
             // Sky: a big gradient quad behind the battlefield.
-            var sky = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            var sky = GameObject.CreatePrimitive(PrimitiveType.Quad); sky.name = "Sky";
             Destroy(sky.GetComponent<Collider>());
             sky.transform.SetParent(_scenery.transform);
             sky.transform.position = new Vector3(0, 9, 30); sky.transform.localScale = new Vector3(90, 40, 1);
@@ -95,7 +132,7 @@ namespace Sigilbound.Client
             sky.GetComponent<Renderer>().sharedMaterial = skyMat;
 
             // The rune circle: units stand on its rim (BattleLayout.Rim*).
-            var circle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            var circle = GameObject.CreatePrimitive(PrimitiveType.Cylinder); circle.name = "Circle";
             Destroy(circle.GetComponent<Collider>());
             circle.transform.SetParent(_scenery.transform);
             circle.transform.position = new Vector3((float)BattleLayout.RimCx, 0.005f, (float)BattleLayout.RimCz);
@@ -108,6 +145,7 @@ namespace Sigilbound.Client
             float density = Quality.I == null ? 1f : new[] { 0.4f, 0.7f, 1f, 1.3f }[Quality.I.Tier];
             Scenery.Build(_scenery.transform, chapter, titan, density, bottom);
             StaticBatch(_scenery);
+            HideOccluders(); // a re-built arena under an already framed camera
             Shafts(titan ? Palette.Hex("#ff9a5a") : Color.Lerp(bottom, new Color(1f, 0.95f, 0.8f), 0.7f));
         }
 
