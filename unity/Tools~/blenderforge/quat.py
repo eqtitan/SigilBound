@@ -87,6 +87,15 @@ HEROES = {
                    hide=["crown", "hair"], kit=["helm", "shield", "lantern"], rim="#ffe27a", height=1.0),
     "greta":  dict(base="hooded", skin="fair", hair="#c8b8a0", armor="#4a7a8a", accent="#e8d8b0", cloth="#2a4a5a", glow=None,
                    hide=["hood"], kit=["braid", "net"], rim="#3a8ee8", height=0.96),
+    # Step 22:
+    "cole":   dict(base="adventurer", skin="fair", hair="#2a2420", armor="#5a4a3a", accent="#ff8a3a", cloth="#3a2a22", glow=None,
+                   hide=[], kit=["spiky_hair", "axe"], rim="#ff7a3a", height=1.0),
+    "tilly":  dict(base="hooded", skin="pale", hair="#5a4a6a", armor="#3a3048", accent="#c8a8ff", cloth="#2a2238", glow="#e0c8ff",
+                   hide=["hood"], kit=["veil", "candle"], rim="#a050ff", height=0.92),
+    "ronan":  dict(base="monarch", skin="tan", hair="#8a5a2a", armor="#6a5a3a", accent="#c8d870", cloth="#4a6a3a", glow=None,
+                   hide=["crown"], kit=["beard", "hammer"], rim="#3fb57a", height=1.04),
+    "isla":   dict(base="hooded", skin="fair", hair="#e8d890", armor="#e8e0c8", accent="#ffd870", cloth="#c8c0a8", glow="#fff0a0",
+                   hide=["hood"], kit=["long_hair", "bell"], rim="#ffe27a", height=0.97),
 }
 
 def palette(h):
@@ -417,6 +426,14 @@ def kit(h, arm, P, head_mesh):
                 out.append(rigid(F.strand(f"NetCross{j}", [W(-w, y, 0.02), W(0, y + 0.02, 0.03), W(w, y, 0.02)], 0.005, 0.005), arm, "Wrist.L", P["Accent"]))
             for i in range(4):
                 out.append(rigid(F.ellipsoid(f"Float{i}", W(-0.18 + i * 0.12, 0.63, 0.04), (0.025, 0.02, 0.025), seg=8, rings=4), arm, "Wrist.L", P["Wood"]))
+        elif k == "axe":
+            # A woodsman's axe (Cole): a long haft through the fist and a flared bit on one side.
+            W = lambda x, y, z: bp(arm, "Wrist.R", x, y, z)
+            out.append(rigid(F.strand("AxeHaft", [W(0, 0.08, 0.25), W(0, 0.08, -0.8)], 0.024, 0.02), arm, "Wrist.R", P["Wood"]))
+            head = F.lathe("AxeBit", [(0.02, -0.07), (0.11, -0.05), (0.14, 0.0), (0.11, 0.05), (0.02, 0.07)], seg=3, sx=1.0, sy=0.18, cap_top=False, cap_bottom=False)
+            head.location = W(0.08, 0.08, -0.72)
+            out.append(rigid(head, arm, "Wrist.R", P["Steel"]))
+            out.append(rigid(F.box("AxePoll", W(-0.03, 0.08, -0.72), (0.04, 0.03, 0.06)), arm, "Wrist.R", P["Steel"]))
         elif k == "cape":
             # A cape hanging from the shoulders down the back, flaring toward the hem (rigid on the chest).
             chest = bone_world(arm, "Chest"); top = chest.z + 0.2; back = chest.y + 0.2

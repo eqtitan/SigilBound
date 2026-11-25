@@ -56,10 +56,10 @@ new mechanics apart from the `anchor` and `net` kit.
 | `nettle` | Nettle Quickfinch | Common | Gale | Attack | adventurer | bandana, daggers | Hits twice with a chance to Slow; a big single hit | Thornwick hedge-runner, fastest courier on the road. |
 | `hobb` | Hobb Lanternjaw | Common | Light | Defense | monarch | helm, shield, lantern | DefUp and a small Shield on all allies | Road warden who keeps the waystone lamps lit. |
 | `greta` | Greta Brineknot | Common | Tide | Support | hooded | braid, net* | Slow on hit; small Heal and Cleanse on all allies | Saltmarsh net-mender. |
-| `cole` | Cole Ashworth | Common | Flame | Attack | adventurer | spiky_hair, axe* | Burst hit; AtkUp on self after a kill | Ashgrave charcoal burner with a woodsman's axe. |
-| `tilly` | Tilly Mothwing | Common | Shadow | Support | hooded | veil, candle | DefDown on all enemies; TmDrain | Moth-keeper of the Bellspire ruins. |
-| `ronan` | Ronan Stoutbarrow | Common | Gale | Hp | monarch | beard, hammer | Regen on all allies; big HP pool | Thornwick innkeeper, never lets a guest go hungry. |
-| `isla` | Isla Fenlight | Common | Light | Support | hooded | long_hair, bell | Heal the lowest ally; SpdUp | Saltmarsh chapel bell-ringer. |
+| `cole` | Cole Ashworth | Common | Flame | Attack | adventurer | spiky_hair, axe* | Steady hits; a heavier hit that raises his own ATK | Ashgrave charcoal burner with a woodsman's axe. |
+| `tilly` | Tilly Mothwing | Common | Shadow | Support | hooded | veil, candle | DefDown on hit; weak AoE with DefDown and TmDrain | Moth-keeper of the Bellspire ruins. |
+| `ronan` | Ronan Stoutbarrow | Common | Gale | Hp | monarch | beard, hammer | Regen on all allies, with a self Shield and Taunt | Thornwick innkeeper, never lets a guest go hungry. |
+| `isla` | Isla Fenlight | Common | Light | Support | hooded | long_hair, bell | Small Heal and SpdUp on all allies | Saltmarsh chapel bell-ringer. |
 | `dunstan` | Dunstan Oaken | Rare | Gale | Defense | monarch | helm, shield, cape | Taunt; DefUp on allies | Old shield-captain of the Thornwick militia. |
 | `marisol` | Marisol Wavecrest | Rare | Tide | Attack | adventurer | ponytail, trident | AoE hit; Slow | Drowned Mill pearl diver turned raider of the Hollow. |
 | `vesper` | Vesper Gloam | Rare | Shadow | Attack | hooded | mask, daggers | Poison; DefDown | Thief who works the Hollow Deep's edges. |
