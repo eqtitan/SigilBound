@@ -214,7 +214,7 @@ Unfinished work saved from the stopped agents:
   - DONE (2026-11-25):
     - `FxType.Revive` (a buff: back at Pct HP instead of falling, once); `SkillDef.Rage` (damage grows with the attacker's missing HP); `HeroDef.FallHeal` (the Last Light passive).
     - The hero screen's Skills card shows a passive line (`SkillText.Passive`). 3 more checks in MechanicsTests (15 in all). Rules in ROSTER.md section 4.
-- [ ] **32–33, 35–37. Phase 3 heroes (The Hollow Unbound), 4 per step.** Step 32 DONE (2026-11-25):
+- [x] **32–33, 35–37. Phase 3 heroes (The Hollow Unbound), 4 per step.** ALL DONE (2026-11-25); 80 heroes. Step 32 DONE (2026-11-25):
   - Grimsby, Marrow (Rage), Ember (Last Light passive), Quill. New kit: book. Preview: `docs/sigilbound/art/prototype/step32-hollow-unbound.png`.
   - Balance after tuning: Grimsby 44% and Quill 45% vs Corvan/Tamsin, Marrow 52% vs Kaito/Maelis, Ember 44% vs Velka. Ember started at 86%: a self-shield with Taunt dominates HP duels again. 64 heroes.
   - Marrow was redesigned as a grey, long-haired giant so he doesn't read as a second Gorrum.
@@ -225,7 +225,11 @@ Unfinished work saved from the stopped agents:
   - STEP 36 DONE (2026-11-25): Lucan, and the first new Legendaries: Kharra, Nocturne (Execute), Aelira. Preview: `docs/sigilbound/art/prototype/step36-hollow-unbound.png`.
     - Balance: Lucan 51% vs Aurelia (his Cleanse undid Aurelia's stuns: 77% until it was dropped), Kharra 59% vs Odo/Velka/Thrain, Nocturne 48% vs Vaelith/Morwenna, Aelira 43% vs Seraphine. 76 heroes.
     - RosterTests: a peer of a lower rarity (no Legendary HP hero among the classic 24) is raised to the new hero's rarity.
-  - Next (step 37): Zephyrine, Solenne (Revive), Nell, Briar. That finishes phase 3.
+  - STEP 37 DONE (2026-11-25): Zephyrine, Solenne (the first Revive: Dawn Vigil gives the team a one-time revive at 30% HP), Nell, Briar. Preview: `docs/sigilbound/art/prototype/step37-hollow-unbound.png`.
+    - Balance: Zephyrine 44% vs Vaelith/Morwenna, Solenne 41% vs Odo/Velka/Thrain (raised to Legendary; she needed a Taunt), Nell 58% vs Brannoc/Kettle, Briar 47% vs Ysolde/Lumen/Nyx.
+    - Beards: monarch heads carry the beard in the hair too. Maelis, Marrow and Solenne are now clean-shaven (rebaked).
+  - Phase 3 (The Hollow Unbound) is complete: 20 heroes.
+  - Next: step 38, campaign act 2.
   Grimsby, Marrow (Rage), Ember (Last Light), Quill; Drift, Sprig, Tallow, Hollis; Auren, Cinder, Thessaly, Umbra; Lucan, Kharra, Nocturne (Execute), Aelira; Zephyrine, Solenne (Revive), Nell, Briar.
 - [x] **34. Android in-app updates (like Windows).** Owner request (2026-11-25). The phase 3 hero steps 35–37 follow it.
   - OWNER DECISIONS (2026-11-25):

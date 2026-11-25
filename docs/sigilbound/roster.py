@@ -63,14 +63,14 @@ X = [
 (3,"kharra","Kharra Titanborn",L,F,H,m,"horns, beard, hammer, cape","Self Shield, Taunt and Regen; AoE Burn with team AtkUp","Born in the Titan's shadow, half stone."),
 (3,"nocturne","Nocturne",L,S,A,h,"mask, katana, cape","DefDown on hit; AoE Stun; Execute below 30% HP","The Hollow's first champion, now its hunter."),
 (3,"aelira","Aelira Tidecrowned",L,T,Su,h,"crown, orb, robe, cape","Big team Heal with Shield and Cleanse; team Turn Meter, AtkUp and DefUp","Queen of the Sunken Cathedral."),
-(3,"zephyrine","Zephyrine",L,G,A,a,"ponytail, katana, cape","AoE; SpdUp all","Wind spirit bound to the Sigil's Gale shard."),
-(3,"solenne","Solenne Dawnborn",L,Li,H,m,"halo, crown, hammer, cape","Regen all; revive-style Heal","Sun-saint who kept the first Sigil shard."),
+(3,"zephyrine","Zephyrine",L,G,A,a,"ponytail, katana, cape","Slow on hit; AoE that speeds up allies; a four-hit flurry","Wind spirit bound to the Sigil's Gale shard."),
+(3,"solenne","Solenne Dawnborn",L,Li,H,m,"halo, crown, hammer, cape","Team Revive (back at 30% HP, once); team Regen and Shield while she Taunts","Sun-saint who kept the first Sigil shard."),
 # Phase 4: The Sigil Bearers (a new act, chapters 11-15; legendaries and a deep bench)
 (4,"wick","Saint Wick of the Lamps",L,F,Su,a,"halo, candle, cape","AtkUp all; Heal all; Cleanse","The urchin who lit the city lamps, grown into the keeper of the Flame shard's hearth."),
 (4,"perrin","Perrin Gullsby",C,T,D,a,"bandana, shield","Taunt; DefUp self","Harbour guard of the new act's port city."),
 (4,"loam","Loam Bracken",C,G,D,m,"beard, shield","Taunt; Shield self","Farmer who held the gate with a plough-shield."),
 (4,"merrit","Merrit Vellum",C,Li,A,a,"spiky_hair, sword","Hit; Strip","Squire to the Sigil Bearers."),
-(3,"nell","Nell Shadowgrass",C,S,A,h,"mask, hook","Poison; Slow","Reed-cutter of the black fens."),
+(3,"nell","Nell Shadowgrass",C,S,A,h,"mask, hook","Poison on hit; a big Slowing snare","Reed-cutter of the black fens."),
 (4,"calder","Calder Stormglass",E,Li,Su,m,"beard, lantern","SpdUp all allies; Heal the lowest","Lighthouse keeper whose beam guides ships, and allies, home."),
 (4,"sienna","Sienna Firethorn",R,F,A,h,"braid, bow, quiver","Burn-style Poison; AoE","Archer of the ember groves."),
 (4,"dorian","Dorian Lowe",R,T,H,m,"beard, anchor*","Regen all; Taunt","Harbourmaster of the port city."),
@@ -87,7 +87,7 @@ X = [
 (4,"aurex","Aurex Lightsworn",L,Li,A,a,"halo, sword, cape","AoE; Strip; AtkUp self","Bearer of the Light shard."),
 (4,"stormbearer","Gale Stormbearer",L,G,D,m,"helm, shield, cape","Shield all; Taunt; SpdUp","Bearer of the Gale shard."),
 (4,"vex","Vex Hollowking",L,S,Su,m,"crown, orb, cape","DefDown all; Stun; Strip","The Hollow's king, an uneasy ally at the end."),
-(3,"briar","Briar Wildroot",R,G,A,h,"braid, whip","Poison; Slow","Thorn-witch of the deep wood."),
+(3,"briar","Briar Wildroot",R,G,A,h,"braid, whip","Two Poison hits; a big Slowing whip; AoE Poison","Thorn-witch of the deep wood."),
 ]
 cur = dict(rar=collections.Counter({C:6,R:8,E:6,L:4}), el=collections.Counter({F:5,G:6,T:4,Li:5,S:4}), role=collections.Counter({A:9,D:5,H:4,Su:6}))
 ids=[x[1] for x in X]; assert len(ids)==len(set(ids)), [i for i in ids if ids.count(i)>1]

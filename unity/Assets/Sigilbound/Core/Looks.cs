@@ -164,6 +164,10 @@ namespace Sigilbound.Core
             ["kharra"] = new HeroLook { Skin = "ash", Hair = "#2a1a14", Style = "bald", Gear = "horns", Armor = "#3a2a24", Accent = "#ff5a1a", Cloth = "#24140e", Prop = "hammer", Beard = "full", Glow = "#ff7a2a", Cape = true, CapeColor = "#4a1a0e", Base = "monarch", Height = 1.18, Hide = new[] { "crown" }, Bald = true },
             ["nocturne"] = new HeroLook { Skin = "ash", Hair = "#141020", Style = "hood", Gear = "mask", Armor = "#1a1424", Accent = "#c060ff", Cloth = "#0e0a16", Prop = "katana", Glow = "#d080ff", Cape = true, CapeColor = "#0e0a16", Base = "hooded", Height = 1.06 },
             ["aelira"] = new HeroLook { Skin = "brown", Hair = "#0e3a5a", Style = "long", Gear = "crown", Armor = "#1a5a8a", Accent = "#7ae8ff", Cloth = "#0e3048", Prop = "orb", Glow = "#9af0ff", Cape = true, CapeColor = "#0e3048", Robe = "long", RobeColor = "#0e3048", Base = "hooded", Height = 1.06, Hide = new[] { "hood" } },
+            ["zephyrine"] = new HeroLook { Skin = "pale", Hair = "#d8f0e8", Style = "ponytail", Gear = "none", Armor = "#4a8a7a", Accent = "#c8fff0", Cloth = "#2a5a50", Prop = "katana", Glow = "#c8fff0", Cape = true, CapeColor = "#2a5a50", Base = "adventurer", Height = 1.04, Shave = true },
+            ["solenne"] = new HeroLook { Skin = "deep", Hair = "#f8e8b0", Style = "long", Gear = "halo", Armor = "#f0d890", Accent = "#fff0a0", Cloth = "#c89040", Prop = "hammer", Glow = "#fff4b0", Cape = true, CapeColor = "#e8c870", Base = "monarch", Height = 1.08 },
+            ["nell"] = new HeroLook { Skin = "tan", Hair = "#2a3020", Style = "hood", Gear = "mask", Armor = "#3a4030", Accent = "#9ac060", Cloth = "#2a3020", Prop = "hook", Base = "hooded", Height = 0.95 },
+            ["briar"] = new HeroLook { Skin = "fair", Hair = "#4a6a2a", Style = "braid", Gear = "none", Armor = "#3a5a2a", Accent = "#d07050", Cloth = "#2a4020", Prop = "whip", Glow = "#a0ff80", Base = "hooded", Height = 0.98, Hide = new[] { "hood" } },
         };
     }
 }

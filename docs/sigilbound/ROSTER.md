@@ -121,10 +121,10 @@ revive effect, a heal when an ally falls, and damage that grows with HP lost.
 | `kharra` | Kharra Titanborn | Legendary | Flame | Hp | monarch | horns, beard, hammer, cape | Self Shield, Taunt and Regen; AoE Burn with team AtkUp | Born in the Titan's shadow, half stone. |
 | `nocturne` | Nocturne | Legendary | Shadow | Attack | hooded | mask, katana, cape | DefDown on hit; AoE Stun; Execute below 30% HP | The Hollow's first champion, now its hunter. |
 | `aelira` | Aelira Tidecrowned | Legendary | Tide | Support | hooded | crown, orb, robe, cape | Big team Heal with Shield and Cleanse; team Turn Meter, AtkUp and DefUp | Queen of the Sunken Cathedral. |
-| `zephyrine` | Zephyrine | Legendary | Gale | Attack | adventurer | ponytail, katana, cape | AoE; SpdUp all | Wind spirit bound to the Sigil's Gale shard. |
-| `solenne` | Solenne Dawnborn | Legendary | Light | Hp | monarch | halo, crown, hammer, cape | Regen all; revive-style Heal | Sun-saint who kept the first Sigil shard. |
-| `nell` | Nell Shadowgrass | Common | Shadow | Attack | hooded | mask, hook | Poison; Slow | Reed-cutter of the black fens. |
-| `briar` | Briar Wildroot | Rare | Gale | Attack | hooded | braid, whip | Poison; Slow | Thorn-witch of the deep wood. |
+| `zephyrine` | Zephyrine | Legendary | Gale | Attack | adventurer | ponytail, katana, cape | Slow on hit; AoE that speeds up allies; a four-hit flurry | Wind spirit bound to the Sigil's Gale shard. |
+| `solenne` | Solenne Dawnborn | Legendary | Light | Hp | monarch | halo, crown, hammer, cape | Team Revive (back at 30% HP, once); team Regen and Shield while she Taunts | Sun-saint who kept the first Sigil shard. |
+| `nell` | Nell Shadowgrass | Common | Shadow | Attack | hooded | mask, hook | Poison on hit; a big Slowing snare | Reed-cutter of the black fens. |
+| `briar` | Briar Wildroot | Rare | Gale | Attack | hooded | braid, whip | Two Poison hits; a big Slowing whip; AoE Poison | Thorn-witch of the deep wood. |
 
 ### Phase 4: The Sigil Bearers (20 heroes, all rarities)
 
