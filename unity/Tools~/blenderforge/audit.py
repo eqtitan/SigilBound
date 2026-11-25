@@ -20,18 +20,18 @@ PALETTE_DIST = 110.0
 
 # Near-twins found by the first audit (2026-11-25). Remove a pair once its heroes are told apart.
 FIX_LIST = {
-    ("hask", "brega"), ("silas", "saoirse"), ("nyx", "vesper"), ("tamsin", "sienna"),
-    ("aurelia", "rhea"), ("brannoc", "kestrel"), ("morwenna", "aelira"), ("ulfgar", "dunstan"),
-    ("malachar", "pyrrhus"), ("ulfgar", "aurelia"), ("maelis", "caspian"), ("tallow", "gideon"),
+    ("hask", "brega"), ("nyx", "vesper"), ("tamsin", "sienna"),
+    ("aurelia", "rhea"), ("morwenna", "aelira"), ("ulfgar", "dunstan"),
+    ("malachar", "pyrrhus"), ("maelis", "caspian"), ("tallow", "gideon"),
     ("dunstan", "tallow"), ("thrain", "kharra"), ("velka", "orla"), ("thrain", "hale"),
     ("malachar", "tallow"), ("morwenna", "kaelith"), ("bram", "dorian"), ("thrain", "ronan"),
     ("odo", "sorrel"), ("hask", "hobb"), ("kaito", "corwin"), ("hobb", "brega"), ("hask", "tallow"),
     ("lumen", "aurex"), ("sorrel", "bastian"), ("brega", "tallow"), ("aelira", "kaelith"),
-    ("velka", "nerys"), ("rhea", "lucan"), ("tallow", "pyrrhus"), ("velka", "selene"),
-    ("rowan", "faelan"), ("nerys", "selene"), ("dunstan", "rowan"), ("dunstan", "thessaly"),
+    ("velka", "nerys"), ("tallow", "pyrrhus"), ("velka", "selene"),
+    ("rowan", "faelan"), ("nerys", "selene"), ("dunstan", "rowan"), 
     ("caspian", "rowan"), ("caspian", "faelan"), ("dunstan", "stormbearer"), ("seraphine", "lyra"),
-    ("thessaly", "stormbearer"), ("malachar", "thessaly"), ("aurelia", "stormbearer"),
-    ("malachar", "gideon"), ("nerys", "lyra"), ("aurelia", "dunstan"), ("dunstan", "gideon"),
+    
+    ("malachar", "gideon"), ("nerys", "lyra"), ("dunstan", "gideon"),
 }
 
 WEAPONS = {"whip", "hammer", "shield", "staff", "orb", "sword", "katana", "daggers", "bow", "spear", "candle",
@@ -41,11 +41,30 @@ BRAWLERS = {"odo", "kettle", "gorrum", "thrain"}
 SMALL_FOCUS = {"candle", "mirror", "bell", "orb", "lantern"}
 
 
-def load_heroes():
-    s = open(os.path.join(HERE, "quat.py")).read()
-    i = s.index("HEROES = {")
+def _literal(s, start):
+    i = s.index(start)
     j = s.index("\n}\n", i)
-    return eval(s[i + 9:j + 2], {"dict": dict})  # the literal dict only; quat.py itself needs Blender
+    return eval(s[i + len(start) - 1:j + 2], {"dict": dict})  # the literal only; quat.py itself needs Blender
+
+
+def women():
+    return _literal(open(os.path.join(HERE, "quat.py")).read(), "WOMEN = {")
+
+
+def load_heroes():
+    """quat.py HEROES with each female hero moved onto her women's body (step 45)."""
+    H = _literal(open(os.path.join(HERE, "quat.py")).read(), "HEROES = {")
+    for body, ids in women().items():
+        for hid in ids:
+            H[hid] = dict(H[hid], base=body)
+    return H
+
+
+def looks_women():
+    """Core/Looks.cs BakedBases, which must match quat.py WOMEN."""
+    import re
+    s = open(os.path.join(REPO, "unity", "Assets", "Sigilbound", "Core", "Looks.cs")).read()
+    return {b: ids.split() for b, ids in re.findall(r'\("(\w+)", "([a-z ]+)"\)', s[s.index("BakedBases"):s.index("static Dictionary<string, string> Women")])}
 
 
 def rgb(h):
@@ -96,6 +115,8 @@ def problems(H, found):
     for hid in H:
         if not SIGNATURES.get(hid):
             errs.append(f"no signature for {hid} (signatures.py)")
+    if {k: sorted(v) for k, v in women().items()} != {k: sorted(v) for k, v in looks_women().items()}:
+        errs.append("quat.py WOMEN and Core/Looks.cs BakedBases list different heroes")
     for hid in SIGNATURES:
         if hid not in H:
             errs.append(f"signature for unknown hero {hid}")

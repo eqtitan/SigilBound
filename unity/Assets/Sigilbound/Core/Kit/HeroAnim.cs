@@ -76,7 +76,7 @@ namespace Sigilbound.Core
         }
 
         // Which UAL source rig each base model uses (three3d.mjs preload): adventurer shares the monarch's skeleton.
-        public static string SourceFor(string baseModel) => baseModel == "hooded" ? "hooded_adventurer" : baseModel == "titan" ? null : "monarch";
+        public static string SourceFor(string baseModel) => baseModel == "hooded" || baseModel == "hooded_f" || baseModel == "witch" || baseModel == "adventurer_f" ? "hooded_adventurer" : baseModel == "titan" ? null : "monarch";
     }
 
     // glTF/three.js (right-handed) -> Unity (left-handed), as glTFast imports: mirror the X axis.

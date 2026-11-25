@@ -27,7 +27,26 @@ namespace Sigilbound.Core
         public static readonly Dictionary<string, string> Files = new Dictionary<string, string>
         {
             ["hooded"] = "hooded_adventurer.glb", ["adventurer"] = "adventurer.glb", ["monarch"] = "monarch.glb", ["titan"] = "yeti.glb",
+            // Quaternius Ultimate Modular Women (CC0, phase E step 45): the "hooded" rig and clips.
+            ["hooded_f"] = "women_medieval.glb", ["witch"] = "women_witch.glb", ["adventurer_f"] = "women_adventurer.glb",
         };
+
+        // Female heroes' baked models use a women's body (owner decision, step 45). Same list as
+        // quat.py WOMEN (audit.py checks they match). The code-built stand-in keeps Base.
+        public static readonly Dictionary<string, string> BakedBases = Women(
+            ("hooded_f", "ysolde aurelia rhea thessaly solenne wren vesper nyx ysra saoirse amber mira greta nell"),
+            ("witch", "morwenna velka sable seraphine tilly nerys juno lyra selene umbra aelira kaelith orla liora"),
+            ("adventurer_f", "tamsin isla marisol astrid zephyrine elowen azura kestrel sienna briar sprig oriel"));
+
+        static Dictionary<string, string> Women(params (string body, string ids)[] lists)
+        {
+            var d = new Dictionary<string, string>();
+            foreach (var (body, ids) in lists) foreach (var id in ids.Split(' ')) d[id] = body;
+            return d;
+        }
+
+        // The base model a hero's baked GLB was built on (its skeleton, clips and head height).
+        public static string BakedBaseOf(string heroId) => BakedBases.TryGetValue(heroId, out var b) ? b : Of(heroId).Base;
 
         // Material name -> colour role, per base model ("head:Black" = only on the head mesh).
         public static readonly Dictionary<string, Dictionary<string, string>> Roles = new Dictionary<string, Dictionary<string, string>>
@@ -36,10 +55,17 @@ namespace Sigilbound.Core
                 ["head:Black"] = "cloth", ["head:Brown"] = "eye", ["head:DarkBrown"] = "hood", ["White"] = "hair" },
             ["adventurer"] = new Dictionary<string, string> { ["LightGreen"] = "armor", ["Green"] = "cloth", ["Brown"] = "pants", ["Brown2"] = "pants", ["Black"] = "boot", ["Grey"] = "boot", ["Hair"] = "hair", ["Eyebrows"] = "hair", ["Gold"] = "accent", ["Skin"] = "skin", ["Eye"] = "eye" },
             ["monarch"] = new Dictionary<string, string> { ["Metal"] = "armor", ["Metal_Dark"] = "trim", ["Blue"] = "cloth", ["DarkBrown"] = "pants", ["Beige"] = "accent", ["Gold"] = "crown", ["Hair_White"] = "hair", ["Skin"] = "skin", ["Eye"] = "eye" },
+            ["hooded_f"] = new Dictionary<string, string> { ["DarkBrown"] = "armor", ["Black"] = "cloth", ["LightBrown"] = "accent", ["Gold"] = "accent", ["Metal"] = "trim", ["Skin"] = "skin",
+                ["head:Brown"] = "eye", ["head:DarkBrown"] = "hood", ["head:Black"] = "eye", ["White"] = "hair" },
+            ["witch"] = new Dictionary<string, string> { ["Purple"] = "armor", ["Gold"] = "accent", ["Brown2"] = "boot", ["Brown"] = "pants", ["Skin"] = "skin",
+                ["head:Purple"] = "hat", ["head:Gold"] = "hat", ["head:Brown"] = "eye", ["Hair_Black"] = "hair" },
+            ["adventurer_f"] = new Dictionary<string, string> { ["LightGreen"] = "armor", ["Green"] = "cloth", ["White"] = "accent", ["Brown2"] = "pants", ["Brown_02"] = "boot", ["Gold"] = "accent",
+                ["Skin"] = "skin", ["Hair_Brown"] = "hair", ["head:Brown"] = "eye" },
             ["titan"] = new Dictionary<string, string> { ["Yeti_Main"] = "stone", ["Yeti_Secondary"] = "stoneDark", ["Eye_White"] = "socket", ["Eye_Black"] = "maw", ["Yeti_Teeth"] = "fang", ["Tongue"] = "tongue" },
         };
         // Mesh node names per base, to tell the head from the body ("head:" roles).
-        public static readonly Dictionary<string, string> HeadMesh = new Dictionary<string, string> { ["monarch"] = "King_Head", ["hooded"] = "Medieval_Head", ["adventurer"] = "Adventurer_Head" };
+        public static readonly Dictionary<string, string> HeadMesh = new Dictionary<string, string> { ["monarch"] = "King_Head", ["hooded"] = "Medieval_Head", ["adventurer"] = "Adventurer_Head",
+            ["hooded_f"] = "Medieval_Head", ["witch"] = "Witch_Head", ["adventurer_f"] = "Adventurer_Head" };
 
         public static string RoleOf(string baseModel, bool isHead, string material)
         {

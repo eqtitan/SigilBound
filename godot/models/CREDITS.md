@@ -30,3 +30,12 @@ confirm the clips match.**
 
 The clips are retargeted from the pack's Rigify (`DEF-*`) rig onto our character rig and baked to
 JSON by `tools/anim-retarget` (rotations for 20 bones, plus hips and feet positions; 24 fps).
+
+## Unity-only bodies: `women_medieval.glb`, `women_witch.glb`, `women_adventurer.glb`
+
+The Medieval, Witch and Adventurer characters from **Quaternius, Ultimate Modular Women (April 2022)**,
+CC0 1.0 (pack licence file: `godot/models/women_LICENSE.txt`). Original page: https://quaternius.com.
+The source files came from a public GitHub repository that redistributes the pack unmodified with its
+licence (github.com/flawlesshappiness/EmotionCreatures, `Assets/Quaternius/Ultimate Modular Women - April 2022`);
+converted from glTF to GLB without other changes. The female heroes' baked models are built on them
+(phase E, step 45).

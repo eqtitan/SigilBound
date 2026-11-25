@@ -13,7 +13,17 @@ import forge as F
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODELS = os.path.normpath(os.path.join(HERE, "..", "..", "..", "godot", "models"))
-BASE_FILES = {"hooded": "hooded_adventurer.glb", "adventurer": "adventurer.glb", "monarch": "monarch.glb"}
+BASE_FILES = {"hooded": "hooded_adventurer.glb", "adventurer": "adventurer.glb", "monarch": "monarch.glb",
+              # Quaternius Ultimate Modular Women (CC0, step 45): same 62-bone rig and 24 clips as "hooded".
+              "hooded_f": "women_medieval.glb", "witch": "women_witch.glb", "adventurer_f": "women_adventurer.glb"}
+FEMALE_BASES = {"hooded_f", "witch", "adventurer_f"}
+# Female heroes (owner decision, 2026-11-25) and the women's body each one uses.
+WOMEN = {
+    "hooded_f": ["ysolde", "aurelia", "rhea", "thessaly", "solenne", "wren", "vesper", "nyx", "ysra", "saoirse", "amber", "mira", "greta", "nell"],
+    "witch": ["morwenna", "velka", "sable", "seraphine", "tilly", "nerys", "juno", "lyra", "selene", "umbra", "aelira", "kaelith", "orla", "liora"],
+    "adventurer_f": ["tamsin", "isla", "marisol", "astrid", "zephyrine", "elowen", "azura", "kestrel", "sienna", "briar", "sprig", "oriel"],
+}
+WITCH_HAT = {"tilly"}  # the only witch who keeps the pointed hat
 SKIN = {"fair": ("#f0c4a4", "#c98a70", "#ffe2cc"), "tan": ("#d9a074", "#a06a48", "#f4c8a0"),
         "brown": ("#9a6440", "#5e3a22", "#c88a60"), "deep": ("#6a4028", "#3a2014", "#9a6440"),
         "pale": ("#f3d6c1", "#c9a08a", "#fff0e4"), "ash": ("#b9b4c4", "#7a7488", "#dcd8e6"), "blue": ("#8fb3d9", "#56769a", "#c0d8f0")}
@@ -278,14 +288,34 @@ ROLES = {
                    "Eyebrows": "hair", "Gold": "accent", "Skin": "skin", "Eye": "eye"},
     "monarch": {"Metal": "armor", "Metal_Dark": "trim", "Blue": "cloth", "DarkBrown": "pants", "Beige": "accent", "Gold": "crown",
                 "Hair_White": "hair", "Skin": "skin", "Eye": "eye"},
+    "hooded_f": {"DarkBrown": "armor", "Black": "cloth", "LightBrown": "accent", "Gold": "accent", "Metal": "trim",
+                 "Skin": "skin", "head:Brown": "eye", "head:DarkBrown": "hood", "head:Black": "eye", "White": "hair"},
+    "witch": {"Purple": "armor", "Gold": "accent", "Brown2": "boot", "Brown": "pants", "Skin": "skin",
+              "head:Purple": "hat", "head:Gold": "hat", "head:Brown": "eye", "Hair_Black": "hair"},
+    "adventurer_f": {"LightGreen": "armor", "Green": "cloth", "White": "accent", "Brown2": "pants", "Brown_02": "boot", "Gold": "accent",
+                     "Skin": "skin", "Hair_Brown": "hair", "head:Brown": "eye"},
 }
 # Clean-shaven heroes (Shave = true in Core/Looks.cs, or no beard on a monarch head that keeps its hair):
 # the lower-front hair faces (the beard) are removed.
 SHAVE = {"pell", "kettle", "lumen", "kaito", "oriel", "nettle", "cole", "marisol", "fennick", "wynn", "kestrel", "tobias", "astrid", "ignis", "oswin", "grimsby", "quill", "drift", "cinder", "zephyrine",
          "maelis", "marrow", "solenne", "merrit", "elowen", "wick", "azura", "aurex", "vex"}  # monarch heads: the beard is part of the hair there too
-HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head"}
+HEAD_MESH = {"hooded": "Medieval_Head", "monarch": "King_Head", "adventurer": "Adventurer_Head",
+             "hooded_f": "Medieval_Head", "witch": "Witch_Head", "adventurer_f": "Adventurer_Head"}
 ROLE_PAL = {"armor": "Armor", "cloth": "Cloth", "pants": "Leather", "accent": "Accent", "trim": "Accent", "blade": "Steel",
-            "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot"}
+            "wood": "Wood", "skin": "Skin", "hair": "Hair", "eye": "Eye", "hood": "Cloth", "crown": "Gold", "boot": "Boot", "hat": "Cloth"}
+
+def women_body(hid, h):
+    """Moves a female hero onto her women's body (step 45): her own hair shows (a male head's
+    hidden hair or crown doesn't apply), the witch hat stays only where it is the signature."""
+    h0_base = h["base"]
+    for b, ids in WOMEN.items():
+        if hid in ids:
+            h = dict(h, base=b)
+            hide = [x for x in h.get("hide", []) if x not in ("hair", "crown")]
+            if b == "witch" and hid not in WITCH_HAT: hide.append("hat")
+            if b == "hooded_f" and h0_base != "hooded" and "hood" not in hide: hide.append("hood")  # hooded heroes keep their choice
+            h["hide"] = hide
+    return h
 
 def import_base(h):
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -656,7 +686,7 @@ def main():
     ap.add_argument("--bake", type=int, default=0); ap.add_argument("--render", action="store_true")
     a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:])
     os.makedirs(a.out, exist_ok=True)
-    h = HEROES[a.hero]
+    h = women_body(a.hero, HEROES[a.hero])
     arm, meshes = import_base(h)
     if a.render:  # 'before': the base body with flat palette colours, like today's look minus the kit
         F.eevee_render(1.0, os.path.join(a.out, f"{a.hero}_before.png"), "viewer", h["rim"], height=1.9 * h.get("height", 1))
@@ -672,7 +702,7 @@ def main():
             bm = bmesh.new(); bm.from_mesh(o.data)
             bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index in drop], context="FACES")
             bm.to_mesh(o.data); bm.free()
-        if is_head and a.hero in SHAVE:
+        if is_head and a.hero in SHAVE and h["base"] not in FEMALE_BASES:
             # Clean-shaven (Core/Looks.cs Shave): the adventurer head's beard shares the "hair"
             # material, so remove hair faces on the lower front of the head (the face looks to -y).
             hair = {i for i, r in enumerate(role) if r == "hair"}

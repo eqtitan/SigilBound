@@ -9,7 +9,7 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=base)
 # SB_CLIP=<name> picks another base clip (e.g. Walk, to check that robes follow the legs); SB_FRAME the frame.
 clip = os.environ.get("SB_CLIP", "Idle")
-idle = next(a for a in bpy.data.actions if a.name.endswith("|" + clip))
+idle = next(a for a in bpy.data.actions if a.name.endswith("|" + clip) or a.name == clip)
 for o in list(bpy.context.scene.objects): bpy.data.objects.remove(o, do_unlink=True)
 bpy.ops.import_scene.gltf(filepath=glb)
 for o in [o for o in bpy.context.scene.objects if o.type == "MESH" and not o.name.startswith("SB_Hero")]: bpy.data.objects.remove(o, do_unlink=True)
