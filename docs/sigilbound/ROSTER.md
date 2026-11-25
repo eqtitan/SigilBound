@@ -111,8 +111,8 @@ revive effect, a heal when an ally falls, and damage that grows with HP lost.
 | `quill` | Quill Inkwell | Rare | Light | Support | adventurer | circlet, book | Strip on hit and a big Strip; team AtkUp and Heal | Royal archivist who writes the Sigil's history. |
 | `drift` | Drift Coldfoot | Common | Tide | Attack | adventurer | bandana, daggers | Slow; double hit | Ice skater of the frozen mill pond. |
 | `sprig` | Sprig Mosslight | Common | Gale | Support | hooded | braid, bell | Heal; SpdUp | Child druid of the Thornwick wood. |
-| `tallow` | Tallow Firth | Common | Flame | Defense | monarch | helm, shield | Shield self; Taunt | Ashgrave watchman. |
-| `hollis` | Hollis Shade | Common | Shadow | Hp | hooded | veil, club | Regen; Taunt | Gravedigger of Hollow Deep. |
+| `tallow` | Tallow Firth | Common | Flame | Defense | monarch | helm, shield | Burn on hit (small chance); team DefUp | Ashgrave watchman. |
+| `hollis` | Hollis Shade | Common | Shadow | Hp | hooded | club (hood kept) | Shield, Regen and Taunt on self | Gravedigger of Hollow Deep. |
 | `auren` | Auren Halewind | Epic | Gale | Support | hooded | long_hair, fan*, robe | Cleanse all; SpdUp all | Wind-singer of Stormcrown. |
 | `cinder` | Cinder Vale | Epic | Flame | Attack | adventurer | flame_hair, sword | Burst AoE; AtkDown | Survivor of the Titan's first eruption. |
 | `thessaly` | Thessaly Reefward | Epic | Tide | Defense | monarch | helm, shield, trident | Shield all; Taunt | Captain of the drowned fleet. |

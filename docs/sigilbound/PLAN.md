@@ -214,14 +214,41 @@ Unfinished work saved from the stopped agents:
   - DONE (2026-11-25):
     - `FxType.Revive` (a buff: back at Pct HP instead of falling, once); `SkillDef.Rage` (damage grows with the attacker's missing HP); `HeroDef.FallHeal` (the Last Light passive).
     - The hero screen's Skills card shows a passive line (`SkillText.Passive`). 3 more checks in MechanicsTests (15 in all). Rules in ROSTER.md section 4.
-- [ ] **32–36. Phase 3 heroes (The Hollow Unbound), 4 per step.** Step 32 DONE (2026-11-25):
+- [ ] **32–33, 35–37. Phase 3 heroes (The Hollow Unbound), 4 per step.** Step 32 DONE (2026-11-25):
   - Grimsby, Marrow (Rage), Ember (Last Light passive), Quill. New kit: book. Preview: `docs/sigilbound/art/prototype/step32-hollow-unbound.png`.
   - Balance after tuning: Grimsby 44% and Quill 45% vs Corvan/Tamsin, Marrow 52% vs Kaito/Maelis, Ember 44% vs Velka. Ember started at 86%: a self-shield with Taunt dominates HP duels again. 64 heroes.
   - Marrow was redesigned as a grey, long-haired giant so he doesn't read as a second Gorrum.
-  - Next (step 33): Drift, Sprig, Tallow, Hollis.
+  - STEP 33 DONE (2026-11-25): Drift, Sprig, Tallow, Hollis (Commons). Preview: `docs/sigilbound/art/prototype/step33-hollow-unbound.png`.
+    - Balance after tuning: Drift 57% vs Brannoc/Kettle, Sprig 48% vs Pell/Wren, Tallow 53% vs Mira (his Burn is strong for a Common, so its chance is 10%), Hollis 44% vs Odo. 68 heroes.
+  - Next hero step (35, after the step 34 Android updates): Auren, Cinder, Thessaly, Umbra.
   Grimsby, Marrow (Rage), Ember (Last Light), Quill; Drift, Sprig, Tallow, Hollis; Auren, Cinder, Thessaly, Umbra; Lucan, Kharra, Nocturne (Execute), Aelira; Zephyrine, Solenne (Revive), Nell, Briar.
-- [ ] **37. Campaign act 2** (chapters 11–15: the port city and the storm coast), with new enemy pools that include roster heroes.
-- [ ] **38–42. Phase 4 heroes (The Sigil Bearers), 4 per step.**
+- [ ] **34. Android in-app updates (like Windows).** Owner request (2026-11-25). The phase 3 hero steps 35–37 follow it.
+  - Today: the update banner on Android opens the APK link in the browser. The owner then downloads, opens the file and installs.
+  - Goal: tap **Update now** in the game. It downloads the APK with a progress bar (as on Windows), then Android's installer opens directly, so one tap installs it and the save is kept. Later updates are silent where Android allows it.
+  - What Android allows:
+    - A sideloaded app can't update itself silently the first time; Android shows its own confirmation.
+    - If the game installs updates through PackageInstaller, it becomes the app's installer of record. On Android 12+ (API 31), it can then ask for `USER_ACTION_NOT_REQUIRED`, and later updates install with no prompt. Android still decides, so the game shows the prompt whenever it insists.
+    - The first in-app update needs the one-time "Install unknown apps" permission for Sigilbound. The game opens that settings page with a short explanation.
+  - Pieces:
+    1. Android plugin `Assets/Plugins/Android/SigilboundUpdater.androidlib`:
+       - manifest: the `REQUEST_INSTALL_PACKAGES` permission and an install-status receiver;
+       - a small Java `UpdateInstaller`: check `canRequestPackageInstalls()` and open `ACTION_MANAGE_UNKNOWN_APP_SOURCES` if needed; stream the APK into a `PackageInstaller` session, ask for `USER_ACTION_NOT_REQUIRED` on API 31+, and commit; on `STATUS_PENDING_USER_ACTION`, launch Android's confirm screen; report success or failure back to Unity.
+    2. `Client/Updater.cs` on Android:
+       - the same banner and progress bar as Windows ("Update now");
+       - download the exact versioned APK to `temporaryCachePath`;
+       - check its size, and its SHA-256 against the release asset digest when GitHub gives one;
+       - save the game, then hand the file to `UpdateInstaller`.
+       - Any failure falls back to today's download link.
+    3. Settings: an "Auto-update" toggle (default on). When on, the APK downloads in the background on Wi-Fi and installs at the home screen, never in a battle. Off means the banner only.
+    4. Signing: every build uses the same committed test keystore, so updates install over each other. Before any public release, move to a private keystore in CI secrets. Changing the key once means one manual reinstall.
+  - Testing (owner, Galaxy S26+):
+    1. Install build N by hand.
+    2. When N+1 is out, tap Update now: allow unknown apps once, confirm the install, reopen, and check the save is kept.
+    3. When N+2 is out, check the update installs without a prompt (Android 12+).
+    4. Turn on airplane mode mid-download and check the fallback link works.
+  - CI: compile checks cover the C#, but the Java builds only in the Android job. The plugin goes in its own commit so a build failure is easy to spot.
+- [ ] **38. Campaign act 2** (chapters 11–15: the port city and the storm coast), with new enemy pools that include roster heroes.
+- [ ] **39–43. Phase 4 heroes (The Sigil Bearers), 4 per step.**
 
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
 
