@@ -88,10 +88,10 @@ mechanics: Pierce, Execute, Pull, Burn, spread-on-kill and the counter Taunt.
 | `corwin` | Corwin Blackthorn | Rare | Shadow | Attack | adventurer | spiky_hair, katana | Execute below 25% HP | Duelist exiled from the Stormcrown court. |
 | `astrid` | Astrid Windrider | Epic | Gale | Attack | adventurer | ponytail, spear, cape | Piercing basic; a big hit that speeds her up; AoE Slow | Sky-rider of Stormcrown Heights. |
 | `caspian` | Caspian Deepwell | Epic | Tide | Hp | monarch | crown, trident, cape | Team Shield while he Taunts; team Regen and DefUp | Drowned king's heir, guardian of the Sunken Cathedral. |
-| `ignis` | Ignis Kael | Epic | Flame | Support | adventurer | flame_hair, staff | AtkUp all; Burn-style Poison on enemies | Pyre-priest who tends the eternal flame. |
-| `lyra` | Lyra Starglass | Epic | Light | Support | hooded | halo, mirror, robe | Heal all allies; Cleanse | Glass Wastes oracle who reads the shattered Sigil. |
-| `malachar` | Malachar Gloomhand | Epic | Shadow | Defense | monarch | helm, shield, cape | Taunt; DefDown on attackers | Hollow knight who broke free of the Hollow. |
-| `rowan` | Rowan Thornheart | Epic | Gale | Defense | monarch | beard, shield, cape | Shield all allies; Regen | Warden of the Thornwick old wood. |
+| `ignis` | Ignis Kael | Epic | Flame | Support | adventurer | flame_hair, staff | Burn on hit and on all enemies; team AtkUp, Turn Meter and Heal | Pyre-priest who tends the eternal flame. |
+| `lyra` | Lyra Starglass | Epic | Light | Support | hooded | halo, mirror, robe | Heal and Cleanse all allies; team AtkUp and SpdUp | Glass Wastes oracle who reads the shattered Sigil. |
+| `malachar` | Malachar Gloomhand | Epic | Shadow | Defense | monarch | helm, horns, shield, cape | Taunt and Counter; DefDown on hit and on all enemies | Hollow knight who broke free of the Hollow. |
+| `rowan` | Rowan Thornheart | Epic | Gale | Defense | monarch | long_hair, beard, shield, cape | Small team Shield; Taunt with a turn of DefUp | Warden of the Thornwick old wood. |
 | `selene` | Selene Tidewhisper | Epic | Tide | Support | hooded | long_hair, orb, robe | TmDrain enemies; Tm boost allies | Moon-priestess of the tides. |
 | `brann` | Brann Emberfist | Epic | Flame | Hp | monarch | beard, gauntlets* | Regen on self; counter-style Taunt | Pit fighter of the Ashgrave pass. |
 | `ysra` | Ysra Nightbloom | Epic | Shadow | Attack | hooded | veil, daggers | Poison all; Stun on crit | Hollow Deep assassin who poisons with flowers. |
