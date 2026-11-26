@@ -955,7 +955,7 @@ namespace Sigilbound.Client
         // A round corner button with a drawn icon and a tiny caption.
         bool RoundButton(Rect r, Icon icon, string caption, bool on)
         {
-            GUI.DrawTexture(r, Ui.RoundTex(on ? Palette.Hex("#3d3020") : new Color(0.08f, 0.06f, 0.1f, 0.82f), on ? Palette.Gold : Palette.Bronze, Mathf.RoundToInt(r.width / 2)));
+            Ui.Round(r, on ? Palette.Hex("#3d3020") : new Color(0.08f, 0.06f, 0.1f, 0.82f), on ? Palette.Gold : Palette.Bronze, Mathf.RoundToInt(r.width / 2));
             Icons.Draw(new Rect(r.x + r.width * 0.26f, r.y + r.height * 0.18f, r.width * 0.48f, r.height * 0.48f), icon, on ? Palette.Gold : Palette.Text);
             Ui.Text(new Rect(r.x - 6, r.yMax - r.height * 0.36f, r.width + 12, r.height * 0.3f), caption, 9, on ? Palette.Gold : Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter);
             return Ui.Button(r, "", Ui.Kind.Ghost);
@@ -979,7 +979,7 @@ namespace Sigilbound.Client
             string round = _spec.Mode == BattleMode.Titan ? $"{Ui.Fmt(_b.TitanDamage)} damage" : _spec.Mode == BattleMode.Arena ? "" : $"Wave {_b.Wave + 1} of {_b.Waves.Count}";
             int secs = Mathf.FloorToInt(Time.unscaledTime - _t0);
             var info = new Rect(left + 48, top, 300, 40);
-            GUI.DrawTexture(new Rect(info.x - 4, info.y + 2, 230, 36), Ui.RoundTex(new Color(0.06f, 0.05f, 0.08f, 0.6f), null, 10));
+            Ui.Round(new Rect(info.x - 4, info.y + 2, 230, 36), new Color(0.06f, 0.05f, 0.08f, 0.6f), null, 10);
             Ui.Text(new Rect(info.x + 6, info.y + 2, 220, 18), where, 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
             Icons.Draw(new Rect(info.x + 6, info.y + 22, 12, 12), Icon.Clock, Palette.Dim);
             Ui.Text(new Rect(info.x + 22, info.y + 20, 200, 16), $"{secs / 60}:{secs % 60:00}{(round.Length > 0 ? "   " + round : "")}", 11, Palette.Dim);
@@ -998,7 +998,7 @@ namespace Sigilbound.Client
                 if (_turnsFrame != Time.frameCount) { _turnsFrame = Time.frameCount; _turns = _b.PredictTurns(7); }
                 float cw = 70, cg = 4, tw = _turns.Count * (cw + cg) + 36;
                 float tx = Ui.W / 2 - tw / 2, ty = top + 46;
-                GUI.DrawTexture(new Rect(tx - 4, ty - 2, tw + 8, 26), Ui.RoundTex(new Color(0.04f, 0.03f, 0.06f, 0.55f), null, 8));
+                Ui.Round(new Rect(tx - 4, ty - 2, tw + 8, 26), new Color(0.04f, 0.03f, 0.06f, 0.55f), null, 8);
                 Ui.Text(new Rect(tx, ty, 34, 22), "Next", 10, Palette.Dim, FontStyle.Bold, TextAnchor.MiddleLeft);
                 for (int i = 0; i < _turns.Count; i++)
                 {
@@ -1043,7 +1043,7 @@ namespace Sigilbound.Client
             foreach (var (u, v, r) in tags)
             {
                 var badge = new Rect(r.x, r.y + 10, 18, 16);
-                GUI.DrawTexture(badge, Ui.RoundTex(u.Ally ? Palette.Hex("#1f3326") : Palette.Hex("#3a1c1c"), Palette.Element(u.El), 4));
+                Ui.Round(badge, u.Ally ? Palette.Hex("#1f3326") : Palette.Hex("#3a1c1c"), Palette.Element(u.El), 4);
                 Ui.Text(badge, u.Level.ToString(), 9, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
                 Ui.Text(new Rect(r.x, r.y - 2, r.width + 30, 13), u.Ally ? u.Template.ShortName : u.Name, 10, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
                 var bar = new Rect(r.x + 20, r.y + 12, r.width - 20, 6);
@@ -1079,7 +1079,7 @@ namespace Sigilbound.Client
                 float d = 66, g = 10, x0 = right - sks.Length * (d + g) + g;
                 // What the selected skill does, just left of the buttons.
                 var desc = new Rect(Mathf.Max(left, x0 - 330), bottom - d, Mathf.Min(320, x0 - left - 10), d);
-                GUI.DrawTexture(desc, Ui.RoundTex(new Color(0.06f, 0.05f, 0.08f, 0.72f), Palette.Bronze, 10));
+                Ui.Round(desc, new Color(0.06f, 0.05f, 0.08f, 0.72f), Palette.Bronze, 10);
                 Ui.Text(new Rect(desc.x + 10, desc.y + 4, desc.width - 20, 18), sks[_sel].Name, 12, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
                 Ui.Text(new Rect(desc.x + 10, desc.y + 22, desc.width - 20, desc.height - 24), SkillText.Describe(sks[_sel]), 10, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
                 for (int i = 0; i < sks.Length; i++)
@@ -1087,13 +1087,13 @@ namespace Sigilbound.Client
                     int cd = _actor.Cds[i];
                     var b = new Rect(x0 + i * (d + g), bottom - d, d, d);
                     bool sel = _sel == i;
-                    GUI.DrawTexture(b, Ui.RoundTex(sel ? Palette.Hex("#3d3020") : Palette.Hex("#1d1726"), sel ? Palette.Gold : cd > 0 ? Palette.Bronze : Palette.Trim, Mathf.RoundToInt(d / 2)));
+                    Ui.Round(b, sel ? Palette.Hex("#3d3020") : Palette.Hex("#1d1726"), sel ? Palette.Gold : cd > 0 ? Palette.Bronze : Palette.Trim, Mathf.RoundToInt(d / 2));
                     var ic = sks[i].Target switch { Target.Enemy => Icon.Sword, Target.AllEnemies => Icon.Bolt, Target.Ally => Icon.Heart, Target.AllAllies => Icon.Shield, _ => Icon.Star };
                     Icons.Draw(new Rect(b.x + d * 0.27f, b.y + d * 0.16f, d * 0.46f, d * 0.46f), ic, cd > 0 ? Palette.Dim : sel ? Palette.Gold : Palette.Text);
                     Ui.Text(new Rect(b.x - 8, b.yMax - d * 0.36f, d + 16, d * 0.3f), $"A{i + 1}", 10, sel ? Palette.Gold : Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter);
                     if (cd > 0)
                     {
-                        GUI.DrawTexture(b, Ui.RoundTex(new Color(0, 0, 0, 0.55f), null, Mathf.RoundToInt(d / 2)));
+                        Ui.Round(b, new Color(0, 0, 0, 0.55f), null, Mathf.RoundToInt(d / 2));
                         Ui.Text(b, cd.ToString(), 20, Palette.Bad, FontStyle.Bold, TextAnchor.MiddleCenter);
                     }
                     else if (Ui.Button(b, "", Ui.Kind.Ghost)) _sel = i;
@@ -1120,7 +1120,7 @@ namespace Sigilbound.Client
             float y = r.y + 10;
             // Rewards strip.
             var strip = new Rect(r.x, y, r.width, 46);
-            GUI.DrawTexture(strip, Ui.RoundTex(new Color(0.12f, 0.2f, 0.3f, 0.55f), Palette.Bronze, 10));
+            Ui.Round(strip, new Color(0.1f, 0.08f, 0.14f, 0.9f), Palette.Trim, 10);
             if (win && reward != null)
             {
                 var items = new List<(Icon icon, Color c, string text)> { (Icon.Coin, Palette.Gold, Ui.Fmt(reward.Gold)), (Icon.Star, Palette.Blue, $"{Ui.Fmt(reward.Xp)} XP each") };
@@ -1146,26 +1146,52 @@ namespace Sigilbound.Client
             long maxTaken = System.Math.Max(1, allies.Max(u => _taken.TryGetValue(u, out var t) ? t : 0));
             long maxHeal = System.Math.Max(1, allies.Max(u => _healed.TryGetValue(u, out var h) ? h : 0));
             float cw = Mathf.Min(190, (r.width - (allies.Count - 1) * 10) / allies.Count), cx = r.center.x - (cw * allies.Count + 10 * (allies.Count - 1)) / 2;
+            // MVP: the hero who dealt the most damage (a win only).
+            var mvp = win ? allies.OrderByDescending(u => u.DmgDealt).FirstOrDefault() : null;
             foreach (var u in allies)
             {
                 var col = new Rect(cx, y, cw, colH); cx += cw + 10;
-                GUI.DrawTexture(col, Ui.RoundTex(new Color(0.08f, 0.06f, 0.1f, 0.8f), u.Alive ? Palette.Rarity(u.Template.Rarity) : Palette.Bronze, 10));
-                Icons.Draw(new Rect(col.x + 8, col.y + 8, 18, 18), Icons.ForElement(u.El), Palette.Element(u.El));
-                Ui.Text(new Rect(col.x + 30, col.y + 4, col.width - 36, 22), u.Template.ShortName, 13, u.Alive ? Palette.Text : Palette.Dim, FontStyle.Bold);
+                var rar = Palette.Rarity(u.Template.Rarity);
                 var up = ups?.FirstOrDefault(l => l.uid == u.HeroUid);
-                string lv = up.HasValue && up.Value.uid != 0 ? Ui.ColorTag($"Level up! Lv {up.Value.level}", Palette.Good) : $"Lv {u.Level}";
-                Ui.Text(new Rect(col.x + 8, col.y + 26, col.width - 16, 16), lv + (u.Alive ? "" : Ui.ColorTag("  · fell", Palette.Bad)), 11, Palette.Dim);
-                float by = col.y + 48, bh = Mathf.Max(10, (col.yMax - by - 10) / 3f - 18);
-                void Stat(Icon ic, Color c, long v, long max)
+                bool levelled = up.HasValue && up.Value.uid != 0;
+                // Card: dark plate with a crisp rarity rim (gold for the MVP), dimmed if the hero fell.
+                Ui.Round(col, new Color(0.09f, 0.07f, 0.12f, 0.92f), u == mvp ? Palette.Gold : u.Alive ? rar : Palette.Bronze, 12);
+                var head = new Rect(col.x + 6, col.y + 6, col.width - 12, 64);
+                Ui.Round(head, Color.Lerp(Palette.Element(u.El), Color.black, 0.72f), null, 9);
+                // Crest: the painted portrait if there is one, else the element sigil in a rarity ring.
+                var crest = new Rect(head.x + 8, head.y + 8, 48, 48);
+                if (!Portraits.Thumb(crest, u.Template.Id, rar))
                 {
-                    Icons.Draw(new Rect(col.x + 8, by, 14, 14), ic, c);
-                    Ui.Text(new Rect(col.x + 26, by - 2, col.width - 34, 18), Ui.Fmt(v), 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
-                    Ui.Bar(new Rect(col.x + 8, by + 17, col.width - 16, Mathf.Min(6, bh)), v / (float)max, c);
-                    by += 34;
+                    Ui.Round(crest, Color.Lerp(Palette.Element(u.El), Color.black, 0.45f), rar, 24);
+                    Icons.Draw(new Rect(crest.x + 10, crest.y + 10, 28, 28), Icons.ForElement(u.El), Color.white);
                 }
-                Stat(Icon.Sword, Palette.Bad, u.DmgDealt, maxDealt);
-                Stat(Icon.Shield, Palette.Blue, _taken.TryGetValue(u, out var tk) ? tk : 0, maxTaken);
-                Stat(Icon.Heart, Palette.Good, _healed.TryGetValue(u, out var hl) ? hl : 0, maxHeal);
+                if (!u.Alive) { Ui.Round(crest, new Color(0, 0, 0, 0.55f), null, 24); Icons.Draw(new Rect(crest.x + 14, crest.y + 14, 20, 20), Icon.Skull, Palette.Bad); }
+                float tx = crest.xMax + 8, tw = head.xMax - tx - 4;
+                Ui.Text(new Rect(tx, head.y + 6, tw, 22), u.Template.ShortName, 15, u.Alive ? Palette.Text : Palette.Dim, FontStyle.Bold);
+                Ui.Text(new Rect(tx, head.y + 27, tw, 16), levelled ? Ui.ColorTag($"Level up!  Lv {up.Value.level}", Palette.Good) : $"Lv {u.Level}", 12, Palette.Hex("#c9b896"), levelled ? FontStyle.Bold : FontStyle.Normal);
+                // XP toward the next level (our saved heroes only).
+                var hs = u.Ally ? G.HeroByUid(u.HeroUid) : null;
+                if (hs != null) Ui.Bar(new Rect(tx, head.y + 47, tw - 2, 5), hs.xp / (float)Mathf.Max(1, XpToNext(hs.level)), levelled ? Palette.Good : Palette.Blue);
+                if (u == mvp)
+                {
+                    var tag = new Rect(col.xMax - 52, col.y - 9, 46, 18);
+                    Ui.Round(tag, Palette.Gold, null, 9);
+                    Icons.Draw(new Rect(tag.x + 4, tag.y + 3, 12, 12), Icon.Crown, Palette.Hex("#1a1208"));
+                    Ui.Text(new Rect(tag.x + 16, tag.y, 28, 18), "MVP", 10, Palette.Hex("#1a1208"), FontStyle.Bold, TextAnchor.MiddleCenter);
+                }
+                // Three labelled stats with bars scaled to the team's best.
+                float by = head.yMax + 10, step = Mathf.Clamp((col.yMax - by - 6) / 3f, 30, 44);
+                void Stat(Icon ic, Color c, string label, long v, long max)
+                {
+                    Icons.Draw(new Rect(col.x + 10, by + 1, 14, 14), ic, c);
+                    Ui.Text(new Rect(col.x + 28, by - 2, col.width - 36, 18), label, 11, Palette.Dim);
+                    Ui.Text(new Rect(col.x + 28, by - 2, col.width - 38, 18), Ui.Fmt(v), 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
+                    Ui.Bar(new Rect(col.x + 10, by + 18, col.width - 20, 6), v / (float)max, c);
+                    by += step;
+                }
+                Stat(Icon.Sword, Palette.Bad, "Damage", u.DmgDealt, maxDealt);
+                Stat(Icon.Shield, Palette.Blue, "Taken", _taken.TryGetValue(u, out var tk) ? tk : 0, maxTaken);
+                Stat(Icon.Heart, Palette.Good, "Healing", _healed.TryGetValue(u, out var hl) ? hl : 0, maxHeal);
             }
 
             // Buttons: Replay, Edit Team, Next (or Heroes on a defeat).

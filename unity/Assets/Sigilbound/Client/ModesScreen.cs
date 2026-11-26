@@ -72,25 +72,25 @@ namespace Sigilbound.Client
             GUI.DrawTexture(r, Ui.GradientTex(mid, deep, c.Open ? Palette.Gold : Palette.Bronze, 14));
             // Title band.
             var band = new Rect(r.x + 6, r.y + 6, r.width - 12, 38);
-            GUI.DrawTexture(band, Ui.RoundTex(new Color(0, 0, 0, 0.35f), null, 10));
+            Ui.Round(band, new Color(0, 0, 0, 0.35f), null, 10);
             Ui.Text(band, c.Title, 17, c.Open ? Palette.Gold : Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
             // Emblem: glow, rune ring and the mode's icon.
             float s = Mathf.Min(r.width * 0.62f, (r.height - 150) * 0.9f);
             var em = new Rect(r.center.x - s / 2, band.yMax + Mathf.Max(8, (r.height - 150 - s) / 2), s, s);
-            GUI.DrawTexture(new Rect(em.x - s * 0.15f, em.y - s * 0.15f, s * 1.3f, s * 1.3f), Ui.RoundTex(new Color(c.Tint.r, c.Tint.g, c.Tint.b, 0.16f * dim), null, Mathf.RoundToInt(s * 0.6f)));
+            Ui.Round(new Rect(em.x - s * 0.15f, em.y - s * 0.15f, s * 1.3f, s * 1.3f), new Color(c.Tint.r, c.Tint.g, c.Tint.b, 0.16f * dim), null, Mathf.RoundToInt(s * 0.6f));
             Icons.Draw(em, Icon.Portal, new Color(c.Tint.r, c.Tint.g, c.Tint.b, 0.35f * dim));
             var ic = new Rect(em.center.x - s * 0.3f, em.center.y - s * 0.3f, s * 0.6f, s * 0.6f);
             Icons.Draw(ic, c.Icon, c.Open ? Color.Lerp(c.Tint, Color.white, 0.35f) : Palette.Dim);
             if (!c.Open) Icons.Draw(new Rect(em.xMax - s * 0.28f, em.yMax - s * 0.3f, s * 0.26f, s * 0.26f), Icon.Lock, Palette.Dim);
             // Status footer.
             var foot = new Rect(r.x + 8, r.yMax - 74, r.width - 16, 66);
-            GUI.DrawTexture(foot, Ui.RoundTex(new Color(0, 0, 0, 0.4f), null, 10));
+            Ui.Round(foot, new Color(0, 0, 0, 0.4f), null, 10);
             Ui.Text(new Rect(foot.x + 8, foot.y + 4, foot.width - 16, foot.height - 8), c.Open ? c.Status : c.Locked, 12, c.Open ? Palette.Text : Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter, true);
             // Count badge (runs, fights or tries left).
             if (c.Open && c.Badge > 0)
             {
                 var b = new Rect(r.xMax - 30, r.y - 8, 26, 26);
-                GUI.DrawTexture(b, Ui.RoundTex(Palette.Bad, Palette.Gold, 13));
+                Ui.Round(b, Palette.Bad, Palette.Gold, 13);
                 Ui.Text(b, c.Badge.ToString(), 12, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             }
             if (c.Open && Ui.Button(r, "", Ui.Kind.Ghost)) c.Go();

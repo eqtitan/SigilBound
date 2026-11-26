@@ -150,6 +150,17 @@ namespace Sigilbound.Client
             if (!_styles.TryGetValue(key, out var s) || s == null) { s = make(); _styles[key] = s; }
             return s;
         }
+        // A rounded rectangle at any size. RoundTex is a small (2r+4 px) texture; stretched over a card it
+        // went soft and blurry, with a thick smeared rim (owner report 2026-11-26: results cards, map frame).
+        // Larger rects are drawn 9-sliced so the corners and rim stay crisp; small ones and circles as before.
+        public static void Round(Rect r, Color fill, Color? border = null, int radius = 12)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            var tex = RoundTex(fill, border, radius);
+            if (Mathf.Min(r.width, r.height) <= radius * 2 + 6) { GUI.DrawTexture(r, tex); return; }
+            Style($"round{tex.GetInstanceID()}", () => new GUIStyle { normal = { background = tex }, border = new RectOffset(radius + 2, radius + 2, radius + 2, radius + 2) }).Draw(r, false, false, false, false);
+        }
+
         static GUIStyle BoxStyle(Color fill, Color? border, int radius) => new GUIStyle
         {
             normal = { background = RoundTex(fill, border, radius) }, border = new RectOffset(radius + 2, radius + 2, radius + 2, radius + 2),
@@ -216,8 +227,8 @@ namespace Sigilbound.Client
 
         public static void Bar(Rect r, float pct, Color fill, Color? back = null)
         {
-            GUI.DrawTexture(r, RoundTex(back ?? new Color(0, 0, 0, 0.55f), null, 3));
-            if (pct > 0) GUI.DrawTexture(new Rect(r.x, r.y, r.width * Mathf.Clamp01(pct), r.height), RoundTex(fill, null, 3));
+            Round(r, back ?? new Color(0, 0, 0, 0.55f), null, 3);
+            if (pct > 0) Round(new Rect(r.x, r.y, r.width * Mathf.Clamp01(pct), r.height), fill, null, 3);
         }
 
         public enum Kind { Primary, Secondary, Blue, Red, Chip, ChipOn, Ghost }
@@ -254,9 +265,16 @@ namespace Sigilbound.Client
         }
 
         // Buttons ignore the release that ends a drag-scroll.
+        // A panel drawn on top of other buttons (IMGUI gives a tap to whichever button is drawn FIRST, so a
+        // button underneath an open panel stole its taps; owner report 2026-11-26, the campaign stage list).
+        // While Cover is set, buttons under it ignore input unless they are drawn with OnTop.
+        public static Rect? Cover;
+        public static bool OnTop;
+
         public static bool Button(Rect r, string text, Kind k = Kind.Primary, int size = 15, bool enabled = true)
         {
-            var was = GUI.enabled; GUI.enabled = was && enabled;
+            bool covered = Cover.HasValue && !OnTop && Cover.Value.Contains(Event.current.mousePosition);
+            var was = GUI.enabled; GUI.enabled = was && enabled && !covered;
             var col = GUI.color; if (!enabled) GUI.color = new Color(1, 1, 1, 0.4f);
             if (k != Kind.Ghost && Event.current.type == EventType.Repaint)
                 Skin.DrawButton(r, SkinName(k), GUI.enabled && Input.GetMouseButton(0) && r.Contains(Event.current.mousePosition));

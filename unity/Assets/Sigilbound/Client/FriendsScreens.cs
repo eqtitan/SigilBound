@@ -107,14 +107,14 @@ namespace Sigilbound.Client
                 var f = d.friends[i]; var rr = new Rect(c.x + 8, c.y + 36 + i * 64, c.width - 16, 58);
                 Ui.Panel(rr, Palette.Panel2, Palette.Line, 10);
                 var lead = f.profile?.heroes?.FirstOrDefault(h => Hero(h.id) != null);
-                if (lead != null) GUI.DrawTexture(new Rect(rr.x + 8, rr.y + 12, 6, 34), Ui.RoundTex(Palette.Element(Hero(lead.id).Element), null, 3));
+                if (lead != null) Ui.Round(new Rect(rr.x + 8, rr.y + 12, 6, 34), Palette.Element(Hero(lead.id).Element), null, 3);
                 GUI.Label(new Rect(rr.x + 22, rr.y + 6, rr.width - 90, 24), f.name, Plain(15, Palette.Text, FontStyle.Bold));
                 string stage = f.profile == null ? "" : f.profile.cleared >= TotalStages ? "Campaign complete" : $"Stage {Game.StageLabel(Mathf.Min(f.profile.cleared, TotalStages - 1))}";
                 Ui.Text(new Rect(rr.x + 22, rr.y + 30, rr.width - 90, 20), $"{stage} · Power {Ui.Fmt(f.profile?.power ?? 0)} · {Online.Ago(f.seen)}", 12, Palette.Dim);
                 if (f.unread > 0)
                 {
                     var b = new Rect(rr.xMax - 40, rr.y + 17, 26, 24);
-                    GUI.DrawTexture(b, Ui.RoundTex(Palette.Bad, null, 12));
+                    Ui.Round(b, Palette.Bad, null, 12);
                     Ui.Text(b, f.unread.ToString(), 12, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
                 if (Ui.Button(rr, "", Ui.Kind.Ghost)) { _friendId = f.id; Go(ScreenId.FriendProfile); }
@@ -222,7 +222,7 @@ namespace Sigilbound.Client
                 float w = Mathf.Min(maxW, style.CalcSize(new GUIContent(m.body)).x + 26);
                 var b = new Rect(m.mine ? inner.width - w - 6 : 6, cy, w, heights[i]);
                 var col = m.mine ? (m.pending ? Palette.Gold * new Color(1, 1, 1, 0.5f) : Palette.Gold) : Palette.Panel2;
-                GUI.DrawTexture(b, Ui.RoundTex(col, null, 12));
+                Ui.Round(b, col, null, 12);
                 GUI.Label(new Rect(b.x + 12, b.y + 6, b.width - 24, b.height - 26), m.body, Plain(14, m.mine ? Palette.Hex("#1b1408") : Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true));
                 var time = System.DateTimeOffset.FromUnixTimeMilliseconds(m.created).ToLocalTime();
                 Ui.Text(new Rect(b.x + 12, b.yMax - 20, b.width - 24, 16), m.pending ? "sending…" : time.ToString("h:mm tt"), 10, m.mine ? Palette.Hex("#3a2a10") : Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);

@@ -22,18 +22,23 @@ namespace Sigilbound.Client
         static void EnemyChip(Rect r, EnemySpec e)
         {
             var disc = new Rect(r.x, r.y + (r.height - 22) / 2, 22, 22);
-            GUI.DrawTexture(disc, Ui.RoundTex(Color.Lerp(Palette.Element(e.El), Color.black, 0.35f), e.Boss ? Palette.Gold : Palette.Element(e.El), 11));
+            Ui.Round(disc, Color.Lerp(Palette.Element(e.El), Color.black, 0.35f), e.Boss ? Palette.Gold : Palette.Element(e.El), 11);
             Ui.Text(disc, e.Template.ShortName.Substring(0, 1), 11, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
-            Ui.Text(new Rect(disc.xMax + 4, r.y, r.width - 26, r.height), $"{e.Template.ShortName} {Ui.ColorTag("Lv" + e.ShownLevel, Palette.Dim)}{(e.Boss ? Ui.ColorTag(" Boss", Palette.Gold) : "")}", 11, Palette.Text);
+            Ui.Text(new Rect(disc.xMax + 4, r.y, r.width - 26, r.height), $"{e.Template.ShortName} {Ui.ColorTag("Lv" + e.ShownLevel, Palette.Dim)}", 11, Palette.Text); // the boss is marked by its gold ring (the word "Boss" cut names off)
         }
 
         // ---------- stage list (on the world map, when a chapter is chosen) ----------
-        void DrawStageList(Rect map, int c, bool hard)
+        static Rect StageListRect(Rect map, int c)
         {
             float w = Mathf.Min(map.width * 0.62f, 640), h = map.height - 16;
             var pt = c < ClassicChapters ? MapPoints[c] : MapPoints2[c - ClassicChapters]; // act 2 chapters have their own map points
             bool right = pt.x < 0.5f;
-            var r = new Rect(right ? map.xMax - w - 8 : map.x + 8, map.y + 8, w, h);
+            return new Rect(right ? map.xMax - w - 8 : map.x + 8, map.y + 8, w, h);
+        }
+
+        void DrawStageList(Rect map, int c, bool hard)
+        {
+            var r = StageListRect(map, c);
             Ui.Card(r, true);
             int first = c * StagesPerChapter;
             int lvl = hard ? Game.HardLvl : 0;
@@ -57,20 +62,21 @@ namespace Sigilbound.Client
                 bool open = hard ? G.HardOpen(idx) : idx <= G.S.cleared;
                 bool clear = hard ? idx < G.S.hardCleared : idx < G.S.cleared;
                 bool next = hard ? idx == G.S.hardCleared : idx == G.S.cleared;
-                GUI.DrawTexture(row, Ui.RoundTex(next ? Palette.Hex("#3a2f22") : Palette.Hex("#1a1522"), next ? Palette.Gold : Palette.Bronze, 8));
+                Ui.Round(row, next ? Palette.Hex("#3a2f22") : Palette.Hex("#1a1522"), next ? Palette.Gold : Palette.Bronze, 8);
                 // Label (stage number, Boss tag, the route stop's name) and status.
-                float lw = Mathf.Clamp(row.width * 0.24f, 96, 150);
+                float lw = Mathf.Clamp(row.width * 0.25f, 104, 160);
                 Ui.Text(new Rect(row.x + 8, row.y + 2, lw - 26, row.height * 0.5f), $"{(Game.IsBossStage(idx) ? Ui.ColorTag("Boss ", Palette.Gold) : "")}{Game.StageLabel(idx)}", 12, open ? Palette.Text : Palette.Dim, FontStyle.Bold, TextAnchor.LowerLeft);
-                Ui.Text(new Rect(row.x + 8, row.y + row.height * 0.5f, lw - 10, row.height * 0.5f - 2), StoryScenes.StopName(idx) ?? "", 10, open ? Palette.Dim : Palette.Line, FontStyle.Italic, TextAnchor.UpperLeft, false, true);
+                // The stop's name in plain readable type (the serif face is all small caps, which crushed it).
+                Ui.Text(new Rect(row.x + 8, row.y + row.height * 0.5f, lw - 10, row.height * 0.5f - 2), StoryScenes.StopName(idx) ?? "", 11, open ? Palette.Hex("#c9b896") : Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
                 if (clear) Icons.Draw(new Rect(row.x + lw - 18, row.y + row.height * 0.25f - 7, 14, 14), Icon.Check, Palette.Good);
                 else if (!open) Icons.Draw(new Rect(row.x + lw - 18, row.y + row.height * 0.25f - 7, 14, 14), Icon.Lock, Palette.Dim);
                 // Final wave's enemies.
                 var wave = WavesFor(idx, hard).Last();
-                float ex = row.x + lw + 4, ew = Mathf.Min(110, (row.width * 0.44f) / wave.Count);
+                float ex = row.x + lw + 4, ew = Mathf.Min(116, (row.width * 0.42f) / wave.Count);
                 foreach (var e in wave) { EnemyChip(new Rect(ex, row.y, ew - 4, row.height), e); ex += ew; }
                 // Drops: gold, first-clear shards, gear chance.
                 var rw = hard ? Game.HardRewards(idx, !clear) : Game.StageRewards(idx, !clear);
-                float dx = row.x + lw + 4 + row.width * 0.44f + 4;
+                float dx = row.x + lw + 4 + row.width * 0.42f + 4;
                 Icons.Draw(new Rect(dx, row.center.y - 7, 14, 14), Icon.Coin, Palette.Gold);
                 Ui.Text(new Rect(dx + 16, row.y, 50, row.height), Ui.Fmt(rw.Gold), 11, Palette.Text); dx += 62;
                 if (rw.Common > 0 || rw.Mystic > 0 || rw.Radiant > 0)
@@ -79,9 +85,9 @@ namespace Sigilbound.Client
                     Icons.Draw(new Rect(dx, row.center.y - 7, 14, 14), Icon.Shard, sc);
                     Ui.Text(new Rect(dx + 16, row.y, 24, row.height), "+" + (rw.Common + rw.Mystic + rw.Radiant), 11, Palette.Text); dx += 38;
                 }
-                Ui.Text(new Rect(dx, row.y, 70, row.height), $"Gear {(Game.IsBossStage(idx) ? 90 : 45)}%", 11, Palette.Dim);
-                // Battle.
+                // Battle button first, so the gear chance never runs under it.
                 var b = new Rect(row.xMax - 78, row.y + 3, 72, row.height - 6);
+                if (b.x - 4 - dx > 30) Ui.Text(new Rect(dx, row.y, b.x - 4 - dx, row.height), $"{(b.x - dx > 72 ? "Gear " : "")}{(Game.IsBossStage(idx) ? 90 : 45)}%", 11, Palette.Dim);
                 if (Ui.Button(b, next ? "Battle" : clear ? "Replay" : "Locked", next ? Ui.Kind.Primary : Ui.Kind.Secondary, 12, open)) OpenPrep(idx, false, ScreenId.Campaign, hard);
             }
         }
@@ -112,7 +118,7 @@ namespace Sigilbound.Client
                 if (i < team.Count)
                 {
                     var h = team[i]; var t = Hero(h.id);
-                    GUI.DrawTexture(slot, Ui.RoundTex(Palette.Hex("#2a2230"), Palette.Rarity(t.Rarity), 10));
+                    Ui.Round(slot, Palette.Hex("#2a2230"), Palette.Rarity(t.Rarity), 10);
                     Icons.Draw(new Rect(slot.x + 6, slot.y + 6, 16, 16), Icons.ForElement(t.Element), Palette.Element(t.Element));
                     Ui.Text(new Rect(slot.x + 24, slot.y + 4, slot.width - 28, 20), t.ShortName, 12, Palette.Text, FontStyle.Bold);
                     Ui.Text(new Rect(slot.x + 6, slot.y + 24, slot.width - 10, 16), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv{h.level}", 10, Palette.Dim);
@@ -121,7 +127,7 @@ namespace Sigilbound.Client
                 }
                 else
                 {
-                    GUI.DrawTexture(slot, Ui.RoundTex(new Color(0, 0, 0, 0.35f), Palette.Bronze, 10));
+                    Ui.Round(slot, new Color(0, 0, 0, 0.35f), Palette.Bronze, 10);
                     Icons.Draw(new Rect(slot.center.x - 10, slot.center.y - 10, 20, 20), Icon.Plus, Palette.Bronze);
                 }
             }
@@ -147,7 +153,7 @@ namespace Sigilbound.Client
             }
 
             // ---- middle: element wheel, matchup, enemy waves ----
-            GUI.DrawTexture(M, Ui.RoundTex(new Color(0.07f, 0.05f, 0.1f, 0.75f), Palette.Bronze, 12));
+            Ui.Round(M, new Color(0.07f, 0.05f, 0.1f, 0.75f), Palette.Bronze, 12);
             var mine = new HashSet<Element>(team.Select(h => Hero(h.id).Element));
             var theirs = new HashSet<Element>(waves == null ? new[] { TitanElement(DateTime.Now) } : waves.SelectMany(w => w).Select(e => e.El));
             float wheel = Mathf.Min(M.width - 24, M.height * 0.48f);
@@ -170,7 +176,7 @@ namespace Sigilbound.Client
             }
 
             // ---- right: hero picker ----
-            GUI.DrawTexture(R, Ui.RoundTex(new Color(0.07f, 0.05f, 0.1f, 0.75f), Palette.Bronze, 12));
+            Ui.Round(R, new Color(0.07f, 0.05f, 0.1f, 0.75f), Palette.Bronze, 12);
             float fx = R.x + 8, fy = R.y + 8;
             if (Ui.Button(new Rect(fx, fy, 40, 26), "All", _prepFilter == null ? Ui.Kind.ChipOn : Ui.Kind.Chip, 11)) _prepFilter = null;
             fx += 44;
@@ -229,7 +235,7 @@ namespace Sigilbound.Client
                 {
                     var p = Vector2.Lerp(pa, pb, i / 10f);
                     float s = i == 8 ? 6 : 3;
-                    GUI.DrawTexture(new Rect(p.x - s / 2, p.y - s / 2, s, s), Ui.RoundTex(Palette.Element(a), null, 3));
+                    Ui.Round(new Rect(p.x - s / 2, p.y - s / 2, s, s), Palette.Element(a), null, 3);
                 }
             }
             foreach (var e in Elements) Arrow(e, Strong(e));
@@ -238,7 +244,7 @@ namespace Sigilbound.Client
             {
                 var p = P(e); var node = new Rect(p.x - n / 2, p.y - n / 2, n, n);
                 Color ring = mine.Contains(e) && theirs.Contains(e) ? Palette.TrimHi : mine.Contains(e) ? Palette.Gold : theirs.Contains(e) ? Palette.Bad : Palette.Bronze;
-                GUI.DrawTexture(node, Ui.RoundTex(Palette.Hex("#1d1726"), ring, Mathf.RoundToInt(n / 2)));
+                Ui.Round(node, Palette.Hex("#1d1726"), ring, Mathf.RoundToInt(n / 2));
                 Icons.Draw(new Rect(node.x + n * 0.2f, node.y + n * 0.2f, n * 0.6f, n * 0.6f), Icons.ForElement(e), Palette.Element(e));
             }
         }

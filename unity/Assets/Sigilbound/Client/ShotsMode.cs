@@ -81,6 +81,10 @@ namespace Sigilbound.Client
                 Go(s);
                 yield return Shot(s.ToString().ToLowerInvariant());
             }
+            // The campaign map with chapter 1's stage list open (stop names, enemy chips, the gear chance).
+            Go(ScreenId.Campaign); _chapterOpen = 0;
+            yield return Shot("campaign-stages");
+            _chapterOpen = -1;
             OpenPrep(0, false, ScreenId.Campaign);
             yield return Shot("prep");
             CloseModal();

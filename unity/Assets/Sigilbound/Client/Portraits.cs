@@ -20,7 +20,7 @@ namespace Sigilbound.Client
         public static bool Thumb(Rect r, string heroId, Color frame)
         {
             var t = Get(heroId); if (t == null) return false;
-            GUI.DrawTexture(new Rect(r.x - 2, r.y - 2, r.width + 4, r.height + 4), Ui.RoundTex(frame, null, 6));
+            Ui.Round(new Rect(r.x - 2, r.y - 2, r.width + 4, r.height + 4), frame, null, 6);
             GUI.DrawTextureWithTexCoords(r, t, new Rect(0.12f, 0.38f, 0.76f, 0.57f));
             return true;
         }
@@ -29,7 +29,7 @@ namespace Sigilbound.Client
         public static bool Card(Rect r, string heroId, Color frame)
         {
             var t = Get(heroId); if (t == null) return false;
-            GUI.DrawTexture(new Rect(r.x - 3, r.y - 3, r.width + 6, r.height + 6), Ui.RoundTex(frame, null, 10));
+            Ui.Round(new Rect(r.x - 3, r.y - 3, r.width + 6, r.height + 6), frame, null, 10);
             GUI.DrawTexture(r, t, ScaleMode.ScaleAndCrop);
             return true;
         }

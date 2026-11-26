@@ -237,7 +237,7 @@ namespace Sigilbound.Client
                 var t = Hero(h.id);
                 var r = Row(ref y, 54, 8);
                 Ui.Panel(r, Palette.Panel, Palette.Rarity(t.Rarity), 12);
-                GUI.DrawTexture(new Rect(r.x + 8, r.y + 10, 6, 34), Ui.RoundTex(Palette.Element(t.Element), null, 3));
+                Ui.Round(new Rect(r.x + 8, r.y + 10, 6, 34), Palette.Element(t.Element), null, 3);
                 float tx = Portraits.Thumb(new Rect(r.x + 20, r.y + 6, 42, 42), t.Id, Palette.Rarity(t.Rarity)) ? 70 : 22; // painted portrait, when there is one
                 Ui.Text(new Rect(r.x + tx, r.y + 4, r.width - 98 - tx, 24), HeroLine(h), 14, Palette.Text, FontStyle.Bold);
                 Ui.Text(new Rect(r.x + tx, r.y + 28, r.width - 98 - tx, 20), Tag(t), 12, Palette.Dim);

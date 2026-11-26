@@ -145,7 +145,7 @@ namespace Sigilbound.Client
             int n = G.AchReadyCount;
             Ui.Text(new Rect(r.x + 14, r.y + 6, 220, 24), "Achievements", 16, Palette.TrimHi, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
             Ui.Text(new Rect(r.x + 14, r.y + 30, r.width - 120, 20), $"{Game.Achievements.Count(G.AchClaimed)}/{Game.Achievements.Length} claimed · rewards for milestones", 11, Palette.Dim);
-            if (n > 0) { var b = new Rect(r.xMax - 96, r.y + 15, 82, 28); GUI.DrawTexture(b, Ui.RoundTex(Palette.Gold, null, 12)); Ui.Text(b, $"{n} ready", 12, Palette.Hex("#1a1208"), FontStyle.Bold, TextAnchor.MiddleCenter); }
+            if (n > 0) { var b = new Rect(r.xMax - 96, r.y + 15, 82, 28); Ui.Round(b, Palette.Gold, null, 12); Ui.Text(b, $"{n} ready", 12, Palette.Hex("#1a1208"), FontStyle.Bold, TextAnchor.MiddleCenter); }
             else Ui.Text(new Rect(r.xMax - 40, r.y, 30, r.height), "›", 18, Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter);
             if (Ui.Button(r, "", Ui.Kind.Ghost)) Go(ScreenId.Achievements);
             return y;
@@ -171,7 +171,7 @@ namespace Sigilbound.Client
                     var t = list[i]; bool known = owned.Contains(t.Id);
                     var r = new Rect(Pad + (i % 4) * (cell + 8), y + (i / 4) * (cell + 8), cell, cell);
                     Ui.Panel(r, known ? Palette.Panel2 : Palette.Hex("#0d0b10"), known ? Palette.Rarity(t.Rarity) : Palette.Line, 10);
-                    if (known) GUI.DrawTexture(new Rect(r.x + 8, r.y + 8, 6, r.height - 34), Ui.RoundTex(Palette.Element(t.Element), null, 3));
+                    if (known) Ui.Round(new Rect(r.x + 8, r.y + 8, 6, r.height - 34), Palette.Element(t.Element), null, 3);
                     // Undiscovered: a dark silhouette mark instead of the name.
                     Ui.Text(new Rect(r.x, r.y + 4, r.width, r.height - 28), known ? t.ShortName.Substring(0, 1) : "?", known ? 28 : 30, known ? Palette.Text : Palette.Hex("#3a3344"), FontStyle.Bold, TextAnchor.MiddleCenter);
                     Ui.Text(new Rect(r.x + 2, r.yMax - 24, r.width - 4, 20), known ? t.ShortName : "???", 11, known ? Palette.Text : Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);

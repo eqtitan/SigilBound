@@ -79,8 +79,8 @@ namespace Sigilbound.Client
                 float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f);
                 var ring = new Rect(target.x - 4, target.y - 4, target.width + 8, target.height + 8);
                 var c = new Color(1f, 0.82f, 0.35f, 0.35f + 0.45f * pulse);
-                GUI.DrawTexture(ring, Ui.RoundTex(new Color(0, 0, 0, 0), c, 12));
-                GUI.DrawTexture(new Rect(ring.x - 2, ring.y - 2, ring.width + 4, ring.height + 4), Ui.RoundTex(new Color(0, 0, 0, 0), new Color(c.r, c.g, c.b, c.a * 0.5f), 14));
+                Ui.Round(ring, new Color(0, 0, 0, 0), c, 12);
+                Ui.Round(new Rect(ring.x - 2, ring.y - 2, ring.width + 4, ring.height + 4), new Color(0, 0, 0, 0), new Color(c.r, c.g, c.b, c.a * 0.5f), 14);
                 bool below = target.center.y < Ui.H * 0.5f;
                 float ay = below ? ring.yMax + 6 + pulse * 6 : ring.y - 30 - pulse * 6;
                 Ui.Text(new Rect(target.center.x - 20, ay, 40, 24), below ? "▲" : "▼", 22, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter);

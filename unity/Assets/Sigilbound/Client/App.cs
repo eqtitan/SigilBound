@@ -337,7 +337,7 @@ namespace Sigilbound.Client
                     || (it.id == ScreenId.Friends && (Screen == ScreenId.FriendProfile || Screen == ScreenId.Chat || Screen == ScreenId.Blocked));
                 var cell = new Rect(i * w, r.y, w, 64);
                 if (Ui.Button(cell, "", Ui.Kind.Ghost)) { if (it.id == ScreenId.Friends) OpenFriends(); else Go(it.id); }
-                if (on) { GUI.DrawTexture(new Rect(cell.x + 6, r.y + 4, w - 12, 56), Ui.RoundTex(new Color(0.95f, 0.77f, 0.36f, 0.12f), null, 12)); Ui.GoldRule(new Rect(cell.x + w * 0.22f, r.y + 1, w * 0.56f, 2)); }
+                if (on) { Ui.Round(new Rect(cell.x + 6, r.y + 4, w - 12, 56), new Color(0.95f, 0.77f, 0.36f, 0.12f), null, 12); Ui.GoldRule(new Rect(cell.x + w * 0.22f, r.y + 1, w * 0.56f, 2)); }
                 var tint = on ? Palette.Gold : Palette.Hex("#9b8f7a");
                 Icons.Draw(new Rect(cell.x + w / 2 - 12, r.y + 8, 24, 24), it.icon, tint);
                 Ui.Text(new Rect(cell.x, r.y + 34, w, 22), it.label, 11, tint, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
@@ -346,7 +346,7 @@ namespace Sigilbound.Client
                 if (badge > 0)
                 {
                     var b = new Rect(cell.x + w / 2 + 14, r.y + 8, 18, 18);
-                    GUI.DrawTexture(b, Ui.RoundTex(it.id == ScreenId.Trials ? Palette.Blue : Palette.Bad, null, 9));
+                    Ui.Round(b, it.id == ScreenId.Trials ? Palette.Blue : Palette.Bad, null, 9);
                     Ui.Text(b, badge.ToString(), 11, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
             }

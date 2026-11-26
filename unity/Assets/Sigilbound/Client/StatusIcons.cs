@@ -42,7 +42,7 @@ namespace Sigilbound.Client
                 if (e.Turns > 0 && e.Type != FxType.Shield)
                 {
                     var n = new Rect(r.xMax - size * 0.42f, r.yMax - size * 0.42f, size * 0.46f, size * 0.46f);
-                    GUI.DrawTexture(n, Ui.RoundTex(new Color(0.07f, 0.05f, 0.09f, 0.95f), FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#a05ae0"), 6));
+                    Ui.Round(n, new Color(0.07f, 0.05f, 0.09f, 0.95f), FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#a05ae0"), 6);
                     Ui.Text(n, e.Turns.ToString(), Mathf.Max(7, Mathf.RoundToInt(size * 0.38f)), Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
             }

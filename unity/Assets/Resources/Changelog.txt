@@ -1,6 +1,12 @@
 # Sigilbound "What's new" (player-facing; newest first). Tags: new, fix, change, balance.
 # Keep lines short and friendly; this is shown in the game after each update.
-# Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
+# Start a NEW "## 2026-11-26 | Cleaner menus
+fix: Tapping a stage in an open chapter no longer presses the map button hidden behind the list.
+fix: Stage names are easier to read, and the gear chance no longer runs under the Replay button.
+change: The victory screen has crisp hero cards with an MVP crown, labelled damage, taken and healing, and an XP bar.
+fix: Card and frame edges across the menus are sharp instead of soft and smeared.
+
+## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-26 | Every chapter is a journey
 new: Each campaign chapter now travels through its own place: every stage is a new stop on the road, with the chapter's landmark ahead, and the boss waits in its lair at stage 6.

@@ -49,7 +49,7 @@ namespace Sigilbound.Client
             float trackH = hard ? 0 : 58;
             var map = new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16 - trackH);
             GUI.DrawTexture(map, MapTexture(act), ScaleMode.StretchToFill);
-            GUI.DrawTexture(map, Ui.RoundTex(Color.clear, Palette.Trim, 12)); // gilded frame
+            Ui.Round(map, Color.clear, Palette.Trim, 12); // gilded frame
 
             // Road: dashes between consecutive medallions.
             for (int k = 0; k + 1 < cn; k++)
@@ -61,10 +61,12 @@ namespace Sigilbound.Client
                 for (int d = 0; d < dashes; d += 2)
                 {
                     var p = Vector2.Lerp(a, b, (d + 0.5f) / dashes);
-                    GUI.DrawTexture(new Rect(p.x - 2.5f, p.y - 2.5f, 5, 5), Ui.RoundTex(walked ? Palette.Gold : new Color(0.25f, 0.18f, 0.1f, 0.8f), null, 2));
+                    Ui.Round(new Rect(p.x - 2.5f, p.y - 2.5f, 5, 5), walked ? Palette.Gold : new Color(0.25f, 0.18f, 0.1f, 0.8f), null, 2);
                 }
             }
 
+            // An open stage list covers part of the map: the medallions and switches under it must not take its taps.
+            Ui.Cover = _chapterOpen >= 0 && _chapterOpen < Chapters.Length ? StageListRect(map, _chapterOpen) : (Rect?)null;
             // Medallions.
             int progress = progressAll;
             int current = Mathf.Min(Chapters.Length - 1, progress / StagesPerChapter);
@@ -76,16 +78,16 @@ namespace Sigilbound.Client
                 int done = Mathf.Clamp(progress - first, 0, StagesPerChapter);
                 var p = MapPos(map, pts[k]); float s = 50;
                 var m = new Rect(p.x - s / 2, p.y - s / 2, s, s);
-                if (c == current && !locked) GUI.DrawTexture(new Rect(m.x - 10, m.y - 10, s + 20, s + 20), Ui.RoundTex(new Color(1f, 0.85f, 0.4f, 0.28f), null, 35));
+                if (c == current && !locked) Ui.Round(new Rect(m.x - 10, m.y - 10, s + 20, s + 20), new Color(1f, 0.85f, 0.4f, 0.28f), null, 35);
                 var el = Game.ChapterElement(c);
-                GUI.DrawTexture(m, Ui.RoundTex(locked ? Palette.Hex("#2a2430") : Palette.Hex("#1d1726"), _chapterOpen == c ? Palette.TrimHi : locked ? Palette.Bronze : Palette.Trim, 25));
+                Ui.Round(m, locked ? Palette.Hex("#2a2430") : Palette.Hex("#1d1726"), _chapterOpen == c ? Palette.TrimHi : locked ? Palette.Bronze : Palette.Trim, 25);
                 Icons.Draw(new Rect(m.x + 9, m.y + 7, s - 18, s - 18), locked ? Icon.Lock : Icons.ForElement(el), locked ? Palette.Dim : Palette.Element(el));
                 Ui.Text(new Rect(m.x, m.yMax - 18, s, 14), (c + 1).ToString(), 11, locked ? Palette.Dim : Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter);
                 // Six pips: stages cleared in this chapter.
                 for (int q = 0; q < StagesPerChapter; q++)
-                    GUI.DrawTexture(new Rect(p.x - 21 + q * 7.5f, m.yMax + 3, 6, 6), Ui.RoundTex(q < done ? Palette.Gold : new Color(0, 0, 0, 0.55f), Palette.TrimLo, 3));
+                    Ui.Round(new Rect(p.x - 21 + q * 7.5f, m.yMax + 3, 6, 6), q < done ? Palette.Gold : new Color(0, 0, 0, 0.55f), Palette.TrimLo, 3);
                 var label = new Rect(p.x - 70, m.yMax + 10, 140, 16);
-                GUI.DrawTexture(new Rect(label.center.x - 56, label.y, 112, 16), Ui.RoundTex(new Color(0.08f, 0.06f, 0.1f, 0.7f), null, 7));
+                Ui.Round(new Rect(label.center.x - 56, label.y, 112, 16), new Color(0.08f, 0.06f, 0.1f, 0.7f), null, 7);
                 Ui.Text(label, Chapters[c], 10, locked ? Palette.Dim : Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
                 if (!locked && Ui.Button(new Rect(m.x - 6, m.y - 6, s + 12, s + 34), "", Ui.Kind.Ghost)) _chapterOpen = _chapterOpen == c ? -1 : c;
             }
@@ -99,7 +101,12 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(map.x + 96, map.y + 10, 80, 30), "Hard", hard ? Ui.Kind.ChipOn : Ui.Kind.Chip, 12, G.S.cleared > 0)) { _hardTab = true; _chapterOpen = -1; }
             Ui.Text(new Rect(map.xMax - 190, map.y + 10, 180, 30), hard ? $"Hard {G.S.hardCleared}/{G.S.cleared}" : $"{G.S.cleared}/{TotalStages} stages", 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
 
-            if (_chapterOpen >= 0 && _chapterOpen < Chapters.Length) DrawStageList(map, _chapterOpen, hard);
+            if (_chapterOpen >= 0 && _chapterOpen < Chapters.Length)
+            {
+                Ui.Cover = null; Ui.OnTop = true;
+                try { DrawStageList(map, _chapterOpen, hard); } finally { Ui.OnTop = false; }
+            }
+            Ui.Cover = null;
             if (!hard) DrawRewardTrack(new Rect(area.x + 10, map.yMax + 6, area.width - 20, trackH - 8), c0, cn);
         }
 
@@ -108,7 +115,7 @@ namespace Sigilbound.Client
         // Boss first-clear rewards per chapter (Game.StageRewards): ticked once claimed.
         void DrawRewardTrack(Rect r, int c0, int cn)
         {
-            GUI.DrawTexture(r, Ui.RoundTex(new Color(0.07f, 0.05f, 0.1f, 0.85f), Palette.Bronze, 10));
+            Ui.Round(r, new Color(0.07f, 0.05f, 0.1f, 0.85f), Palette.Bronze, 10);
             float step = r.width / cn;
             for (int k = 0; k < cn; k++)
             {
@@ -119,7 +126,7 @@ namespace Sigilbound.Client
                 float cx = r.x + step * (k + 0.5f);
                 if (k > 0) GUI.DrawTexture(new Rect(cx - step + 14, r.center.y - 1, step - 28, 2), Ui.Solid(got ? Palette.Gold : Palette.Bronze));
                 var slot = new Rect(cx - 14, r.center.y - 14, 28, 28);
-                GUI.DrawTexture(slot, Ui.RoundTex(got ? Palette.Hex("#3a2c14") : Palette.Hex("#1d1726"), got ? Palette.Gold : Palette.Bronze, 14));
+                Ui.Round(slot, got ? Palette.Hex("#3a2c14") : Palette.Hex("#1d1726"), got ? Palette.Gold : Palette.Bronze, 14);
                 Icons.Draw(new Rect(slot.x + 6, slot.y + 6, 16, 16), Icon.Shard, rw.Radiant > 0 ? Palette.Hex("#ffb02e") : Palette.Blue);
                 if (rw.Radiant > 0) Ui.Text(new Rect(slot.xMax - 4, slot.y - 6, 20, 14), "+R", 9, Palette.Hex("#ffb02e"), FontStyle.Bold);
                 if (got) Icons.Draw(new Rect(slot.xMax - 10, slot.yMax - 10, 12, 12), Icon.Check, Palette.Good);
