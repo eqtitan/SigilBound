@@ -28,6 +28,13 @@ namespace Sigilbound.Core
         public const double Spacing = 2.2;               // metres of arc between neighbours
         public static readonly V3 Centre = new V3(RimCx, 0, RimCz);
         public static readonly V3 CamTarget = new V3(0, 1.0, 0.5); // three.js camTarget (0, 1, -0.5)
+        // Titan fights aim higher and further back, so the 3.6x Titan sits lower on screen, under the HUD.
+        public static readonly V3 TitanCamTarget = new V3(0, 2.1, 1.4);
+        public static V3 Target(bool titan) => titan ? TitanCamTarget : CamTarget;
+        // The Titan's head and name tag (it stands at Slot(false, 0, 1), head near 3.6 m, horns and tag above)
+        // must stay below this screen height (NDC): the header, turn-order bar, skill banner and its own tag
+        // cover the top of the screen (owner report, 2026-11-26).
+        public const double TitanCeiling = 0.38;
 
         // Allies along the near arc, enemies along the far arc, ~2.2 m apart (three3d.mjs slot()).
         public static V3 Slot(bool ally, int i, int n)
@@ -56,10 +63,17 @@ namespace Sigilbound.Core
         // Portrait screens get a wider lens so a full row fits without pulling far back.
         public static double FovFor(double aspect) => aspect < 0.75 ? 62 : 50;
 
-        public static V3 CameraPosition(CameraPreset c, double dist)
+        public static V3 CameraPosition(CameraPreset c, double dist, bool titan = false)
         {
+            var t = Target(titan);
             double pitch = c.Pitch * Math.PI / 180, yaw = c.Yaw * Math.PI / 180, h = Math.Cos(pitch) * dist;
-            return new V3(CamTarget.X + Math.Sin(yaw) * h, CamTarget.Y + Math.Sin(pitch) * dist, CamTarget.Z - Math.Cos(yaw) * h);
+            return new V3(t.X + Math.Sin(yaw) * h, t.Y + Math.Sin(pitch) * dist, t.Z - Math.Cos(yaw) * h);
+        }
+        // The Titan's head-and-tag points (each must stay under TitanCeiling).
+        public static V3[] TitanPoints()
+        {
+            var s = Slot(false, 0, 1);
+            return new[] { new V3(s.X, 4.9, s.Z), new V3(s.X - 1.2, 4.3, s.Z), new V3(s.X + 1.2, 4.3, s.Z) };
         }
 
         // Points that must stay on screen: the whole rim with head height and HUD-tag points above it.
@@ -73,15 +87,15 @@ namespace Sigilbound.Core
                     pts.Add(new V3(x, 0, -zThree)); pts.Add(new V3(x, zThree > 0 ? 2.75 : 3.3, -zThree));
                 }
             pts.Add(new V3(0, 3.75, 3.95));                    // HUD tags above the back row
-            if (titan) { pts.Add(new V3(0, 5.6, 4.0)); pts.Add(new V3(-2.3, 3.4, 4.0)); pts.Add(new V3(2.3, 3.4, 4.0)); }
+            if (titan) { pts.Add(new V3(-2.3, 3.4, 4.0)); pts.Add(new V3(2.3, 3.4, 4.0)); } // shoulders and maul; the head is in TitanPoints
             return pts.ToArray();
         }
 
         // Projects p for a camera at `eye` looking at CamTarget (vertical fov in degrees);
         // returns normalized device coordinates (-1..1), or null if behind the camera.
-        public static (double x, double y)? Project(V3 eye, double fovDeg, double aspect, V3 p)
+        public static (double x, double y)? Project(V3 eye, double fovDeg, double aspect, V3 p, bool titan = false)
         {
-            var f = (CamTarget - eye).Normalized;
+            var f = (Target(titan) - eye).Normalized;
             var r = new V3(0, 1, 0).Cross(f).Normalized;   // left-handed: right = up x forward
             var u = f.Cross(r);
             var d = p - eye;
@@ -96,14 +110,20 @@ namespace Sigilbound.Core
         public static double FitDistance(CameraPreset c, double aspect, bool titan)
         {
             var pts = FramePoints(titan);
+            var head = titan ? TitanPoints() : new V3[0];
             double fov = FovFor(aspect);
             bool Fits(double dist)
             {
-                var eye = CameraPosition(c, dist);
+                var eye = CameraPosition(c, dist, titan);
                 foreach (var p in pts)
                 {
-                    var q = Project(eye, fov, aspect, p);
+                    var q = Project(eye, fov, aspect, p, titan);
                     if (q == null || Math.Abs(q.Value.x) > 0.95 || q.Value.y > 0.84 || q.Value.y < -0.84) return false;
+                }
+                foreach (var p in head)
+                {
+                    var q = Project(eye, fov, aspect, p, titan);
+                    if (q == null || Math.Abs(q.Value.x) > 0.95 || q.Value.y > TitanCeiling) return false;
                 }
                 return true;
             }

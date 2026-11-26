@@ -78,6 +78,7 @@ static class Program
         FlightTests.Run(Check);
         HdClipFileTests.Run(Check);
         SignatureTests.Run(Check);
+        TitanCameraTests.Run(Check);
 
         // Win-rate sweep like the web sim's fixed-team check (geared team at stage level).
         Console.WriteLine("\nStage win rates (fixed teams at stage level, 30 runs):");

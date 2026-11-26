@@ -52,8 +52,8 @@ namespace Sigilbound.Client
             var preset = BattleLayout.Camera(camKey);
             double aspect = Mathf.Max(0.2f, Cam.aspect);
             Cam.fieldOfView = (float)BattleLayout.FovFor(aspect);
-            Cam.transform.position = ToUnity(BattleLayout.CameraPosition(preset, BattleLayout.FitDistance(preset, aspect, titan)));
-            Cam.transform.LookAt(ToUnity(BattleLayout.CamTarget));
+            Cam.transform.position = ToUnity(BattleLayout.CameraPosition(preset, BattleLayout.FitDistance(preset, aspect, titan), titan));
+            Cam.transform.LookAt(ToUnity(BattleLayout.Target(titan)));
             HideOccluders();
         }
 
@@ -68,7 +68,7 @@ namespace Sigilbound.Client
             _hidden.Clear();
             if (!_scenery || !_framedBattle) return;
             Vector3 eye = Cam.transform.position;
-            var c = ToUnity(BattleLayout.CamTarget);
+            var c = ToUnity(BattleLayout.Target(_framedTitan));
             Vector3 right = Vector3.Cross(Vector3.up, (c - eye).normalized).normalized;
             // Sight lines to the whole battle ring (where every hero stands, plus a margin for the
             // name tags above them): centre, two rings of points, at foot, chest and tag height.
