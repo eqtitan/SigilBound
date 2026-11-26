@@ -88,6 +88,9 @@ namespace Sigilbound.EditorTools
             var full = AssetDatabase.LoadAssetAtPath<Texture2D>(IconDir + "icon_full.png");
             if (full == null) { Debug.LogWarning("Sigilbound: app icon textures missing under " + IconDir); return; }
             PlayerSettings.SetIcons(UnityEditor.Build.NamedBuildTarget.Unknown, new[] { full }, IconKind.Any);
+#if UNITY_ANDROID
+            // Android-only: UnityEditor.Android exists only where the Android module is installed (the Windows
+            // and Linux build images don't have it; referencing it there broke those builds).
             var android = UnityEditor.Build.NamedBuildTarget.Android;
             void Fill(PlatformIconKind kind, params Texture2D[] layers)
             {
@@ -98,6 +101,7 @@ namespace Sigilbound.EditorTools
             if (bg != null && fg != null) Fill(UnityEditor.Android.AndroidPlatformIconKind.Adaptive, bg, fg); // layer 0 background, layer 1 foreground
             Fill(UnityEditor.Android.AndroidPlatformIconKind.Round, full);
             Fill(UnityEditor.Android.AndroidPlatformIconKind.Legacy, full);
+#endif
 #endif
         }
 }
