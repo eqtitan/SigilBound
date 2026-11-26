@@ -522,8 +522,11 @@ namespace Sigilbound.Client
                 bool low = Quality.I != null && Quality.I.Tier == 0;
                 yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD{(low ? "_LOD1" : "")}.glb"), b => glb = b);
                 if (glb == null && low) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD.glb"), b => glb = b);
-                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.png"), b => alb = b);
-                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.png"), b => nrm = b);
+                // Textures ship as JPEG (blenderforge/compress); PNG is still read for older builds.
+                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.jpg"), b => alb = b);
+                if (alb == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.png"), b => alb = b);
+                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.jpg"), b => nrm = b);
+                if (nrm == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.png"), b => nrm = b);
                 yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_glow.png"), b => glow = b);
                 if (glb == null || alb == null) { done(null); yield break; }
                 var gltf = new GLTFast.GltfImport(null, null, new SigilMaterialGenerator());
@@ -548,7 +551,7 @@ namespace Sigilbound.Client
             var root = holder.GetChild(0).gameObject;
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
             foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null) anim.AddClip(c, c.name);
-            if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>();
+            if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
             float headY = 1.6f;
             var head = BodyShaper.Find(holder, "Head");

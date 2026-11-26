@@ -1,0 +1,5518 @@
+[
+ {
+  "id": "brannoc",
+  "name": "Brannoc Spearhand",
+  "title": "the Boar Hunter",
+  "element": "Gale",
+  "role": "Attack",
+  "rarity": "Common",
+  "classic": true,
+  "skills": [
+   "Spear Thrust",
+   "Whirling Haft"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.05,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Ponytail",
+   "colour": "#5a3a22"
+  },
+  "facial": "MuttonChops",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:moss-green bandana with two long tails",
+   "acc": [
+    "custom:boar-hide mantle with tusk clasp"
+   ]
+  },
+  "palette": {
+   "main": "#4f7a34",
+   "secondary": "#7a5232",
+   "accent": "#d8b04a",
+   "metal": "#8a8f96",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "boar spear, 2.4 m, leaf blade with thick crossbar lugs",
+   "boar-hide fur mantle, tusks at the clasp",
+   "bandana tails (2 spring bones)"
+  ],
+  "weapon": "crossbar boar spear",
+  "silhouette": "One long diagonal spear across the whole body, shaggy fur hump on the shoulders.",
+  "signature": "The crossbar boar spear and a boar-hide mantle fastened with two tusks.",
+  "pose": "Low hunter's lunge, spear two-handed and angled forward, back foot planted.",
+  "fx": "Green gust rings slide down the shaft on each thrust; Whirling Haft leaves a spinning green wind disc.",
+  "story": "A Thornwick boar hunter who has held the road against tusks and worse since he could lift a spear.",
+  "notes_for_3d": "Spear must be the longest line (tip past the head in idle). Keep the crossbar thick (30 cm) so it reads."
+ },
+ {
+  "id": "mira",
+  "name": "Mira Saltwhistle",
+  "title": "the Harbour Whistle",
+  "element": "Tide",
+  "role": "Defense",
+  "rarity": "Common",
+  "classic": true,
+  "skills": [
+   "Shell Bash",
+   "Saltwall"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.92,
+   "bulk": 0.95,
+   "head": 1.05
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:high sailor ponytail with a sea-glass bead",
+   "colour": "#2f8f8f"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "Female_Ranger_Body",
+   "legs": "Female_Peasant_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "none",
+   "acc": [
+    "Female_Ranger_Acc_Pauldrons"
+   ]
+  },
+  "palette": {
+   "main": "#3f7f9a",
+   "secondary": "#e8e0c8",
+   "accent": "#f08a5a",
+   "metal": "#b0b8c0",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "scallop-shell buckler, 60 cm, deep ribs, coral rim",
+   "brass sailor's whistle on a rope lanyard",
+   "short boat-hook as sidearm",
+   "rope belt with knots"
+  ],
+  "weapon": "scallop-shell buckler and short boat-hook",
+  "silhouette": "A small sturdy girl behind a big fan-ribbed scallop shell.",
+  "signature": "A ribbed scallop-shell buckler with a coral rim and a brass whistle on a cord.",
+  "pose": "Feet wide, shell up at chin height, whistle swinging; she peeks over the rim.",
+  "fx": "Saltwall: a translucent blue shell-dome flashes over each ally with a whistle blast ring.",
+  "story": "A harbour pilot's daughter who learned that a loud whistle and a stubborn shell stop most trouble.",
+  "notes_for_3d": "Youth proportions (1:5.5). The shell's ribs are the read: model them deep, not as texture."
+ },
+ {
+  "id": "pell",
+  "name": "Pell Cinderbrook",
+  "title": "the Little Lamplighter",
+  "element": "Flame",
+  "role": "Support",
+  "rarity": "Common",
+  "classic": true,
+  "skills": [
+   "Ember Flick",
+   "Kindle"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 0.86,
+   "bulk": 0.9,
+   "head": 1.08
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#c8642a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "Peasant_Feet",
+   "head": "custom:crown of three lit candles on a tin band",
+   "acc": [
+    "custom:short rust-coloured tabard robe over the tunic"
+   ]
+  },
+  "palette": {
+   "main": "#8a4a2a",
+   "secondary": "#e8d8b0",
+   "accent": "#ffb347",
+   "metal": "#b07a3a",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "tin candle crown with three flames (emissive)",
+   "long taper-candle wand, 70 cm",
+   "wax drips on shoulders",
+   "satchel of spare candles"
+  ],
+  "weapon": "long taper-candle wand",
+  "silhouette": "A short boy with three tiny flames standing up from his head.",
+  "signature": "A candle crown of three living flames.",
+  "pose": "Holds the taper up like a torch, other hand cupped to shield the flame.",
+  "fx": "Kindle: warm sparks drift from the taper to each ally; the three crown flames flare on cast.",
+  "story": "An Ashgrave chandler's apprentice who never lets a light go out.",
+  "notes_for_3d": "Child proportions. The three flames sit on separate stems so they read as three at 70 px."
+ },
+ {
+  "id": "odo",
+  "name": "Odo Mudlark",
+  "title": "the Marsh Boulder",
+  "element": "Gale",
+  "role": "Hp",
+  "rarity": "Common",
+  "classic": true,
+  "skills": [
+   "Mud Slap",
+   "Thick Hide"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.25,
+   "head": 0.92
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "Balding",
+   "colour": "#1e1610"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "custom:bare mud-caked feet",
+   "head": "custom:frog-skin hood with two bulging eye bumps",
+   "acc": [
+    "custom:reed rope belt with gourds"
+   ]
+  },
+  "palette": {
+   "main": "#6b7a3a",
+   "secondary": "#4e3626",
+   "accent": "#9ab84a",
+   "metal": "#6a5a48",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "frog-skin hood with eye bumps",
+   "knobbly mud-caked club",
+   "clay gourds on belt",
+   "mud splatter decals"
+  ],
+  "weapon": "mud-caked knobbly club",
+  "silhouette": "A round boulder of a man with two frog-eye bumps on top of his head.",
+  "signature": "The frog-skin hood whose two eyes sit on top of his head.",
+  "pose": "Wide squat stance, club resting on shoulder, belly forward.",
+  "fx": "Mud Slap throws a green-brown mud splash; Thick Hide hardens his skin into a dried-mud shell with a green rim.",
+  "story": "A Saltmarsh mudlark who digs for lost things in the river and fears nothing that swims.",
+  "notes_for_3d": "Head small on huge shoulders (1:6.5). Hood eyes must stand clear of the head outline."
+ },
+ {
+  "id": "wren",
+  "name": "Sister Wren",
+  "title": "the Night-Road Lantern",
+  "element": "Light",
+  "role": "Support",
+  "rarity": "Common",
+  "classic": true,
+  "skills": [
+   "Lantern Strike",
+   "Vesper Hymn"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.94,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#e8e2d0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:long brown habit robe with rope belt",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "Female_Ranger_Head_Hood",
+   "acc": [
+    "custom:prayer-bead loop"
+   ]
+  },
+  "palette": {
+   "main": "#7a5a3e",
+   "secondary": "#e8e2d0",
+   "accent": "#ffc84a",
+   "metal": "#b08a40",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "shepherd's crook, 1.9 m, with a hanging prayer lantern",
+   "rope belt with wooden prayer beads",
+   "hood kept up, white hair spilling out"
+  ],
+  "weapon": "crook with hanging prayer lantern",
+  "silhouette": "A hooded nun with a tall crook whose hook dangles a glowing lantern above her.",
+  "signature": "A prayer lantern hanging from a shepherd's crook.",
+  "pose": "Crook planted beside her, lantern swaying above the head, other hand on heart.",
+  "fx": "Vesper Hymn: the lantern swings and drops golden motes that settle on allies as small light petals.",
+  "story": "A wayside nun who walks the night roads so no traveller goes unlit.",
+  "notes_for_3d": "Lantern hangs on a 2-bone chain so it sways. The lantern must sit above the head line."
+ },
+ {
+  "id": "kettle",
+  "name": "Kettle Gravejaw",
+  "title": "the Grave-Hook",
+  "element": "Shadow",
+  "role": "Attack",
+  "rarity": "Common",
+  "classic": true,
+  "skills": [
+   "Grave Hook",
+   "Rattle Bones"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.02,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "ash",
+  "hair": {
+   "style": "SlickBack",
+   "colour": "#2a2a30"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "custom:tattered knee-length gravedigger's coat",
+   "legs": "Peasant_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:battered tall stovepipe hat with a bent brim",
+   "acc": [
+    "custom:coil of rope and a bone charm"
+   ]
+  },
+  "palette": {
+   "main": "#5a5560",
+   "secondary": "#2a2a30",
+   "accent": "#d8d0c0",
+   "metal": "#6a6a70",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "grave-hook: long pole with barbed iron hook",
+   "tattered long coat with ragged hem",
+   "tall bent stovepipe hat",
+   "jutting underbite jaw (head sculpt)"
+  ],
+  "weapon": "long barbed grave-hook",
+  "silhouette": "A hunched thin man under a tall bent hat, a long hook curling up behind him like a question mark.",
+  "signature": "The bent stovepipe hat and the curled grave-hook.",
+  "pose": "Hunched, hook over the shoulder, grinning underbite, weight on one hip.",
+  "fx": "Grave Hook leaves a violet poison smear; Rattle Bones bursts a ring of rattling violet bone shards.",
+  "story": "A gravedigger who learned to like the Hollow's company a little too much.",
+  "notes_for_3d": "Villainy from posture: hunched spine, jutting jaw. No skulls on the costume."
+ },
+ {
+  "id": "ysolde",
+  "name": "Ysolde Emberlash",
+  "title": "the Burning Lash",
+  "element": "Flame",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": true,
+  "skills": [
+   "Lash",
+   "Searing Coil",
+   "Wildfire"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.0,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "custom:long flowing red hair to the waist",
+   "colour": "#c8281e"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "custom:crimson fitted leather jacket with high collar",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:thin gold circlet with an ember stone",
+   "acc": [
+    "Female_Ranger_Acc_Pauldrons"
+   ]
+  },
+  "palette": {
+   "main": "#8a2420",
+   "secondary": "#3e1414",
+   "accent": "#ff7a3a",
+   "metal": "#c89a50",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "burning chain-whip, 3 m arc, links glow at the joints",
+   "gold circlet with ember gem",
+   "leather bracers",
+   "ember trail particles"
+  ],
+  "weapon": "burning chain-whip",
+  "silhouette": "A slim duelist with a long S-shaped burning whip curling around her.",
+  "signature": "A chain-whip whose links glow and trail embers in a long arc.",
+  "pose": "Whip coiled loosely on the ground in an S curve, hip cocked, chin up.",
+  "fx": "Searing Coil wraps the target in a ring of fire; Wildfire cracks the whip overhead and rains embers.",
+  "story": "A Flame-pact duelist and starter hero, quick to anger and quicker with the lash.",
+  "notes_for_3d": "Whip uses 8 spring bones, coil at the hip. Hair is the second flame shape: keep it long and swept."
+ },
+ {
+  "id": "corvan",
+  "name": "Corvan Tidecaller",
+  "title": "Voice of the Tides",
+  "element": "Tide",
+  "role": "Support",
+  "rarity": "Rare",
+  "classic": true,
+  "skills": [
+   "Undertow",
+   "Rising Tide",
+   "Tidal Hymn"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 0.97,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#d0e6f0"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Wizard_Arms",
+   "body": "Wizard_Body",
+   "legs": "none (covered by robe)",
+   "feet": "Wizard_Feet",
+   "head": "none",
+   "acc": [
+    "Knight_Acc_Scarf"
+   ]
+  },
+  "palette": {
+   "main": "#20507a",
+   "secondary": "#d0e6f0",
+   "accent": "#7fd4ff",
+   "metal": "#a07a50",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "driftwood staff, 1.9 m, gnarled",
+   "spinning water globe hovering in the staff's fork",
+   "sea-blue scarf",
+   "shell buttons on robe"
+  ],
+  "weapon": "driftwood staff with spinning water globe",
+  "silhouette": "A robed man with a tall forked staff topped by a floating ball of water.",
+  "signature": "A spinning globe of water hovering in a driftwood fork.",
+  "pose": "Staff upright, globe spinning, free hand palm-out as if calming waves.",
+  "fx": "Undertow pulls a blue ribbon from the target; Rising Tide raises a soft wave ring under allies.",
+  "story": "A coast mage and starter hero who listens to the tides and tells allies when to move.",
+  "notes_for_3d": "Globe: transparent shell with an emissive inner swirl (spin animation on a helper bone)."
+ },
+ {
+  "id": "hask",
+  "name": "Hask the Unbowed",
+  "title": "the Living Wall",
+  "element": "Gale",
+  "role": "Defense",
+  "rarity": "Rare",
+  "classic": true,
+  "skills": [
+   "Shield Rush",
+   "Unbowed",
+   "Gale Wall"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.15,
+   "head": 1.0
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "Buzzed",
+   "colour": "#4a4036"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "Knight_Head_Armet",
+   "acc": [
+    "Knight_Acc_Pauldron_Round"
+   ]
+  },
+  "palette": {
+   "main": "#5c656e",
+   "secondary": "#2f6b3a",
+   "accent": "#d8e8c8",
+   "metal": "#8a929a",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "tower shield 1.9 m (taller than him), green field, 30 carved tally notches",
+   "short arming sword",
+   "armet with visor up"
+  ],
+  "weapon": "notched tower shield and arming sword",
+  "silhouette": "A walking wall: one tall rectangle hiding the whole body, helm peeking above.",
+  "signature": "A tower shield taller than he is, notched with tally marks.",
+  "pose": "Shield grounded in front, sword resting on its top edge, feet apart.",
+  "fx": "Gale Wall: green wind panels slide in front of each ally; Unbowed slams the shield and a green ring bursts.",
+  "story": "A border soldier and starter hero who has never once stepped back.",
+  "notes_for_3d": "Shield is the read: rectangle, square top. Tally notches carved deep on the rim."
+ },
+ {
+  "id": "lumen",
+  "name": "Lumen Varro",
+  "title": "Knight of the Star",
+  "element": "Light",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": true,
+  "skills": [
+   "Radiant Edge",
+   "Judgment",
+   "Dawnbreak"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.06,
+   "bulk": 1.0,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#f2d27a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Cloth",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "none",
+   "acc": [
+    "Noble_Acc_Pauldron"
+   ]
+  },
+  "palette": {
+   "main": "#e8e8f0",
+   "secondary": "#4f5a6c",
+   "accent": "#ffcc33",
+   "metal": "#c8d0dc",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "white tabard with a gold eight-point star",
+   "longsword, 1.2 m, raised",
+   "half cape on left shoulder"
+  ],
+  "weapon": "longsword held high",
+  "silhouette": "A tall knight with a bright white tabard and a sword raised straight up like a beacon.",
+  "signature": "A white tabard with a gold star and a longsword held high.",
+  "pose": "Sword point-up in front of the face, cape over one shoulder.",
+  "fx": "Judgment drops a vertical gold beam on the target; Dawnbreak sweeps a gold arc across enemies.",
+  "story": "A light-guard knight who believes every road can be made safe.",
+  "notes_for_3d": "The star emblem must be big (chest-wide) so the tabard reads at card size."
+ },
+ {
+  "id": "nyx",
+  "name": "Nyx Hollowstep",
+  "title": "the Crescent Thief",
+  "element": "Shadow",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": true,
+  "skills": [
+   "Hollow Cut",
+   "Vanish",
+   "Night Toll"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.97,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "Hair2",
+   "colour": "#1e1a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "Female_Ranger_Body",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "Female_Ranger_Head_Hood",
+   "acc": [
+    "custom:short night scarf"
+   ]
+  },
+  "palette": {
+   "main": "#26203a",
+   "secondary": "#1a1628",
+   "accent": "#e8e0ff",
+   "metal": "#a8a8c0",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "white crescent-moon mask across the face",
+   "two curved crescent daggers",
+   "night scarf with tails"
+  ],
+  "weapon": "twin crescent daggers",
+  "silhouette": "A crouched hooded figure with a bright white crescent over the face and two hooked blades.",
+  "signature": "A crescent-moon mask and two curved daggers.",
+  "pose": "Low crouch, daggers reversed along the forearms, head tilted.",
+  "fx": "Vanish: she breaks into violet smoke and reappears behind the target; Night Toll rings a violet bell wave.",
+  "story": "A Hollow-touched thief who steps through shadows as others step through doors.",
+  "notes_for_3d": "The white mask is the brightest thing on her: keep everything else dark so it pops."
+ },
+ {
+  "id": "tamsin",
+  "name": "Tamsin Reedvane",
+  "title": "the Marsh Scout",
+  "element": "Gale",
+  "role": "Support",
+  "rarity": "Rare",
+  "classic": true,
+  "skills": [
+   "Reed Dart",
+   "Tailwind",
+   "Field Remedy"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.98,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:single long braid over the shoulder",
+   "colour": "#8a6a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "Female_Ranger_Body",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:wide-brim field hat with a tall pheasant feather",
+   "acc": [
+    "Female_Ranger_Acc_Pauldrons"
+   ]
+  },
+  "palette": {
+   "main": "#5f7f3a",
+   "secondary": "#8a6a2a",
+   "accent": "#e8d07a",
+   "metal": "#a08050",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "reed-weave longbow, 1.7 m",
+   "reed quiver with fletched darts",
+   "wide field hat with feather",
+   "herb satchel"
+  ],
+  "weapon": "reed-weave longbow",
+  "silhouette": "A field archer with a wide hat and a feather sticking up, holding a bow as tall as she is.",
+  "signature": "A woven-reed longbow and a wide hat with one tall feather.",
+  "pose": "Bow held vertical at her side, one arrow loose in the fingers, hat brim tipped.",
+  "fx": "Tailwind sends green streaks running past allies; Field Remedy pops herb-leaf sparkles.",
+  "story": "A marsh scout who shoots slowing darts and patches up whoever falls behind.",
+  "notes_for_3d": "The feather and the hat brim give her the unique head shape. Bow string as a thin cylinder."
+ },
+ {
+  "id": "gorrum",
+  "name": "Gorrum Slagheart",
+  "title": "the Forge-Pit Ram",
+  "element": "Flame",
+  "role": "Defense",
+  "rarity": "Rare",
+  "classic": true,
+  "skills": [
+   "Slag Fist",
+   "Molten Hide",
+   "Eruption"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.1,
+   "bulk": 1.25,
+   "head": 0.92
+  },
+  "skin": "deep",
+  "hair": {
+   "style": "none (bald)",
+   "colour": "#1a1410"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:curled ram horns (Knight_Head_Horns reshaped to full curls)",
+   "acc": [
+    "Knight_Acc_Pauldron_Round"
+   ]
+  },
+  "palette": {
+   "main": "#3a2a22",
+   "secondary": "#6a4a3a",
+   "accent": "#ff5a1a",
+   "metal": "#4a3a34",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "slag-crusted maul, head twice his shoulder width",
+   "curled ram horns",
+   "glowing slag cracks on maul and knuckles"
+  ],
+  "weapon": "slag-crusted giant maul",
+  "silhouette": "A huge horned block of a man with a maul head as wide as two men.",
+  "signature": "Curled ram horns and a slag-crusted maul twice his width.",
+  "pose": "Maul head on the ground in front, both hands on the haft, horns lowered.",
+  "fx": "Molten Hide coats him in orange cracks; Eruption slams the maul and lava spurts in a ring.",
+  "story": "A forge-pit guardian whose heart burns like slag.",
+  "notes_for_3d": "Head small vs body. Maul head as a lumpy rock-metal block with emissive cracks."
+ },
+ {
+  "id": "velka",
+  "name": "Velka Driftmourn",
+  "title": "the Frost Widow",
+  "element": "Tide",
+  "role": "Hp",
+  "rarity": "Rare",
+  "classic": true,
+  "skills": [
+   "Drift Strike",
+   "Mournful Wave",
+   "Deep Mending"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.03,
+   "bulk": 1.0,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#e8f4ff"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:long ice-blue mourning robe with a frosted hem",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:sheer frost-veil hood with hanging ice beads",
+   "acc": []
+  },
+  "palette": {
+   "main": "#3a6a8a",
+   "secondary": "#e8f4ff",
+   "accent": "#bfefff",
+   "metal": "#a8c0d0",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "ice-crystal staff, cluster of crystals at the top",
+   "frost veil with ice beads",
+   "robe hem that trails frost"
+  ],
+  "weapon": "ice-crystal staff",
+  "silhouette": "A tall bell-shaped robe under a pale veil, with a staff topped by a jagged crystal cluster.",
+  "signature": "A frost veil strung with ice beads.",
+  "pose": "Head bowed, staff held in both hands in front, veil hanging still.",
+  "fx": "Mournful Wave rolls a cold mist wave; Deep Mending rings drip blue droplets over allies.",
+  "story": "A widow of the drowned mill who turned her grief into a shield for the living.",
+  "notes_for_3d": "Rounded long robe (HP shape language). Veil is alpha-clip with ice bead strands."
+ },
+ {
+  "id": "aurelia",
+  "name": "Aurelia Dawnwarden",
+  "title": "Shield of the Dawn",
+  "element": "Light",
+  "role": "Defense",
+  "rarity": "Epic",
+  "classic": true,
+  "skills": [
+   "Warden's Blow",
+   "Aegis of Dawn",
+   "Sunfall"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.03,
+   "bulk": 1.05,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:long gold braid out of the helm",
+   "colour": "#e8b84a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "custom:Knight_Arms refit to female body",
+   "body": "custom:fitted gold plate cuirass",
+   "legs": "custom:plated tassets over a blue skirt",
+   "feet": "Knight_Feet",
+   "head": "custom:open-face helm with a radiating sun-crest",
+   "acc": [
+    "custom:round gold pauldrons",
+    "custom:royal-blue cape"
+   ]
+  },
+  "palette": {
+   "main": "#d9b24a",
+   "secondary": "#2a3f8f",
+   "accent": "#f5f0e0",
+   "metal": "#e0b850",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "kite shield with a gold sunburst on blue",
+   "arming sword",
+   "sun-crest helm",
+   "blue cape"
+  ],
+  "weapon": "sunburst kite shield and arming sword",
+  "silhouette": "A golden knight with a sun-ray crest on her helm and a long kite shield.",
+  "signature": "A sun-crest helm and a kite shield with a gold sunburst.",
+  "pose": "Shield forward, sword behind, cape blowing, chin up.",
+  "fx": "Aegis of Dawn: a gold sunburst dome over the team; Sunfall drops a sun disc that stuns.",
+  "story": "Commander of the dawn wardens, first into every breach.",
+  "notes_for_3d": "Crest rays fan upward (5 rays). Avoid wings and halo so she doesn't read as a generic angel knight."
+ },
+ {
+  "id": "sable",
+  "name": "Sable Nightglass",
+  "title": "the Mirror Witch",
+  "element": "Shadow",
+  "role": "Support",
+  "rarity": "Epic",
+  "classic": true,
+  "skills": [
+   "Glass Shard",
+   "Mirror Veil",
+   "Night Grace"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.0,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#3a2050"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:Wizard_Body robe refit to female, midnight blue",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:sheer veil sewn with star flecks",
+   "acc": [
+    "custom:starry night cloak"
+   ]
+  },
+  "palette": {
+   "main": "#232a48",
+   "secondary": "#1c2240",
+   "accent": "#c8d8ff",
+   "metal": "#c0c8d8",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "glass hand-mirror, oval, 45 cm, silver frame",
+   "night cloak with star flecks (glow mask)",
+   "star veil"
+  ],
+  "weapon": "glass hand-mirror",
+  "silhouette": "A slim night-blue figure holding up a big oval mirror that catches the light.",
+  "signature": "A glass hand-mirror and a cloak full of stars.",
+  "pose": "Mirror held up beside her face, cloak gathered with the other hand.",
+  "fx": "Mirror Veil: glass shards fly out and shatter on enemies; Night Grace sprinkles starlight on allies.",
+  "story": "A mirror-witch who shows foes their weaknesses and friends their courage.",
+  "notes_for_3d": "Mirror face uses a bright reflective material; star flecks go in the glow mask."
+ },
+ {
+  "id": "kaito",
+  "name": "Kaito Stormrend",
+  "title": "the Thunder Blade",
+  "element": "Gale",
+  "role": "Attack",
+  "rarity": "Epic",
+  "classic": true,
+  "skills": [
+   "Rending Gust",
+   "Thousand Cuts",
+   "Stormrend"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.02,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:spiky swept-back black hair",
+   "colour": "#1a1a1a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "Ranger_Body",
+   "legs": "Ranger_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:white headband with two very long tails",
+   "acc": [
+    "Knight_Acc_Scarf"
+   ]
+  },
+  "palette": {
+   "main": "#2f5a4a",
+   "secondary": "#e8f0ea",
+   "accent": "#7affc0",
+   "metal": "#8aa8c8",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "storm-blue katana",
+   "white headband with 1 m tails",
+   "zig-zag scarf",
+   "wrapped forearms"
+  ],
+  "weapon": "storm-blue katana",
+  "silhouette": "A lean swordsman with a long white headband tail whipping behind him in a zig-zag.",
+  "signature": "A long white headband tail and a storm-blue katana.",
+  "pose": "Iaido stance, hand on the hilt, scarf and tails streaming.",
+  "fx": "Thousand Cuts: four green slash lines in a star; Stormrend spins a green cyclone.",
+  "story": "A wandering blade from the storm passes who cuts faster than thunder follows lightning.",
+  "notes_for_3d": "Headband tails and scarf on spring bones. Katana slightly oversized (+15%)."
+ },
+ {
+  "id": "maelis",
+  "name": "Maelis Deepcurrent",
+  "title": "the Riptide Raider",
+  "element": "Tide",
+  "role": "Attack",
+  "rarity": "Epic",
+  "classic": true,
+  "skills": [
+   "Trident",
+   "Riptide",
+   "Maelstrom"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.04,
+   "bulk": 1.0,
+   "head": 1.0
+  },
+  "skin": "blue",
+  "hair": {
+   "style": "custom:long swept-back sea-dark hair",
+   "colour": "#163a5a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "custom:Knight_Body_Armor retextured as blue-green scale",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "none",
+   "acc": [
+    "custom:wave-crest fin cape (fin ribs)"
+   ]
+  },
+  "palette": {
+   "main": "#1a4a6a",
+   "secondary": "#123048",
+   "accent": "#ff8a6a",
+   "metal": "#c0d0d8",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "coral trident, coral-pink tines",
+   "wave-crest fin cape with ribs",
+   "scale armour"
+  ],
+  "weapon": "coral trident",
+  "silhouette": "A blue-skinned warrior with a tall coral trident and a ribbed fin rising off his back like a wave.",
+  "signature": "A coral trident and a wave-crest fin cape.",
+  "pose": "Trident planted, fin cape spread, other hand open.",
+  "fx": "Riptide spirals a water drill into the target; Maelstrom spins a whirlpool under enemies.",
+  "story": "A deep-current raider who rides the riptides into battle.",
+  "notes_for_3d": "Fin cape is rigid ribs with membrane; 2 spring bones. Coral accent differentiates him from Caspian."
+ },
+ {
+  "id": "thrain",
+  "name": "Thrain Ashforge",
+  "title": "Master of the Anvil",
+  "element": "Flame",
+  "role": "Hp",
+  "rarity": "Epic",
+  "classic": true,
+  "skills": [
+   "Forge Hammer",
+   "Ashen Ward",
+   "Bellows"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 0.88,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Balding",
+   "colour": "#a8321a"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "custom:Peasant_Arms with rolled sleeves",
+   "body": "custom:leather forge apron over Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "Knight_Feet",
+   "head": "none",
+   "acc": [
+    "Knight_Acc_Pauldron_Round"
+   ]
+  },
+  "palette": {
+   "main": "#7a5034",
+   "secondary": "#5a3a2a",
+   "accent": "#ffa040",
+   "metal": "#6a6a70",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "glowing smith's hammer",
+   "heavy leather forge apron",
+   "braided red beard with iron rings",
+   "tongs at the belt"
+  ],
+  "weapon": "glowing smith's hammer",
+  "silhouette": "A short, square smith in a heavy apron with a hammer whose head glows orange.",
+  "signature": "A forge apron and a smith's hammer with a hot glowing head.",
+  "pose": "Hammer on the shoulder, other fist on hip, beard thrust out.",
+  "fx": "Bellows: a puff of orange sparks that settles on allies; Forge Hammer rings an anvil spark burst.",
+  "story": "A smith who forged half the arms on the roster and wants them all back sharp.",
+  "notes_for_3d": "Short build (0.88). Beard braids with iron rings are his head read."
+ },
+ {
+  "id": "oriel",
+  "name": "Oriel Sunveil",
+  "title": "Priestess of Sunrise",
+  "element": "Light",
+  "role": "Support",
+  "rarity": "Epic",
+  "classic": true,
+  "skills": [
+   "Veil Light",
+   "Sunveil",
+   "Ascend"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.04,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#f0e6c8"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:sunrise-orange robe with layered sleeves",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:sun-disc halo with rays behind the head + sheer veil",
+   "acc": []
+  },
+  "palette": {
+   "main": "#e08a2c",
+   "secondary": "#f0e6c8",
+   "accent": "#ffe27a",
+   "metal": "#e8b84a",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "sun-disc halo with 12 rays",
+   "gold-bound staff with a small disc",
+   "sheer veil"
+  ],
+  "weapon": "gold-bound staff",
+  "silhouette": "A tall orange robe with a big round sun disc behind her head.",
+  "signature": "A sun-disc halo with rays.",
+  "pose": "Staff held diagonally, other arm raised palm up, veil lifting.",
+  "fx": "Sunveil: a warm gold veil sweeps over allies; Ascend lifts golden sparks upward from each ally.",
+  "story": "A dawn priestess whose blessing makes allies faster and braver.",
+  "notes_for_3d": "Halo disc sits behind the head (not above). Rays are flat blades."
+ },
+ {
+  "id": "vaelith",
+  "name": "Vaelith, the Last Pyre",
+  "title": "the Burning-Winged",
+  "element": "Flame",
+  "role": "Attack",
+  "rarity": "Legendary",
+  "classic": true,
+  "skills": [
+   "Pyre Brand",
+   "Cinder Rain",
+   "Last Pyre"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.06,
+   "bulk": 1.0,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "custom:living flame hair (emissive, animated)",
+   "colour": "#ff5a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Noble_Body",
+   "legs": "Noble_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:ember crown sunk into the flame hair",
+   "acc": [
+    "Noble_Acc_Pauldron",
+    "custom:wings of living flame"
+   ]
+  },
+  "palette": {
+   "main": "#3a1010",
+   "secondary": "#24100a",
+   "accent": "#ffb020",
+   "metal": "#c87a30",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "wings of living flame (alpha-clip fire sheets, flapping slowly)",
+   "wavy flamberge sword",
+   "ember crown",
+   "ember aura particles",
+   "dark cape"
+  ],
+  "weapon": "burning flamberge",
+  "silhouette": "A dark regal figure with fire for hair and two great burning wings.",
+  "signature": "Living flame hair and burning wings.",
+  "pose": "Floating slightly, wings half open, sword lowered to one side.",
+  "fx": "Cinder Rain: the wings beat and embers rain on enemies; Last Pyre engulfs the sword in a white-hot column.",
+  "story": "The last keeper of the Pyre, burned and reborn.",
+  "notes_for_3d": "Legendary: wings + crown + aura. Hair and wings share one fire material with scrolling noise."
+ },
+ {
+  "id": "morwenna",
+  "name": "Morwenna Abyss-Crowned",
+  "title": "Queen of the Abyss",
+  "element": "Shadow",
+  "role": "Attack",
+  "rarity": "Legendary",
+  "classic": true,
+  "skills": [
+   "Abyssal Touch",
+   "Crown of Night",
+   "Drown in Dark"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.06,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#120a1a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:black-violet gown whose hem breaks into tendrils",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:crown of black thorns floating above the head",
+   "acc": [
+    "custom:long train cape"
+   ]
+  },
+  "palette": {
+   "main": "#1a0f24",
+   "secondary": "#3a1a50",
+   "accent": "#a050ff",
+   "metal": "#8a8aa0",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "floating black-thorn crown (glowing violet tips)",
+   "abyss orb (black water sphere) in her palm",
+   "tendril hem",
+   "long train cape"
+  ],
+  "weapon": "abyss orb",
+  "silhouette": "A tall black gown with a jagged crown hovering in the air above her head.",
+  "signature": "A crown of black thorns floating above her head.",
+  "pose": "Orb held out at shoulder height, head tilted, gown tendrils drifting.",
+  "fx": "Crown of Night drops dark rings that stun; Drown in Dark swallows the target in a black water sphere.",
+  "story": "A queen of the abyss who wants the Sigil's dark half for herself.",
+  "notes_for_3d": "Crown floats 15 cm above the head on a helper bone with a slow bob. Thorns stay graceful, not spiky-grim."
+ },
+ {
+  "id": "seraphine",
+  "name": "Seraphine of the Seventh Bell",
+  "title": "Saint of the Seven Bells",
+  "element": "Light",
+  "role": "Support",
+  "rarity": "Legendary",
+  "classic": true,
+  "skills": [
+   "Bell Toll",
+   "Seventh Bell",
+   "Requiem"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.02,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#fff4d8"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:bell-shaped ivory robe fringed with tiny bells",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:halo hung with seven small bells",
+   "acc": [
+    "custom:light gold sash"
+   ]
+  },
+  "palette": {
+   "main": "#f4eee0",
+   "secondary": "#d8c8a8",
+   "accent": "#ffd870",
+   "metal": "#e8c060",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "halo with seven small bells",
+   "large hand-bell, 35 cm",
+   "bell-shaped robe with bell fringe",
+   "light aura"
+  ],
+  "weapon": "large hand-bell",
+  "silhouette": "A bell-shaped ivory robe with a ring of bells floating over her head.",
+  "signature": "Seven small bells ringing on her halo.",
+  "pose": "Hand-bell raised, ready to ring, robe flared.",
+  "fx": "Seventh Bell rings a gold shockwave that heals; Requiem rings all seven halo bells in turn.",
+  "story": "The bell-saint whose seventh bell, it is said, can wake the fallen.",
+  "notes_for_3d": "Bells on the halo swing on tiny spring bones. Robe silhouette is literally a bell."
+ },
+ {
+  "id": "ulfgar",
+  "name": "Ulfgar Stormwall",
+  "title": "King of the High Passes",
+  "element": "Gale",
+  "role": "Defense",
+  "rarity": "Legendary",
+  "classic": true,
+  "skills": [
+   "Stormwall Bash",
+   "Hold the Line",
+   "Avalanche"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.08,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "custom:long silver-grey hair",
+   "colour": "#c8ccd0"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:Knight_Head_Armet with storm wings on the sides",
+   "acc": [
+    "Knight_Acc_Pauldron_Round",
+    "custom:storm-grey cape"
+   ]
+  },
+  "palette": {
+   "main": "#8a9aac",
+   "secondary": "#3a4a62",
+   "accent": "#bfe8ff",
+   "metal": "#9aa8b8",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "winged storm helm",
+   "round shield with a lightning-bolt boss",
+   "bearded war axe",
+   "storm cape",
+   "crackling aura"
+  ],
+  "weapon": "lightning-boss round shield and war axe",
+  "silhouette": "A mountain of steel with wings on his helm and a big round shield.",
+  "signature": "A winged storm helm and a round shield with a lightning boss.",
+  "pose": "Shield braced forward, axe low, cape whipping.",
+  "fx": "Hold the Line: green-white lightning arcs between allies' feet; Avalanche drops a wall of wind and snow.",
+  "story": "A legendary shield-king of the high passes; storms break on him.",
+  "notes_for_3d": "Legendary: wings on helm + cape + aura. Shield boss is a raised bolt shape, emissive."
+ },
+ {
+  "id": "bram",
+  "name": "Bram Wetherby",
+  "title": "the Ferryman",
+  "element": "Tide",
+  "role": "Hp",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Oar Swing",
+   "Weather the Storm"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.05,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Buzzed",
+   "colour": "#6a5a4a"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "custom:yellow oilskin ferry coat over Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:navy knit sailor cap",
+   "acc": [
+    "custom:rope coil over the left shoulder"
+   ]
+  },
+  "palette": {
+   "main": "#d8a830",
+   "secondary": "#2f5a6e",
+   "accent": "#f0ead8",
+   "metal": "#6a6a68",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "ship's anchor (1.3 m) slung on the right shoulder by its ring",
+   "yellow oilskin coat",
+   "rope coil",
+   "knit cap"
+  ],
+  "weapon": "shouldered ship's anchor",
+  "silhouette": "A broad man in a bright yellow coat with a big anchor hooked over his shoulder.",
+  "signature": "A ship's anchor slung over his shoulder like a sack.",
+  "pose": "Anchor on shoulder, free hand thumb in belt, feet wide like on a rocking deck.",
+  "fx": "Weather the Storm: rain streaks fall around him and a blue barrel-hoop shield rings his body.",
+  "story": "The Drowned Mill ferryman who hauled the mill wheel back by hand.",
+  "notes_for_3d": "Yellow coat is his colour block: only hero with a yellow oilskin. The anchor is carried big and still; Dorian's is small and swung on a chain."
+ },
+ {
+  "id": "nettle",
+  "name": "Nettle Quickfinch",
+  "title": "the Fox Courier",
+  "element": "Gale",
+  "role": "Attack",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Twin Sting",
+   "Hedge Dash"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 0.9,
+   "bulk": 0.88,
+   "head": 1.05
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "custom:messy hair under the hood",
+   "colour": "#8a5a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:fox-head hood with ears and a long fox tail down the back",
+   "acc": []
+  },
+  "palette": {
+   "main": "#c8642a",
+   "secondary": "#6a8a3a",
+   "accent": "#e8c84a",
+   "metal": "#a0a0a0",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "fox hood with ears and tail",
+   "twin hooked knives",
+   "courier satchel with letters"
+  ],
+  "weapon": "twin hooked knives",
+  "silhouette": "A small runner in an orange fox hood with pointy ears and a bushy tail behind.",
+  "signature": "The fox hood with ears and a bushy tail.",
+  "pose": "Bouncing on the toes, knives low, tail flicking.",
+  "fx": "Twin Sting: two quick green slash ticks; Hedge Dash leaves a blur of leaves along his path.",
+  "story": "The fastest courier on Thornwick Road; nobody has caught his tail.",
+  "notes_for_3d": "Tail on 3 spring bones. Orange is his only colour block; keep the clothes green-brown."
+ },
+ {
+  "id": "hobb",
+  "name": "Hobb Lanternjaw",
+  "title": "Keeper of the Waystones",
+  "element": "Light",
+  "role": "Defense",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Lamp Bash",
+   "Waystone Ward"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.1,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "none (bald)",
+   "colour": "#3a2a1a"
+  },
+  "facial": "MuttonChops",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Cloth",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:open iron helm with a lantern built into the jaw guard",
+   "acc": [
+    "Knight_Acc_Pauldron_Round"
+   ]
+  },
+  "palette": {
+   "main": "#8a8070",
+   "secondary": "#5a4a3a",
+   "accent": "#ffd870",
+   "metal": "#7a7a70",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "iron helm whose chin guard is a glowing lantern",
+   "square milestone shield (carved waystone)",
+   "short iron club"
+  ],
+  "weapon": "square milestone shield and short club",
+  "silhouette": "A stocky watchman with a glowing chin and a square stone-grey shield.",
+  "signature": "A lantern built into his helm's jaw, lighting his face from below.",
+  "pose": "Shield square to the front, club resting on its top, chin lantern glowing.",
+  "fx": "Waystone Ward: small golden milestones rise in front of each ally and fade into shields.",
+  "story": "The road warden who keeps the waystone lamps lit.",
+  "notes_for_3d": "Chin lantern is emissive and must be visible from the front three-quarter battle camera."
+ },
+ {
+  "id": "greta",
+  "name": "Greta Brineknot",
+  "title": "the Net-Mender",
+  "element": "Tide",
+  "role": "Support",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Net Toss",
+   "Mend the Nets"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.96,
+   "bulk": 1.0,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:thick rope-braid crown",
+   "colour": "#c8b8a0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "Female_Peasant_Body",
+   "legs": "Female_Peasant_Legs",
+   "feet": "custom:tall rubber wading boots",
+   "head": "custom:knotted red headscarf",
+   "acc": [
+    "custom:weighted net draped over one shoulder"
+   ]
+  },
+  "palette": {
+   "main": "#4a7a8a",
+   "secondary": "#c8b8a0",
+   "accent": "#e8763a",
+   "metal": "#8a8a80",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "weighted throwing net with orange cork floats",
+   "wading boots",
+   "net-mending needle at the belt"
+  ],
+  "weapon": "weighted throwing net",
+  "silhouette": "A sturdy marsh woman with a big net draped from her shoulder, orange floats dotting it.",
+  "signature": "A weighted fishing net with bright orange floats over one shoulder.",
+  "pose": "Net bunched in one hand ready to cast, the other on her hip.",
+  "fx": "Net Toss throws a glowing blue net that pins; Mend the Nets weaves blue threads that tie up wounds.",
+  "story": "A Saltmarsh net-mender who can untangle anything, including a bad fight.",
+  "notes_for_3d": "Net is an alpha-clip card mesh on 4 spring bones; floats are solid spheres so they read."
+ },
+ {
+  "id": "cole",
+  "name": "Cole Ashworth",
+  "title": "the Charcoal Burner",
+  "element": "Flame",
+  "role": "Attack",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Cleave",
+   "Ash Split"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.1,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Buzzed",
+   "colour": "#2a2420"
+  },
+  "facial": "MuttonChops",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:soot-black slouch hat",
+   "acc": [
+    "custom:charcoal sack on the back"
+   ]
+  },
+  "palette": {
+   "main": "#5a4a3a",
+   "secondary": "#2a2420",
+   "accent": "#ff8a3a",
+   "metal": "#8a8a8a",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "twin woodsman's hatchets",
+   "charcoal sack",
+   "slouch hat",
+   "soot smudges"
+  ],
+  "weapon": "twin woodsman's hatchets",
+  "silhouette": "A soot-dark woodsman with a floppy hat and a hatchet in each hand.",
+  "signature": "Twin hatchets with ember-hot edges and a soot-black slouch hat.",
+  "pose": "Hatchets crossed low, shoulders rolled forward.",
+  "fx": "Ash Split: the hatchets strike sparks and a puff of ash; edges glow orange when ATK is up.",
+  "story": "An Ashgrave charcoal burner who swings an axe for a living.",
+  "notes_for_3d": "Hatchet edges carry the only glow."
+ },
+ {
+  "id": "tilly",
+  "name": "Tilly Mothwing",
+  "title": "the Moth-Keeper",
+  "element": "Shadow",
+  "role": "Support",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Moth Swarm",
+   "Dusk Wings"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.92,
+   "bulk": 0.9,
+   "head": 1.05
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "Hair2",
+   "colour": "#5a4a6a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:short layered dusk dress",
+   "legs": "Female_Peasant_Legs",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:pointed witch hat with two feathery moth antennae",
+   "acc": [
+    "custom:dusty moth wings"
+   ]
+  },
+  "palette": {
+   "main": "#3a3048",
+   "secondary": "#8a7a9a",
+   "accent": "#f0e0b0",
+   "metal": "#a09080",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "moth wings (dusty lilac, eye spots)",
+   "moth-shaped candle lantern",
+   "pointed hat with antennae"
+  ],
+  "weapon": "moth-shaped candle",
+  "silhouette": "A small witch with a pointed hat and two soft moth wings.",
+  "signature": "Moth wings and the only pointed witch hat in the roster.",
+  "pose": "Candle held close to her chest, wings slowly fanning.",
+  "fx": "Moth Swarm sends pale violet moths at the target; Dusk Wings beats a cloud of moth dust over enemies.",
+  "story": "Moth-keeper of the Bellspire ruins; the moths follow her light.",
+  "notes_for_3d": "Wings are flat alpha cards with a slow flap. Keep the hat; it is her unique head shape."
+ },
+ {
+  "id": "ronan",
+  "name": "Ronan Stoutbarrow",
+  "title": "the Innkeeper",
+  "element": "Gale",
+  "role": "Hp",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Tankard Swing",
+   "Hearth Feast"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.04,
+   "bulk": 1.25,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "Balding",
+   "colour": "#8a5a2a"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "custom:innkeeper's waistcoat and apron over Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "Peasant_Feet",
+   "head": "none",
+   "acc": [
+    "custom:small ale keg strapped on the back"
+   ]
+  },
+  "palette": {
+   "main": "#4a6a3a",
+   "secondary": "#e8d8b0",
+   "accent": "#c8d870",
+   "metal": "#8a6a3a",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "giant oak tankard on a long handle (swung like a mallet)",
+   "ale keg on the back",
+   "apron with towel"
+  ],
+  "weapon": "giant oak tankard",
+  "silhouette": "A round innkeeper with a keg on his back and a tankard as big as a bucket.",
+  "signature": "A giant tankard he swings like a mallet, and the keg on his back.",
+  "pose": "Tankard raised as if in a toast, belly out, broad smile.",
+  "fx": "Hearth Feast: warm green-gold steam rises from the keg and settles on allies.",
+  "story": "The Thornwick innkeeper who never lets a guest go hungry.",
+  "notes_for_3d": "Replaces his hammer (fixes the Thrain twin). The skill is already 'Tankard Swing'."
+ },
+ {
+  "id": "isla",
+  "name": "Isla Fenlight",
+  "title": "the Bell-Ringer",
+  "element": "Light",
+  "role": "Support",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Chime",
+   "Fenlight Peal"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.97,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#e8d890"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:chapel shawl over Female_Peasant_Body",
+   "legs": "Female_Peasant_Legs",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:reed-woven circlet",
+   "acc": [
+    "custom:pale green shawl"
+   ]
+  },
+  "palette": {
+   "main": "#e8e0c8",
+   "secondary": "#6a8a6a",
+   "accent": "#ffd870",
+   "metal": "#c8a860",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "marsh-light bell hanging from a bent reed pole",
+   "reed circlet",
+   "shawl"
+  ],
+  "weapon": "marsh-light bell on a reed pole",
+  "silhouette": "A pale chapel girl holding a bent reed pole with one glowing bell hanging off the end.",
+  "signature": "A glowing marsh-light bell dangling from a reed pole.",
+  "pose": "Pole over her shoulder, bell swaying, head tilted listening.",
+  "fx": "Fenlight Peal: the bell glows and soft gold rings ripple outward over allies.",
+  "story": "The Saltmarsh chapel bell-ringer whose bell guides lost travellers out of the fen.",
+  "notes_for_3d": "Bell on a 2-bone chain. One bell only (Seraphine owns the many-bells look)."
+ },
+ {
+  "id": "dunstan",
+  "name": "Dunstan Oaken",
+  "title": "the Old Shield-Captain",
+  "element": "Gale",
+  "role": "Defense",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Shield Bash",
+   "Muster",
+   "Old Guard"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.04,
+   "bulk": 1.15,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#8a8a8a"
+  },
+  "facial": "Moustache",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Cloth",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:wide-brim iron kettle hat with a leafy crest",
+   "acc": [
+    "Noble_Acc_Pauldron",
+    "custom:short green cape"
+   ]
+  },
+  "palette": {
+   "main": "#6a7a5a",
+   "secondary": "#3a5a3a",
+   "accent": "#d8c890",
+   "metal": "#8a8a80",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "oak heater shield painted with a white oak tree",
+   "arming sword",
+   "kettle hat with leaf crest",
+   "militia horn at the hip"
+  ],
+  "weapon": "oak-tree heater shield and militia horn",
+  "silhouette": "A grey-moustached old soldier under a wide brimmed iron hat, oak shield up.",
+  "signature": "A wide kettle hat with a leafy crest and a militia horn at his hip.",
+  "pose": "Shield forward, sword lowered, horn swinging, stiff military posture.",
+  "fx": "Muster: he blows the horn and green rings pulse; Old Guard raises oak-leaf shields on allies.",
+  "story": "The old shield-captain of the Thornwick militia.",
+  "notes_for_3d": "Kettle hat brim is the silhouette breaker; no full helm (keeps him apart from Hask and Ulfgar)."
+ },
+ {
+  "id": "marisol",
+  "name": "Marisol Wavecrest",
+  "title": "the Pearl Raider",
+  "element": "Tide",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Pearl Strike",
+   "Riptide Dive",
+   "Wavebreak"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.98,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "custom:high ponytail with pearl ties",
+   "colour": "#1a1a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "custom:diver's wrap top and sash",
+   "legs": "Female_Ranger_Legs",
+   "feet": "custom:bare feet with shell anklets",
+   "head": "custom:pearl headband",
+   "acc": [
+    "custom:pearl-net sash"
+   ]
+  },
+  "palette": {
+   "main": "#2a6a8a",
+   "secondary": "#f0e8d8",
+   "accent": "#7ae0ff",
+   "metal": "#c8d8e0",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "wave-curl glaive (blade curls like a breaking wave)",
+   "pearl headband",
+   "shell anklets"
+  ],
+  "weapon": "wave-curl glaive",
+  "silhouette": "A barefoot diver with a polearm whose blade curls over like a breaking wave.",
+  "signature": "A glaive blade shaped like a curling wave.",
+  "pose": "Glaive swept behind her, low crouch, ponytail flicking.",
+  "fx": "Wavebreak: a crescent wave rolls across enemies; Riptide Dive leaves a water spiral.",
+  "story": "A pearl diver who now raids the Hollow from the sea.",
+  "notes_for_3d": "Blade curl must be big and open so the wave reads."
+ },
+ {
+  "id": "vesper",
+  "name": "Vesper Gloam",
+  "title": "the Beaked Thief",
+  "element": "Shadow",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Gloom Cut",
+   "Poisoned Edge",
+   "Nightfall Feint"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.96,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "Hair2",
+   "colour": "#2a2030"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "Female_Ranger_Body",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:deep pointed cowl joined to a long black beak mask",
+   "acc": [
+    "custom:poison-vial bandolier"
+   ]
+  },
+  "palette": {
+   "main": "#2a2238",
+   "secondary": "#1a1622",
+   "accent": "#7ad07a",
+   "metal": "#9a9aa8",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "long black beaked night mask",
+   "sickle",
+   "bandolier of green vials"
+  ],
+  "weapon": "poison sickle",
+  "silhouette": "A hooded thief with a long black beak sticking out of her hood and a hooked sickle.",
+  "signature": "A long beaked night mask under the hood.",
+  "pose": "Side-on crouch, sickle held close, beak forward.",
+  "fx": "Poisoned Edge drips green; Nightfall Feint scatters dark feathers.",
+  "story": "A thief who works the Hollow Deep's edges and never shows her face.",
+  "notes_for_3d": "Beak 25 cm, so it breaks the hood line. Green vials are the only accent glow."
+ },
+ {
+  "id": "brega",
+  "name": "Brega Ironmoss",
+  "title": "Keeper of the Lock",
+  "element": "Tide",
+  "role": "Defense",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Barnacle Bash",
+   "Lockkeeper",
+   "Floodgate"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.2,
+   "head": 0.95
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "none (bald)",
+   "colour": "#3a5a5a"
+  },
+  "facial": "custom:hanging moss beard (mesh strands)",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "custom:barnacled iron sabatons",
+   "head": "custom:moss-grown bucket great helm with a barnacle crust",
+   "acc": [
+    "Knight_Acc_Pauldron_Round"
+   ]
+  },
+  "palette": {
+   "main": "#4a6a6a",
+   "secondary": "#2a4a4a",
+   "accent": "#c8e8d0",
+   "metal": "#6a7a78",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "round mill-wheel shield with paddle blades around the rim",
+   "lock-gate crank handle used as a club",
+   "moss-grown bucket helm",
+   "barnacle clusters on pauldron and shield"
+  ],
+  "weapon": "mill-wheel shield and lock-crank club",
+  "silhouette": "A squat green-grey knight in a moss-bearded bucket helm behind a round shield edged with mill-wheel paddles.",
+  "signature": "A shield built from a mill wheel, paddles sticking out all around its rim.",
+  "pose": "Shield turned slightly so the paddles show, crank club over the shoulder, knees bent.",
+  "fx": "Lockkeeper: water pours off the wheel shield into a spinning blue ring; Floodgate slams a wall of water that slows enemies.",
+  "story": "The Drowned Mill's lock keeper, who has stood in cold water so long the moss grew on him.",
+  "notes_for_3d": "Paddle rim is the read that separates him from Hask (rectangle) and Hobb (square). Moss beard is alpha-clip strands under the helm."
+ },
+ {
+  "id": "fennick",
+  "name": "Fennick Sootpaw",
+  "title": "the Firework Maker",
+  "element": "Flame",
+  "role": "Support",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Spark Toss",
+   "Firework Volley",
+   "Bright Burst"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 0.92,
+   "bulk": 0.9,
+   "head": 1.05
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:messy ginger hair",
+   "colour": "#d86a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "Peasant_Feet",
+   "head": "custom:cat-ear cap with soot goggles pushed up",
+   "acc": [
+    "custom:backpack of firework rockets"
+   ]
+  },
+  "palette": {
+   "main": "#7a3a2a",
+   "secondary": "#e8c890",
+   "accent": "#ffd040",
+   "metal": "#a07040",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "rocket-tipped fuse staff (lit fuse sparking)",
+   "backpack of rockets sticking up",
+   "cat-ear cap",
+   "goggles"
+  ],
+  "weapon": "rocket-tipped fuse staff",
+  "silhouette": "A small firework maker with cat ears and a fan of rockets sticking up from his back.",
+  "signature": "Cat ears, soot goggles and a backpack of rockets.",
+  "pose": "Staff held up, fuse sparking, grinning with soot on his nose.",
+  "fx": "Firework Volley launches popping rockets that burst in green and yellow; Bright Burst sprays sparkles on allies.",
+  "story": "An Ashgrave firework maker who treats every fight like a festival.",
+  "notes_for_3d": "Rockets on the back give a spiky crown silhouette; spark particles on the fuse."
+ },
+ {
+  "id": "orla",
+  "name": "Orla Greywater",
+  "title": "the River Brewer",
+  "element": "Tide",
+  "role": "Hp",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Weed Lash",
+   "River Brew",
+   "Marsh Tonic"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.1,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#8a9090"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:robe under a heron-feather cloak",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "none",
+   "acc": [
+    "custom:heron-feather cloak"
+   ]
+  },
+  "palette": {
+   "main": "#3a6a6a",
+   "secondary": "#c8c8c0",
+   "accent": "#a8e0c8",
+   "metal": "#b87333",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "brew-pole with a hanging copper kettle, steaming",
+   "heron-feather cloak",
+   "herb pouches"
+  ],
+  "weapon": "brew-pole with hanging copper kettle",
+  "silhouette": "A round, grey-feathered healer with a pole over her shoulder and a copper kettle dangling at its end.",
+  "signature": "A heron-feather cloak and a steaming copper kettle on a pole.",
+  "pose": "Pole over shoulder, kettle steaming, other hand stirring the air.",
+  "fx": "River Brew: green-teal steam pours from the kettle and rains on allies.",
+  "story": "A marsh healer who brews medicine from river weed.",
+  "notes_for_3d": "Replaces her staff (fixes the Velka twin). Kettle on 2-bone chain."
+ },
+ {
+  "id": "silas",
+  "name": "Silas Penumbra",
+  "title": "Warden of the Black Gate",
+  "element": "Shadow",
+  "role": "Defense",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Gate Strike",
+   "Penumbra Ward",
+   "Black Gate"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.02,
+   "bulk": 1.05,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "SlickBack",
+   "colour": "#1a1a1a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "custom:black gate-warden longcoat (Knight_Body_Cloth dyed)",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:half-veil over the lower face",
+   "acc": [
+    "Knight_Acc_Pauldron_Round"
+   ]
+  },
+  "palette": {
+   "main": "#2a2a3a",
+   "secondary": "#1a1a28",
+   "accent": "#c0c0d8",
+   "metal": "#8a8aa0",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "half-moon shield with an eclipse face",
+   "huge iron gate-key used as a mace",
+   "key ring at the belt"
+  ],
+  "weapon": "eclipse half-moon shield and gate-key mace",
+  "silhouette": "A dark warden with a crescent-shaped shield and an oversized key in his fist.",
+  "signature": "A half-moon shield with an eclipse face, and a giant gate key.",
+  "pose": "Shield across the body, key resting on the shoulder.",
+  "fx": "Penumbra Ward: a violet eclipse ring closes around him; Black Gate slams down a gate of shadow.",
+  "story": "The Bellspire gatekeeper sworn to the dark side of the Sigil.",
+  "notes_for_3d": "Shield is a crescent (cut-out top). Key 1 m long."
+ },
+ {
+  "id": "wynn",
+  "name": "Wynn Brightfeather",
+  "title": "the Falconer",
+  "element": "Light",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Falcon Shot",
+   "Stooping Dive",
+   "Feather Storm"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#e8e0c0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "Ranger_Body",
+   "legs": "Ranger_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:feathered falconer's cap",
+   "acc": [
+    "Ranger_Acc_Pauldron",
+    "custom:thick leather falconry glove on the left arm"
+   ]
+  },
+  "palette": {
+   "main": "#c8a860",
+   "secondary": "#f0e8d0",
+   "accent": "#fff0a0",
+   "metal": "#b08a40",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "white-gold falcon perched on the left arm",
+   "short recurve bow",
+   "falconer's glove",
+   "feather cap"
+  ],
+  "weapon": "short recurve bow with perched falcon",
+  "silhouette": "An archer with a white falcon perched on his raised fist.",
+  "signature": "A white-gold falcon on his arm.",
+  "pose": "Left arm raised with the falcon, bow low in the right hand.",
+  "fx": "Stooping Dive: the falcon dives as a golden streak; Feather Storm showers white-gold feathers.",
+  "story": "A falconer of the Stormcrown foothills.",
+  "notes_for_3d": "Falcon is a separate small rig (3 bones) parented to the left forearm. No wings on Wynn himself."
+ },
+ {
+  "id": "kestrel",
+  "name": "Kestrel Vane",
+  "title": "the Storm Lancer",
+  "element": "Gale",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Lance Thrust",
+   "Skyfall Lance",
+   "Gale Charge"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.02,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Hair2",
+   "colour": "#3a2a1a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "custom:light lamellar vest",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:falcon-wing visor helm with a tall gold plume",
+   "acc": [
+    "Female_Ranger_Acc_Pauldrons"
+   ]
+  },
+  "palette": {
+   "main": "#5a7a9a",
+   "secondary": "#3a4a6a",
+   "accent": "#f0c040",
+   "metal": "#b0b8c0",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "conical cavalry lance with round vamplate",
+   "wind-sock streamer on the lance",
+   "plumed visor helm"
+  ],
+  "weapon": "conical cavalry lance",
+  "silhouette": "A lancer with a long cone-shaped lance and a tall plume on her helm.",
+  "signature": "A cone lance with a round hand-guard and a wind-sock streamer.",
+  "pose": "Lance couched under the arm, angled forward, plume streaming.",
+  "fx": "Lance Thrust pierces with a green spiral that continues to the unit behind.",
+  "story": "A Stormcrown lancer who hits the front line and the one behind it.",
+  "notes_for_3d": "Lance cone shape (not a spear) is the read; vamplate disc 35 cm."
+ },
+ {
+  "id": "sorrel",
+  "name": "Sorrel Duskmere",
+  "title": "the Deep Miner",
+  "element": "Shadow",
+  "role": "Hp",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Pick Strike",
+   "Deep Breath",
+   "Cave-in"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.06,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "ash",
+  "hair": {
+   "style": "Buzzed",
+   "colour": "#2a2a2a"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:miner's hard cap with a violet crystal lamp",
+   "acc": [
+    "custom:ore sack and rope over the shoulder"
+   ]
+  },
+  "palette": {
+   "main": "#4a3a4a",
+   "secondary": "#8a7a6a",
+   "accent": "#9aff6a",
+   "metal": "#6a6a6a",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "miner's pickaxe with a violet crystal head",
+   "crystal head lamp",
+   "ore sack"
+  ],
+  "weapon": "crystal pickaxe",
+  "silhouette": "A heavy miner with a glowing lamp on his cap and a pickaxe over his shoulder.",
+  "signature": "A miner's cap lamp that glows violet, and a crystal pickaxe.",
+  "pose": "Pick on the shoulder, slightly hunched, as if under a low ceiling.",
+  "fx": "Pick Strike cracks green poison spores out of the ground; Cave-in drops dark rocks on enemies.",
+  "story": "A Hollow Deep miner who survived the collapse.",
+  "notes_for_3d": "Replaces the club and cape (fixes Odo and Bastian twins). Skill already 'Pick Strike'."
+ },
+ {
+  "id": "amber",
+  "name": "Amber Glasswright",
+  "title": "the Kiln-Mistress",
+  "element": "Flame",
+  "role": "Defense",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Glass Bash",
+   "Kiln Shield",
+   "Molten Glass"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.98,
+   "bulk": 1.05,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:thick braid",
+   "colour": "#e8a040"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:glassblower's leather apron dress",
+   "legs": "Female_Peasant_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:round-lens goggles helm",
+   "acc": [
+    "Female_Ranger_Acc_Pauldrons"
+   ]
+  },
+  "palette": {
+   "main": "#c87a30",
+   "secondary": "#6a4020",
+   "accent": "#ffe0a0",
+   "metal": "#8a6a4a",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "blown-glass dome shield, glowing molten orange inside",
+   "glassblower's pipe as a club",
+   "lens goggles"
+  ],
+  "weapon": "molten glass dome shield and blowpipe",
+  "silhouette": "A sturdy woman behind a round glowing bubble of glass.",
+  "signature": "A blown-glass dome shield that glows like molten honey.",
+  "pose": "Shield held forward, blowpipe resting on the shoulder.",
+  "fx": "Molten Glass: the shield bubble swells into a glass dome; hits leave glowing glass splinters.",
+  "story": "A Glass Wastes kiln-mistress who blows her own shields.",
+  "notes_for_3d": "Shield uses a translucent glowing material; keep a solid metal rim so it reads."
+ },
+ {
+  "id": "tobias",
+  "name": "Tobias Reed",
+  "title": "the Wandering Lute",
+  "element": "Gale",
+  "role": "Support",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Discord",
+   "Marching Song",
+   "Hearthsong"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Ponytail",
+   "colour": "#a07040"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "custom:long travel coat over Peasant_Body",
+   "legs": "Ranger_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:very wide traveller's hat with a feather",
+   "acc": [
+    "Knight_Acc_Scarf"
+   ]
+  },
+  "palette": {
+   "main": "#6a8a5a",
+   "secondary": "#c8a060",
+   "accent": "#ffd080",
+   "metal": "#a07a50",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "lute",
+   "wide hat",
+   "travel coat",
+   "bedroll on back"
+  ],
+  "weapon": "lute",
+  "silhouette": "A traveller under a hat wider than his shoulders, a lute across his chest.",
+  "signature": "A very wide traveller's hat and a lute.",
+  "pose": "Strumming, one foot tapping, hat tilted down.",
+  "fx": "Marching Song: green musical notes run along the ground to allies; Discord sends sour-note swirls at the target.",
+  "story": "A wandering lute player of the high passes.",
+  "notes_for_3d": "Hat 80 cm wide. Lute held in the playing position for idle."
+ },
+ {
+  "id": "nerys",
+  "name": "Nerys Coldspring",
+  "title": "the Still-Water Acolyte",
+  "element": "Tide",
+  "role": "Support",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Tide Mirror",
+   "Still Waters",
+   "Spring Rite"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.98,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "Hair2",
+   "colour": "#9ac8e8"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:short acolyte robe",
+   "legs": "Female_Peasant_Legs",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:circlet of ice",
+   "acc": []
+  },
+  "palette": {
+   "main": "#4a7aa0",
+   "secondary": "#e0f4ff",
+   "accent": "#9ae0ff",
+   "metal": "#c8d8e8",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "ice-ring chakram (60 cm) with a film of water across the ring like a mirror",
+   "ice circlet"
+  ],
+  "weapon": "ice-ring chakram with water-mirror film",
+  "silhouette": "A young acolyte holding a large ice hoop with a shimmering mirror inside.",
+  "signature": "An ice-ring chakram whose centre is a water mirror.",
+  "pose": "Ring held to one side, looking through it.",
+  "fx": "Still Waters: the ring flashes and blue ripple rings spread to allies; Tide Mirror flicks the ring at the target.",
+  "story": "A Sunken Cathedral acolyte who sees true in still water.",
+  "notes_for_3d": "Short hair (Hair2) separates her from Velka and Selene."
+ },
+ {
+  "id": "hale",
+  "name": "Hale Sunforge",
+  "title": "the Lamp-Smith",
+  "element": "Light",
+  "role": "Hp",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Forge Strike",
+   "Anvil Heart",
+   "Lamplight"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.06,
+   "bulk": 1.15,
+   "head": 1.0
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "Buzzed",
+   "colour": "#c8a060"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "custom:smith's leather jerkin with plate chest",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "none",
+   "acc": [
+    "custom:anvil strapped on the back"
+   ]
+  },
+  "palette": {
+   "main": "#a89070",
+   "secondary": "#6a5030",
+   "accent": "#ffe08a",
+   "metal": "#c8a050",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "sun-forged mace with glowing runes",
+   "small anvil strapped on the back",
+   "leather jerkin"
+  ],
+  "weapon": "runed sun-forged mace",
+  "silhouette": "A broad smith with an anvil on his back sticking up above his shoulders.",
+  "signature": "An anvil strapped on his back.",
+  "pose": "Mace held low, leaning slightly forward under the anvil's weight.",
+  "fx": "Anvil Heart: an anvil shape of light forms over him; Lamplight warms allies with gold sparks.",
+  "story": "The Bellspire smith who forged the waystone lamps.",
+  "notes_for_3d": "Mace, not hammer (fixes the Thrain twin). Anvil silhouette is the read."
+ },
+ {
+  "id": "juno",
+  "name": "Juno Ashveil",
+  "title": "the Fire Dancer",
+  "element": "Flame",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Fire Whirl",
+   "Ember Lash",
+   "Pyre Dance"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.97,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "custom:long flame-red hair",
+   "colour": "#e8501a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:dancer's wrap robe with flared skirt",
+   "legs": "none (covered by robe)",
+   "feet": "custom:bare feet with ankle bells",
+   "head": "custom:ash-grey veil",
+   "acc": [
+    "custom:gold bangles"
+   ]
+  },
+  "palette": {
+   "main": "#8a2a1a",
+   "secondary": "#c8c0b8",
+   "accent": "#ffb030",
+   "metal": "#d8a040",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "twin fire ribbons on short batons (3 m ribbons)",
+   "ash veil",
+   "bangles"
+  ],
+  "weapon": "twin fire ribbons",
+  "silhouette": "A dancer twirling two long ribbons of flame in loops around her.",
+  "signature": "Two fire ribbons she dances with.",
+  "pose": "Mid-spin, ribbons looping in two circles.",
+  "fx": "Pyre Dance: the ribbons draw a fire circle on the ground; Ember Lash jumps Burn to the next enemy on a kill.",
+  "story": "A fire dancer of the Last Pyre.",
+  "notes_for_3d": "Ribbons on spring chains (6 bones each). Not a whip (fixes the Ysolde look)."
+ },
+ {
+  "id": "pike",
+  "name": "Pike Saltgrave",
+  "title": "the Hook-Handed Smuggler",
+  "element": "Tide",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Hook Swing",
+   "Reel In",
+   "Smuggler's Volley"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.0,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "SlickBack",
+   "colour": "#4a3a2a"
+  },
+  "facial": "MuttonChops",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "custom:long salt-stained sea-coat",
+   "legs": "Ranger_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:salt-crusted tricorne",
+   "acc": [
+    "Knight_Acc_Scarf"
+   ]
+  },
+  "palette": {
+   "main": "#4a5a6a",
+   "secondary": "#2a3a4a",
+   "accent": "#e8e8e0",
+   "metal": "#8a8a8a",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "iron hook replacing the left hand",
+   "chain harpoon in the right hand",
+   "tricorne",
+   "salt crust"
+  ],
+  "weapon": "chain harpoon",
+  "silhouette": "A smuggler in a tricorne with a hook for a hand and a harpoon on a chain.",
+  "signature": "A hook hand and a chain harpoon.",
+  "pose": "Harpoon over the shoulder, hook raised, sneer.",
+  "fx": "Reel In: the harpoon chain snaps out and drags the target's turn bar toward him.",
+  "story": "A smuggler of the Saltmarsh reaches.",
+  "notes_for_3d": "Hook hand is a mesh on the left hand bone."
+ },
+ {
+  "id": "rhea",
+  "name": "Rhea Lumen-Kin",
+  "title": "Sister of the Light-Guard",
+  "element": "Light",
+  "role": "Defense",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Lumen Bash",
+   "Sister's Ward",
+   "Dawnguard"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.0,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "custom:short cropped silver-blonde hair with a blue headband",
+   "colour": "#f2d27a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "custom:Knight_Arms refit to female body",
+   "body": "custom:white tabard with a blue eight-point star over mail",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:blue cloth headband with a small star pin",
+   "acc": [
+    "Female_Ranger_Acc_Pauldrons"
+   ]
+  },
+  "palette": {
+   "main": "#f0f2f8",
+   "secondary": "#5a6a8a",
+   "accent": "#ffd860",
+   "metal": "#d8dce4",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "mirror-polished tower shield that reflects light",
+   "short sword",
+   "white tabard with a blue star (Lumen's star, colours reversed)"
+  ],
+  "weapon": "mirror tower shield and short sword",
+  "silhouette": "A white-and-blue knight without a helm, behind a tall shield that flashes like a mirror.",
+  "signature": "A mirror-polished tower shield and her brother's star worn in reversed colours.",
+  "pose": "Shield planted beside her, one hand on its top edge, sword at rest, chin up.",
+  "fx": "Sister's Ward: the mirror flashes and a gold-white light column wraps her; Dawnguard reflects sun rays onto every ally.",
+  "story": "Lumen Varro's sister, sworn to the light-guard and quietly better with a shield than he is.",
+  "notes_for_3d": "No helm, no cape, no long hair (fixes the Aurelia twin). Shield uses a bright reflective metal; the star tabard ties her to Lumen."
+ },
+ {
+  "id": "corwin",
+  "name": "Corwin Blackthorn",
+  "title": "the Exiled Duelist",
+  "element": "Shadow",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Duel Cut",
+   "Shadow Lunge",
+   "Final Verdict"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.03,
+   "bulk": 0.92,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "SlickBack",
+   "colour": "#1a1a24"
+  },
+  "facial": "Moustache",
+  "outfit": {
+   "arms": "Noble_Arms",
+   "body": "Noble_Body",
+   "legs": "Noble_Legs",
+   "feet": "Noble_Feet",
+   "head": "none",
+   "acc": [
+    "custom:stiff high collar"
+   ]
+  },
+  "palette": {
+   "main": "#2a2238",
+   "secondary": "#c0c0d0",
+   "accent": "#c070ff",
+   "metal": "#b8b8c8",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "blackthorn rapier with a thorny basket guard",
+   "high-collared coat",
+   "black rose at the lapel"
+  ],
+  "weapon": "blackthorn rapier",
+  "silhouette": "A slim duelist in a high-collared coat, one arm out with a thin rapier.",
+  "signature": "A blackthorn rapier and a towering collar.",
+  "pose": "Fencing guard, back hand on hip.",
+  "fx": "Final Verdict: a violet thrust line pierces the target; executions shatter into black petals.",
+  "story": "A duelist exiled from the Stormcrown court.",
+  "notes_for_3d": "Rapier replaces the katana (fixes the Kaito twin)."
+ },
+ {
+  "id": "astrid",
+  "name": "Astrid Windrider",
+  "title": "the Sky-Rider",
+  "element": "Gale",
+  "role": "Attack",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Sky Lance",
+   "Windrider",
+   "Stormdive"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.04,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "custom:long white ponytail",
+   "colour": "#e8e8f0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "custom:flight leathers",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:flight cap with goggles",
+   "acc": [
+    "custom:canvas kite-glider wings on a back frame"
+   ]
+  },
+  "palette": {
+   "main": "#6a90b0",
+   "secondary": "#e8e8f0",
+   "accent": "#f0d060",
+   "metal": "#b0c0d0",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "canvas kite-glider wings (folded half-open)",
+   "slim sky-spear",
+   "flight goggles"
+  ],
+  "weapon": "slim sky-spear",
+  "silhouette": "A rider with two big angular canvas glider wings spread from her back.",
+  "signature": "Canvas glider wings on a wooden frame.",
+  "pose": "Spear angled down, wings half open, weight forward as if about to jump.",
+  "fx": "Stormdive: she glides in and green wind slashes hit all enemies.",
+  "story": "A sky-rider of Stormcrown Heights.",
+  "notes_for_3d": "Wings are rigid frames with canvas (not feathers)."
+ },
+ {
+  "id": "caspian",
+  "name": "Caspian Deepwell",
+  "title": "the Drowned Heir",
+  "element": "Tide",
+  "role": "Hp",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Tide Crown",
+   "Deep Ward",
+   "Drowned King's Grace"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.08,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "blue",
+  "hair": {
+   "style": "none (bald)",
+   "colour": "#1a3a4a"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "custom:brass-riveted diving suit cuirass",
+   "legs": "Knight_Legs",
+   "feet": "custom:heavy weighted diving boots",
+   "head": "custom:brass diving helmet with a coral crown welded on top",
+   "acc": [
+    "custom:air-hose cape"
+   ]
+  },
+  "palette": {
+   "main": "#1a5a6a",
+   "secondary": "#c8a050",
+   "accent": "#ff8a6a",
+   "metal": "#c8a050",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "brass diving helmet with porthole and coral crown",
+   "barnacle-crusted royal sceptre-mace",
+   "air hoses"
+  ],
+  "weapon": "barnacle royal sceptre-mace",
+  "silhouette": "A huge figure in a round brass diving helmet with a little coral crown on top.",
+  "signature": "A brass diving helmet crowned with coral.",
+  "pose": "Sceptre planted, other hand on helmet, wide stance.",
+  "fx": "Deep Ward: blue bubbles rise around allies and harden into shields.",
+  "story": "The drowned king's heir, guardian of the Sunken Cathedral.",
+  "notes_for_3d": "No trident (fixes the Maelis twin). Helmet sphere is the read."
+ },
+ {
+  "id": "ignis",
+  "name": "Ignis Kael",
+  "title": "Priest of the Eternal Flame",
+  "element": "Flame",
+  "role": "Support",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Pyre Spark",
+   "Eternal Flame",
+   "Firestorm Rite"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.03,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "deep",
+  "hair": {
+   "style": "none (bald)",
+   "colour": "#000000"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Wizard_Arms",
+   "body": "Wizard_Body",
+   "legs": "none (covered by robe)",
+   "feet": "Wizard_Feet",
+   "head": "none",
+   "acc": [
+    "custom:ember mantle"
+   ]
+  },
+  "palette": {
+   "main": "#6a1a10",
+   "secondary": "#e8d0a0",
+   "accent": "#ffc040",
+   "metal": "#c87a30",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "fire-tome staff: an open book on top of the staff, pages fluttering",
+   "glowing fire tattoos on the scalp",
+   "ember mantle"
+  ],
+  "weapon": "fire-tome staff",
+  "silhouette": "A bald fire-priest with an open burning book floating at the top of his staff.",
+  "signature": "A fire-tome staff with a floating book.",
+  "pose": "Staff raised, book open, reading aloud.",
+  "fx": "Eternal Flame: pages fly to allies; Firestorm Rite rains burning pages on enemies.",
+  "story": "A pyre-priest who tends the eternal flame.",
+  "notes_for_3d": "No flame hair (Vaelith owns it); glowing tattoos instead."
+ },
+ {
+  "id": "lyra",
+  "name": "Lyra Starglass",
+  "title": "the Glass Oracle",
+  "element": "Light",
+  "role": "Support",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Glass Beam",
+   "Starglass Hymn",
+   "Oracle's Sight"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.0,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#e8f0ff"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:glass-blue robe",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:circlet of star points",
+   "acc": []
+  },
+  "palette": {
+   "main": "#c8d8f0",
+   "secondary": "#8aa0c8",
+   "accent": "#ffe8a0",
+   "metal": "#d8d8e8",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "constellation harp: frame of light with star-studded strings",
+   "star circlet"
+  ],
+  "weapon": "constellation harp",
+  "silhouette": "A pale robe and a harp made of lines of stars.",
+  "signature": "A constellation harp.",
+  "pose": "Plucking the harp held on her hip.",
+  "fx": "Starglass Hymn: stars pluck free and drift to allies.",
+  "story": "A Glass Wastes oracle who reads the shattered Sigil.",
+  "notes_for_3d": "No mirror or halo (fixes the Nerys and Seraphine twins)."
+ },
+ {
+  "id": "malachar",
+  "name": "Malachar Gloomhand",
+  "title": "the Unchained Knight",
+  "element": "Shadow",
+  "role": "Defense",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Gloom Bash",
+   "Broken Chains",
+   "Hollow Quake"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.1,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "ash",
+  "hair": {
+   "style": "none (bald)",
+   "colour": "#2a2030"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "custom:Knight_Arms with an oversized shadow gauntlet on the left",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "Knight_Head_Armet",
+   "acc": [
+    "Knight_Acc_Pauldron_Round"
+   ]
+  },
+  "palette": {
+   "main": "#2a2434",
+   "secondary": "#4a4058",
+   "accent": "#a070ff",
+   "metal": "#5a5468",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "broken-door tower shield hung with snapped chains",
+   "oversized shadow gauntlet",
+   "armet with one violet eye-slit glow"
+  ],
+  "weapon": "broken-door tower shield with chains",
+  "silhouette": "A dark knight behind a tall shield like a broken door, chains swinging.",
+  "signature": "A huge shadow gauntlet and a shield hung with snapped chains.",
+  "pose": "Shield planted, gauntlet clenched beside it.",
+  "fx": "Broken Chains: chains whip out and counter attackers; Hollow Quake cracks violet fissures.",
+  "story": "A Hollow knight who broke free of the Hollow.",
+  "notes_for_3d": "No horns (fixes the Pyrrhus twin)."
+ },
+ {
+  "id": "rowan",
+  "name": "Rowan Thornheart",
+  "title": "Warden of the Old Wood",
+  "element": "Gale",
+  "role": "Defense",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Thorn Bash",
+   "Old Wood Ward",
+   "Wardenroot"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.05,
+   "bulk": 1.1,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:long brown hair",
+   "colour": "#5a4a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "Ranger_Body",
+   "legs": "Ranger_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:Ranger_Head_Hood with thorn antlers growing through it",
+   "acc": [
+    "Ranger_Acc_Pauldron",
+    "custom:moss mantle"
+   ]
+  },
+  "palette": {
+   "main": "#3a5a2a",
+   "secondary": "#6a4a2a",
+   "accent": "#c8e080",
+   "metal": "#6a5a40",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "round shield of woven living branches with leaves",
+   "thorn antlers",
+   "moss mantle"
+  ],
+  "weapon": "woven living-branch shield",
+  "silhouette": "A hooded warden with branching antlers and a round leafy shield.",
+  "signature": "Thorn antlers growing through his hood.",
+  "pose": "Shield raised, antlers forward.",
+  "fx": "Old Wood Ward: roots rise around allies; Wardenroot binds him with bark.",
+  "story": "Warden of the Thornwick old wood.",
+  "notes_for_3d": "No beard (fixes Caspian and Faelan twins)."
+ },
+ {
+  "id": "selene",
+  "name": "Selene Tidewhisper",
+  "title": "Moon-Priestess",
+  "element": "Tide",
+  "role": "Support",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Moonlit Wave",
+   "Ebb and Flow",
+   "Moonrise"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.02,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "deep",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#c8d0ff"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:moon robe",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:crescent circlet",
+   "acc": []
+  },
+  "palette": {
+   "main": "#2a3a6a",
+   "secondary": "#c8d0ff",
+   "accent": "#f0f0ff",
+   "metal": "#c0c8e0",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "crescent-moon hoop held in one hand",
+   "small moon orb orbiting her",
+   "crescent circlet"
+  ],
+  "weapon": "crescent-moon hoop with orbiting moon",
+  "silhouette": "A night-blue robe with a crescent hoop and a small moon circling her.",
+  "signature": "A moon orb that orbits her.",
+  "pose": "Hoop raised, moon circling.",
+  "fx": "Ebb and Flow: blue tide rings pull enemy turn bars to allies.",
+  "story": "A moon-priestess of the tides.",
+  "notes_for_3d": "Orbit on a helper bone."
+ },
+ {
+  "id": "brann",
+  "name": "Brann Emberfist",
+  "title": "the Pit Champion",
+  "element": "Flame",
+  "role": "Hp",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Iron Fist",
+   "Pit Stance",
+   "Ember Brawl"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.08,
+   "bulk": 1.25,
+   "head": 0.92
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "Mohawk",
+   "colour": "#8a2a1a"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "custom:huge ember-fist gauntlets",
+   "body": "custom:pit fighter's wraps and belt",
+   "legs": "Peasant_Legs",
+   "feet": "custom:wrapped bare feet",
+   "head": "none",
+   "acc": [
+    "custom:championship belt"
+   ]
+  },
+  "palette": {
+   "main": "#5a2a1a",
+   "secondary": "#c8a070",
+   "accent": "#ff8a30",
+   "metal": "#4a4040",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "huge ember-fist gauntlets",
+   "mohawk",
+   "championship belt"
+  ],
+  "weapon": "ember-fist gauntlets",
+  "silhouette": "A huge bare-chested brawler with two oversized glowing fists.",
+  "signature": "Huge ember-fist gauntlets.",
+  "pose": "Boxer's guard, bouncing.",
+  "fx": "Ember Brawl: punches throw ember shockwaves.",
+  "story": "A pit fighter of the Ashgrave pass.",
+  "notes_for_3d": "Gauntlets 1.6x hand size."
+ },
+ {
+  "id": "ysra",
+  "name": "Ysra Nightbloom",
+  "title": "the Flower Assassin",
+  "element": "Shadow",
+  "role": "Attack",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Thorn Kiss",
+   "Nightbloom",
+   "Petal Strike"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.98,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#3a1a3a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "Female_Ranger_Body",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:night-bloom flowers in her hair and a sheer veil",
+   "acc": []
+  },
+  "palette": {
+   "main": "#2a1428",
+   "secondary": "#6a2a5a",
+   "accent": "#ff6ac8",
+   "metal": "#b8a0c0",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "bladed petal war-fan",
+   "night-bloom flowers in hair",
+   "veil"
+  ],
+  "weapon": "bladed petal war-fan",
+  "silhouette": "A slim assassin with a fan of steel petals and glowing pink flowers in her hair.",
+  "signature": "A bladed petal war-fan.",
+  "pose": "Fan open in front of her face.",
+  "fx": "Nightbloom: pink poison petals swirl over enemies.",
+  "story": "A Hollow Deep assassin who poisons with flowers.",
+  "notes_for_3d": "Fan replaces daggers (fixes the Nyx look)."
+ },
+ {
+  "id": "oswin",
+  "name": "Oswin Dawnspear",
+  "title": "Lancer of the Bellspire",
+  "element": "Light",
+  "role": "Attack",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Dawnspear",
+   "Bellspire Charge",
+   "Daybreak"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.05,
+   "bulk": 1.0,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#f0e0a0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:open gilded helm with a long white horsehair plume",
+   "acc": [
+    "Noble_Acc_Pauldron"
+   ]
+  },
+  "palette": {
+   "main": "#e8d8a8",
+   "secondary": "#8a6a2a",
+   "accent": "#6ab0e8",
+   "metal": "#e0c070",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "sun-disc spear (a gold ring around the spearhead)",
+   "plumed helm"
+  ],
+  "weapon": "sun-disc spear",
+  "silhouette": "A gold lancer with a long white plume and a spear whose tip is ringed with a sun.",
+  "signature": "A sun-disc spear and a long white plume.",
+  "pose": "Spear diagonal, plume streaming.",
+  "fx": "Dawnspear: a gold lance beam pierces the target and the one behind; Bellspire Charge adds a sunburst flash and gold sparks on him (ATK up).",
+  "story": "A light-lancer of the Bellspire order.",
+  "notes_for_3d": "The sun ring around the spearhead is the read; add a short white pennant under the head only if it does not hide the ring."
+ },
+ {
+  "id": "grimsby",
+  "name": "Grimsby Boneweaver",
+  "title": "the Bone-Reader",
+  "element": "Shadow",
+  "role": "Support",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Bone Toss",
+   "Crack the Sigil",
+   "Bone Rite"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 0.96,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "ash",
+  "hair": {
+   "style": "none (bald)",
+   "colour": "#d8d0c0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "custom:ragged grey robe stitched with bone charms",
+   "legs": "Peasant_Legs",
+   "feet": "custom:bare feet",
+   "head": "custom:bone-stitched mask (cloth mask sewn with knuckle bones)",
+   "acc": [
+    "custom:charm strings"
+   ]
+  },
+  "palette": {
+   "main": "#4a4450",
+   "secondary": "#2a2630",
+   "accent": "#d8d0c0",
+   "metal": "#8a8070",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "bone staff topped with dangling knuckle chimes",
+   "stitched bone mask",
+   "charm strings"
+  ],
+  "weapon": "bone-chime staff",
+  "silhouette": "A thin hunched seer with a stitched mask and a staff hung with rattling chimes.",
+  "signature": "A cloth mask stitched all over with little bones.",
+  "pose": "Leaning on the staff, head cocked, chimes rattling.",
+  "fx": "Crack the Sigil: violet crack lines spread under enemies; Bone Rite rattles the chimes and heals.",
+  "story": "A Hollow bone-reader who sees the Sigil's cracks.",
+  "notes_for_3d": "Bones are small and stylised (warm cream, not horror). Chimes on spring bones."
+ },
+ {
+  "id": "marrow",
+  "name": "Marrow Cinderhulk",
+  "title": "the Waking Giant",
+  "element": "Flame",
+  "role": "Attack",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Cinder Fist",
+   "Wrath of the Deep",
+   "Hollow Roar"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.15,
+   "bulk": 1.25,
+   "head": 0.9
+  },
+  "skin": "ash",
+  "hair": {
+   "style": "custom:long ashen hair",
+   "colour": "#b8b4ac"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "custom:bare cracked stone-skin arms",
+   "body": "custom:bare cracked torso with a glowing chest furnace",
+   "legs": "Peasant_Legs",
+   "feet": "custom:bare feet",
+   "head": "none",
+   "acc": [
+    "custom:tattered cape"
+   ]
+  },
+  "palette": {
+   "main": "#6a6660",
+   "secondary": "#3a3632",
+   "accent": "#ff6a2a",
+   "metal": "#5a5650",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "broken stone pillar used as a club",
+   "glowing furnace crack in the chest",
+   "cinder seams on arms"
+  ],
+  "weapon": "broken stone pillar club",
+  "silhouette": "The biggest body in the roster, hunched, dragging a broken column.",
+  "signature": "A hulking cinder-cracked body with fire in his chest, dragging a broken pillar.",
+  "pose": "Hunched, pillar dragging, chest glowing brighter with damage.",
+  "fx": "Wrath of the Deep: the chest furnace flares hotter as his HP drops; Hollow Roar bursts an ember ring.",
+  "story": "A Hollow giant who woke with fire in his chest and remembers his name.",
+  "notes_for_3d": "Chest glow scales with missing HP if the shader allows (Rage read)."
+ },
+ {
+  "id": "ember",
+  "name": "Ember Tallow",
+  "title": "the Candle-Warden",
+  "element": "Flame",
+  "role": "Hp",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Wax Brand",
+   "Vigil Flame",
+   "Candle Ward"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.97,
+   "bulk": 1.1,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "Hair2",
+   "colour": "#f0e0c0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:cream wool monk's robe with a deep red sash",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "none",
+   "acc": [
+    "custom:tall lit candle strapped upright on the back"
+   ]
+  },
+  "palette": {
+   "main": "#e8d8c0",
+   "secondary": "#8a3020",
+   "accent": "#ffb050",
+   "metal": "#8a7050",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "tall lit candle on his back, wax dripping onto shoulders",
+   "iron candlestick staff",
+   "red sash"
+  ],
+  "weapon": "iron candlestick staff",
+  "silhouette": "A round monk with a tall candle standing up from his back like a lit mast.",
+  "signature": "A huge lit candle strapped to his back, dripping wax.",
+  "pose": "Candlestick planted, hands folded, flame flickering above.",
+  "fx": "Last Light: when an ally falls the back candle flares and warm light washes over the team.",
+  "story": "A candle-warden of the Last Pyre who keeps vigil for the dead.",
+  "notes_for_3d": "Modelled male per quat.py WOMEN list (roster text says candle-nun; owner may switch). Owner: Ember is a woman (candle-nun)."
+ },
+ {
+  "id": "quill",
+  "name": "Quill Inkwell",
+  "title": "the Royal Archivist",
+  "element": "Light",
+  "role": "Support",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Quill Jab",
+   "Annotate",
+   "Redact"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 0.98,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#5a3a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Noble_Arms",
+   "body": "custom:archivist's long ink-blue coat",
+   "legs": "Noble_Legs",
+   "feet": "Noble_Feet",
+   "head": "custom:thin circlet and round spectacles",
+   "acc": [
+    "custom:scroll case on the back"
+   ]
+  },
+  "palette": {
+   "main": "#3a4a6a",
+   "secondary": "#e8d8a0",
+   "accent": "#f0e0b0",
+   "metal": "#c8a050",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "giant quill-pen staff (white feather, gold nib)",
+   "ink-stained tome chained at the hip",
+   "scroll case"
+  ],
+  "weapon": "giant quill-pen staff",
+  "silhouette": "A scholar holding a feather pen taller than himself.",
+  "signature": "A giant quill-pen staff.",
+  "pose": "Writing in the air with the quill, tome open at the hip.",
+  "fx": "Redact: an ink stroke crosses out the target's buffs; Annotate writes gold runes over allies.",
+  "story": "The royal archivist who writes the Sigil's history.",
+  "notes_for_3d": "Quill feather is a big flat shape; nib catches the light."
+ },
+ {
+  "id": "drift",
+  "name": "Drift Coldfoot",
+  "title": "the Ice Skater",
+  "element": "Tide",
+  "role": "Attack",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Skate Cut",
+   "Frost Glide"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 0.92,
+   "bulk": 0.9,
+   "head": 1.05
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "custom:frosted spiky hair",
+   "colour": "#c8e8ff"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "custom:puffy quilted jacket",
+   "legs": "Ranger_Legs",
+   "feet": "custom:ice skates",
+   "head": "none",
+   "acc": [
+    "custom:long frost scarf"
+   ]
+  },
+  "palette": {
+   "main": "#5a8aaa",
+   "secondary": "#e8f8ff",
+   "accent": "#ff8a5a",
+   "metal": "#c8d8e8",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "skate-blade sword shaped like a giant skate runner",
+   "ice skates",
+   "frost scarf",
+   "orange mittens"
+  ],
+  "weapon": "skate-blade sword",
+  "silhouette": "A puffy-jacketed kid on ice skates with a long scarf trailing.",
+  "signature": "Ice skates and a sword shaped like a skate blade.",
+  "pose": "Gliding on one skate, arms out, scarf trailing.",
+  "fx": "Frost Glide: a skate trail of ice across the ground; hits leave frost crystals.",
+  "story": "An ice skater of the frozen mill pond.",
+  "notes_for_3d": "No daggers or bandana (fixes the Nettle look)."
+ },
+ {
+  "id": "sprig",
+  "name": "Sprig Mosslight",
+  "title": "the Child Druid",
+  "element": "Gale",
+  "role": "Support",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Twig Poke",
+   "Bloom Song"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.86,
+   "bulk": 0.88,
+   "head": 1.1
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:twin leafy buns",
+   "colour": "#7aa04a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "Female_Peasant_Body",
+   "legs": "Female_Peasant_Legs",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:leaf-cloak hood",
+   "acc": [
+    "custom:mossy leaf cloak"
+   ]
+  },
+  "palette": {
+   "main": "#5a8a3a",
+   "secondary": "#e8d870",
+   "accent": "#f0a0c0",
+   "metal": "#8a6a40",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "forked twig wand sprouting leaves with a tiny bird nest",
+   "leaf cloak",
+   "blossoms"
+  ],
+  "weapon": "sprouting twig wand with bird nest",
+  "silhouette": "A tiny druid child in a leaf cloak holding a forked twig with a nest.",
+  "signature": "A twig wand with a tiny bird nest in its fork.",
+  "pose": "Holding the twig up proudly, bird chirping.",
+  "fx": "Bloom Song: blossoms pop up under allies.",
+  "story": "A child druid of the Thornwick wood.",
+  "notes_for_3d": "No bell (fixes the Isla look)."
+ },
+ {
+  "id": "tallow",
+  "name": "Tallow Firth",
+  "title": "the Night Watchman",
+  "element": "Flame",
+  "role": "Defense",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Torch Bash",
+   "Watch Fire"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.1,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Buzzed",
+   "colour": "#4a3020"
+  },
+  "facial": "Moustache",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Cloth",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:iron candle-helm: a brimmed iron cap ringed with short candles, wax dripping down",
+   "acc": [
+    "custom:watchman's leather cloak clasp"
+   ]
+  },
+  "palette": {
+   "main": "#7a5a3a",
+   "secondary": "#4a3020",
+   "accent": "#ff9a40",
+   "metal": "#5a5450",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "candle-iron helm with wax drips",
+   "lit watch torch as main weapon",
+   "small round watch-buckler on the forearm",
+   "watchman's rattle at the belt"
+  ],
+  "weapon": "lit watch torch and forearm buckler",
+  "silhouette": "A plain watchman whose helmet is a ring of little candles, holding a torch up high.",
+  "signature": "A candle-iron helm with wax drips.",
+  "pose": "Torch raised overhead, buckler arm across the chest, peering into the dark.",
+  "fx": "Torch Bash leaves a small burn flicker; Watch Fire plants a torch flame that pulses an orange DEF ring to allies.",
+  "story": "An Ashgrave night watchman who has never let a watch fire die on his shift.",
+  "notes_for_3d": "No cape, no great helm, no big shield (fixes the twins with Dunstan, Malachar, Gideon, Hask, Brega). The candle helm and the raised torch are the read."
+ },
+ {
+  "id": "hollis",
+  "name": "Hollis Shade",
+  "title": "the Kind Gravedigger",
+  "element": "Shadow",
+  "role": "Hp",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Grave Thump",
+   "Gravedigger's Rest"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.04,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "custom:shaggy dark hair under the hood",
+   "colour": "#2a2a2a"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "custom:patched grey work smock",
+   "legs": "Peasant_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "Ranger_Head_Hood",
+   "acc": [
+    "custom:little shadow lantern hung on the spade handle"
+   ]
+  },
+  "palette": {
+   "main": "#3a3a3a",
+   "secondary": "#6a6a5a",
+   "accent": "#8aa08a",
+   "metal": "#6a6458",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "broad gravedigger's spade",
+   "violet-glowing shadow lantern tied to the spade",
+   "ragged hood",
+   "work gloves"
+  ],
+  "weapon": "broad gravedigger's spade",
+  "silhouette": "A big gentle hooded man leaning on a broad spade with a little lantern swinging from it.",
+  "signature": "A broad spade with a shadow lantern swinging from its handle.",
+  "pose": "Leaning on the spade with both hands, lantern swaying, calm and patient.",
+  "fx": "Grave Thump flattens the target with the spade; Gravedigger's Rest wraps him in quiet grey mist and a soft green glow.",
+  "story": "The kind gravedigger of Hollow Deep, who sits with the dead so they rest.",
+  "notes_for_3d": "Kept apart from Kettle (thin, hunched, hat, hook): Hollis is big, upright, hooded, with a flat spade blade."
+ },
+ {
+  "id": "auren",
+  "name": "Auren Halewind",
+  "title": "the Wind-Singer",
+  "element": "Gale",
+  "role": "Support",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Gust Fan",
+   "Clearing Wind",
+   "Skysong"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "Ponytail",
+   "colour": "#e8f0e0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Wizard_Arms",
+   "body": "Wizard_Body",
+   "legs": "none (covered by robe)",
+   "feet": "Wizard_Feet",
+   "head": "custom:circlet with long wind ribbons",
+   "acc": []
+  },
+  "palette": {
+   "main": "#7ab0a0",
+   "secondary": "#e8f0e0",
+   "accent": "#f0d080",
+   "metal": "#c8c8b0",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "big feather fan, taller than his torso",
+   "floating wind ribbons",
+   "ribbon circlet"
+  ],
+  "weapon": "great feather fan",
+  "silhouette": "A tall robed singer with a huge feather fan and ribbons floating around him.",
+  "signature": "A big feather fan and floating wind ribbons.",
+  "pose": "Fan raised beside the face, ribbons floating.",
+  "fx": "Clearing Wind: a fan sweep sends a green breeze that washes debuffs away.",
+  "story": "A wind-singer of Stormcrown.",
+  "notes_for_3d": "Fan is a flat fan shape, 1 m span."
+ },
+ {
+  "id": "cinder",
+  "name": "Cinder Vale",
+  "title": "the Eruption Survivor",
+  "element": "Flame",
+  "role": "Attack",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Ember Edge",
+   "Eruption Slash",
+   "Titan's Scar"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.04,
+   "bulk": 1.05,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:ash-tipped spiky red hair",
+   "colour": "#ff7a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "custom:Ranger_Arms with a bandaged right arm",
+   "body": "custom:scorched leather jerkin",
+   "legs": "Ranger_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "none",
+   "acc": [
+    "custom:ash scarf"
+   ]
+  },
+  "palette": {
+   "main": "#4a2418",
+   "secondary": "#2a120c",
+   "accent": "#ffa040",
+   "metal": "#3a3030",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "cracked slab greatsword with ember cracks",
+   "bandaged arm",
+   "ash scarf"
+  ],
+  "weapon": "cracked slab greatsword",
+  "silhouette": "A scorched survivor carrying a huge cracked slab of a sword on his shoulder.",
+  "signature": "A cracked ember greatsword.",
+  "pose": "Greatsword on shoulder, slouched.",
+  "fx": "Titan's Scar: the cracks blaze and the slash leaves a burning scar.",
+  "story": "A survivor of the Titan's first eruption.",
+  "notes_for_3d": "Slab blade, not wavy (Vaelith has the flamberge)."
+ },
+ {
+  "id": "thessaly",
+  "name": "Thessaly Reefward",
+  "title": "Captain of the Drowned Fleet",
+  "element": "Tide",
+  "role": "Defense",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Reef Strike",
+   "Fleet Shield",
+   "Undertow Wall"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.06,
+   "bulk": 1.1,
+   "head": 1.0
+  },
+  "skin": "deep",
+  "hair": {
+   "style": "custom:coiled braid under the hat",
+   "colour": "#3a5a6a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "custom:Knight_Arms refit to female body",
+   "body": "custom:naval coat over scale",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:admiral's bicorne with coral",
+   "acc": [
+    "custom:reef-coral pauldron on one shoulder"
+   ]
+  },
+  "palette": {
+   "main": "#2a6a7a",
+   "secondary": "#e8e0c8",
+   "accent": "#ff8a6a",
+   "metal": "#c8a050",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "ship-prow shield (figurehead shield)",
+   "cutlass",
+   "admiral's bicorne",
+   "coral pauldron"
+  ],
+  "weapon": "ship-prow shield and cutlass",
+  "silhouette": "A sea-captain in a wide bicorne hat behind a shield shaped like a ship's prow.",
+  "signature": "A ship's-prow shield and a coral pauldron.",
+  "pose": "Shield forward, cutlass raised.",
+  "fx": "Fleet Shield: ghostly sails rise behind allies.",
+  "story": "Captain of the drowned fleet.",
+  "notes_for_3d": "No trident (fixes the trident pile-up)."
+ },
+ {
+  "id": "umbra",
+  "name": "Umbra Veilkin",
+  "title": "the Faceless Seer",
+  "element": "Shadow",
+  "role": "Support",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Void Touch",
+   "Hollow Eclipse",
+   "Seer's Mercy"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.0,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "ash",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#3a3a4a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:layered grey robe",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:Female_Ranger_Head_Hood over a smooth blank porcelain mask",
+   "acc": []
+  },
+  "palette": {
+   "main": "#2a2a3a",
+   "secondary": "#c8c8d0",
+   "accent": "#9a8aff",
+   "metal": "#8a8a9a",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "three small void orbs orbiting her hands",
+   "blank mask",
+   "layered robe"
+  ],
+  "weapon": "three orbiting void orbs",
+  "silhouette": "A hooded figure with a blank white face and three dark orbs circling her hands.",
+  "signature": "A smooth blank mask and three orbiting void orbs.",
+  "pose": "Hands open at waist height, three orbs circling them, head tilted.",
+  "fx": "Hollow Eclipse: the orbs fly out and darken enemies; Seer's Mercy brings them back as soft violet healing light.",
+  "story": "A Hollow seer who serves the living now.",
+  "notes_for_3d": "Three orbs on helper bones."
+ },
+ {
+  "id": "lucan",
+  "name": "Lucan Brightshield",
+  "title": "Paladin of the Cathedral",
+  "element": "Light",
+  "role": "Defense",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Cathedral Bash",
+   "Sanctuary",
+   "Bell of Light"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.06,
+   "bulk": 1.15,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#e8d8a0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:helm with a halo-ring crest",
+   "acc": [
+    "Noble_Acc_Pauldron",
+    "custom:white cape"
+   ]
+  },
+  "palette": {
+   "main": "#e8e0c8",
+   "secondary": "#8a6a2a",
+   "accent": "#4a7ae0",
+   "metal": "#e0c070",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "rose-window shield (round stained glass)",
+   "flanged sun mace",
+   "halo-crested helm"
+  ],
+  "weapon": "rose-window shield and flanged mace",
+  "silhouette": "A white paladin with a round stained-glass shield.",
+  "signature": "A rose-window shield.",
+  "pose": "Shield forward catching the light, mace raised, cape still.",
+  "fx": "Sanctuary: the rose window projects coloured light panels over allies; Bell of Light rings a gold shockwave that weakens enemies.",
+  "story": "Paladin of the Sunken Cathedral.",
+  "notes_for_3d": "Glass panels use the glow mask."
+ },
+ {
+  "id": "kharra",
+  "name": "Kharra Titanborn",
+  "title": "the Half-Stone",
+  "element": "Flame",
+  "role": "Hp",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Titan Fist",
+   "Stoneblood",
+   "Caldera Quake"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.15,
+   "bulk": 1.25,
+   "head": 0.9
+  },
+  "skin": "deep",
+  "hair": {
+   "style": "none (bald)",
+   "colour": "#2a1a14"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "custom:one colossal basalt right arm with lava seams, plate on the left",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:floating crown of basalt shards with lava light",
+   "acc": [
+    "Knight_Acc_Pauldron_Round",
+    "custom:ember cape"
+   ]
+  },
+  "palette": {
+   "main": "#3a2a24",
+   "secondary": "#24140e",
+   "accent": "#ff5a1a",
+   "metal": "#5a4a40",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "colossal stone right arm (Titan Fist)",
+   "floating basalt crown",
+   "lava seams",
+   "ember aura"
+  ],
+  "weapon": "colossal stone fist",
+  "silhouette": "A giant with one enormous rock arm hanging to his knees and a crown of floating stones.",
+  "signature": "A colossal basalt right arm with lava seams.",
+  "pose": "Stone fist resting knuckles-down on the ground, plated left arm on hip, crown stones slowly orbiting.",
+  "fx": "Stoneblood: rock plates grow over him with glowing seams; Caldera Quake slams the fist and lava cracks spread under all enemies.",
+  "story": "Born in the Titan's shadow, half stone.",
+  "notes_for_3d": "Legendary: floating basalt crown + lava seams + ember aura. Asymmetric arm is the read; no maul or horns (fixes Gorrum and Thrain twins)."
+ },
+ {
+  "id": "nocturne",
+  "name": "Nocturne",
+  "title": "Hunter of the Hollow",
+  "element": "Shadow",
+  "role": "Attack",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Night Edge",
+   "Eclipse Strike",
+   "Hunter's End"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.06,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "SlickBack",
+   "colour": "#e8e8f0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "custom:fitted black longcoat",
+   "legs": "Ranger_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:cracked white porcelain half-mask",
+   "acc": [
+    "custom:ink cloak that frays into drifting star-smoke"
+   ]
+  },
+  "palette": {
+   "main": "#1a1424",
+   "secondary": "#e8e8f0",
+   "accent": "#c060ff",
+   "metal": "#c0c0d0",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "crescent-moon greatsword",
+   "porcelain half-mask",
+   "ink cloak with star-smoke"
+  ],
+  "weapon": "crescent-moon greatsword",
+  "silhouette": "A pale-masked hunter with a greatsword shaped like a crescent moon.",
+  "signature": "A crescent-moon greatsword.",
+  "pose": "Greatsword held low and behind, blade curve up, cloak fraying into star-smoke, mask turned to the camera.",
+  "fx": "Eclipse Strike: a black crescent sweeps all enemies and can stun; Hunter's End is a single violet crescent slash that finishes a weakened target.",
+  "story": "The Hollow's first champion, now its hunter.",
+  "notes_for_3d": "Legendary: star-smoke cloak (particles off the hem) + mask glow + aura. Crescent cut-out blade, not a katana (Kaito owns the katana)."
+ },
+ {
+  "id": "aelira",
+  "name": "Aelira Tidecrowned",
+  "title": "Queen of the Sunken Cathedral",
+  "element": "Tide",
+  "role": "Support",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Tidal Grace",
+   "Queen's Tide",
+   "Sunken Crown"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.06,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "blue",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#0e3a5a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:pearl-blue gown with a long train",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:coral crown inside a floating ring of water",
+   "acc": [
+    "custom:long train cape"
+   ]
+  },
+  "palette": {
+   "main": "#1a5a8a",
+   "secondary": "#f0e8e0",
+   "accent": "#ff9a8a",
+   "metal": "#e0d0c0",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "great conch shell horn",
+   "coral crown",
+   "floating water ring halo",
+   "train cape"
+  ],
+  "weapon": "great conch horn",
+  "silhouette": "A queen with a ring of water floating behind her head.",
+  "signature": "A coral crown in a floating ring of water.",
+  "pose": "Conch raised to her lips, train sweeping, water ring slowly turning behind her head.",
+  "fx": "Queen's Tide: the conch sounds and a blue tide washes over allies, leaving shield bubbles; Sunken Crown flashes the water ring and fills turn bars.",
+  "story": "Queen of the Sunken Cathedral.",
+  "notes_for_3d": "Legendary: coral crown + water ring halo + train + aura. No orb (fixes Morwenna and Kaelith twins)."
+ },
+ {
+  "id": "zephyrine",
+  "name": "Zephyrine",
+  "title": "Spirit of the Gale Shard",
+  "element": "Gale",
+  "role": "Attack",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Wind Edge",
+   "Gale Dance",
+   "Thousand Winds"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.04,
+   "bulk": 0.85,
+   "head": 1.0
+  },
+  "skin": "#d8f0e0",
+  "hair": {
+   "style": "custom:long ponytail that dissolves into wind",
+   "colour": "#d8f0e8"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "custom:flowing wrap",
+   "legs": "Female_Ranger_Legs",
+   "feet": "custom:bare floating feet",
+   "head": "custom:feather circlet",
+   "acc": [
+    "custom:flowing scarf"
+   ]
+  },
+  "palette": {
+   "main": "#4a8a7a",
+   "secondary": "#e8f8f0",
+   "accent": "#f0d080",
+   "metal": "#c8d8d0",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "twin wind sabres with ribbons",
+   "ponytail turning into wind",
+   "floating feet"
+  ],
+  "weapon": "twin wind sabres",
+  "silhouette": "A floating wind spirit whose hair streams into wind.",
+  "signature": "A ponytail that dissolves into wind.",
+  "pose": "Floating a hand above the ground, sabres crossed low, hair and scarf streaming.",
+  "fx": "Gale Dance: a green cyclone that speeds allies; Thousand Winds draws four green slashes in a star, then a gust ring.",
+  "story": "A wind spirit bound to the Sigil's Gale shard.",
+  "notes_for_3d": "Legendary: floating pose, wind-hair (alpha strands) and a soft green aura. Sabres, not chakrams (Nerys owns the ring)."
+ },
+ {
+  "id": "solenne",
+  "name": "Solenne Dawnborn",
+  "title": "the Sun-Saint",
+  "element": "Light",
+  "role": "Hp",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Sun Hammer",
+   "Dawn Vigil",
+   "Saint's Light"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.08,
+   "bulk": 1.1,
+   "head": 1.0
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#f8e8b0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "custom:Knight_Arms refit to female body",
+   "body": "custom:gold plate over a white robe",
+   "legs": "none (covered by robe)",
+   "feet": "Knight_Feet",
+   "head": "custom:crown of sun rays",
+   "acc": [
+    "custom:sunrise arc",
+    "custom:gold cape"
+   ]
+  },
+  "palette": {
+   "main": "#f0d890",
+   "secondary": "#c89040",
+   "accent": "#8ac0f0",
+   "metal": "#e8c060",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "sun-headed hammer",
+   "sunrise arc behind her back",
+   "sun-ray crown",
+   "gold cape"
+  ],
+  "weapon": "sun-headed hammer",
+  "silhouette": "A golden saint with a rising-sun half-disc behind her back.",
+  "signature": "A sunrise arc behind her back.",
+  "pose": "Hammer head down on the ground, both hands on the haft, arc glowing behind.",
+  "fx": "Dawn Vigil: a small sunrise rises behind each ally (revive mark); Saint's Light pours warm gold rays.",
+  "story": "The sun-saint who kept the first Sigil shard.",
+  "notes_for_3d": "Arc sits behind the waist and back (not behind the head, which is Oriel's halo). Legendary: crown + arc + aura."
+ },
+ {
+  "id": "nell",
+  "name": "Nell Shadowgrass",
+  "title": "the Reed-Cutter",
+  "element": "Shadow",
+  "role": "Attack",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Reed Hook",
+   "Fen Snare"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.95,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Hair2",
+   "colour": "#2a3020"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "Female_Peasant_Body",
+   "legs": "Female_Peasant_Legs",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:grass-weave mask and straw cowl",
+   "acc": []
+  },
+  "palette": {
+   "main": "#3a4030",
+   "secondary": "#c8b878",
+   "accent": "#9ac060",
+   "metal": "#6a6a60",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "long reed scythe",
+   "grass-weave mask",
+   "straw cowl"
+  ],
+  "weapon": "long reed scythe",
+  "silhouette": "A reed-cutter with a straw cowl and a long scythe.",
+  "signature": "A grass-weave mask.",
+  "pose": "Scythe over shoulder, half crouched in the reeds, mask tilted.",
+  "fx": "Reed Hook leaves green poison drips; Fen Snare whips black grass around the target's legs.",
+  "story": "A reed-cutter of the black fens who knows every hidden path.",
+  "notes_for_3d": "Straw cowl and the long scythe curve are the read. Keep the mask pale straw so it pops on the dark body."
+ },
+ {
+  "id": "briar",
+  "name": "Briar Wildroot",
+  "title": "the Thorn-Witch",
+  "element": "Gale",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Thorn Lash",
+   "Bramble Whip",
+   "Wild Thicket"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.98,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:wild braid with twigs",
+   "colour": "#4a6a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "Female_Ranger_Body",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:flower crown woven with thorns",
+   "acc": [
+    "custom:bramble wrap on one shoulder"
+   ]
+  },
+  "palette": {
+   "main": "#3a5a2a",
+   "secondary": "#6a4a2a",
+   "accent": "#d07050",
+   "metal": "#6a5a40",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "thorn-vine whip, green with rose blossoms",
+   "flower-and-thorn crown",
+   "bramble shoulder wrap"
+  ],
+  "weapon": "thorn-vine whip",
+  "silhouette": "A wild-haired witch cracking a long green vine covered in thorns and roses.",
+  "signature": "A living thorn-vine whip with rose blossoms and a flower crown.",
+  "pose": "Vine trailing on the ground in loops, hand on hip, crooked smile.",
+  "fx": "Thorn Lash leaves green poison drips; Wild Thicket bursts thorny vines up under every enemy.",
+  "story": "A thorn-witch of the deep wood.",
+  "notes_for_3d": "Vine whip is green and leafy (Ysolde's is a burning chain; Juno uses ribbons)."
+ },
+ {
+  "id": "perrin",
+  "name": "Perrin Gullsby",
+  "title": "the Harbour Guard",
+  "element": "Tide",
+  "role": "Defense",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Harbor Bash",
+   "Breakwater"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.05,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#3a2a1a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "custom:harbour guard's blue jerkin with brass buttons",
+   "legs": "Ranger_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:gull-wing hat (two white wings on the sides)",
+   "acc": [
+    "custom:coiled mooring rope"
+   ]
+  },
+  "palette": {
+   "main": "#3a6a8a",
+   "secondary": "#e8e0c0",
+   "accent": "#f0b040",
+   "metal": "#a07a50",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "tall oar-blade shield (a cut-down rowing oar)",
+   "harbour cudgel",
+   "gull-wing hat",
+   "brass whistle"
+  ],
+  "weapon": "oar-blade shield and harbour cudgel",
+  "silhouette": "A harbour guard with a hat sporting two gull wings and a tall narrow oar blade as his shield.",
+  "signature": "A gull-wing hat and a rowing-oar shield.",
+  "pose": "Oar blade held upright in front like a door, cudgel ready, wings on the hat flaring.",
+  "fx": "Breakwater: a low wave wall rises before allies and becomes a blue shield; Harbor Bash splashes seawater.",
+  "story": "A harbour guard of Saltreach, the new act's port city.",
+  "notes_for_3d": "The tall narrow oar shape separates him from Mira's round shell buckler. Hat wings are white flat shapes."
+ },
+ {
+  "id": "loam",
+  "name": "Loam Bracken",
+  "title": "the Gate-Holding Farmer",
+  "element": "Gale",
+  "role": "Defense",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Plough Bash",
+   "Hold the Gate"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.04,
+   "bulk": 1.15,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#7a5a30"
+  },
+  "facial": "custom:mossy Beard (Beard tinted green-brown)",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "Peasant_Body",
+   "legs": "Peasant_Legs",
+   "feet": "Peasant_Feet",
+   "head": "custom:wide straw hat",
+   "acc": [
+    "custom:red neck kerchief"
+   ]
+  },
+  "palette": {
+   "main": "#6a7a3a",
+   "secondary": "#d8c070",
+   "accent": "#c84a2a",
+   "metal": "#8a8070",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "plough-share shield (curved iron plough blade)",
+   "pitchfork",
+   "straw hat",
+   "red kerchief"
+  ],
+  "weapon": "plough-share shield and pitchfork",
+  "silhouette": "A farmer in a straw hat holding a curved iron plough blade like a shield.",
+  "signature": "A plough-share shield.",
+  "pose": "Plough blade forward, pitchfork behind, feet planted in a furrow.",
+  "fx": "Hold the Gate: furrows of earth rise in front of allies and harden.",
+  "story": "A farmer who held the gate with a plough-shield.",
+  "notes_for_3d": "The curved plough blade is the read; keep it big (as wide as his torso)."
+ },
+ {
+  "id": "merrit",
+  "name": "Merrit Vellum",
+  "title": "the Squire",
+  "element": "Light",
+  "role": "Attack",
+  "rarity": "Common",
+  "classic": false,
+  "skills": [
+   "Squire's Cut",
+   "Oath Strike"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 0.95,
+   "bulk": 0.9,
+   "head": 1.05
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "custom:tousled sandy hair",
+   "colour": "#d8b060"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Cloth",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:slightly too-big pot helm tipped back",
+   "acc": [
+    "custom:parchment sash hung with wax-sealed oath scrolls"
+   ]
+  },
+  "palette": {
+   "main": "#c8c0b0",
+   "secondary": "#5a6a8a",
+   "accent": "#ffd860",
+   "metal": "#c0c8d0",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "short shining sword",
+   "parchment sash with wax-sealed oath scrolls",
+   "his master's oversized kite shield strapped on his back",
+   "too-big pot helm"
+  ],
+  "weapon": "short shining sword",
+  "silhouette": "A young squire with a shield too big for him on his back and scrolls fluttering from his sash.",
+  "signature": "A parchment sash of oath scrolls and a borrowed shield on his back.",
+  "pose": "Sword held up eagerly, helm sliding back, scrolls fluttering.",
+  "fx": "Oath Strike: the scrolls glow and a gold oath rune flashes on the hit; Squire's Cut can knock a buff off as a white spark.",
+  "story": "A squire to the Sigil Bearers, still growing into his gear.",
+  "notes_for_3d": "Youth build. The back shield is plain and oversized so it reads as 'borrowed'. Light rim, gold scroll seals."
+ },
+ {
+  "id": "sienna",
+  "name": "Sienna Firethorn",
+  "title": "the Ember-Grove Archer",
+  "element": "Flame",
+  "role": "Attack",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Ember Arrow",
+   "Grove Volley",
+   "Heartshot"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 0.98,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "custom:short choppy red hair",
+   "colour": "#c84a2a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "Female_Ranger_Body",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "Female_Ranger_Head_Hood",
+   "acc": [
+    "Female_Ranger_Acc_Pauldrons"
+   ]
+  },
+  "palette": {
+   "main": "#7a3a20",
+   "secondary": "#2a3a20",
+   "accent": "#ffb050",
+   "metal": "#8a6a50",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "firethorn crossbow (thorny wooden stock, ember bolts)",
+   "bolt quiver at the hip",
+   "hood"
+  ],
+  "weapon": "firethorn crossbow",
+  "silhouette": "A hooded archer aiming a chunky crossbow with thorny branches on the stock.",
+  "signature": "A firethorn crossbow.",
+  "pose": "Crossbow at the shoulder, aiming, hood shadowing the face.",
+  "fx": "Grove Volley rains burning bolts; Heartshot is one big ember bolt with a fire trail.",
+  "story": "An archer of the ember groves.",
+  "notes_for_3d": "Crossbow (not bow) and short hair separate her from Tamsin."
+ },
+ {
+  "id": "calder",
+  "name": "Calder Stormglass",
+  "title": "the Lighthouse Keeper",
+  "element": "Light",
+  "role": "Support",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Lamp Beam",
+   "Guiding Light",
+   "Beacon"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.06,
+   "bulk": 1.15,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "Balding",
+   "colour": "#8a8a8a"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "custom:navy keeper's greatcoat",
+   "legs": "Peasant_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:sou'wester rain hat",
+   "acc": []
+  },
+  "palette": {
+   "main": "#2a3450",
+   "secondary": "#e8e0d0",
+   "accent": "#fff0a0",
+   "metal": "#c8a050",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "lighthouse-lens staff (big faceted lens on a brass staff)",
+   "sou'wester hat",
+   "navy greatcoat"
+  ],
+  "weapon": "lighthouse-lens staff",
+  "silhouette": "A bearded old keeper in a rain hat holding a staff topped by a big glowing lens.",
+  "signature": "A storm-glass lighthouse lens on his staff.",
+  "pose": "Staff raised, lens glowing, looking out to sea.",
+  "fx": "Guiding Light: the lens sweeps a beam across allies; Beacon flashes a bright ring.",
+  "story": "A lighthouse keeper whose beam guides ships, and allies, home.",
+  "notes_for_3d": "Lens is faceted glass with emissive core."
+ },
+ {
+  "id": "dorian",
+  "name": "Dorian Lowe",
+  "title": "the Harbourmaster",
+  "element": "Tide",
+  "role": "Hp",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Anchor Swing",
+   "Harbor Watch",
+   "Tidebreak"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.08,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#4a4a4a"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Noble_Arms",
+   "body": "custom:navy harbourmaster's greatcoat with brass buttons",
+   "legs": "Noble_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "custom:peaked harbourmaster's cap",
+   "acc": [
+    "custom:brass spyglass on the back",
+    "custom:short navy cape"
+   ]
+  },
+  "palette": {
+   "main": "#2a4a6a",
+   "secondary": "#c8b070",
+   "accent": "#e8e0d0",
+   "metal": "#b89040",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "small anchor on a long rope-wrapped chain, swung like a flail",
+   "brass spyglass slung on the back",
+   "peaked cap",
+   "brass buttons"
+  ],
+  "weapon": "rope-wrapped anchor flail",
+  "silhouette": "A big navy-coated harbourmaster swinging a small anchor on a long chain.",
+  "signature": "A rope-wrapped anchor flail.",
+  "pose": "Anchor chain wound around his forearm, anchor hanging and swaying.",
+  "fx": "Anchor Swing spins the anchor in a wide arc; Tidebreak rolls a gentle blue tide over allies.",
+  "story": "The harbourmaster of Saltreach.",
+  "notes_for_3d": "Navy coat and swung chain anchor separate him from Bram (yellow oilskin, shouldered big anchor)."
+ },
+ {
+  "id": "ivo",
+  "name": "Ivo Brightmantle",
+  "title": "the Bell-Tower Guard",
+  "element": "Light",
+  "role": "Hp",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Bell Hammer",
+   "Tower Toll",
+   "Vigil"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.04,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Buzzed",
+   "colour": "#d8c080"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "custom:white-gold mantle over Knight_Body_Cloth",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "none",
+   "acc": [
+    "custom:bell-tower pauldrons shaped like crenellated towers"
+   ]
+  },
+  "palette": {
+   "main": "#e8e0c8",
+   "secondary": "#8a6a3a",
+   "accent": "#ffd860",
+   "metal": "#c8902a",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "bell maul: a maul whose head is a small bronze bell",
+   "bright white-gold mantle",
+   "crenellated tower pauldrons"
+  ],
+  "weapon": "bronze bell maul",
+  "silhouette": "A broad tower guard with castle-tower shoulders and a bell on a stick.",
+  "signature": "A maul whose head is a bronze bell.",
+  "pose": "Bell maul on the shoulder, standing straight like a tower.",
+  "fx": "Bell Hammer rings a gold shockwave that can stun; Tower Toll rings soft gold healing waves.",
+  "story": "A bell-tower guard.",
+  "notes_for_3d": "No hammer or helm (fixes Hale and Thrain twins)."
+ },
+ {
+  "id": "saoirse",
+  "name": "Saoirse Wraithmoor",
+  "title": "the Barrow Guardian",
+  "element": "Shadow",
+  "role": "Defense",
+  "rarity": "Rare",
+  "classic": false,
+  "skills": [
+   "Barrow Strike",
+   "Moor Ward",
+   "Grave Mist"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.0,
+   "head": 1.0
+  },
+  "skin": "pale",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#2a3a3a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "custom:grey-green moor cloak over mail",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:sheer grey veil to the chin",
+   "acc": [
+    "custom:tattered wraith banner on a tall back pole"
+   ]
+  },
+  "palette": {
+   "main": "#3a4a48",
+   "secondary": "#1a2424",
+   "accent": "#b8e8d8",
+   "metal": "#7a8a88",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "round barrow-stone shield carved with spirals",
+   "short leaf-blade sword",
+   "tattered pale wraith banner rising from her back"
+  ],
+  "weapon": "spiral barrow-stone shield",
+  "silhouette": "A veiled moor-walker with a tall tattered banner rising above her head and a round stone shield.",
+  "signature": "A wraith banner on her back that drifts like mist.",
+  "pose": "Shield up at the chest, sword low, banner rippling behind, head slightly bowed under the veil.",
+  "fx": "Moor Ward: grey-violet mist wraps her as a shield; Grave Mist drifts pale wraith shapes across enemies that drain their turn bars.",
+  "story": "A moor-walker who guards the Wraithmoor barrows and speaks for the restless dead.",
+  "notes_for_3d": "Banner on 4 spring bones, alpha-clip ragged edge. Stone shield (not metal) keeps her apart from Silas and Malachar."
+ },
+ {
+  "id": "gideon",
+  "name": "Gideon Flamecaller",
+  "title": "Commander of the Pyre Guard",
+  "element": "Flame",
+  "role": "Defense",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Pyre Bash",
+   "Pyre Guard",
+   "Flame Wall"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.08,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "none (bald)",
+   "colour": "#5a2a1a"
+  },
+  "facial": "Beard",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:commander's close helm with a tall crest of living fire (front to back)",
+   "acc": [
+    "Noble_Acc_Pauldron_Lion",
+    "custom:dark red half cape"
+   ]
+  },
+  "palette": {
+   "main": "#7a2a1a",
+   "secondary": "#4a1a10",
+   "accent": "#ffa040",
+   "metal": "#8a6a50",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "tall pavise shield with a burning brazier bowl on top",
+   "flaming halberd",
+   "fire-crest helm",
+   "lion pauldron (rank)"
+  ],
+  "weapon": "brazier pavise and flaming halberd",
+  "silhouette": "A commander with a fire crest running over his helm and a tall shield crowned by a burning brazier.",
+  "signature": "A pavise shield with a brazier burning on top.",
+  "pose": "Pavise planted in front, halberd upright beside it like a standard, chest out.",
+  "fx": "Pyre Guard: the brazier flares and orange fire-shields wrap every ally; Flame Wall throws up a low wall of flame that weakens enemies.",
+  "story": "Commander of the Pyre guard, who keeps the Last Pyre's gate.",
+  "notes_for_3d": "Fire crest is front-to-back (a ridge), unlike Pyrrhus's horns and Tallow's candles. Brazier flame is a looping fire card."
+ },
+ {
+  "id": "liora",
+  "name": "Liora Tidesinger",
+  "title": "the Storm Siren",
+  "element": "Tide",
+  "role": "Attack",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Siren Call",
+   "Storm Song",
+   "Undertow Spear"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.0,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "blue",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#5ad0d0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:scale-shimmer gown whose hem splits into a fin tail",
+   "legs": "none (covered by robe)",
+   "feet": "custom:bare feet",
+   "head": "custom:translucent fin-ear crest",
+   "acc": [
+    "custom:sea-glass necklace"
+   ]
+  },
+  "palette": {
+   "main": "#1a6a7a",
+   "secondary": "#e8f0e8",
+   "accent": "#a8ffff",
+   "metal": "#c0d0d0",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "harp-trident: a trident with glowing harp strings strung between its tines",
+   "fin ears",
+   "fin-tail hem",
+   "sea-glass necklace"
+  ],
+  "weapon": "harp-trident",
+  "silhouette": "A siren with fin ears and a fin-tailed gown, holding a trident strung like a harp.",
+  "signature": "A harp-trident she plucks to sing storms.",
+  "pose": "Trident held upright like a harp against her shoulder, fingers on the strings, swaying.",
+  "fx": "Storm Song: visible blue sound rings roll over enemies and slow them; Undertow Spear hurls the trident in a water spiral.",
+  "story": "A siren of the storm coast whose song pulls sailors, and enemies, under.",
+  "notes_for_3d": "Strings are thin emissive lines. Fin ears and fin hem are translucent alpha-clip. Maelis keeps the plain coral trident."
+ },
+ {
+  "id": "bastian",
+  "name": "Bastian Grey",
+  "title": "the Hollow-Blooded Brawler",
+  "element": "Shadow",
+  "role": "Hp",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Grey Fist",
+   "Hollow Blood",
+   "Brawl"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.1,
+   "bulk": 1.25,
+   "head": 0.95
+  },
+  "skin": "ash",
+  "hair": {
+   "style": "Buzzed",
+   "colour": "#6a6a6a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "custom:bare arms, the left one turned grey Hollow-stone with violet veins",
+   "body": "custom:open grey leather vest",
+   "legs": "Peasant_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "none",
+   "acc": [
+    "custom:ragged long grey cape"
+   ]
+  },
+  "palette": {
+   "main": "#3a3440",
+   "secondary": "#8a8490",
+   "accent": "#b080ff",
+   "metal": "#4a4450",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "iron shackle ball on a chain cuffed to his right wrist",
+   "Hollow-stone left arm with glowing violet veins",
+   "ragged long cape"
+  ],
+  "weapon": "shackle ball and chain",
+  "silhouette": "A big grey brawler in a ragged cape, an iron ball hanging from a chain on his wrist.",
+  "signature": "An iron shackle ball chained to his wrist, and a stone-grey Hollow arm.",
+  "pose": "Feet wide, chain wrapped twice around the fist, ball hanging low and swinging slightly.",
+  "fx": "Grey Fist cracks armour with violet sparks; Brawl smashes the ball into the ground in a violet shockwave that lifts allies' spirits (ATK up).",
+  "story": "A Hollow-blooded brawler who broke out of a Hollow prison and kept the ball as a reminder.",
+  "notes_for_3d": "Ball on a 5-link chain with spring bones. No scythe or club (fixes Sorrel twin). Stone arm uses rock texture with emissive veins."
+ },
+ {
+  "id": "elowen",
+  "name": "Elowen Brightwater",
+  "title": "the Shard-Arrow Ranger",
+  "element": "Light",
+  "role": "Attack",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Light Arrow",
+   "Shard Arrow",
+   "Rain of Light"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.0,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "custom:high ponytail with a gold clasp",
+   "colour": "#f0e0a0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "Female_Ranger_Body",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "none",
+   "acc": [
+    "Female_Ranger_Acc_Pauldrons",
+    "custom:white quiver of light bolts"
+   ]
+  },
+  "palette": {
+   "main": "#e8e0c0",
+   "secondary": "#6a8a5a",
+   "accent": "#fff2b0",
+   "metal": "#d8c8a0",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "crystal great bow taller than her",
+   "glowing Light-shard arrow nocked",
+   "white quiver of light bolts"
+  ],
+  "weapon": "crystal great bow",
+  "silhouette": "A bright ranger drawing a clear crystal bow taller than she is.",
+  "signature": "A crystal great bow with a glowing shard arrow.",
+  "pose": "Bow half drawn and angled up, shard arrow glowing, ponytail swinging.",
+  "fx": "Shard Arrow streaks a gold beam that strips buffs; Rain of Light drops a shower of gold arrows.",
+  "story": "A ranger who carries a Light-shard arrow and will only loose it when it matters.",
+  "notes_for_3d": "Bow is translucent crystal with a gold grip. Taller and brighter than Tamsin's reed bow; Sienna and Wynn use a crossbow and a short bow."
+ },
+ {
+  "id": "faelan",
+  "name": "Faelan Galeheart",
+  "title": "the Stormcrown Chieftain",
+  "element": "Gale",
+  "role": "Hp",
+  "rarity": "Epic",
+  "classic": false,
+  "skills": [
+   "Chieftain's Spear",
+   "War Banner",
+   "Highland Roar"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.1,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "Dreads",
+   "colour": "#a05a2a"
+  },
+  "facial": "custom:braided Beard with wooden beads",
+  "outfit": {
+   "arms": "Ranger_Arms",
+   "body": "custom:highland plaid wrap over leather",
+   "legs": "Ranger_Legs",
+   "feet": "Ranger_Feet_Boots",
+   "head": "none",
+   "acc": [
+    "custom:feathered pauldron mantle (grey-green eagle feathers)",
+    "custom:great war horn slung on the back"
+   ]
+  },
+  "palette": {
+   "main": "#4a6a5a",
+   "secondary": "#a05a2a",
+   "accent": "#c8f0d0",
+   "metal": "#8a8a7a",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "gale glaive with a curved leaf blade",
+   "feathered pauldron mantle",
+   "great war horn on the back",
+   "plaid wrap"
+  ],
+  "weapon": "gale glaive",
+  "silhouette": "A big highland chief with feathered shoulders, a horn on his back and a long curved glaive.",
+  "signature": "Eagle-feather pauldrons and a great war horn.",
+  "pose": "Glaive planted butt-down, chin up, feathers ruffling.",
+  "fx": "Chieftain's Spear pierces in a green line; Highland Roar: he blows the horn and green wind rings speed and heal allies.",
+  "story": "The Stormcrown chieftain, loud, generous and impossible to knock over.",
+  "notes_for_3d": "Dreads + braided beard + feathers set him apart from Rowan (hood, antlers, no beard) and Caspian (helmet)."
+ },
+ {
+  "id": "wick",
+  "name": "Saint Wick of the Lamps",
+  "title": "Keeper of the Flame Hearth",
+  "element": "Flame",
+  "role": "Support",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Lamp Spark",
+   "Hearth Rite",
+   "Kindle All"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 0.96,
+   "bulk": 0.9,
+   "head": 1.05
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:tousled copper hair",
+   "colour": "#e8a050"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Peasant_Arms",
+   "body": "custom:patched saint's coat in rust and cream",
+   "legs": "Peasant_Legs",
+   "feet": "Peasant_Feet",
+   "head": "custom:small halo of living flame",
+   "acc": [
+    "custom:patchwork cape"
+   ]
+  },
+  "palette": {
+   "main": "#a0502a",
+   "secondary": "#e8d8b0",
+   "accent": "#ffd060",
+   "metal": "#c8902a",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "ring of six floating street lamps circling him",
+   "lamplighter's pole with a flame hook",
+   "flame halo",
+   "patchwork cape"
+  ],
+  "weapon": "lamplighter's pole",
+  "silhouette": "A young saint in a patched coat with six little lamps floating around him in a ring.",
+  "signature": "A ring of floating lamps.",
+  "pose": "Pole raised like a torch, lamps slowly orbiting at waist height, warm smile.",
+  "fx": "Hearth Rite: the lamps fly to each ally and burst into warm healing light; Kindle All lights every lamp at once in a gold flash.",
+  "story": "The urchin who lit Saltreach's lamps, grown into the keeper of the Flame shard's hearth.",
+  "notes_for_3d": "Legendary on a small body: the lamp ring (helper bones) + flame halo + aura are his 'breaker'. Keep the patched coat humble."
+ },
+ {
+  "id": "azura",
+  "name": "Azura Deepstar",
+  "title": "Bearer of the Tide Shard",
+  "element": "Tide",
+  "role": "Attack",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Deepstar Thrust",
+   "Tidal Crash",
+   "Abyssal Spear"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.06,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "brown",
+  "hair": {
+   "style": "custom:long flowing deep-blue hair with star beads",
+   "colour": "#1a4a8a"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "custom:deep-blue scale-armour dress",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Ranger_Feet_Boots",
+   "head": "custom:crown of a floating water star",
+   "acc": [
+    "custom:starry night-sea cape"
+   ]
+  },
+  "palette": {
+   "main": "#1a3a7a",
+   "secondary": "#e0e8ff",
+   "accent": "#f0e080",
+   "metal": "#c0c8e0",
+   "glow": "#3a8ee8"
+  },
+  "kit": [
+   "star-tipped spear (crystal shaft, five-point star blade)",
+   "floating water-star crown",
+   "cape of night sea with star flecks",
+   "deep-blue aura"
+  ],
+  "weapon": "star-tipped spear",
+  "silhouette": "A deep-sea warrior queen with a star at her spear tip and a cape full of stars.",
+  "signature": "A star-tipped spear and a floating water-star crown.",
+  "pose": "Spear held high overhead, cape billowing behind like deep water.",
+  "fx": "Tidal Crash: a wave full of stars crashes over enemies and stuns; Abyssal Spear drives a star into the target and drains its turn bar.",
+  "story": "Bearer of the Tide shard, who rose out of the Wraithmoor barrows' singing stones.",
+  "notes_for_3d": "Legendary: water-star crown (emissive, floating) + star cape + aura. Spear, not trident (Maelis and Liora hold tridents)."
+ },
+ {
+  "id": "pyrrhus",
+  "name": "Pyrrhus Sunderflame",
+  "title": "Bearer of the Flame Shard",
+  "element": "Flame",
+  "role": "Defense",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Sunder Bash",
+   "Flame Bulwark",
+   "Sunder Quake"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.12,
+   "bulk": 1.25,
+   "head": 0.95
+  },
+  "skin": "deep",
+  "hair": {
+   "style": "none (bald)",
+   "colour": "#2a1410"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:Knight_Head_Horns helm whose horns are living flame",
+   "acc": [
+    "Knight_Acc_Pauldron_Round",
+    "custom:ember cape"
+   ]
+  },
+  "palette": {
+   "main": "#5a1a0e",
+   "secondary": "#2a0e08",
+   "accent": "#ff8a20",
+   "metal": "#3a2a28",
+   "glow": "#e8553a"
+  },
+  "kit": [
+   "volcanic round shield with lava cracks",
+   "war hammer with a basalt head",
+   "horns of living flame",
+   "ember aura"
+  ],
+  "weapon": "volcanic round shield and war hammer",
+  "silhouette": "A huge black-and-red knight with two horns of fire rising from his helm.",
+  "signature": "Horns of living flame.",
+  "pose": "Shield forward, hammer cocked back, horns flaring.",
+  "fx": "Flame Bulwark: a dome of fire with a molten rim over the team; Sunder Quake cracks the ground in lava lines that stun.",
+  "story": "Bearer of the Flame shard, a knight who stands in fire and does not burn.",
+  "notes_for_3d": "Legendary: flame horns + lava-cracked shield + aura. Malachar has no horns; Gorrum has stone ram horns."
+ },
+ {
+  "id": "kaelith",
+  "name": "Kaelith Shadowborne",
+  "title": "Bearer of the Shadow Shard",
+  "element": "Shadow",
+  "role": "Hp",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Shadow Orb",
+   "Night Regalia",
+   "Eclipse Tide"
+  ],
+  "sex": "female",
+  "body": {
+   "height": 1.08,
+   "bulk": 1.0,
+   "head": 1.0
+  },
+  "skin": "ash",
+  "hair": {
+   "style": "Hair1",
+   "colour": "#1a1424"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Peasant_Arms",
+   "body": "custom:regal layered violet robe with a high collar",
+   "legs": "none (covered by robe)",
+   "feet": "Female_Peasant_Feet",
+   "head": "custom:long veil with a black eclipse disc and violet corona behind the head",
+   "acc": [
+    "custom:large ragged wraith wings"
+   ]
+  },
+  "palette": {
+   "main": "#1a1028",
+   "secondary": "#c0b0d0",
+   "accent": "#c070ff",
+   "metal": "#a8a0c0",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "eclipse disc with glowing corona",
+   "ragged wraith wings",
+   "silver eclipse sceptre",
+   "violet aura"
+  ],
+  "weapon": "eclipse sceptre",
+  "silhouette": "A veiled queen with a black sun ringed in violet behind her head and ragged wings.",
+  "signature": "An eclipse disc and wraith wings.",
+  "pose": "Sceptre upright, wings half spread, veil drifting.",
+  "fx": "Night Regalia: the eclipse corona flares and violet mist heals her; Eclipse Tide darkens the field and drains enemy turn bars.",
+  "story": "Bearer of the Shadow shard, the drowned thing of the Black Fens that learned to walk.",
+  "notes_for_3d": "Legendary: eclipse disc + wings + aura. No crown or orb (fixes Morwenna and Aelira twins)."
+ },
+ {
+  "id": "aurex",
+  "name": "Aurex Lightsworn",
+  "title": "Bearer of the Light Shard",
+  "element": "Light",
+  "role": "Attack",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Lightsworn Edge",
+   "Radiant Judgment",
+   "Dawn Blade"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.08,
+   "bulk": 1.05,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "SimpleParted",
+   "colour": "#f8f0d0"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "custom:gold halo ring",
+   "acc": [
+    "Noble_Acc_Pauldron_Lion",
+    "custom:white cape",
+    "custom:radiant wings of gold light"
+   ]
+  },
+  "palette": {
+   "main": "#f0e8d0",
+   "secondary": "#c89a40",
+   "accent": "#6a9ae0",
+   "metal": "#e8d090",
+   "glow": "#e8c23a"
+  },
+  "kit": [
+   "greatsword of light, longer than his body",
+   "gold halo",
+   "radiant wings of light (alpha-clip feathers)",
+   "lion pauldron"
+  ],
+  "weapon": "greatsword of light",
+  "silhouette": "A white-gold knight with wings of light and a huge glowing greatsword.",
+  "signature": "Radiant wings and a greatsword of light.",
+  "pose": "Greatsword point-down in front, both hands on the pommel, wings open.",
+  "fx": "Radiant Judgment crashes gold light that strips buffs; Dawn Blade lengthens the sword into a beam.",
+  "story": "Bearer of the Light shard, found in the burning ember groves.",
+  "notes_for_3d": "Legendary: wings + halo + aura. Lumen keeps the tabard and one-handed sword; Aurex is the winged greatsword."
+ },
+ {
+  "id": "stormbearer",
+  "name": "Gale Stormbearer",
+  "title": "Bearer of the Gale Shard",
+  "element": "Gale",
+  "role": "Defense",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Gale Bash",
+   "Storm Aegis",
+   "Tempest"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.1,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "tan",
+  "hair": {
+   "style": "custom:white windswept hair",
+   "colour": "#c8d8e0"
+  },
+  "facial": "MuttonChops",
+  "outfit": {
+   "arms": "Knight_Arms",
+   "body": "Knight_Body_Armor",
+   "legs": "Knight_Legs",
+   "feet": "Knight_Feet",
+   "head": "Knight_Head_Armet",
+   "acc": [
+    "Knight_Acc_Pauldron_Round",
+    "custom:storm-grey cape"
+   ]
+  },
+  "palette": {
+   "main": "#6a8aa0",
+   "secondary": "#3a5a70",
+   "accent": "#c8f0ff",
+   "metal": "#8a9aa8",
+   "glow": "#3fb57a"
+  },
+  "kit": [
+   "pinwheel-vane shield with four spinning wind vanes",
+   "lightning-rod standard topped with a crackling cloud vane",
+   "hovering storm-cloud halo",
+   "aura"
+  ],
+  "weapon": "pinwheel shield and lightning-rod standard",
+  "silhouette": "A storm knight with a spinning windmill shield and a little storm cloud hovering over his head.",
+  "signature": "A pinwheel shield that spins in battle.",
+  "pose": "Shield vanes slowly spinning, standard planted, cloud flickering.",
+  "fx": "Storm Aegis: the vanes spin up a green wind dome; Tempest cracks lightning from the rod across enemies.",
+  "story": "Bearer of the Gale shard, waiting on the storm coast.",
+  "notes_for_3d": "Legendary: storm-cloud halo + spinning shield + aura. Vanes on a helper bone."
+ },
+ {
+  "id": "vex",
+  "name": "Vex Hollowking",
+  "title": "the Hollow King",
+  "element": "Shadow",
+  "role": "Support",
+  "rarity": "Legendary",
+  "classic": false,
+  "skills": [
+   "Hollow Decree",
+   "King's Command",
+   "Crown of Ruin"
+  ],
+  "sex": "male",
+  "body": {
+   "height": 1.12,
+   "bulk": 1.1,
+   "head": 1.0
+  },
+  "skin": "ash",
+  "hair": {
+   "style": "custom:long black hair",
+   "colour": "#2a2a34"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Noble_Arms",
+   "body": "Noble_Body",
+   "legs": "Noble_Legs",
+   "feet": "Noble_Feet",
+   "head": "custom:broken crown fused with two curling horns",
+   "acc": [
+    "Noble_Acc_Gorget",
+    "custom:throne-back high collar cape"
+   ]
+  },
+  "palette": {
+   "main": "#24202c",
+   "secondary": "#c8c0d0",
+   "accent": "#ff4a6a",
+   "metal": "#6a6070",
+   "glow": "#9a5ae8"
+  },
+  "kit": [
+   "chained orb (dark glass orb on a silver chain)",
+   "horned broken crown",
+   "throne-back collar cape",
+   "red-violet aura"
+  ],
+  "weapon": "chained orb",
+  "silhouette": "A tall Hollow king with curling horns through a broken crown and a towering throne-back collar.",
+  "signature": "A horned broken crown and a chained orb.",
+  "pose": "Orb swinging slowly from its chain, other hand open in command.",
+  "fx": "King's Command: the orb pulses red-violet and heals and shields allies; Crown of Ruin cracks the crown's light down on enemies (stun, strip).",
+  "story": "The Hollow's king, an uneasy ally at the end.",
+  "notes_for_3d": "Legendary: horns + crown + collar + aura. Red-violet accent marks his Hollow origin."
+ }
+]

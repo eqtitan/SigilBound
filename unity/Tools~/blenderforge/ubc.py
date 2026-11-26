@@ -98,6 +98,37 @@ def grip_pose(arm, sides=("r",)):
                     pb.rotation_axis_angle = (ang, *ax)
     bpy.ops.object.mode_set(mode="OBJECT")
 
+def weapon_side(c):
+    """The weapon hand: bows and crossbows are held in the left (bow) hand, everything else in the right."""
+    return "l" if has(str(c.get("weapon", "")).lower(), "bow", "crossbow", "longbow", "shortbow") else "r"
+
+def make_bow(mat, string_mat, cross=False):
+    """A bow along local +Z through the grip: two curved limbs (thicker at the grip), tips swept back
+    toward the archer (+X, the palm side), and a straight string between the tips. A crossbow lays the
+    limbs across the stock."""
+    pts = []
+    for i in range(13):
+        t = i / 12 * 2 - 1                    # -1 .. 1 along the bow
+        z = t * 0.62; x = 0.11 * (t * t) - 0.02 * (1 - t * t)
+        pts.append((x, 0.0, z))
+    cu = bpy.data.curves.new("BowLimb", "CURVE"); cu.dimensions = "3D"; cu.bevel_depth = 0.016; cu.bevel_resolution = 2
+    sp = cu.splines.new("POLY"); sp.points.add(len(pts) - 1)
+    for p, (x, y, z) in zip(sp.points, pts): p.co = (x, y, z, 1)
+    limb = bpy.data.objects.new("BowLimb", cu); bpy.context.scene.collection.objects.link(limb)
+    for x in bpy.context.selected_objects: x.select_set(False)
+    limb.select_set(True); bpy.context.view_layer.objects.active = limb; bpy.ops.object.convert(target="MESH")
+    limb = bpy.context.object; limb.data.materials.append(mat)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=6, radius=0.0035, depth=1.24, location=(0.11, 0, 0))
+    st = bpy.context.object; st.data.materials.append(string_mat)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.024, depth=0.12, location=(0, 0, 0))   # leather grip
+    gr = bpy.context.object; gr.data.materials.append(string_mat)
+    parts = [limb, st, gr]
+    if cross:
+        for o in parts: o.rotation_euler = (0, math.radians(90), 0)
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 0)); stock = bpy.context.object
+        stock.scale = (0.05, 0.05, 0.62); stock.location = (0, 0, 0.18); stock.data.materials.append(mat); parts.append(stock)
+    return parts
+
 def weapon(c, arm, mats):
     """A simple weapon along local +Z at the right-hand grip, rigid to hand_r."""
     w = str(c.get("weapon", "")).lower()
@@ -121,9 +152,8 @@ def weapon(c, arm, mats):
         o = add(prim("primitive_cube_add", metal, size=1, location=(0, 0, 0.75))); o.scale = (0.26, 0.15, 0.16)
     elif has(w, "dagger", "knife", "sickle", "hook", "fan", "quill", "wand"):
         o = add(prim("primitive_cube_add", metal, size=1, location=(0, 0, 0.17))); o.scale = (0.01, 0.035, 0.3)
-    elif has(w, "bow", "crossbow"):
-        bpy.ops.mesh.primitive_torus_add(major_segments=24, minor_segments=6, major_radius=0.55, minor_radius=0.014, location=(0, 0, 0))
-        o = bpy.context.object; o.data.materials.append(main); o.scale = (0.35, 1, 1); add(o)
+    elif has(w, "bow", "crossbow", "longbow", "shortbow"):
+        for o in make_bow(main, mats["acc"], cross=has(w, "crossbow")): add(o)
     elif has(w, "orb", "lantern", "candle", "bell", "mirror", "book", "tome", "conch", "lamp", "harp", "lute", "lens"):
         add(prim("primitive_uv_sphere_add", glow, segments=16, ring_count=8, radius=0.08, location=(0, 0, 0.1)))
     else:
@@ -134,9 +164,10 @@ def weapon(c, arm, mats):
     for o in parts: o.select_set(True)
     bpy.context.view_layer.objects.active = parts[0]; bpy.ops.object.join()
     o = bpy.context.object; o.name = "Kit_Weapon"
-    o.matrix_world = grip_frame(arm, "r") @ o.matrix_world
+    side = weapon_side(c)
+    o.matrix_world = grip_frame(arm, side) @ o.matrix_world
     apply_xform(o)
-    return [bind(o, arm, {"hand_r": 1.0})]
+    return [bind(o, arm, {"hand_" + side: 1.0})]
 
 def body_bvh():
     """BVH of the dressed body (every non-kit mesh, evaluated in the rest pose) for fitting kit to it."""
@@ -348,6 +379,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--design", required=True); ap.add_argument("--hero", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--tex", type=int, default=1024); ap.add_argument("--tris", type=int, default=25000); ap.add_argument("--render", action="store_true")
+    ap.add_argument("--lod1", action="store_true", help="also export a ~1/3-triangle LOD1 (not shipped by default)")
     a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
     os.makedirs(a.out, exist_ok=True)
     c = {d["id"]: d for d in json.load(open(a.design))}[a.hero]
@@ -367,8 +399,17 @@ def main():
     tris = decimate_to(hero, a.tris)
     paths = bake(hero, a.tex, a.out, a.hero)
     kb = export(arm, hero, os.path.join(a.out, f"SB_Hero_{a.hero}_HD.glb"))
-    t1 = decimate_to(hero, max(4000, tris // 3))
-    kb1 = export(arm, hero, os.path.join(a.out, f"SB_Hero_{a.hero}_HD_LOD1.glb"))
+    t1 = kb1 = 0
+    if a.lod1:
+        t1 = decimate_to(hero, max(4000, tris // 3))
+        kb1 = export(arm, hero, os.path.join(a.out, f"SB_Hero_{a.hero}_HD_LOD1.glb"))
+    # Phones: JPEG albedo and normal (the game reads .jpg or .png); glow stays a small PNG.
+    try:
+        from PIL import Image
+        for k, q in (("albedo", 88), ("normal", 92)):
+            p = paths[k]; Image.open(p).convert("RGB").save(p[:-4] + ".jpg", quality=q, optimize=True); os.remove(p)
+    except ImportError:
+        print("[ubc] Pillow not available: textures stay PNG")
     print(f"[ubc] {a.hero}: {raw} -> {tris} tris (LOD1 {t1}), {len(arm.data.bones)} bones, {kb} KB + LOD1 {kb1} KB, textures {a.tex}")
 
 if __name__ == "__main__":
