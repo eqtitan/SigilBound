@@ -200,16 +200,15 @@ namespace Sigilbound.Client
             arena.ClearOverride(); _cinema = false; Time.timeScale = _paused ? 0 : speed;
         }
 
-        // The Titan's ultimate (owner direction 2026-11-26): it crouches and leaps; the camera pulls back and
-        // widens so the whole arc stays in view, follows it up and down onto the middle of the team, holds on
-        // the impact, then eases back to the battle view.
+        // The Titan's ultimate (owner direction 2026-11-26): it crouches and leaps. The camera stays put and
+        // zooms out (a wider lens, no camera move) to take in the jump, the fall and the slam with its effects,
+        // tilting a little to follow, then zooms back in to the battle view.
         IEnumerator MeteorLeap(Unit u, CharacterView v)
         {
             var m = v.Hero; var arena = App.Arena; _cinema = true;
             var T0 = v.transform.position; var team = Arena.ToUnity(BattleLayout.TeamCentre); team.y = T0.y;
             float H = TitanHeight(v); var eye = arena.PosePosition; float fov = arena.Cam.fieldOfView;
-            var back = eye - team; back.y = 0; back = back.sqrMagnitude > 0.01f ? back.normalized : Vector3.back;
-            var far = eye + back * 7f + Vector3.up * 2.5f; float wide = fov + 14f;
+            var far = eye; float wide = Mathf.Min(fov + 34f, 78f); // lens only: the camera position never changes
             arena.BreathTarget = 0;
             if (m.Has("Crouch_Idle_Loop")) m.Play("Crouch_Idle_Loop", true, 0.15f, 1f);
             for (float t = 0; t < 0.35f; t += Time.deltaTime)
@@ -226,7 +225,7 @@ namespace Sigilbound.Client
                 var p = Vector3.Lerp(T0, team, k) + Vector3.up * (4f * apex * k * (1f - k));
                 v.transform.position = p;
                 if (!landing && k > 0.8f && m.Has("Jump_Land")) { landing = true; m.Play("Jump_Land", false, 0.05f, 1.2f, true); }
-                arena.Override(Vector3.Lerp(eye, far, e), Vector3.Lerp(team + Vector3.up * 1.5f, p + Vector3.up * H * 0.45f, 0.85f), Mathf.Lerp(fov, wide, e), 1f);
+                arena.Override(eye, Vector3.Lerp(team + Vector3.up * H * 0.6f, p + Vector3.up * H * 0.45f, 0.6f), Mathf.Lerp(fov, wide, e), 1f);
                 yield return null;
             }
             v.transform.position = team;
