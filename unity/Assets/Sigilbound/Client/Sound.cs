@@ -34,6 +34,9 @@ namespace Sigilbound.Client
             ["hit_arrow"] = "sfx_hit_arrow", ["hit_shield"] = "sfx_hit_shield", ["hit_unarmed"] = "sfx_hit_unarmed", ["hit_magic"] = "sfx_hit_magic",
             ["armour_plate"] = "sfx_armour_plate", ["armour_mail"] = "sfx_armour_mail", ["armour_leather"] = "sfx_armour_leather", ["armour_cloth"] = "sfx_armour_cloth",
             ["cast_flame"] = "sfx_cast_flame", ["cast_gale"] = "sfx_cast_gale", ["cast_tide"] = "sfx_cast_tide", ["cast_light"] = "sfx_cast_light", ["cast_shadow"] = "sfx_cast_shadow",
+            // boss lairs: the landmark set-pieces reacting to the fight (story scenes; Tools~/audio/make_lairs.py)
+            ["lairBell"] = "sfx_lair_bell", ["lairWheel"] = "sfx_lair_wheel", ["lairPyre"] = "sfx_lair_pyre", ["lairBeam"] = "sfx_lair_beam",
+            ["lairSnuff"] = "sfx_lair_snuff", ["lairThunder"] = "sfx_lair_thunder", ["lairChime"] = "sfx_lair_chime", ["lairDrip"] = "sfx_lair_drip",
         };
         // Ambience beds (amb_*.ogg, loaded when a battle starts) and the bed each arena theme uses
         // (index = GameData.ThemeOf(chapter), the Scenery theme order); the Titan's caldera has its own.
@@ -87,7 +90,7 @@ namespace Sigilbound.Client
         // never the same one twice running.
         public void Play(string name, float volume = 1, float rate = 1, float jitter = 0.06f, float pan = 0)
         {
-            if (SfxVol <= 0 || !_clips.TryGetValue(name, out var set)) return;
+            if (SfxVol <= 0 || name == null || !_clips.TryGetValue(name, out var set)) return;   // unknown cue: silence
             int i = 0;
             if (set.Length > 1)
             {
@@ -112,7 +115,12 @@ namespace Sigilbound.Client
             var v = cam.WorldToViewportPoint(world);
             return v.z <= 0 ? 0 : Mathf.Clamp((v.x - 0.5f) * 1.7f, -0.85f, 0.85f);
         }
-        public void PlayAt(string name, Vector3 world, float volume = 1, float rate = 1, float jitter = 0.06f) => Play(name, volume, rate, jitter, PanOf(world));
+        // Unknown names (or a missing file) play nothing: Play looks the name up and returns quietly.
+        public void PlayAt(string name, Vector3 world, float volume = 1, float rate = 1, float jitter = 0.06f)
+        {
+            if (string.IsNullOrEmpty(name) || !_clips.ContainsKey(name)) return;
+            Play(name, volume, rate, jitter, PanOf(world));
+        }
 
         // ---- per weapon / armour / element / status (each hero sounds like its weapon) ----
         static string Fam(WeaponFamily f) => f switch

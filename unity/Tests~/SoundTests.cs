@@ -30,6 +30,8 @@ static class SoundTests
         foreach (var el in System.Enum.GetNames(typeof(Sigilbound.Core.Element))) played.Add("cast_" + el.ToLowerInvariant());
         foreach (var n in new[] { "stun", "poison", "shield", "buff", "debuff", "crit" }) played.Add(n);
         foreach (var a in System.Enum.GetNames(typeof(Sigilbound.Core.ArmourClass))) played.Add("armour_" + a.ToLowerInvariant());
+        // boss-lair set-piece cues the scenery plays through PlayAt (story scenes)
+        foreach (var n in new[] { "lairBell", "lairWheel", "lairPyre", "lairBeam", "lairSnuff", "lairThunder", "lairChime", "lairDrip" }) played.Add(n);
         var unknown = played.Where(p => !keys.Contains(p)).ToList();
         check(unknown.Count == 0, $"sounds: every sound the game plays has an entry ({played.Count} names)" + (unknown.Count > 0 ? " — unknown: " + string.Join(", ", unknown) : ""));
         // ambience: the theme table covers every scenery theme and names only beds that exist
