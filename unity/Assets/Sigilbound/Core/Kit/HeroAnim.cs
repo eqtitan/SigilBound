@@ -11,6 +11,8 @@ namespace Sigilbound.Core
         public string Idle; public string[] Strike; public string Cast, Support, Ult; public string[] Hit, BigHit, Death, Fidget; public string Win; public bool Titan;
         // Phase G (high-detail heroes): guard, defeat pose, victory hold, per-hero idle speed (desync).
         public string Block, Defeat; public float WinSpeed = 1f, DefeatSpeed = 1f, IdleSpeed = 1f, HitScale = 1f; public bool WinHold;
+        // Ready (MECHANICS.md 3.1): the combat stance taken when the unit's turn starts; null = idle at 1.1x.
+        public string Ready;
 
         static readonly HashSet<string> Brawlers = new HashSet<string> { "odo", "kettle", "gorrum", "thrain" };
         static readonly HashSet<string> SmallFocus = new HashSet<string> { "candle", "mirror", "bell", "orb", "lantern" };
@@ -44,12 +46,12 @@ namespace Sigilbound.Core
             };
             switch (fam)
             {
-                case WeaponFamily.Daggers: st.Idle = "Crouch_Idle_Loop"; st.Strike = new[] { "Punch_Jab", "Punch_Cross", "Sword_Attack" }; break;
-                case WeaponFamily.Bow: st.Idle = "Pistol_Idle_Loop"; st.Strike = new[] { "Pistol_Shoot" }; st.Cast = "Pistol_Shoot"; break;
+                case WeaponFamily.Daggers: st.Ready = "Crouch_Idle_Loop"; st.Idle = "Crouch_Idle_Loop"; st.Strike = new[] { "Punch_Jab", "Punch_Cross", "Sword_Attack" }; break;
+                case WeaponFamily.Bow: st.Ready = "Pistol_Aim_Neutral"; st.Idle = "Pistol_Idle_Loop"; st.Strike = new[] { "Pistol_Shoot" }; st.Cast = "Pistol_Shoot"; break;
                 case WeaponFamily.Caster: st.Idle = "Spell_Simple_Idle_Loop"; st.Strike = new[] { "Spell_Simple_Shoot" }; break;
-                case WeaponFamily.Support: st.Idle = "Idle_Loop"; st.Strike = new[] { "Spell_Simple_Shoot" }; break;
+                case WeaponFamily.Support: st.Ready = "Spell_Simple_Idle_Loop"; st.Idle = "Idle_Loop"; st.Strike = new[] { "Spell_Simple_Shoot" }; break;
                 case WeaponFamily.Shield: st.Idle = "Sword_Idle"; st.Strike = new[] { "Punch_Cross", "Sword_Attack" }; st.Block = "Punch_Enter"; break;
-                case WeaponFamily.Unarmed: st.Idle = "Idle_Loop"; st.Strike = new[] { "Punch_Jab", "Punch_Cross" }; break;
+                case WeaponFamily.Unarmed: st.Ready = "Punch_Enter"; st.Idle = "Idle_Loop"; st.Strike = new[] { "Punch_Jab", "Punch_Cross" }; break;
                 case WeaponFamily.Polearm: st.Idle = "Sword_Idle"; st.Strike = new[] { "Spear_Thrust" }; break; // owner review of test T3: a real thrust
                 default: st.Idle = "Sword_Idle"; st.Strike = new[] { "Sword_Attack" }; break; // blade, heavy
             }
