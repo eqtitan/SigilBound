@@ -2,6 +2,10 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Titan moves, longer and fiercer
+change: Crushing Palm and Cinder Breath play longer, with the whole Titan kept in view.
+new: Cinder Breath pours a real stream of fire, leaves pools of glowing lava and sets your heroes ablaze.
+
 ## 2026-11-26 | The Titan's three moves
 new: Crushing Palm: the Titan strides up and slams its target, seen from the victim's eyes in slow motion.
 new: Quake: its leap now sends aftershocks rolling across the arena.

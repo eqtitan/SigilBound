@@ -519,9 +519,36 @@ namespace Sigilbound.Client
                     var v = (to - mouth); float spd = Random.Range(11f, 16f);
                     Spark(_over, mouth + Random.insideUnitSphere * 0.25f, v.normalized * spd + Random.insideUnitSphere * 1.2f, Hdr(i % 3 == 0 ? P.Core : (i % 3 == 1 ? F.Main : F.Core), 1.1f), Random.Range(0.18f, 0.34f), v.magnitude / spd * Random.Range(0.9f, 1.1f));
                 }
+                // the flame itself: big soft puffs that swell along the stream (a cone of fire, not just sparks)
+                for (int i = 0; i < N(4); i++)
+                {
+                    var to = tgt + Random.insideUnitSphere * 0.6f; var v = to - mouth; float spd = Random.Range(9f, 12f);
+                    Spark(_over, mouth + Random.insideUnitSphere * 0.3f, v.normalized * spd + Random.insideUnitSphere * 0.8f, Hdr(i % 2 == 0 ? F.Main : F.Deep, 0.9f), Random.Range(0.7f, 1.4f), v.magnitude / spd);
+                }
                 if (Random.value < 0.35f) Smoke(tgt, N(2), new Color(0.22f, 0.15f, 0.12f), 0.6f, 0.9f, 1.0f, 0.4f);
-                if (Random.value < 0.2f) GroundFx(_dot, new Vector3(tgt.x, 0.04f, tgt.z), 1.2f, 2.2f, F.Main, 0.7f, 0.6f);
+                if (t >= _nextPool) { _nextPool = t + 0.32f; LavaPool(tgt); }
                 yield return null;
+            }
+            _nextPool = 0;
+        }
+        float _nextPool;
+        // A pool of lava where the breath lands: a glowing molten disc with a darker crust, smoking, for ~3.5 s.
+        public void LavaPool(Vector3 at)
+        {
+            var F = Of(Element.Flame); var g = new Vector3(at.x, 0.035f, at.z);
+            GroundFx(_dot, g, 0.5f, 1.7f, F.Main, 1.1f, 3.5f);
+            GroundFx(_crack, g, 0.6f, 1.9f, F.Deep, 0.9f, 3.5f, 0.2f);
+            GroundFx(_dot, g, 0.2f, 0.9f, F.Core, 0.8f, 2.0f, 0, 0.1f);
+            Smoke(g, N(3), new Color(0.18f, 0.12f, 0.1f), 0.5f, 0.8f, 1.6f, 0.35f);
+        }
+        // Fire flaring up around a hero caught in the breath.
+        public void FireFlare(Vector3 feet)
+        {
+            var F = Of(Element.Flame);
+            for (int i = 0; i < N(10); i++)
+            {
+                var off = Random.insideUnitCircle * 0.45f;
+                Spark(_over, feet + new Vector3(off.x, Random.Range(0.1f, 0.6f), off.y), new Vector3(Random.Range(-0.3f, 0.3f), Random.Range(1.8f, 3.4f), Random.Range(-0.3f, 0.3f)), Hdr(i % 3 == 0 ? F.Core : F.Main, 1.0f), Random.Range(0.35f, 0.7f), Random.Range(0.4f, 0.7f));
             }
         }
 

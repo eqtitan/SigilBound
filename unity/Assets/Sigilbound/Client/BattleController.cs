@@ -263,24 +263,24 @@ namespace Sigilbound.Client
             arena.BreathTarget = 0;
             // 1. The stride in, side-on.
             if (m.Has("Walk_Loop")) m.Play("Walk_Loop", true, 0.15f, 0.8f);
-            for (float t = 0; t < 1.1f; t += Time.deltaTime)
+            for (float t = 0; t < 1.5f; t += Time.deltaTime)
             {
-                float k = Ease(t / 1.1f); v.transform.position = Vector3.Lerp(T0, dest, k);
+                float k = Ease(t / 1.5f); v.transform.position = Vector3.Lerp(T0, dest, k);
                 if (Mathf.Repeat(t, 0.45f) < Time.deltaTime) { Vfx.I.Shake(0.12f); SkillFx.I?.Dust(v.transform.position, 1.6f, u.El); }
                 var mid = Vector3.Lerp(v.transform.position, tp, 0.5f);
-                float e = Ease(t / 0.35f);
-                arena.Override(Vector3.Lerp(eye0, mid + side * 9f - dir * 2f + Vector3.up * 2.4f, e), Vector3.Lerp(eye0 + arena.PoseRotation * Vector3.forward * 10f, mid + Vector3.up * 2.6f, e), Mathf.Lerp(fov0, 46f, e), Ease(t / 0.3f));
+                float e = Ease(t / 0.4f);
+                arena.Override(Vector3.Lerp(eye0, mid + side * 12f - dir * 2f + Vector3.up * 3.0f, e), Vector3.Lerp(eye0 + arena.PoseRotation * Vector3.forward * 10f, mid + Vector3.up * 3.0f, e), Mathf.Lerp(fov0, 50f, e), Ease(t / 0.3f));
                 yield return null;
             }
             // 2. The palm rises in slow motion; the camera is low beside the victim, looking up.
-            var eye = tp + side * 1.7f + dir * 0.4f + Vector3.up * 0.3f;
-            var look = Vector3.Lerp(v.transform.position, tp, 0.25f) + Vector3.up * H * 0.72f;
+            var eye = tp + side * 2.6f - dir * 1.2f + Vector3.up * 0.35f;   // beside and a little behind the victim, low
+            var look = Vector3.Lerp(v.transform.position, tp, 0.3f) + Vector3.up * H * 0.62f;  // the whole Titan in frame
             string clip = m.Has("Ult_Overhead") ? "Ult_Overhead" : m.Has("Sword_Attack") ? "Sword_Attack" : "Punch_Cross";
             m.PlayFrom(clip, 0f, 0.9f);
-            for (float t = 0; t < 2.5f && m.CurrentNormalized < 0.55f; t += Time.unscaledDeltaTime)
+            for (float t = 0; t < 3.6f && m.CurrentNormalized < 0.55f; t += Time.unscaledDeltaTime)
             {
-                if (!_paused) Time.timeScale = m.CurrentNormalized > 0.28f ? speed * 0.45f : speed;
-                arena.Override(eye, look, 72f, 1f, 7f); yield return null;
+                if (!_paused) Time.timeScale = m.CurrentNormalized > 0.28f ? speed * 0.3f : speed;   // a long slow-motion hold
+                arena.Override(eye, look, 80f, 1f, 7f); yield return null;
             }
             if (!_paused) Time.timeScale = speed;
             // 3. The slam.
@@ -288,8 +288,12 @@ namespace Sigilbound.Client
             if (fx != null) { fx.Cracks(tp, u.El, 2.6f); fx.Shockwave(tp, u.El, 4f); fx.TitanSlam(tp, u.El); }
             Vfx.I.ShakeLong(0.45f, 0.6f); Sound.I?.Play("titanSlam", 0.9f, 1, 0);
             if (target != null) target.Shove(tp + dir, 0.8f);
-            for (float t = 0; t < 0.35f; t += Time.deltaTime) { arena.Override(eye, look, 72f, 1f, 7f); yield return null; }
-            for (float t = 0; t < 0.45f; t += Time.deltaTime) { arena.Override(eye, look, 72f, 1f - Ease(t / 0.45f), 7f * (1f - t / 0.45f)); yield return null; }
+            // aftermath: cracks spread and dust rolls while the camera eases back and levels out
+            for (float t = 0; t < 1.7f; t += Time.deltaTime)
+            {
+                float e = Ease(t / 1.7f);
+                arena.Override(eye - dir * 1.5f * e + Vector3.up * 0.4f * e, look, 80f, t < 1.2f ? 1f : 1f - Ease((t - 1.2f) / 0.5f), 7f * (1f - e)); yield return null;
+            }
             arena.ClearOverride(); _cinema = false;
         }
         IEnumerator TitanWalkHome(Unit u, CharacterView v)
@@ -309,36 +313,42 @@ namespace Sigilbound.Client
             var T = v.transform.position; var team = Arena.ToUnity(BattleLayout.TeamCentre); team.y = T.y;
             float H = TitanHeight(v); var fx = SkillFx.I;
             var back = T - team; back.y = 0; back.Normalize(); var right = Vector3.Cross(Vector3.up, -back).normalized;
-            var ots = T + right * 1.9f + back * 2.6f + Vector3.up * H * 1.12f;
+            var ots = T + right * 2.6f + back * 4.6f + Vector3.up * H * 1.18f;   // far enough back for horns, shoulders and the chest glow
             arena.BreathTarget = 0;
             string clip = m.Has("Ult_Channel") ? "Ult_Channel" : "Interact";
-            m.PlayFrom(clip, 0f, 0.8f);
+            m.PlayFrom(clip, 0f, 0.55f);
             Sound.I?.Play("titanRoar", 0.8f, 1, 0);
-            // 1. Gather.
-            for (float t = 0; t < 1.0f; t += Time.deltaTime)
+            // 1. Gather (1.8 s): over the shoulder, a slow push in while fire builds at its chest.
+            for (float t = 0; t < 1.8f; t += Time.deltaTime)
             {
-                arena.Override(ots, team + Vector3.up * 0.8f, 50f, Ease(t / 0.3f));
-                if (fx != null && Mathf.Repeat(t, 0.2f) < Time.deltaTime) fx.Charge(v.transform, u.El, 0.2f);
+                arena.Override(ots - back * 0.6f * Ease(t / 1.8f), team + Vector3.up * 0.8f, 52f, Ease(t / 0.3f));
+                if (fx != null && Mathf.Repeat(t, 0.2f) < Time.deltaTime) fx.Charge(v.transform, Element.Flame, 0.2f);
                 yield return null;
             }
-            // 2. The breath sweeps across the team (left to right as the camera sees it).
             var allies = _views.Where(kv => kv.Key.Ally && kv.Key.Alive && kv.Value != null).Select(kv => kv.Value.transform.position).ToList();
             if (allies.Count == 0) allies.Add(team);
             float camSide(Vector3 p) => Vector3.Dot(p - team, right);
             var a = allies.OrderBy(camSide).First() - right * 0.6f; var b = allies.OrderBy(camSide).Last() + right * 0.6f;
-            var mouth = T - back * 0.6f + Vector3.up * H * 1.02f;
-            if (fx != null) StartCoroutine(fx.Breath(mouth, a + Vector3.up * 0.6f, b + Vector3.up * 0.6f, u.El, 1.2f));
+            var mouth = T - back * 0.6f + Vector3.up * H * 1.02f; var ots2 = ots - back * 0.6f;
+            // 2. The breath sweeps across the team (1.8 s), the Titan still in frame.
+            if (fx != null) StartCoroutine(fx.Breath(mouth, a + Vector3.up * 0.6f, b + Vector3.up * 0.6f, u.El, 1.8f));
             Sound.I?.Cast(Element.Flame);
-            for (float t = 0; t < 0.7f; t += Time.deltaTime) { arena.Override(ots, Vector3.Lerp(a, b, t / 1.2f) * 0.5f + team * 0.5f + Vector3.up * 0.8f, 50f, 1f); yield return null; }
-            // 3. Cut low behind the team, pushing in as the fire pours down at them.
-            for (float t = 0; t < 1.1f; t += Time.deltaTime)
+            for (float t = 0; t < 1.8f; t += Time.deltaTime)
             {
-                var eye = team - back * Mathf.Lerp(3.2f, 1.9f, Ease(t / 1.1f)) + Vector3.up * 0.6f;
-                arena.Override(eye, T + Vector3.up * H * 0.8f, 58f, 1f, -6f);
-                if (fx != null && Mathf.Repeat(t, 0.25f) < Time.deltaTime) foreach (var p in allies) fx.Signature(p + Vector3.up * 1.2f, Element.Flame, Motif.Embers, 0.7f);
+                var aim = Vector3.Lerp(a, b, t / 1.8f);
+                arena.Override(ots2, aim * 0.5f + team * 0.5f + Vector3.up * 0.8f, 52f, 1f);
+                if (fx != null && Mathf.Repeat(t, 0.3f) < Time.deltaTime) foreach (var p in allies) if (Mathf.Abs(camSide(p) - camSide(aim)) < 1.6f) fx.FireFlare(p);
                 yield return null;
             }
-            for (float t = 0; t < 0.5f; t += Time.deltaTime) { arena.Override(team - back * 1.9f + Vector3.up * 0.6f, T + Vector3.up * H * 0.8f, 58f, 1f - Ease(t / 0.5f), -6f * (1f - t / 0.5f)); yield return null; }
+            // 3. Side-on wide shot (2.4 s): the Titan, the stream and the team in one frame; a second sweep back.
+            if (fx != null) StartCoroutine(fx.Breath(mouth, b + Vector3.up * 0.6f, a + Vector3.up * 0.6f, u.El, 1.6f));
+            var mid = Vector3.Lerp(T, team, 0.5f);
+            for (float t = 0; t < 2.4f; t += Time.deltaTime)
+            {
+                arena.Override(mid + right * Mathf.Lerp(13f, 11f, Ease(t / 2.4f)) + Vector3.up * 1.6f, mid + Vector3.up * 2.4f, 56f, t < 1.9f ? 1f : 1f - Ease((t - 1.9f) / 0.5f), -4f);
+                if (fx != null && Mathf.Repeat(t, 0.35f) < Time.deltaTime) foreach (var p in allies) fx.FireFlare(p);
+                yield return null;
+            }
             arena.ClearOverride(); _cinema = false;
         }
 
