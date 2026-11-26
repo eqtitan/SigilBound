@@ -17,6 +17,26 @@ namespace Sigilbound.Client
             Modal("Settings", Mathf.Min(Ui.Safe.height - 40, 740), DrawSettings);
         }
 
+        // Send feedback: a note plus the technical report, copied to the clipboard and saved (Feedback.cs).
+        string _feedback = ""; bool _feedbackErrors = true;
+        void OpenFeedback()
+        {
+            Modal("Send feedback", 360, b =>
+            {
+                Ui.Text(new Rect(b.x, b.y, b.width, 36), "What happened, or what would you like? Your note and some device details are copied so you can paste them to the developer.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                _feedback = Ui.Field(new Rect(b.x, b.y + 42, b.width, 120), _feedback, 2000, true);
+                string errs = Feedback.ErrorCount > 0 ? $"Attach the last {Feedback.ErrorCount} error lines" : "Attach recent errors (none so far)";
+                if (Ui.Button(new Rect(b.x, b.y + 170, b.width, 30), (_feedbackErrors ? "☑ " : "☐ ") + errs, Ui.Kind.Ghost, 12)) _feedbackErrors = !_feedbackErrors;
+                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
+                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Copy report"))
+                {
+                    var path = Feedback.Send(_feedback, _feedbackErrors);
+                    CloseModal(); _feedback = "";
+                    Toast(path != null ? "Report copied. Paste it in a message to the developer." : "Report copied to the clipboard.");
+                }
+            });
+        }
+
         void SettingRow(ref float y, Rect b, string title, string sub)
         {
             Ui.Text(new Rect(b.x, y, b.width, 22), title, 15, Palette.TrimHi, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
@@ -110,6 +130,11 @@ namespace Sigilbound.Client
                 st.quality = qKeys[i]; Save(); Quality.I?.Set(st.quality, Quality.SavedFpsMode(st.fpsCap));
                 Toast("Graphics: " + (i == 0 ? "Auto" : qKeys[i]));
             });
+
+            SettingRow(ref y, b, "Feedback", "Found a bug or have an idea? Send it to the developer.");
+            if (Ui.Button(new Rect(b.x, y, 160, 34), "Send feedback", Ui.Kind.Primary, 13)) OpenFeedback();
+            if (Ui.Button(new Rect(b.x + 170, y, 150, 34), "Replay tutorial", Ui.Kind.Secondary, 13)) { Tutorial.Step = 1; CloseModal(); Go(ScreenId.Home); Toast("Tutorial restarted"); }
+            y += 44;
 
             SettingRow(ref y, b, "Performance overlay", "Shows frame rate and draw calls. For testing; saved on this device.");
             Chips(ref y, b, new[] { "Off", "On" }, PerfOverlay.Enabled ? 1 : 0, i => PerfOverlay.Enabled = i == 1);

@@ -1,0 +1,35 @@
+# Store listing (Google Play)
+
+**App name:** Sigilbound (store name; the test build installs as "Sigilbound (Unity)")
+**Category:** Games → Role Playing
+**Tags:** hero collector, turn-based, fantasy, offline
+**Contains ads:** No · **In-app purchases:** No
+
+## Short description (80 characters max)
+Summon 150 heroes, master five elements and topple the colossal Titan.
+
+## Full description
+The Sigil has shattered. Gather a team of champions and fight to restore it.
+
+- **150 unique heroes**: knights, witches, archers, golems, spirits and beast-folk, each with their own look, weapons and signature effects.
+- **Five elements**: Flame, Gale, Tide, Light and Shadow, each strong against another. Build teams that hit where it hurts.
+- **Tactical turn-based battles**: a live turn-order bar, skills that recharge, buffs and debuffs, counters, revives and knock-downs. Play every turn yourself, or switch on Auto and 2x/3x speed.
+- **The Titan**: a daily boss that towers over your team, with cinematic camera views, a Meteor Leap and an Earthsplitter finishing blow. Practise against it as often as you like.
+- **A long campaign** across a painted world map, plus Hard mode, Dungeons, Arena rivals, daily quests and achievements.
+- **Friends and chat**: add friends by code, compare teams and chat. Optional.
+- **Plays offline**. No ads. No purchases.
+
+## Content rating (IARC questionnaire answers)
+- Violence: fantasy violence against fantasy characters, no blood or gore. Expected rating: PEGI 7 / ESRB Everyone 10+.
+- Users can interact (chat with friends added by code); messages can be reported and players blocked.
+- No gambling with real money. Summoning uses in-game shards only (no purchases).
+- No location sharing, no personal information requested beyond a chosen player name.
+
+## Data safety form (matches PRIVACY.md)
+- Data collected (only when Friends is used): **User IDs** (player name, friend code), **Messages** (in-app chat), **App activity** (public profile: stages cleared, power, best Titan damage, heroes). Purpose: app functionality. Not shared. Encrypted in transit: yes. Users can request deletion: yes (in-app account delete).
+- No location, contacts, photos, financial or health data. No ads ID.
+
+## Graphics
+- App icon 512x512: `icon_512.png`
+- Feature graphic 1024x500: `feature_1024x500.png`
+- Phone screenshots (landscape 16:9): `screenshots/` (from the Linux preview tour; recapture from a current phone build before publishing).

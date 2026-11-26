@@ -2,6 +2,11 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | New player guide and feedback
+new: New players get a short guided tour: summoning, heroes, the first battle and rewards. Skip it any time, or replay it from Settings.
+new: Settings > Send feedback: write a note and copy a report (with device details and recent errors) to send to the developer.
+new: A new app icon: the gold Sigil with the five element gems.
+
 ## 2026-11-26 | Titan framing
 change: Worm's-eye now frames the Titan with its name and health bars above it.
 change: Meteor Leap: slow motion as the Titan leaps while the view widens to follow it to the top; then full speed and a tight view as it crashes down.
