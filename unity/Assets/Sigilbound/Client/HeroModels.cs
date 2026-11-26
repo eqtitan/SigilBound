@@ -73,9 +73,14 @@ namespace Sigilbound.Client
             var st = Anim[_names[name]];
             st.wrapMode = loop ? WrapMode.Loop : clamp ? WrapMode.ClampForever : WrapMode.Once;
             st.speed = speed;
+            if (loop) _loopSpeed[st.name] = speed;
             st.time = 0;
             Anim.CrossFade(st.name, fade);
-            if (!loop && !clamp && IdleName != null && IdleName != name) Anim.CrossFadeQueued(_names[IdleName], 0.22f, QueueMode.CompleteOthers).wrapMode = WrapMode.Loop;
+            if (!loop && !clamp && IdleName != null && IdleName != name)
+            {
+                var q = Anim.CrossFadeQueued(_names[IdleName], 0.22f, QueueMode.CompleteOthers);
+                q.wrapMode = WrapMode.Loop; q.speed = IdleLoopSpeed; _loopSpeed[_names[IdleName]] = IdleLoopSpeed;
+            }
             return true;
         }
         string _current; bool _frozen; readonly Dictionary<AnimationState, float> _frozenSpeeds = new Dictionary<AnimationState, float>();
@@ -109,11 +114,42 @@ namespace Sigilbound.Client
             else { foreach (var kv in _frozenSpeeds) if (kv.Key != null) kv.Key.speed = kv.Value; _frozenSpeeds.Clear(); }
         }
 
+        // Idle, Ready and Stunned loops stay at 1x at every battle speed (MECHANICS.md 3.1): battle speed
+        // scales Time.timeScale, so those loops play at their own speed divided by it. Actions still speed up.
+        readonly Dictionary<string, float> _loopSpeed = new Dictionary<string, float>();
+        float IdleLoopSpeed => Style.Titan ? 0.7f : Style.IdleSpeed;
+        bool Ambient(string stateName)
+        {
+            foreach (var n in new[] { IdleName, Style.Ready, "Crouch_Idle_Loop" })
+                if (n != null && Has(n) && stateName.StartsWith(_names[n], StringComparison.Ordinal)) return true;
+            return false;
+        }
+        public void Tick()
+        {
+            if (_frozen || Anim == null || _animator != null) return;
+            float ts = Time.timeScale; if (ts <= 0.01f) return;
+            foreach (AnimationState s in Anim)
+            {
+                if (!s.enabled || s.wrapMode != WrapMode.Loop || !Ambient(s.name)) continue;
+                var key = s.name.Replace(" - Queued Clone", "");
+                if (_loopSpeed.TryGetValue(key, out var b)) s.speed = b / ts;
+            }
+        }
+
+        // The unit's turn starts: blend into the family's combat stance (or idle at 1.1x).
+        public void Ready()
+        {
+            var n = Style.Ready != null && Has(Style.Ready) ? Style.Ready : null;
+            if (n == null) { var i = IdleName; if (i != null) Play(i, true, 0.15f, IdleLoopSpeed * 1.1f); return; }
+            bool pose = n.EndsWith("_Enter", StringComparison.Ordinal);
+            Play(n, !pose, 0.15f, 1f, pose);
+        }
+
         bool _idlePhased;
         public void Idle(float fade = 0.25f)
         {
             var n = IdleName; if (n == null) return;
-            Play(n, true, fade, Style.Titan ? 0.7f : Style.IdleSpeed);
+            Play(n, true, fade, IdleLoopSpeed);
             // First idle starts at a random phase (MECHANICS.md 5), so neighbours don't breathe together.
             if (!_idlePhased && _animator == null && Anim != null) { _idlePhased = true; var st = Anim[_names[n]]; if (st != null) st.time = UnityEngine.Random.value * st.length; }
         }

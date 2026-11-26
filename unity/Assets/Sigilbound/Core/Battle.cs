@@ -429,7 +429,7 @@ namespace Sigilbound.Core
             }
             else if (existing != null) { existing.Turns = Math.Max(existing.Turns, f.Turns); if (self) existing.Fresh = true; if (f.Type == FxType.Revive) existing.Val = Math.Max(existing.Val, Js.RoundInt(f.Pct * 100)); }
             else r.Effects.Add(new Effect { Type = f.Type, Turns = Math.Max(1, f.Turns), Fresh = self, Val = f.Type == FxType.Revive ? Js.RoundInt(f.Pct * 100) : 0 });
-            ev.Add(new BattleEvent { Type = EvType.Status, Unit = r, Fx = f.Type });
+            ev.Add(new BattleEvent { Type = EvType.Status, Unit = r, Source = u, Fx = f.Type });
         }
 
         // Run to completion with AI on both sides (auto battle, tests, simulations).

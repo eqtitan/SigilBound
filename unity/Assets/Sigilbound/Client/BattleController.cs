@@ -140,6 +140,7 @@ namespace Sigilbound.Client
                 if (events.Count > 0) { yield return ShowEvents(events, Palette.Hex("#7dff7a")); yield return new WaitForSeconds(0.25f); }
                 if (!skip)
                 {
+                    if (_views.TryGetValue(u, out var rv) && rv != null) rv.Ready();
                     int skill; Unit target;
                     if (u.Ally && !Auto)
                     {
@@ -223,7 +224,9 @@ namespace Sigilbound.Client
                     yield return new WaitForSeconds(stop);
                 }
             }
+            _ultBy = ult && !support ? u : null;
             yield return ShowEvents(events, color, sk.Hits > 1);
+            _ultBy = null;
             if (view != null) { yield return view.Recover(); view.FaceHome(); }
             yield return new WaitForSeconds(0.25f);
         }
@@ -268,7 +271,7 @@ namespace Sigilbound.Client
                         if (SkillFx.I == null) Vfx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
                         else if (e.Fx == FxType.Shield) SkillFx.I.Shield(v.transform.position);
                         else SkillFx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
-                        if (e.Fx == FxType.Stun) v.Stun();
+                        if (e.Fx == FxType.Stun) { if (KnocksDown(e)) v.KnockDown(); else v.Stun(); }
                         Vfx.I.Number(c + Vector3.up * 0.6f, SkillText.EffectName(e.Fx), FxDef.IsBuff(e.Fx) ? new Color(1f, 0.85f, 0.4f) : new Color(0.8f, 0.55f, 1f), 0.7f); break;
                     case EvType.Text: Vfx.I.Number(c + Vector3.up * 0.6f, e.Text, new Color(0.8f, 0.9f, 1f), 0.7f); if (e.Text == "Revived!") v.Revived(); break;
                     case EvType.Death: Sound.I?.Play(e.Unit.Ally ? "downed" : "kill", 0.9f); v.Die(); if (SkillFx.I != null) SkillFx.I.DeathFade(v.transform.position, e.Unit.El); else Vfx.I.Dissolve(v.transform.position + Vector3.up * 0.8f); break;
@@ -278,6 +281,13 @@ namespace Sigilbound.Client
         }
 
         Element _lastEl;
+        // A stun from a heavy-family weapon, the Titan or an ultimate knocks the target down (MECHANICS.md 3.1).
+        Unit _ultBy; // the unit whose ultimate's events are being shown
+        bool KnocksDown(BattleEvent e)
+        {
+            if (e.Source == null || e.Source.Ally == e.Unit.Ally) return false;
+            return e.Source.Titan || e.Source == _ultBy || Impact.FamilyOf(e.Source.Template.Id) == WeaponFamily.Heavy;
+        }
         IEnumerator Later(float s, System.Action a) { yield return new WaitForSeconds(s); a(); }
 
         // Winners celebrate (three3d.mjs victory()), staggered so they don't move in lockstep.

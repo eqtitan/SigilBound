@@ -380,7 +380,7 @@ Owner decisions (2026-11-25): frame rate defaults to **Auto (match the screen)**
   - Add them to the clip set and to `HeroClips.Aliases`.
   - Record their provenance in `models/CREDITS.md`.
   - Check: no stilts or floating; clips play in the hero viewer.
-- [ ] **67. Per-weapon state machine.** First pass done (high-detail heroes): `AnimStyle.Hd` follows the family clip table (daggers crouch and cut with both hands, bows draw/shoot, casters spell-idle, shields bash, brawlers jab/cross) and role victory/defeat poses; Defense and shield heroes block light hits (`Punch_Enter` guard) and never dodge; HP heroes shrug hits; idles start at a random phase with ±8% speed per hero; the losing side's survivors take defeat poses. Added: Defeat_Slump (kneel, then prone; owner request), Revive (buckle and rise: the death clip forward to 0.45, held, then backwards), Stunned (dazed crouch loop). Still to do: Animator/playables graph, Ready/Knocked_Down states, additive buff layers, idle and victory at 1x at every battle speed.
+- [ ] **67. Per-weapon state machine.** First pass done (high-detail heroes): `AnimStyle.Hd` follows the family clip table (daggers crouch and cut with both hands, bows draw/shoot, casters spell-idle, shields bash, brawlers jab/cross) and role victory/defeat poses; Defense and shield heroes block light hits (`Punch_Enter` guard) and never dodge; HP heroes shrug hits; idles start at a random phase with ±8% speed per hero; the losing side's survivors take defeat poses. Added: Defeat_Slump (kneel, then prone; owner request), Revive (buckle and rise: the death clip forward to 0.45, held, then backwards), Stunned (dazed crouch loop). Second pass done: Ready (the family stance when the turn starts: bows aim, brawlers raise fists, supports gather, others lean in at 1.1x), Knocked_Down (stuns from heavy weapons, the Titan or ultimates: thrown back 0.6 m, down, held 0.6 s, up into the dazed loop), idle/Ready/Stunned loops at 1x at every battle speed (victory already plays at 1x). Still to do: Animator/playables graph, Counter, additive buff layers.
   - Replace the queued-crossfade playback with an Animator or playables graph holding the states and priorities in section 3.1.
   - Families come from `Looks.Prop` (section 3.2). Role timing multipliers and idle desync come from section 5.
   - New states: Ready, Block, Stunned, Knocked_Down, Revive (add `EvType.Revive`), Counter, Defeat, and additive buff/debuff layers.
@@ -390,7 +390,7 @@ Owner decisions (2026-11-25): frame rate defaults to **Auto (match the screen)**
   - Hit-stop freezes only the attacker and the target, with the pose snapped to the impact time, using the durations in section 4.1.
   - Knockback curves and speed-based projectiles.
   - Tests in `unity/Tests~` that an action takes the same time at a simulated 30, 60 and 120 fps.
-- [ ] **69. Animation test approvals.**
+- [x] **69. Animation test approvals.** Done 2026-11-26: the owner approved every test; T3 (spear thrust), T8 (heavy hit to one knee) and T10 (defeat slump) were reworked per their notes first.
   - Render tests T1–T12 (MECHANICS.md section 7) in Blender on the high-detail heroes, and put them in `docs/sigilbound/art/anim-tests/`.
   - The owner approves, rejects or changes each one. The verdicts go in MECHANICS.md and the ROADMAP decisions log.
   - Rejected tests are reworked before steps 59–63 roll the clips out to all 100 heroes.

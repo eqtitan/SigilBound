@@ -265,6 +265,7 @@ namespace Sigilbound.Client
         void Update()
         {
             if (_dead || Model == null) return;
+            _model?.Tick();
             float t = Time.time + _phase;
             if (_animator == null && _model == null)
             {
@@ -414,8 +415,9 @@ namespace Sigilbound.Client
                 else if (!big && glancing && !Unit.Titan && Unit.Template.Role != Role.Defense && Random.value < 0.35f && _model.Roll()) { } // Defense never dodges
                 else _model.Hit(big);
             }
-            if (!Unit.Titan) StartCoroutine(HitRoutine(big));
+            if (!Unit.Titan) _hitCo = StartCoroutine(HitRoutine(big));
         }
+        Coroutine _hitCo;
         public void Win() { if (!_dead && _model != null) { _busy = true; _model.Win(); } }
         // "Revived!": the Revive effect saved this hero from falling. Buckle toward the ground (the death
         // clip to its middle), hold a beat, then rise back up (the same clip played backwards).
@@ -435,6 +437,37 @@ namespace Sigilbound.Client
             _busy = false;
         }
         // Stunned: dazed loop, back to the stance after a moment (the skipped turn has no animation).
+        // Ready (MECHANICS.md 3.1): the turn starts, so the hero takes its combat stance.
+        public void Ready() { if (!_dead && !_busy && _model != null && !Unit.Titan) _model.Ready(); }
+
+        // Knocked_Down (MECHANICS.md 3.1): a heavy or ultimate hit that also stuns. Thrown back 0.6 m,
+        // down (the death clip to 0.55), held 0.6 s, then up again (the clip reversed) into the dazed loop.
+        public void KnockDown()
+        {
+            if (_dead || _model == null || Unit.Titan) { Stun(); return; }
+            if (_hitCo != null) { StopCoroutine(_hitCo); _hitCo = null; }
+            StartCoroutine(KnockDownRoutine());
+        }
+        IEnumerator KnockDownRoutine()
+        {
+            _busy = true;
+            var death = _model.Style.Death.FirstOrDefault(_model.Has);
+            Vector3 from = transform.position, down = _home - transform.forward * 0.6f;
+            if (death != null && _model.PlayFrom(death, 0f, 1.5f))
+            {
+                for (float t = 0; t < 0.18f; t += Time.deltaTime) { transform.position = Vector3.Lerp(from, down, 1 - (1 - t / 0.18f) * (1 - t / 0.18f)); yield return null; }
+                transform.position = down;
+                yield return _model.WaitNormalized(0.55f, 0.8f);
+                _model.SetFrozen(true); yield return new WaitForSeconds(0.6f); _model.SetFrozen(false);
+                if (_dead) { _busy = false; yield break; }
+                _model.PlayFrom(death, 0.55f, -1.3f);
+                for (float t = 0; t < 0.45f; t += Time.deltaTime) { transform.position = Vector3.Lerp(down, _home, EaseIO(t / 0.45f)); yield return null; }
+            }
+            transform.position = _home;
+            _busy = false;
+            if (!_dead && _model.Stunned()) StartCoroutine(StunRoutine()); else if (!_dead) _model.Idle(0.2f);
+        }
+
         public void Stun() { if (!_dead && _model != null && !Unit.Titan && !_busy && _model.Stunned()) StartCoroutine(StunRoutine()); }
         IEnumerator StunRoutine() { yield return new WaitForSeconds(2.4f); if (!_dead && !_busy) _model.Idle(0.3f); }
 
