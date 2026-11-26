@@ -4,6 +4,9 @@
 // lava where the theme has them, scatter (grass tufts, rocks, trees with themed leaves, crystals,
 // mushrooms, badland strata), dark silhouettes on the horizon, and drifting motes (leaves, spray,
 // dust, fireflies, sparks, petals, embers). Everything is built in code, deterministic per chapter.
+// The scenery pass (SCENERY.md): props come from the baked Blender kit (SceneryKit) painted by one ramp
+// per theme, the sky, ridges and ground are painted in code (SceneryPaint), and boss stages get an
+// ArenaReactor (ArenaReact.cs) that makes the backdrop answer the fight.
 using System.Collections.Generic;
 using UnityEngine;
 using Sigilbound.Core;
@@ -18,64 +21,241 @@ namespace Sigilbound.Client
             // Act 2 scatter: pier posts and crates, glowing lantern posts, bare dead trees, reeds,
             // standing stones and barrow mounds; and glowing leaves (the ember groves).
             public bool Posts, Lanterns, DeadTrees, Reeds, Stones, GlowLeaves;
+            // Painted backdrop and mood (SCENERY.md): ridge style (hills, forest, peaks, mesas, sea, ruins,
+            // volcano), worked ruins (flagstones, columns, walls), storm (lightning on boss stages), the
+            // boss stages' vent eruptions, and the fog range.
+            public string Style = "hills"; public bool Ruins, Storm; public ArenaReactor.Hazard Vent = ArenaReactor.Hazard.Dust;
+            public float FogNear = 26, FogFar = 64, Clouds = 0.5f;
         }
         // scenery.mjs THEMES and TITAN_THEME.
         static readonly Theme[] Themes =
         {
-            new Theme { Name = "dusk forest", Grass = "#4f6a2a", Grass2 = "#6f7432", Worn = "#8a6844", Hill = "#41582a", Rock = "#7d746a", Bark = "#4e3726", Leaves = new[] { "#3c6a26", "#557a2a", "#a8702a", "#b8522a" }, Tuft = "#5f7a2c", Cloth = "#7a2a22", Sil = "#2e2c46", Motes = "leaves", MoteColor = "#e08a3a" },
-            new Theme { Name = "teal shore", Grass = "#c2a87e", Grass2 = "#b39b72", Worn = "#8c7a5e", Hill = "#a8956a", Rock = "#6a7078", Bark = "#9a8a76", Leaves = new[] { "#4a6a3a", "#5a7a40" }, Tuft = "#8f9a52", Water = "#1f5f6c", Cloth = "#d8d0b8", Sil = "#24404e", Motes = "spray", MoteColor = "#e8f6ff" },
-            new Theme { Name = "red badlands", Grass = "#94503a", Grass2 = "#ad6844", Worn = "#c09070", Hill = "#8a4632", Rock = "#a0553a", Bark = "#5e4636", Strata = new[] { "#8a4430", "#b06a46", "#6e3426", "#c4885a" }, Tuft = "#857040", Cloth = "#d0a040", Sil = "#44201f", Motes = "dust", MoteColor = "#ffc890" },
-            new Theme { Name = "green marsh", Grass = "#3a5630", Grass2 = "#4f6236", Worn = "#6e5a40", Hill = "#34502e", Rock = "#58605a", Bark = "#433a30", Leaves = new[] { "#4a5a30" }, Tuft = "#7a8a44", Water = "#22402f", Cloth = "#5a4a30", Sil = "#223c36", Motes = "fireflies", MoteColor = "#d8ff7a" },
-            new Theme { Name = "gold ruins", Grass = "#58652f", Grass2 = "#76763c", Worn = "#8e8474", Hill = "#4c5a2c", Rock = "#a49a88", Bark = "#5a4636", Leaves = new[] { "#4c682c", "#667a32" }, Tuft = "#6a7a34", Cloth = "#7a2a4a", Sil = "#36304c", Motes = "sparks", MoteColor = "#ffd27a", Crystals = true },
-            new Theme { Name = "blossom forest", Grass = "#557636", Grass2 = "#748646", Worn = "#977660", Hill = "#4a6a34", Rock = "#8a8088", Bark = "#4a3036", Leaves = new[] { "#e89ac0", "#f0b0cc", "#d880aa", "#f8cade" }, Tuft = "#6a8a3c", Cloth = "#5a3a7a", Sil = "#463858", Motes = "petals", MoteColor = "#ffc0dc" },
-            new Theme { Name = "moonlit shore", Grass = "#a39c8c", Grass2 = "#958e80", Worn = "#77705f", Hill = "#8a8474", Rock = "#5c6272", Bark = "#8a8478", Leaves = new[] { "#3a5a4a" }, Tuft = "#6a7a5a", Water = "#1a3658", Cloth = "#c8d0e0", Sil = "#1a2642", Motes = "spray", MoteColor = "#cfe2ff" },
-            new Theme { Name = "amethyst badlands", Grass = "#5e4e6c", Grass2 = "#6f5c80", Worn = "#9584a6", Hill = "#54466a", Rock = "#5e4c70", Bark = "#4a3c4e", Strata = new[] { "#56466c", "#6f5c86", "#463a5a", "#88729e" }, Tuft = "#6a5a7a", Cloth = "#3a2a5a", Sil = "#221a36", Motes = "sparks", MoteColor = "#c890ff", Crystals = true },
-            new Theme { Name = "glow marsh", Grass = "#2c4846", Grass2 = "#385850", Worn = "#5e586c", Hill = "#284242", Rock = "#4a5460", Bark = "#38384a", Leaves = new[] { "#2a4a4a" }, Tuft = "#4a7a6a", Water = "#123040", Cloth = "#2a3a5a", Sil = "#122838", Motes = "fireflies", MoteColor = "#80e8ff", Mushrooms = true },
-            new Theme { Name = "burning ruins", Grass = "#665834", Grass2 = "#7a6238", Worn = "#8a7a6a", Hill = "#5a4a30", Rock = "#7a6e64", Bark = "#4a3a2e", Leaves = new[] { "#5a5a2a", "#7a5a26" }, Tuft = "#7a6a3a", Cloth = "#6a1a1a", Sil = "#381410", Motes = "embers", MoteColor = "#ff8a3a", Crystals = true },
+            new Theme { Name = "dusk forest", Grass = "#4f6a2a", Grass2 = "#6f7432", Worn = "#8a6844", Hill = "#41582a", Rock = "#7d746a", Bark = "#4e3726", Leaves = new[] { "#3c6a26", "#557a2a", "#a8702a", "#b8522a" }, Tuft = "#5f7a2c", Cloth = "#7a2a22", Sil = "#2e2c46", Motes = "leaves", MoteColor = "#e08a3a", Style = "forest" },
+            new Theme { Name = "teal shore", Grass = "#c2a87e", Grass2 = "#b39b72", Worn = "#8c7a5e", Hill = "#a8956a", Rock = "#6a7078", Bark = "#9a8a76", Leaves = new[] { "#4a6a3a", "#5a7a40" }, Tuft = "#8f9a52", Water = "#1f5f6c", Cloth = "#d8d0b8", Sil = "#24404e", Motes = "spray", MoteColor = "#e8f6ff", Style = "sea", Vent = ArenaReactor.Hazard.Water },
+            new Theme { Name = "red badlands", Grass = "#94503a", Grass2 = "#ad6844", Worn = "#c09070", Hill = "#8a4632", Rock = "#a0553a", Bark = "#5e4636", Strata = new[] { "#8a4430", "#b06a46", "#6e3426", "#c4885a" }, Tuft = "#857040", Cloth = "#d0a040", Sil = "#44201f", Motes = "dust", MoteColor = "#ffc890", Style = "mesas", FogNear = 30, FogFar = 72, Clouds = 0.3f },
+            new Theme { Name = "green marsh", Grass = "#3a5630", Grass2 = "#4f6236", Worn = "#6e5a40", Hill = "#34502e", Rock = "#58605a", Bark = "#433a30", Leaves = new[] { "#4a5a30" }, Tuft = "#7a8a44", Water = "#22402f", Cloth = "#5a4a30", Sil = "#223c36", Motes = "fireflies", MoteColor = "#d8ff7a", Style = "hills", Vent = ArenaReactor.Hazard.Water, FogNear = 20, FogFar = 56 },
+            new Theme { Name = "gold ruins", Grass = "#58652f", Grass2 = "#76763c", Worn = "#8e8474", Hill = "#4c5a2c", Rock = "#a49a88", Bark = "#5a4636", Leaves = new[] { "#4c682c", "#667a32" }, Tuft = "#6a7a34", Cloth = "#7a2a4a", Sil = "#36304c", Motes = "sparks", MoteColor = "#ffd27a", Crystals = true, Style = "ruins", Ruins = true, Vent = ArenaReactor.Hazard.Crystal },
+            new Theme { Name = "blossom forest", Grass = "#557636", Grass2 = "#748646", Worn = "#977660", Hill = "#4a6a34", Rock = "#8a8088", Bark = "#4a3036", Leaves = new[] { "#e89ac0", "#f0b0cc", "#d880aa", "#f8cade" }, Tuft = "#6a8a3c", Cloth = "#5a3a7a", Sil = "#463858", Motes = "petals", MoteColor = "#ffc0dc", Style = "forest", Clouds = 0.4f },
+            new Theme { Name = "moonlit shore", Grass = "#a39c8c", Grass2 = "#958e80", Worn = "#77705f", Hill = "#8a8474", Rock = "#5c6272", Bark = "#8a8478", Leaves = new[] { "#3a5a4a" }, Tuft = "#6a7a5a", Water = "#1a3658", Cloth = "#c8d0e0", Sil = "#1a2642", Motes = "spray", MoteColor = "#cfe2ff", Style = "sea", Vent = ArenaReactor.Hazard.Water },
+            new Theme { Name = "amethyst badlands", Grass = "#5e4e6c", Grass2 = "#6f5c80", Worn = "#9584a6", Hill = "#54466a", Rock = "#5e4c70", Bark = "#4a3c4e", Strata = new[] { "#56466c", "#6f5c86", "#463a5a", "#88729e" }, Tuft = "#6a5a7a", Cloth = "#3a2a5a", Sil = "#221a36", Motes = "sparks", MoteColor = "#c890ff", Crystals = true, Style = "mesas", Vent = ArenaReactor.Hazard.Crystal, FogNear = 28, FogFar = 70 },
+            new Theme { Name = "glow marsh", Grass = "#2c4846", Grass2 = "#385850", Worn = "#5e586c", Hill = "#284242", Rock = "#4a5460", Bark = "#38384a", Leaves = new[] { "#2a4a4a" }, Tuft = "#4a7a6a", Water = "#123040", Cloth = "#2a3a5a", Sil = "#122838", Motes = "fireflies", MoteColor = "#80e8ff", Mushrooms = true, Style = "hills", Vent = ArenaReactor.Hazard.Spores, FogNear = 20, FogFar = 56 },
+            new Theme { Name = "burning ruins", Grass = "#665834", Grass2 = "#7a6238", Worn = "#8a7a6a", Hill = "#5a4a30", Rock = "#7a6e64", Bark = "#4a3a2e", Leaves = new[] { "#5a5a2a", "#7a5a26" }, Tuft = "#7a6a3a", Cloth = "#6a1a1a", Sil = "#381410", Motes = "embers", MoteColor = "#ff8a3a", Crystals = true, Style = "ruins", Ruins = true, Vent = ArenaReactor.Hazard.Lava, Clouds = 0.6f },
             // Act 2 (GameData.ThemeOf: chapters 11-15).
-            new Theme { Name = "saltreach harbor", Grass = "#8a8070", Grass2 = "#9a907c", Worn = "#6e6658", Hill = "#7a7262", Rock = "#5a5c62", Bark = "#5a4632", Tuft = "#7a7a5a", Water = "#163a4a", Cloth = "#c8b890", Sil = "#1e2c3a", Motes = "spray", MoteColor = "#e0f0ff", Posts = true, Lanterns = true },
-            new Theme { Name = "black fens", Grass = "#1e2a20", Grass2 = "#26322a", Worn = "#3a3a30", Hill = "#1a2620", Rock = "#3a4038", Bark = "#2a2620", Tuft = "#3a4a30", Water = "#0a1410", Cloth = "#2a3020", Sil = "#0e1812", Motes = "fireflies", MoteColor = "#b0ff6a", DeadTrees = true, Reeds = true, Mushrooms = true },
-            new Theme { Name = "wraithmoor barrows", Grass = "#56584a", Grass2 = "#626452", Worn = "#7a7868", Hill = "#4a4c40", Rock = "#6a6c70", Bark = "#3a3632", Tuft = "#6a6a52", Cloth = "#3a3a4a", Sil = "#202230", Motes = "dust", MoteColor = "#d8e0f0", Stones = true, DeadTrees = true },
-            new Theme { Name = "ember groves", Grass = "#3a3230", Grass2 = "#4a3c34", Worn = "#5a4a40", Hill = "#34302e", Rock = "#4a4440", Bark = "#2a2220", Leaves = new[] { "#ff7a2a", "#ffaa3a", "#e04a1a" }, Tuft = "#5a4a3a", Cloth = "#6a1a10", Sil = "#2a0e0a", Motes = "embers", MoteColor = "#ff9a3a", GlowLeaves = true },
-            new Theme { Name = "storm coast", Grass = "#4a5052", Grass2 = "#565c5c", Worn = "#6a6a66", Hill = "#3e4446", Rock = "#3a3e46", Bark = "#3a3432", Tuft = "#5a6456", Water = "#0e2234", Cloth = "#8a9aa8", Sil = "#0e1622", Motes = "rain", MoteColor = "#b8d0ff", Stones = true },
+            new Theme { Name = "saltreach harbor", Grass = "#8a8070", Grass2 = "#9a907c", Worn = "#6e6658", Hill = "#7a7262", Rock = "#5a5c62", Bark = "#5a4632", Tuft = "#7a7a5a", Water = "#163a4a", Cloth = "#c8b890", Sil = "#1e2c3a", Motes = "spray", MoteColor = "#e0f0ff", Posts = true, Lanterns = true, Style = "sea", Vent = ArenaReactor.Hazard.Water },
+            new Theme { Name = "black fens", Grass = "#1e2a20", Grass2 = "#26322a", Worn = "#3a3a30", Hill = "#1a2620", Rock = "#3a4038", Bark = "#2a2620", Tuft = "#3a4a30", Water = "#0a1410", Cloth = "#2a3020", Sil = "#0e1812", Motes = "fireflies", MoteColor = "#b0ff6a", DeadTrees = true, Reeds = true, Mushrooms = true, Style = "forest", Vent = ArenaReactor.Hazard.Spores, FogNear = 16, FogFar = 50, Clouds = 0.6f },
+            new Theme { Name = "wraithmoor barrows", Grass = "#56584a", Grass2 = "#626452", Worn = "#7a7868", Hill = "#4a4c40", Rock = "#6a6c70", Bark = "#3a3632", Tuft = "#6a6a52", Cloth = "#3a3a4a", Sil = "#202230", Motes = "dust", MoteColor = "#d8e0f0", Stones = true, DeadTrees = true, Style = "hills", FogNear = 18, FogFar = 54, Clouds = 0.65f },
+            new Theme { Name = "ember groves", Grass = "#3a3230", Grass2 = "#4a3c34", Worn = "#5a4a40", Hill = "#34302e", Rock = "#4a4440", Bark = "#2a2220", Leaves = new[] { "#ff7a2a", "#ffaa3a", "#e04a1a" }, Tuft = "#5a4a3a", Cloth = "#6a1a10", Sil = "#2a0e0a", Motes = "embers", MoteColor = "#ff9a3a", GlowLeaves = true, Style = "forest", Vent = ArenaReactor.Hazard.Lava },
+            new Theme { Name = "storm coast", Grass = "#4a5052", Grass2 = "#565c5c", Worn = "#6a6a66", Hill = "#3e4446", Rock = "#3a3e46", Bark = "#3a3432", Tuft = "#5a6456", Water = "#0e2234", Cloth = "#8a9aa8", Sil = "#0e1622", Motes = "rain", MoteColor = "#b8d0ff", Stones = true, Style = "peaks", Storm = true, Vent = ArenaReactor.Hazard.Water, FogNear = 20, FogFar = 58, Clouds = 0.8f },
         };
-        static readonly Theme TitanTheme = new Theme { Name = "titan caldera", Grass = "#3a3436", Grass2 = "#463e3e", Worn = "#6a625e", Hill = "#332e30", Rock = "#2e2a2e", Bark = "#2a2222", Tuft = "#3a3030", Cloth = "#5a1a10", Sil = "#1e0c0a", Motes = "embers", MoteColor = "#ff7a2a" };
+        static readonly Theme TitanTheme = new Theme { Name = "titan caldera", Grass = "#3a3436", Grass2 = "#463e3e", Worn = "#6a625e", Hill = "#332e30", Rock = "#2e2a2e", Bark = "#2a2222", Tuft = "#3a3030", Cloth = "#5a1a10", Sil = "#1e0c0a", Motes = "embers", MoteColor = "#ff7a2a", Style = "volcano", Storm = true, Vent = ArenaReactor.Hazard.Lava, Clouds = 0.6f };
         public static string ThemeName(int chapter, bool titan) => titan ? TitanTheme.Name : Themes[GameData.ThemeOf(chapter)].Name;
+        static Theme ThemeOf(int chapter, bool titan) => titan ? TitanTheme : Themes[GameData.ThemeOf(chapter)];
+        public static (float near, float far) FogRange(int chapter, bool titan) { var th = ThemeOf(chapter, titan); return (th.FogNear, th.FogFar); }
+        public static bool Stormy(int chapter, bool titan) => ThemeOf(chapter, titan).Storm;
 
-        const float AG = 0.42f, AP = 0.55f; // the web's albedo scaling for its bright rig
+        const float AG = 0.46f, AP = 0.55f; // albedo scaling for the ground and the props (the web's bright rig)
         static Color D(string hex, float k) { var c = Palette.Hex(hex) * k; c.a = 1; return c; }
 
-        // Builds the arena under `root`. scale: scatter density (quality tier).
-        public static void Build(Transform root, int chapter, bool titan, float density, Color fog)
+        // The painted textures for the last arena (they are rebuilt only when the arena changes).
+        static string _paintKey; static readonly List<Object> _paint = new List<Object>();
+        static Material _groundMat, _ramp, _glow, _fire; static Material[] _backMats; static Mesh[] _arcs;
+        static T Keep<T>(T o) where T : Object { _paint.Add(o); return o; }
+
+        // Builds the arena under `root`. density: scatter density (quality tier). top/fog: the sky's
+        // zenith and horizon (Palette.Scene). interactive: a boss stage or the Titan (ArenaReactor).
+        public static void Build(Transform root, int chapter, bool titan, float density, Color fog, Color top = default, bool interactive = false, Light sun = null)
         {
-            var th = titan ? TitanTheme : Themes[GameData.ThemeOf(chapter)];
+            var th = ThemeOf(chapter, titan);
             var rng = new System.Random(titan ? 1337 : 101 + chapter * 7);
             float R(float a, float b) => a + (float)rng.NextDouble() * (b - a);
+            if (top == default) top = Color.Lerp(fog, Color.black, 0.6f);
+            Color sunTint = Color.Lerp(fog, Color.white, 0.45f);
+            bool kit = SceneryKit.Ready;
+            float waterZ = th.Water != null || titan ? 10f : -1f;
 
-            // ---- ground: two tones, worn patch around the circle, dirt path ----
+            string key = $"{th.Name}/{chapter}/{titan}/{kit}";
+            if (key != _paintKey)
+            {
+                foreach (var o in _paint) if (o != null) Object.Destroy(o);
+                _paint.Clear(); _paintKey = key;
+                uint seed = (uint)(titan ? 1337 : 101 + chapter * 7);
+                var groundTex = Keep(SceneryPaint.Ground(D(th.Grass, AG), D(th.Grass2, AG), D(th.Worn, AG * 0.9f), D(th.Rock, 0.5f), (uint)(chapter % 7), th.Ruins, D(th.Worn, 0.25f), waterZ));
+                _groundMat = Keep(new Material(Materials.Lit(Color.white, 0, 0.08f)) { name = "GroundPaint", mainTexture = groundTex });
+                if (_groundMat.HasProperty("_BaseMap")) _groundMat.SetTexture("_BaseMap", groundTex);
+                // sky and three ridge layers: painted arcs around the arena, pre-hazed and unlit
+                var arcCentre = new Vector2(0, 4);
+                _arcs = new[] { Keep(SceneryPaint.Arc(46, -2, 46, 200 * Mathf.Deg2Rad, arcCentre)), Keep(SceneryPaint.Arc(44, -1.5f, 16, 170 * Mathf.Deg2Rad, arcCentre)),
+                                Keep(SceneryPaint.Arc(40, -1.5f, 11, 170 * Mathf.Deg2Rad, arcCentre)), Keep(SceneryPaint.Arc(36, -1.5f, 7, 170 * Mathf.Deg2Rad, arcCentre)) };
+                _backMats = new Material[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    var tex = Keep(i == 0 ? SceneryPaint.Sky(top, fog, sunTint, seed, th.Clouds, th.Storm) : SceneryPaint.Ridge(i - 1, th.Style, Palette.Hex(th.Sil), fog, sunTint, seed));
+                    var m = _backMats[i] = Keep(Materials.Unlit(Color.white)); m.mainTexture = tex;
+                    m.renderQueue = 2996 + i; // far to near, before the effects
+                    if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
+                }
+                if (kit)
+                {
+                    var ramp = Keep(SceneryPaint.Ramp(Rows(th), Palette.Hex(th.Sil), sunTint));
+                    _ramp = Keep(new Material(Materials.Lit(Color.white, 0, 0.12f)) { name = "SceneryRamp", mainTexture = ramp });
+                    if (_ramp.HasProperty("_BaseMap")) _ramp.SetTexture("_BaseMap", ramp);
+                }
+                var mote = Palette.Hex(th.MoteColor);
+                _glow = Materials.Glow(mote * 0.4f, mote, th.Mushrooms ? 0.9f : 1.2f);
+                _fire = Materials.Glow(Palette.Hex("#3a1a08"), Palette.Hex("#ffb050"), 1.8f);
+            }
+
+            // ---- sky and distant ridges ----
+            for (int i = 0; i < 4; i++) Backdrop(root, i == 0 ? "Sky" : "SkyRidge" + (i - 1), _arcs[i], _backMats[i]);
+
+            // ---- ground: the painted 90 m field and a plain far field under the ridges ----
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             Object.Destroy(ground.GetComponent<Collider>());
             ground.name = "Ground"; ground.transform.SetParent(root, false);
             ground.transform.localScale = new Vector3(9, 1, 9);
-            var gm = Materials.Lit(Color.white, 0, 0.08f);
-            gm = new Material(gm) { mainTexture = GroundTexture(th, chapter) };
-            if (gm.HasProperty("_BaseMap")) gm.SetTexture("_BaseMap", gm.mainTexture);
-            ground.GetComponent<Renderer>().sharedMaterial = gm;
+            ground.GetComponent<Renderer>().sharedMaterial = _groundMat;
             ground.GetComponent<Renderer>().receiveShadows = true;
+            var far = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            Object.Destroy(far.GetComponent<Collider>());
+            far.name = "GroundFar"; far.transform.SetParent(root, false);
+            far.transform.localPosition = new Vector3(0, -0.03f, 0); far.transform.localScale = new Vector3(30, 1, 30);
+            far.GetComponent<Renderer>().sharedMaterial = Materials.Lit(Color.Lerp(D(th.Grass, AG), fog, 0.3f), 0, 0.05f);
+            far.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
             // ---- water / lava beyond the far side ----
-            if (th.Water != null || titan)
+            if (waterZ > 0)
             {
                 var w = GameObject.CreatePrimitive(PrimitiveType.Plane);
                 Object.Destroy(w.GetComponent<Collider>());
                 w.name = titan ? "Lava" : "Water"; w.transform.SetParent(root, false);
-                w.transform.localPosition = new Vector3(0, titan ? 0.04f : 0.06f, titan ? 16 : 18); // stays above the ground through its whole bob (SceneryWave) w.transform.localScale = new Vector3(6, 1, 1.4f);
+                // stays above the ground through its whole bob (SceneryWave); 90 x 16 m from the shore line at z 10
+                w.transform.localPosition = new Vector3(0, titan ? 0.04f : 0.06f, waterZ + 8f);
+                w.transform.localScale = new Vector3(9, 1, 1.6f);
                 w.GetComponent<Renderer>().sharedMaterial = titan ? Materials.Glow(Palette.Hex("#3a0a04"), Palette.Hex("#ff5a10"), 1.6f) : Materials.Lit(D(th.Water, 0.9f), 0.2f, 0.7f); // a sheen, not a mirror: no glare jumping with screen shake
                 w.GetComponent<Renderer>().receiveShadows = false; // tree shadows popping with the quality tier's shadow distance
                 w.AddComponent<SceneryWave>().Lava = titan;
             }
 
-            // ---- scatter (kept off the arena ellipse and the camera side) ----
+            ArenaReactor react = null;
+            if (interactive)
+            {
+                react = root.gameObject.AddComponent<ArenaReactor>();
+                react.Kind = th.Vent; react.Storm = th.Storm; react.NoCracks = titan; // the Titan's own moves crack the ground (SkillFx)
+                react.Tint = Palette.Hex(th.MoteColor); react.Ramp = _ramp; react.Sun = sun;
+                react.Tier = Quality.I != null ? Quality.I.Tier : 2;
+            }
+
+            if (!kit) ScatterSimple(root, th, titan, density, R);
+            else
+            {
+                // ---- scatter (kept off the arena ellipse and the camera side) ----
+                bool Clear(float x, float z) => Mathf.Pow(x / 6.2f, 2) + Mathf.Pow((z - 0.6f) / 5.6f, 2) < 1 || z < -7 || (waterZ > 0 && z > waterZ - 0.6f);
+                var table = Picks(th);
+                float total = 0; foreach (var p in table) total += p.w;
+                int n = Mathf.RoundToInt(70 * density);
+                for (int i = 0; i < n; i++)
+                {
+                    float a = R(0, Mathf.PI * 2), r = R(6.5f, 22f), x = Mathf.Cos(a) * r, z = Mathf.Sin(a) * r * 0.9f + 4f;
+                    if (Clear(x, z)) continue;
+                    float pick = R(0, total); var e = table[0];
+                    foreach (var p in table) { if (pick < p.w) { e = p; break; } pick -= p.w; }
+                    var names = SceneryKit.Variants(e.prefix);
+                    if (names.Count == 0) continue;
+                    var name = names[(int)R(0, names.Count - 0.01f)];
+                    var go = Place(root, name, new Vector3(x, 0, z), R(e.lo, e.hi), R(0, 360));
+                    if (react != null && e.sway && go != null) { go.AddComponent<SceneryMoves>(); react.Sway.Add(go.transform); }
+                    if (name == "banner_pole") Banner(root, go, react);
+                    if (name == "brazier" && react != null && go != null) { go.AddComponent<SceneryMoves>(); react.Braziers.Add(go.transform); }
+                }
+                // grass tufts near the arena edge (they read as texture)
+                for (int i = 0; i < Mathf.RoundToInt(60 * density); i++)
+                {
+                    float a = R(0, Mathf.PI * 2), k = R(1.05f, 1.5f); float x = Mathf.Sin(a) * 6.2f * k, z = 0.6f + Mathf.Cos(a) * 5.6f * k;
+                    if (z < -6.5f) continue;
+                    Place(root, "tuft" + (int)R(0, 2.99f), new Vector3(x, 0, z), R(0.5f, 0.8f), R(0, 360));
+                }
+                // ---- boss stages: braziers flanking the foes, war banners behind them, vents beyond ----
+                if (react != null)
+                {
+                    float back = titan ? 9f : 7.8f, bx = titan ? 4.8f : 4.0f;
+                    foreach (float sx in new[] { -1f, 1f })
+                    {
+                        var b = Place(root, "brazier", new Vector3(sx * 6.7f, 0, 4.4f), 1.1f, R(0, 360));
+                        if (b != null) { b.AddComponent<SceneryMoves>(); react.Braziers.Add(b.transform); }
+                        Banner(root, Place(root, "banner_pole", new Vector3(sx * bx, 0, back), 1.15f, 0), react);
+                    }
+                    react.Vents.Add(new Vector3(-6.8f, 0, 8f)); react.Vents.Add(new Vector3(6.8f, 0, 8f));
+                    react.Vents.Add(new Vector3(R(-2f, 2f), 0, waterZ > 0 ? waterZ + 0.8f : 11.5f));
+                }
+            }
+
+            // ---- drifting motes ----
+            Motes(root, th, density);
+        }
+
+        // An unlit painted arc (sky or ridge): no shadows, never hidden as an occluder ("Sky" names).
+        static void Backdrop(Transform root, string name, Mesh mesh, Material m)
+        {
+            var go = new GameObject(name); go.transform.SetParent(root, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
+        }
+
+        static GameObject Place(Transform root, string name, Vector3 p, float s, float yaw)
+        {
+            bool fire = name == "brazier" || name == "lantern";
+            return SceneryKit.Place(root, name, p, s, yaw, _ramp, fire ? _fire : _glow);
+        }
+
+        // A banner cloth hanging from the pole's crossbar; sways on boss stages.
+        static void Banner(Transform root, GameObject pole, ArenaReactor react)
+        {
+            if (pole == null) return;
+            var cloth = SceneryKit.Place(pole.transform, "banner_cloth", new Vector3(0, 2.85f, 0), 1, 0, _ramp, _glow);
+            if (react != null && cloth != null) { cloth.AddComponent<SceneryMoves>(); react.Cloths.Add(cloth.transform); }
+        }
+
+        // Material rows of the prop ramp from the theme's colours (make_props.py rows).
+        static Color[] Rows(Theme th)
+        {
+            var r = new Color[SceneryPaint.Rows];
+            Color H(string h) => Palette.Hex(h);
+            var leaves = th.Leaves ?? new[] { th.Tuft };
+            var rock = H(th.Strata != null ? th.Strata[0] : th.Rock);
+            r[SceneryKit.Bark] = H(th.Bark); r[SceneryKit.Rock] = rock; r[SceneryKit.Moss] = Color.Lerp(H(th.Tuft), rock, 0.35f);
+            for (int i = 0; i < 3; i++) r[SceneryKit.LeafA + i] = H(leaves[i % leaves.Length]) * (th.GlowLeaves ? 1.45f : 1f); // ember groves: leaves that seem lit from within
+            r[SceneryKit.Wood] = Color.Lerp(H(th.Bark) * 1.35f, H(th.Worn), 0.3f);
+            r[SceneryKit.Stone] = th.Strata != null ? H(th.Strata[2]) : Color.Lerp(H(th.Rock), H(th.Worn), 0.35f) * 1.08f;
+            r[SceneryKit.Cloth] = H(th.Cloth); r[SceneryKit.Metal] = H("#3c3a40"); r[SceneryKit.Cap] = H(th.MoteColor) * 0.5f; r[SceneryKit.Stem] = H("#d8cdb0");
+            r[SceneryKit.Reed] = Color.Lerp(H(th.Tuft), H(th.Worn), 0.3f); r[SceneryKit.Earth] = th.Strata != null ? H(th.Strata[1]) : H(th.Hill);
+            r[SceneryKit.Trim] = H("#c9a24a"); r[SceneryKit.Coal] = H("#2a1a14");
+            for (int i = 0; i < r.Length; i++) { var c = r[i] * AP; c.a = 1; r[i] = c; }
+            return r;
+        }
+
+        // What grows or stands in each theme: (kit prefix, weight, scale range, sways on boss stages).
+        static List<(string prefix, float w, float lo, float hi, bool sway)> Picks(Theme th)
+        {
+            var l = new List<(string, float, float, float, bool)> { ("rock", 3f, 0.7f, 1.8f, false), ("tuft", 1.2f, 0.8f, 1.3f, false) };
+            if (th.Leaves != null) { l.Add(("oak", 3f, 0.8f, 1.3f, true)); l.Add(("bush", 1.5f, 0.8f, 1.3f, true)); if (!th.GlowLeaves && th.Style == "forest") l.Add(("pine", 1.5f, 0.8f, 1.2f, true)); }
+            if (th.DeadTrees) l.Add(("dead", 2.5f, 0.8f, 1.3f, true));
+            if (th.Strata != null) l.Add(("mesa", 2.5f, 1.0f, 1.8f, false));
+            if (th.Crystals) l.Add(("crystal", 1.5f, 0.8f, 1.5f, false));
+            if (th.Mushrooms) l.Add(("mushrooms", 2f, 0.9f, 1.6f, false));
+            if (th.Reeds || th.Water != null && th.Style != "sea") l.Add(("reeds", 2f, 0.8f, 1.2f, true));
+            if (th.Stones) { l.Add(("stone", 2f, 0.8f, 1.3f, false)); l.Add(("mound", 0.6f, 0.8f, 1.2f, false)); }
+            if (th.Posts) { l.Add(("post", 2f, 0.9f, 1.2f, false)); l.Add(("crate", 1.2f, 0.8f, 1.2f, false)); }
+            if (th.Lanterns) l.Add(("lantern", 1.5f, 0.9f, 1.1f, false));
+            if (th.Ruins) { l.Add(("column", 2f, 0.9f, 1.2f, false)); l.Add(("wall", 1.5f, 0.9f, 1.2f, false)); l.Add(("arch", 0.5f, 1f, 1.2f, false)); l.Add(("banner_pole", 0.4f, 1f, 1.1f, false)); l.Add(("brazier", 0.4f, 1f, 1.1f, false)); }
+            if (th.Style == "sea" && !th.Posts) l.Add(("post", 0.6f, 0.9f, 1.2f, false)); // driftwood stakes on the shore
+            return l;
+        }
+
+        // Without the prop kit (missing Resources/Scenery/props.bytes): the original primitive scatter.
+        static void ScatterSimple(Transform root, Theme th, bool titan, float density, System.Func<float, float, float> R)
+        {
             bool Clear(float x, float z) => Mathf.Pow(x / 6.2f, 2) + Mathf.Pow((z - 0.6f) / 5.6f, 2) < 1 || z < -7;
             int n = Mathf.RoundToInt(70 * density);
             var rock = Materials.Lit(D(th.Rock, AP), 0, 0.15f); var bark = Materials.Lit(D(th.Bark, AP), 0, 0.1f); var tuft = Materials.Lit(D(th.Tuft, AG * 1.1f), 0, 0.1f);
@@ -92,31 +272,12 @@ namespace Sigilbound.Client
                 else if (th.Mushrooms && pick < 0.8f) { Prop(root, PrimitiveType.Cylinder, new Vector3(x, 0.2f * s, z), new Vector3(0.12f, 0.2f, 0.12f) * s, bark); Prop(root, PrimitiveType.Sphere, new Vector3(x, 0.42f * s, z), new Vector3(0.6f, 0.25f, 0.6f) * s, Materials.Glow(Palette.Hex("#103038"), Palette.Hex(th.MoteColor), 0.9f)); }
                 else for (int k = 0; k < 3; k++) MeshProp(root, LowPoly.Tuft((int)R(0, LowPoly.Variants - 0.01f)), new Vector3(x + R(-0.4f, 0.4f), 0, z + R(-0.4f, 0.4f)), Vector3.one * 0.45f * s, tuft, new Vector3(0, R(0, 360), 0));
             }
-            // grass tufts near the arena edge (drawn small; they read as texture)
             for (int i = 0; i < Mathf.RoundToInt(60 * density); i++)
             {
                 float a = R(0, Mathf.PI * 2), k = R(1.05f, 1.5f); float x = Mathf.Sin(a) * 6.2f * k, z = 0.6f + Mathf.Cos(a) * 5.6f * k;
                 if (z < -6.5f) continue;
                 MeshProp(root, LowPoly.Tuft((int)R(0, LowPoly.Variants - 0.01f)), new Vector3(x, 0, z), Vector3.one * R(0.22f, 0.32f), tuft, new Vector3(0, R(0, 360), 0));
             }
-
-            // ---- horizon silhouettes ----
-            var sil = Materials.Unlit(Color.Lerp(Palette.Hex(th.Sil), fog, 0.35f));
-            for (int i = 0; i < 18; i++)
-            {
-                float a = Mathf.Lerp(-1.25f, 1.25f, i / 17f) + R(-0.04f, 0.04f), dist = R(34, 44);
-                var p = new Vector3(Mathf.Sin(a) * dist, 0, Mathf.Cos(a) * dist + 6);
-                var q = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.Destroy(q.GetComponent<Collider>());
-                q.transform.SetParent(root, false);
-                float h = R(5, th.Strata != null ? 9 : 14), w = R(7, 12);
-                q.transform.position = p + Vector3.up * h * 0.45f; q.transform.localScale = new Vector3(w, h, 1);
-                q.transform.rotation = Quaternion.LookRotation(p - new Vector3(0, 0, -6));
-                q.GetComponent<Renderer>().sharedMaterial = sil;
-                q.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            }
-
-            // ---- drifting motes ----
-            Motes(root, th, density);
         }
 
         static void Prop(Transform root, PrimitiveType t, Vector3 pos, Vector3 scale, Material m, Vector3? euler = null)
@@ -305,7 +466,7 @@ namespace Sigilbound.Client
         }
 
         static Texture2D _dotTex, _leafTex;
-        static Texture2D MoteTex(bool leaf)
+        internal static Texture2D MoteTex(bool leaf)
         {
             if (leaf ? _leafTex != null : _dotTex != null) return leaf ? _leafTex : _dotTex;
             const int n = 32;
@@ -330,6 +491,9 @@ namespace Sigilbound.Client
             return t;
         }
     }
+
+    // Marks scenery that moves on boss stages (sway, flames): left out of the arena's static batch.
+    public sealed class SceneryMoves : MonoBehaviour { }
 
     // Gentle swell on water, slow pulse on lava.
     public sealed class SceneryWave : MonoBehaviour

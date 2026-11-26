@@ -2,6 +2,12 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Painted battlefields
+change: Every arena has been repainted: fuller trees with layered leaves, carved rocks, ruined columns and walls, banners, braziers, crystals, mushrooms and reeds.
+change: Painted skies with drifting clouds, distant mountains, mesas, ruins or a smoking volcano, and fog that suits each land.
+new: Boss battles and the Titan come alive: trees and banners sway from big blows, braziers flare when a foe falls, lava and sea spray burst, rocks rain down on critical hits, the ground cracks under a warlord's slam, and lightning splits stormy skies.
+fix: The water behind shore arenas now reaches the horizon instead of floating as a small square.
+
 ## 2026-11-26 | Finer outfits
 change: Heroes in gowns now wear fitted bodices that match their dress, some with flowing sleeves.
 change: Masks fit the face, animal heroes have proper muzzles and beaks, and small held items are easier to see.

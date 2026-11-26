@@ -64,7 +64,9 @@ namespace Sigilbound.Client
                 BattleMode.Arena => 4 + spec.Rival.Ids.Count % 5,
                 _ => Game.ChapterOf(spec.Stage),
             };
-            App.Arena.Build(Mathf.Min(chapter, Chapters.Length - 1), IsTitan);
+            // Boss stages of the campaign (normal and Hard) and the Titan get the interactive backdrop.
+            bool bossArena = IsTitan || ((spec.Mode == BattleMode.Stage || spec.Mode == BattleMode.Hard) && Game.IsBossStage(spec.Stage));
+            App.Arena.Build(Mathf.Min(chapter, Chapters.Length - 1), IsTitan, bossArena);
             App.Arena.FrameBattle(CamKey, IsTitan);
             Clear();
             Spawn(_b.Allies, true); Spawn(_b.Enemies, false);
@@ -196,6 +198,7 @@ namespace Sigilbound.Client
             var hit = T + toTeam * Mathf.Min(dist * 0.62f, 5.5f); hit.y = 0;
             var fx = SkillFx.I;
             if (fx != null) { fx.Cracks(hit, u.El, 5f); fx.TitanSlam(hit, u.El); fx.Shockwave(hit, u.El, 6f); fx.CritFlash(u.El); }
+            ArenaEvents.RaiseShock(hit, 1.6f, true);
             Vfx.I.ShakeLong(0.55f, 0.8f); Sound.I?.Play("earthsplit", 1f, 1, 0);
             foreach (var kv in _views) if (kv.Key.Ally && kv.Value != null) kv.Value.Shove(hit, 1.1f);
             for (float t = 0; t < 0.7f; t += Time.unscaledDeltaTime) { arena.Override(eye, Vector3.Lerp(T + Vector3.up * H * 0.8f, hit + Vector3.up, Ease(t / 0.2f)), 44f, 1f - Ease((t - 0.3f) / 0.4f)); yield return null; }
@@ -243,6 +246,7 @@ namespace Sigilbound.Client
             v.transform.position = team;
             var fx = SkillFx.I;
             if (fx != null) { fx.TitanSlam(team, u.El); fx.Cracks(team, u.El, 4.5f); fx.Shockwave(team, u.El, 6f); }
+            ArenaEvents.RaiseShock(team, 1.5f, true);
             Vfx.I.ShakeLong(0.6f, 0.8f); Sound.I?.Play("titanSlam", 1f, 1, 0);
             foreach (var kv in _views) if (kv.Key.Ally && kv.Value != null) kv.Value.Shove(team, 1.4f);
             var look = team + Vector3.up * H * 0.45f;
@@ -291,6 +295,7 @@ namespace Sigilbound.Client
             // 3. The slam.
             var fx = SkillFx.I;
             if (fx != null) { fx.Cracks(tp, u.El, 2.6f); fx.Shockwave(tp, u.El, 4f); fx.TitanSlam(tp, u.El); }
+            ArenaEvents.RaiseShock(tp, 1.3f, true);
             Vfx.I.ShakeLong(0.45f, 0.6f); Sound.I?.Play("titanSlam", 0.9f, 1, 0);
             if (target != null) target.Shove(tp + dir, 0.8f);
             // aftermath: cracks spread and dust rolls while the camera eases back and levels out
@@ -341,6 +346,7 @@ namespace Sigilbound.Client
             // 2. The breath sweeps across the team (1.8 s), the Titan still in frame.
             if (fx != null) StartCoroutine(fx.Breath(mouth, a + Vector3.up * 0.6f, b + Vector3.up * 0.6f, u.El, 1.8f));
             Sound.I?.Cast(Element.Flame);
+            ArenaEvents.RaiseShock(team, 0.9f, false); // the breath's roar shakes the trees and stirs the vents
             for (float t = 0; t < 1.8f; t += Time.deltaTime)
             {
                 var aim = Vector3.Lerp(a, b, t / 1.8f);
@@ -466,7 +472,7 @@ namespace Sigilbound.Client
                 else if (meteor) yield return MeteorLeap(u, view);
                 else if (palm) yield return CrushingPalm(u, view, tgtView);
                 else if (breath) yield return CinderBreath(u, view);
-                else yield return view.Attack(aim, melee, support, ult, () => { Vfx.I.Shake(0.35f); fx?.TitanSlam(view.transform.position, u.El); }, skillIdx);
+                else yield return view.Attack(aim, melee, support, ult, () => { Vfx.I.Shake(0.35f); fx?.TitanSlam(view.transform.position, u.El); ArenaEvents.RaiseShock(view.transform.position, 1.2f, true); }, skillIdx);
                 if (support && fx == null) Vfx.I.Cast(view.transform.position + Vector3.up * 0.1f, color);
                 // Ultimates show the hero's signature big, on the caster and on every target or ally reached.
                 if (ult && fx != null && !u.Titan)
@@ -500,6 +506,12 @@ namespace Sigilbound.Client
                 }
             }
             _ultBy = ult && !support ? u : null;
+            // The scenery answers ultimates and boss blows (ArenaReactor on boss stages; presentation only).
+            if (!u.Titan && !support && hit.Count > 0 && (ult || u.Boss))
+            {
+                var at = _views.TryGetValue(hit[0], out var hv0) && hv0 != null ? hv0.transform.position : view != null ? view.transform.position : Vector3.zero;
+                ArenaEvents.RaiseShock(at, ult ? 1f : 0.6f, u.Boss && ult);
+            }
             yield return ShowEvents(events, color, sk.Hits > 1);
             _ultBy = null;
             if (meteor && view != null) yield return TitanHopHome(u, view);
@@ -534,6 +546,7 @@ namespace Sigilbound.Client
                         // Heavier reaction on crits and hits over 14% of max HP; weak glancing blows may be rolled away.
                         v.Hit(e.Crit || e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp) > 0.14f, e.Elem < 1 || e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp) < 0.04f);
                         if (e.Crit) SkillFx.I?.CritFlash(e.Source != null ? e.Source.El : _lastEl);
+                        ArenaEvents.RaiseHit(v.transform.position, e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp), e.Crit, _ultBy != null || (e.Source != null && e.Source.Boss));
                         Vfx.I.Number(c + Vector3.up * 0.3f, (e.Crit ? "CRIT " : "") + Ui.Fmt(e.Amount),
                             e.Crit ? new Color(1f, 0.85f, 0.2f) : e.Elem > 1 ? new Color(1f, 0.55f, 0.3f) : e.Elem < 1 ? new Color(0.7f, 0.7f, 0.8f) : Color.white, e.Crit ? 1.3f : 1f);
                         if (e.Crit) Vfx.I.Shake();
@@ -564,7 +577,7 @@ namespace Sigilbound.Client
                             if (hitEv?.Unit != null && _views.TryGetValue(hitEv.Unit, out var av) && av != null) v.Counter(av.transform.position);
                         }
                         break;
-                    case EvType.Death: Sound.I?.Play(e.Unit.Ally ? "downed" : "kill", 0.9f); v.Die(); if (SkillFx.I != null) SkillFx.I.DeathFade(v.transform.position, e.Unit.El); else Vfx.I.Dissolve(v.transform.position + Vector3.up * 0.8f); break;
+                    case EvType.Death: Sound.I?.Play(e.Unit.Ally ? "downed" : "kill", 0.9f); ArenaEvents.RaiseKill(v.transform.position); v.Die(); if (SkillFx.I != null) SkillFx.I.DeathFade(v.transform.position, e.Unit.El); else Vfx.I.Dissolve(v.transform.position + Vector3.up * 0.8f); break;
                 }
             }
             yield return new WaitForSeconds(0.2f);

@@ -160,7 +160,8 @@ namespace Sigilbound.Client
             if (_scenery) _scenery.SetActive(on);
         }
 
-        public void Build(int chapter, bool titan)
+        // interactive: a campaign boss stage or the Titan; the backdrop answers the fight (ArenaReactor).
+        public void Build(int chapter, bool titan, bool interactive = false)
         {
             PostFx.SetArena(chapter, titan, true); // per-arena colour grade (postfx2 presets)
             if (_scenery) Destroy(_scenery);
@@ -168,16 +169,18 @@ namespace Sigilbound.Client
             var (top, bottom, ground, prop) = titan ? (Palette.Hex("#1a0a0a"), Palette.Hex("#c0401a"), Palette.Hex("#24100c"), Palette.Hex("#100606")) : Palette.Scene(chapter);
             Cam.backgroundColor = top;
             RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogColor = bottom;
-            RenderSettings.fogStartDistance = 26; RenderSettings.fogEndDistance = 64; // the battle camera sits ~19 m out
+            // Fog per theme: thicker over marsh, fen, barrow and storm, clearer over the badlands (the battle camera sits ~19 m out).
+            var (fogNear, fogFar) = Scenery.FogRange(chapter, titan);
+            RenderSettings.fogStartDistance = fogNear; RenderSettings.fogEndDistance = fogFar;
             RenderSettings.ambientLight = Color.Lerp(bottom, Color.white, 0.35f) * 0.55f;
-
-            // Sky: a big gradient quad behind the battlefield.
-            var sky = GameObject.CreatePrimitive(PrimitiveType.Quad); sky.name = "Sky";
-            Destroy(sky.GetComponent<Collider>());
-            sky.transform.SetParent(_scenery.transform);
-            sky.transform.position = new Vector3(0, 9, 30); sky.transform.localScale = new Vector3(90, 40, 1);
-            var skyMat = CharacterView.Unlit(Color.white); skyMat.mainTexture = Gradient(top, bottom);
-            sky.GetComponent<Renderer>().sharedMaterial = skyMat;
+            // The sun takes a little of the horizon's colour (warm dusks, cold storms); kept close to white so the
+            // heroes' painted look holds. Storms are dimmer.
+            if (Sun != null)
+            {
+                Sun.color = Color.Lerp(Color.white, Color.Lerp(bottom, Color.white, 0.4f), 0.35f);
+                Sun.intensity = Scenery.Stormy(chapter, titan) && !titan ? 0.9f : 1.15f;
+            }
+            // The sky (painted clouds) and the distant ridges are painted arcs built with the scenery.
 
             // The rune circle: units stand on its rim (BattleLayout.Rim*).
             var circle = GameObject.CreatePrimitive(PrimitiveType.Cylinder); circle.name = "Circle";
@@ -191,7 +194,7 @@ namespace Sigilbound.Client
 
             // Ground, water or lava, scatter, horizon silhouettes and motes (scenery.mjs themes).
             float density = Quality.I == null ? 1f : new[] { 0.4f, 0.7f, 1f, 1.3f }[Quality.I.Tier];
-            Scenery.Build(_scenery.transform, chapter, titan, density, bottom);
+            Scenery.Build(_scenery.transform, chapter, titan, density, bottom, top, interactive, Sun);
             StaticBatch(_scenery);
             HideOccluders(); // a re-built arena under an already framed camera
             Shafts(titan ? Palette.Hex("#ff9a5a") : Color.Lerp(bottom, new Color(1f, 0.95f, 0.8f), 0.7f));
@@ -237,8 +240,9 @@ namespace Sigilbound.Client
             _shafts.SetActive(Quality.I != null && Quality.I.Tier == 3);
         }
 
-        // Static batching: everything in the arena that never moves (ground, circle, scatter,
-        // silhouettes) is combined per material; animated water/lava and particles are left out.
+        // Static batching: everything in the arena that never moves (ground, circle, scatter) is
+        // combined per material; animated water/lava, boss-stage props that sway or flare, the
+        // backdrop arcs (drawn in a fixed far-to-near order) and particles are left out.
         static void StaticBatch(GameObject root)
         {
             var still = new List<GameObject>();
@@ -246,6 +250,7 @@ namespace Sigilbound.Client
             {
                 var mf = mr.GetComponent<MeshFilter>();
                 if (mf == null || mf.sharedMesh == null || !mf.sharedMesh.isReadable || mr.GetComponent<SceneryWave>() != null) continue;
+                if (mr.GetComponentInParent<SceneryMoves>() != null || mr.gameObject.name.StartsWith("Sky")) continue; // swaying props; the sorted backdrop
                 still.Add(mr.gameObject);
             }
             if (still.Count > 1) StaticBatchingUtility.Combine(still.ToArray(), root);
@@ -276,14 +281,6 @@ namespace Sigilbound.Client
             go.transform.position = pos; go.transform.localScale = scale;
             if (euler.HasValue) go.transform.eulerAngles = euler.Value;
             go.GetComponent<Renderer>().sharedMaterial = m;
-        }
-
-        static Texture2D Gradient(Color top, Color bottom)
-        {
-            var t = new Texture2D(1, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
-            for (int y = 0; y < 64; y++) t.SetPixel(0, y, Color.Lerp(bottom, top, y / 63f));
-            t.Apply();
-            return t;
         }
 
         // Battle positions: on the rune circle's rim, allies along the near arc and enemies along

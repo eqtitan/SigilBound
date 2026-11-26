@@ -1,0 +1,210 @@
+# Battle scenery brief
+
+The art director's brief for the battle arenas, written on 2026-11-26. The heroes are now semi-realistic
+and hand-painted (ART_BIBLE.md), but the arenas still had flat, primitive props. This brief brings the
+arenas up to the heroes' look. It covers:
+
+- the target look
+- palette, materials, silhouettes and lighting for each theme
+- how the scenery is built
+- the budgets
+- the interactive backdrop on boss stages
+
+Code: `Client/Scenery.cs`, `SceneryKit.cs`, `SceneryPaint.cs`, `ArenaReact.cs` and `Arena.cs`.
+Tools: `unity/Tools~/scenery/`.
+
+## 1. Audit (preview build 8351936)
+
+- **Props were primitives.** Cubes, cylinders and spheres were tinted with one flat colour each. Trees
+  were faceted blobs on a stick and crystals were plain boxes. Next to the painted heroes with their
+  rim light, the arena read as a prototype.
+- **No sky.** The sky was a two-colour gradient quad. The "mountains" were 18 flat dark rectangles,
+  and most of them sat behind the sky quad, so only the side ones showed.
+- **Water bug.** On every shore theme the water was a 10 m blue square floating behind the arena. A
+  comment had swallowed the line that scaled it.
+- **Ground.** Two-tone Perlin noise with a soft worn ellipse. There was no edge where feet wear the
+  ground and nothing broke up the large areas.
+- **Light and fog.** Every theme used the same white sun and the same fog range.
+
+## 2. Target look
+
+Show the same world as the heroes, a step back:
+
+- Painted, not photographic.
+- Chunky readable shapes with a soft volume.
+- Local colour first.
+- AO in the crevices.
+- A warm highlight band on top and cool, darker undersides.
+
+The ART_BIBLE painting guide applies to props as it does to heroes.
+
+The scenery always stays quieter than the fight. It is darker and less saturated than the heroes, it
+has no rim light, and the ring stays clear. The ring is the 4.2 x 3.95 m rune ellipse plus its HUD
+margin.
+
+Depth runs in three bands:
+
+1. **Foreground scatter** (6.5–22 m from the centre). Full colour.
+2. **Painted ridges** (36–44 m). Their colour shifts toward the fog with distance.
+3. **Sky.** Painted clouds lit from the sun side, with a sun glow low on the horizon.
+
+## 3. Per-theme palette and mood
+
+Colours come from the theme table in `Scenery.cs`, so the arenas keep their identity. Each theme adds
+a ridge silhouette, fog, a boss vent and storm flags.
+
+| Theme | Ground / props | Shadows (Sil) | Sky (top / horizon) | Ridges | Fog near–far | Boss vent | Storm |
+|---|---|---|---|---|---|---|---|
+| dusk forest | moss green, autumn leaves (green, amber, rust) | `#2e2c46` | `#1f2b46` / `#c9805a` | forest crowns | 26–64 | dust | |
+| teal shore | sand, grey-blue rock, driftwood | `#24404e` | `#16283a` / `#4f7c8a` | low sea hills | 26–64 | sea spray | |
+| red badlands | rust earth, layered mesas | `#44201f` | `#2a1a1e` / `#a8483a` | flat-top mesas | 30–72 | dust | |
+| green marsh | dark moss, reeds | `#223c36` | `#1a2e2a` / `#7fa088` | rolling hills | 20–56 | water | |
+| gold ruins | olive grass, warm worked stone, flagstones | `#36304c` | `#28203a` / `#c8a870` | broken towers | 26–64 | crystal sparks | |
+| blossom forest | spring grass, pink canopies | `#463858` | `#2a2438` / `#e0b0d0` | forest crowns | 26–64 | dust | |
+| moonlit shore | pale sand, slate | `#1a2642` | `#101a2e` / `#5a7ab0` | sea hills | 26–64 | sea spray | |
+| amethyst badlands | violet strata, crystals | `#221a36` | `#0e0a16` / `#3a2a5a` | mesas | 28–70 | crystal sparks | |
+| glow marsh | teal moss, glowing caps | `#122838` | `#0e1a2a` / `#2a5a7a` | hills | 20–56 | spores | |
+| burning ruins | scorched stone, embers, flagstones | `#381410` | `#1a0a0a` / `#ff6a2a` | broken towers | 26–64 | lava | |
+| saltreach harbor | wet stone, posts, crates, lanterns | `#1e2c3a` | `#1a2436` / `#c89060` | sea hills | 26–64 | sea spray | |
+| black fens | black water, dead trees, reeds | `#0e1812` | `#080e0a` / `#2a3a28` | dead tree line | 16–50 | spores | |
+| wraithmoor barrows | grey moor, standing stones, mounds | `#202230` | `#1a1c26` / `#8a8e9a` | hills | 18–54 | dust | |
+| ember groves | ash ground, leaves lit from within | `#2a0e0a` | `#140806` / `#c04a1a` | forest crowns | 26–64 | lava | |
+| storm coast | slate, carved stones | `#0e1622` | `#0a1018` / `#3a4a5e` | jagged peaks | 20–58 | sea spray | yes |
+| titan caldera | basalt, lava | `#1e0c0a` | `#1a0a0a` / `#c0401a` | volcano with a glowing crater | 26–64 | lava | yes |
+
+**Materials**
+
+Props use a gradient-map painting. Each prop face has a material row:
+
+- bark, three leaf tones, rock, moss
+- wood, worked stone, cloth, iron
+- cap, stem, reed, earth, brass trim, coal
+
+A per-theme ramp maps a baked shade value to a painted colour:
+
+- **Shade end.** 30 % of the row's colour, cooled toward the theme's silhouette colour.
+- **Middle.** The row's local colour.
+- **Highlight end.** 130 % of the local colour, warmed toward the sun.
+- **Banding.** A soft three-band step, the same idea as the hero shader's painterly ramp.
+
+Moss is the theme's grass colour mixed 35 % with its rock. It sits on up-facing faces of rocks, ruins and
+stones and is broken by noise. Glowing parts use the glow material:
+
+- crystals and mushroom caps use the theme's mote colour
+- brazier coals and lantern cores use warm fire
+
+**Silhouettes**
+
+- **Broadleaf tree:** a branching skinned trunk with root flare, and three canopy tiers (wide base,
+  middle, crown). The canopy is lit as one soft volume and its leaves are dappled light and dark.
+- **Pine:** five tiers with drooping, alternating tips.
+- **Dead tree:** crooked, with forked branches.
+- **Rock:** chiselled from random planes into big painted facets, half sunk into the ground.
+- **Ruins:** fluted columns (one intact with its capital, the others broken with a fallen chunk),
+  bevelled block walls with missing courses, and an arch with a missing voussoir.
+
+**Lighting**
+
+- The sun takes 35 % of the horizon's tint, so dusks are warm and storms cold. It stays close to white
+  so the heroes' palette holds. Storm coast drops the sun to 0.9.
+- Ambient light stays as before so the hero shader is not affected.
+- Fog is linear, uses the horizon colour, and its range is set per theme. Ridges and sky are pre-hazed
+  to match it.
+
+## 4. How it is built
+
+- **Prop kit.** `Tools~/scenery/make_props.py` (Blender's bpy) builds 42 meshes in code with
+  deterministic seeds: 3 oaks, 2 pines, 2 dead trees, 4 rocks, 2 standing stones, a barrow mound,
+  3 columns, 2 walls, an arch, a banner pole and its cloth, a brazier, 2 crystal clusters,
+  2 mushroom clusters, 2 reed clumps, 3 grass tufts, 2 bushes, a lantern post, 2 posts, a crate,
+  2 mesas and 2 debris chunks (17.7k triangles in all).
+  - **Bake.** Every vertex gets ray-cast ambient occlusion (28 rays, including the ground) and a top
+    light. Painterly noise is added and the result is stored as a shade byte, next to the face's
+    material row.
+  - **Output.** `Resources/Scenery/props.bytes` (about 295 KB): quantized positions, int8 normals
+    and indices per submesh. `SceneryKit.cs` loads it synchronously.
+  - **Fallback.** If the file is missing, the old primitive scatter runs instead.
+- **Painted textures.** `SceneryPaint.cs` paints them in code at arena build time. `Tools~/scenery/paint.py`
+  mirrors it in numpy for the review renders.
+  - **Ramp:** 64 x 64.
+  - **Sky:** 384 x 160. Domain-warped fbm clouds lit from above, plus the sun glow and horizon haze.
+  - **Ridges:** three 512 x 96 alpha strips, one per style, with a sun-side rim and haze at the foot.
+  - **Ground:** 256², mipmapped. Broad two-tone strokes, then the worn patch with its trodden rim,
+    pebbles, flagstones in the ruins and wet sand toward water.
+  - **Crack decal:** 128².
+  - **Cache.** Textures are kept until the arena theme changes. Painting takes about 50 ms per arena on
+    desktop .NET; expect 3–5 times that on a phone, once, during the battle's loading.
+- **Backdrop.** The sky and the three ridges are unlit arcs (200° and 170°) around the arena. They are
+  drawn far to near (render queue 2996–2999) and are never hidden as occluders (their names start with
+  "Sky"). A plain far field runs under them so the ground never ends in view.
+- **Water and lava** now run 90 x 16 m from a shore line at z 10. The ground turns to wet sand before
+  the water.
+
+## 5. Budgets and quality tiers
+
+- Scatter is still 70 × density, with density 0.4 / 0.7 / 1.0 / 1.3 for Low / Medium / High / Ultra.
+  Grass tufts at the ring edge are 60 × density.
+- Triangles per prop: broadleaf tree about 1000–1250, rock 320, wall 700–840, tuft 72, pine 300.
+  - A High arena is about 30–40k triangles; a Low one about 12–16k.
+- Draw calls: all ramp props share one material and are static-batched. Glow parts share a second
+  material.
+- On boss stages, props that move (trees, banners, braziers) are left out of the static batch.
+- Boss extras by tier:
+  - **Low:** half the particles, at most 3 debris rocks, no brazier lights.
+  - **Medium:** at most 6 debris rocks.
+  - **High and Ultra:** at most 9 debris rocks, plus a warm point light on each of the 2 braziers.
+- APK: about +295 KB raw for the kit (it compresses in the APK). Every texture is generated, so none are added.
+- `Arena.HideOccluders` works unchanged. Kit props are ordinary renderers, the backdrop is skipped by
+  name, and the ground and far field are skipped by size.
+
+## 6. Interactive backdrop (boss stages and the Titan)
+
+**Which battles.** Campaign boss stages on Normal and Hard (`Game.IsBossStage`) and the Titan get an
+`ArenaReactor`.
+
+**How it is wired.** `BattleController` raises presentation-only events from `ArenaEvents`. Nothing
+reads them back into the battle:
+
+- `RaiseHit(pos, share of max HP, crit, heavy)` on every damage number. "Heavy" means an ultimate or a
+  boss source.
+- `RaiseKill(pos)` on every death.
+- `RaiseShock(pos, strength, slam)` on:
+  - ultimates and boss attacks
+  - the Titan's basic slam
+  - Earthsplitter, the Meteor leap and Crushing Palm
+  - the roar at the start of Cinder Breath
+
+`SkillFx.cs` and `Sound.cs` are untouched.
+
+| Trigger | Response |
+|---|---|
+| any shock, crit or heavy hit | Trees, bushes, reeds and dead trees tilt away from the blow on damped springs, then settle. Banner cloths swing on the crossbar. A gentle idle breeze keeps them alive. |
+| kill | Both braziers flare: a flame burst, and on High and Ultra the brazier lights jump and settle. |
+| big hit (over 18 % of max HP) or heavy | The nearest vent erupts. Lava fountains, sea spray, crystal sparks, glowing spores or dust, by theme. On a shock, all three vents erupt. |
+| crit, heavy hit or shock | Debris falls from the sky onto the far half or the flanks of the ring, never between the camera and the heroes. It bounces once, kicks up dust, then settles into the ground and is reused. |
+| storm themes (storm coast, Titan caldera): crit, heavy or shock, plus an idle strike every 7–14 s | A jagged bolt hits the far ridges and the sun and ambient light flash. With Settings > Screen shake off, there is no flash. |
+| warlord ultimate (slam) | The ground cracks under the target. The crack is dark, or glows on lava themes, and fades over 4 s. The Titan's own moves already crack the ground in SkillFx, so the reactor skips cracks there. |
+
+**Boss-stage dressing.** Two braziers flank the enemy side (x ±6.7, z 4.4). Two war banners stand behind
+the foes, further back and wider for the Titan. Three vents sit beyond them, at the shore line where
+there is water or lava.
+
+**Tap flourish: left out.** Every tap in a battle can be a target or skill choice, so a background tap
+effect would compete with battle input.
+
+## 7. Review and checks
+
+- `python unity/Tools~/scenery/make_props.py` rebuilds `props.bytes` and prints the triangle count per prop.
+- `python unity/Tools~/scenery/review.py OUT [theme ...]` renders, per theme:
+  - a prop lineup
+  - a diorama from the battle camera, with grey stand-ins on the ring
+  The sheets are in `$S/scenery_check/`.
+- `painted_textures_csharp.jpg` comes from the C# painter itself, compiled outside Unity with a thin
+  shim. It shows sky, ridges and ground for each theme.
+
+**In-game checks still needed**
+
+- How the transparent backdrop sorts against motes and VFX on device.
+- How long painting takes on the Note20 baseline.
+- Brazier lights under the URP additional-light limit.
+- That kit props sit correctly with HideOccluders on the Cinematic camera preset.
