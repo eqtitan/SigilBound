@@ -43,6 +43,47 @@ namespace Sigilbound.EditorTools
             Build(BuildTarget.Android, string.IsNullOrEmpty(output) ? "Builds/Android/Sigilbound-Unity.apk" : output);
         }
 
+        // Google Play build (docs/sigilbound/store/PLAY_CONSOLE.md): an AAB signed with the private upload key,
+        // with the in-app updater left out (define SB_STORE: Updater.Boot returns at once and the manifest gets
+        // no install permission or APK provider). It never uses the committed test key: the upload key comes
+        // from ANDROID_UPLOAD_KEYSTORE (a file path), ANDROID_UPLOAD_KEYSTORE_PASS, ANDROID_UPLOAD_KEY_ALIAS and
+        // ANDROID_UPLOAD_KEY_PASS, or the build stops. SB_PACKAGE optionally sets the store package name.
+        public static bool IsStoreBuild;
+        public static void AndroidStore()
+        {
+            string Env(string k) => Environment.GetEnvironmentVariable(k);
+            var ks = Env("ANDROID_UPLOAD_KEYSTORE");
+            if (string.IsNullOrEmpty(ks) || !File.Exists(ks) || string.IsNullOrEmpty(Env("ANDROID_UPLOAD_KEYSTORE_PASS")) || string.IsNullOrEmpty(Env("ANDROID_UPLOAD_KEY_ALIAS")))
+            { Debug.LogError("Sigilbound: store build needs the upload key (ANDROID_UPLOAD_KEYSTORE, _PASS, ANDROID_UPLOAD_KEY_ALIAS, ANDROID_UPLOAD_KEY_PASS)"); EditorApplication.Exit(1); return; }
+            ProjectSetup.Apply();
+            IsStoreBuild = true;
+            var target = UnityEditor.Build.NamedBuildTarget.Android;
+            var defines = GetDefines(target);
+            if (!(";" + defines + ";").Contains(";SB_STORE;")) SetDefines(target, string.IsNullOrEmpty(defines) ? "SB_STORE" : defines + ";SB_STORE");
+            var pkg = Env("SB_PACKAGE"); if (!string.IsNullOrEmpty(pkg)) PlayerSettings.SetApplicationIdentifier(target, pkg);
+            EditorUserBuildSettings.buildAppBundle = true;
+            PlayerSettings.bundleVersion = Version();
+            int code = BuildNumber();
+            if (code > 0) PlayerSettings.Android.bundleVersionCode = code;
+            WriteBuildInfo(code);
+            PlayerSettings.Android.useCustomKeystore = true;
+            PlayerSettings.Android.keystoreName = Path.GetFullPath(ks);
+            PlayerSettings.Android.keystorePass = Env("ANDROID_UPLOAD_KEYSTORE_PASS");
+            PlayerSettings.Android.keyaliasName = Env("ANDROID_UPLOAD_KEY_ALIAS");
+            PlayerSettings.Android.keyaliasPass = Env("ANDROID_UPLOAD_KEY_PASS") ?? Env("ANDROID_UPLOAD_KEYSTORE_PASS");
+            var output = Environment.GetEnvironmentVariable("SB_OUTPUT");
+            if (string.IsNullOrEmpty(output)) output = Arg("-customBuildPath");
+            try { Build(BuildTarget.Android, string.IsNullOrEmpty(output) ? "Builds/Android/Sigilbound.aab" : output); }
+            finally { SetDefines(target, defines); IsStoreBuild = false; } // local editors keep their own defines
+        }
+#if UNITY_2022_2_OR_NEWER
+        static string GetDefines(UnityEditor.Build.NamedBuildTarget t) => PlayerSettings.GetScriptingDefineSymbols(t);
+        static void SetDefines(UnityEditor.Build.NamedBuildTarget t, string d) => PlayerSettings.SetScriptingDefineSymbols(t, d);
+#else
+        static string GetDefines(UnityEditor.Build.NamedBuildTarget t) => "";   // the stub compile check only; real builds use Unity 6
+        static void SetDefines(UnityEditor.Build.NamedBuildTarget t, string d) { }
+#endif
+
         // Windows 10+ test build (64-bit). Built on the Linux CI runner, which can only make Mono
         // Windows players (IL2CPP for Windows needs a Windows machine); fine for testing.
         // Opens as a 1600x900 landscape window you can resize; the UI scales to the window's height.

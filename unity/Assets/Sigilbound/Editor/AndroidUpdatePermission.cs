@@ -18,6 +18,8 @@ namespace Sigilbound.EditorTools
 
         public void OnPostGenerateGradleAndroidProject(string path)
         {
+            // Play Store builds (BuildScript.AndroidStore, define SB_STORE): no install permission, no provider.
+            if (BuildScript.IsStoreBuild) { UnityEngine.Debug.Log("Sigilbound: store build, in-app updater left out of the manifest"); return; }
             // `path` is the unityLibrary module; its manifest is merged into the app's.
             var manifest = Path.Combine(path, "src", "main", "AndroidManifest.xml");
             if (!File.Exists(manifest)) { UnityEngine.Debug.LogWarning("Sigilbound: no manifest at " + manifest); return; }

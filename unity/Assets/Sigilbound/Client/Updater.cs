@@ -36,8 +36,8 @@ namespace Sigilbound.Client
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
         {
-#if UNITY_EDITOR
-            return;
+#if UNITY_EDITOR || SB_STORE
+            return; // the editor, and Play Store builds (Play updates the app; self-installing isn't allowed there)
 #else
             var info = Resources.Load<TextAsset>("BuildInfo"); // written by BuildScript at build time
             if (info == null || !int.TryParse(info.text.Trim(), out var n) || n <= 0) return;
