@@ -273,14 +273,17 @@ namespace Sigilbound.Client
                 yield return null;
             }
             // 2. The palm rises in slow motion; the camera is low beside the victim, looking up.
-            var eye = tp + side * 2.6f - dir * 1.2f + Vector3.up * 0.35f;   // beside and a little behind the victim, low
-            var look = Vector3.Lerp(v.transform.position, tp, 0.3f) + Vector3.up * H * 0.62f;  // the whole Titan in frame
+            // Over the victim's shoulder, straight up the line at the Titan: no other hero can stand in that line
+            // (a camera beside the victim had neighbours blocking the Titan).
+            var teamC = Arena.ToUnity(BattleLayout.TeamCentre); var outward = Vector3.Dot(side, tp - teamC) >= 0 ? side : -side;
+            var eye = tp - dir * 1.4f + outward * 0.7f + Vector3.up * 1.5f;
+            var look = v.transform.position + Vector3.up * H * 0.6f;   // the whole Titan in frame
             string clip = m.Has("Ult_Overhead") ? "Ult_Overhead" : m.Has("Sword_Attack") ? "Sword_Attack" : "Punch_Cross";
             m.PlayFrom(clip, 0f, 0.9f);
             for (float t = 0; t < 3.6f && m.CurrentNormalized < 0.55f; t += Time.unscaledDeltaTime)
             {
                 if (!_paused) Time.timeScale = m.CurrentNormalized > 0.28f ? speed * 0.3f : speed;   // a long slow-motion hold
-                arena.Override(eye, look, 80f, 1f, 7f); yield return null;
+                arena.Override(eye, look, 72f, 1f, 5f); yield return null;
             }
             if (!_paused) Time.timeScale = speed;
             // 3. The slam.
@@ -292,7 +295,7 @@ namespace Sigilbound.Client
             for (float t = 0; t < 1.7f; t += Time.deltaTime)
             {
                 float e = Ease(t / 1.7f);
-                arena.Override(eye - dir * 1.5f * e + Vector3.up * 0.4f * e, look, 80f, t < 1.2f ? 1f : 1f - Ease((t - 1.2f) / 0.5f), 7f * (1f - e)); yield return null;
+                arena.Override(eye - dir * 1.5f * e + Vector3.up * 0.4f * e, look, 72f, t < 1.2f ? 1f : 1f - Ease((t - 1.2f) / 0.5f), 5f * (1f - e)); yield return null;
             }
             arena.ClearOverride(); _cinema = false;
         }
