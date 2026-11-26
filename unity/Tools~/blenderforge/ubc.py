@@ -169,6 +169,81 @@ def weapon(c, arm, mats):
     apply_xform(o)
     return [bind(o, arm, {"hand_" + side: 1.0})]
 
+def make_robe(ph, topz, hemz, mat, trim_mat):
+    """A cloth skirt: snug at the waist, flaring to the ankles, with soft vertical folds that deepen
+    toward a gently scalloped hem, plus a sash at the waist."""
+    import bmesh
+    N, R = 40, 14
+    verts, faces = [], []
+    for r in range(R + 1):
+        t = r / R; z = topz + (hemz - topz) * t
+        base = 0.2 + (0.43 - 0.2) * (t ** 1.25)
+        for i in range(N):
+            a = i / N * 2 * math.pi
+            fold = 1 + 0.07 * t * math.sin(a * 9) + 0.03 * t * math.sin(a * 4 + 1.3)
+            zz = z + (0.025 * math.sin(a * 9) * t * t if r == R else 0)
+            verts.append((ph.x + math.cos(a) * base * fold, ph.y + 0.01 + math.sin(a) * base * fold * 0.82, zz))
+    for r in range(R):
+        for i in range(N):
+            a, b = r * N + i, r * N + (i + 1) % N
+            faces.append((a, b, b + N, a + N))
+    me = bpy.data.meshes.new("Kit_Robe"); me.from_pydata(verts, [], faces); me.update()
+    o = bpy.data.objects.new("Kit_Robe", me); bpy.context.scene.collection.objects.link(o); o.data.materials.append(mat)
+    for x in bpy.context.selected_objects: x.select_set(False)
+    o.select_set(True); bpy.context.view_layer.objects.active = o
+    sol = o.modifiers.new("S", "SOLIDIFY"); sol.thickness = 0.012
+    bpy.ops.object.modifier_apply(modifier="S"); bpy.ops.object.shade_smooth()
+    sash = prim("primitive_torus_add", trim_mat, major_segments=40, minor_segments=6, major_radius=0.205, minor_radius=0.02, location=(ph.x, ph.y + 0.01, topz - 0.02))
+    sash.scale = (1, 0.82, 1); apply_xform(sash)
+    for x in bpy.context.selected_objects: x.select_set(False)
+    o.select_set(True); sash.select_set(True); bpy.context.view_layer.objects.active = o; bpy.ops.object.join()
+    return bpy.context.object
+
+def make_wings(arm, mat, trim_mat):
+    """A pair of feathered wings from the shoulder blades: a short arm bone of each wing with seven
+    long feathers fanned back and up (span about 0.65 m a side), rigid to the upper back."""
+    s3, _ = rest_bone(arm, "spine_03"); out = []
+    for sx in (-1, 1):
+        root = s3 + Vector((0.07 * sx, 0.12, 0.08))
+        pieces = []
+        for k in range(7):
+            u = k / 6
+            ang = math.radians(15 + 70 * u)                       # from nearly sideways to steeply up
+            L = 0.62 - 0.32 * u
+            d = Vector((math.cos(ang) * sx, 0.28, math.sin(ang))).normalized()
+            mid = root + Vector((0.1 * sx, 0.05, 0.02)) + d * (L / 2)
+            f = prim("primitive_cube_add", mat if k % 2 == 0 else trim_mat, size=1, location=mid)
+            f.scale = (0.05, 0.006, L)
+            f.rotation_mode = "QUATERNION"; f.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(d)
+            apply_xform(f); pieces.append(f)
+        for x in bpy.context.selected_objects: x.select_set(False)
+        for q in pieces: q.select_set(True)
+        bpy.context.view_layer.objects.active = pieces[0]; bpy.ops.object.join(); o = bpy.context.object; o.name = "Kit_Wing"
+        out.append(bind(o, arm, {"spine_03": 1.0}))
+    return out
+
+def head_box(arm):
+    """The head as modelled (skin + hair vertices bound mostly to the Head bone): top, centre, half
+    width, eye height and face front. Head kit is placed from this, not from the bone (whose tail sits
+    well inside the skull, which put crowns over the eyes and ears at the collar)."""
+    # Everything above the neck joint and within a head's width of the spine is the head (skin, hair,
+    # helm): bone weights alone miss most of the full-body skin's head.
+    nh, nt = rest_bone(arm, "neck_01"); hh, _ = rest_bone(arm, "Head")
+    zcut = (nh.z + hh.z) / 2 + 0.03
+    pts = []
+    for o in bpy.context.scene.objects:
+        if o.type != "MESH" or o.name.startswith("Kit_"): continue
+        mw = o.matrix_world
+        for v in o.data.vertices:
+            p = mw @ v.co
+            if p.z > zcut and abs(p.x - hh.x) < 0.17 and abs(p.y - hh.y) < 0.2: pts.append(p)
+    if not pts:
+        hh, ht = rest_bone(arm, "Head"); return {"top": ht.z + 0.1, "cx": hh.x, "cy": hh.y, "hw": 0.1, "eye": hh.z + 0.08, "front": hh.y - 0.1, "base": hh.z}
+    xs = [p.x for p in pts]; ys = [p.y for p in pts]; zs = [p.z for p in pts]
+    top, base = max(zs), min(zs)
+    return {"top": top, "base": base, "cx": (min(xs) + max(xs)) / 2, "cy": (min(ys) + max(ys)) / 2, "hw": (max(xs) - min(xs)) / 2,
+            "eye": base + (top - base) * 0.58, "front": min(ys)}
+
 def body_bvh():
     """BVH of the dressed body (every non-kit mesh, evaluated in the rest pose) for fitting kit to it."""
     from mathutils.bvhtree import BVHTree
@@ -273,41 +348,69 @@ def kit(c, arm):
     text = " ".join([str(c.get("weapon", ""))] + [str(k) for k in c.get("kit", [])] + [str(x) for x in (c.get("outfit", {}).get("acc") or [])]
                     + [str(c.get("outfit", {}).get("head", ""))]).lower()
     out = weapon(c, arm, mats)
+    w = str(c.get("weapon", "")).lower()
+    if has(w, "daggers", "twin", "dual", "pair", "knives", "blades", "sickles", "axes") and weapon_side(c) == "r":
+        # the off-hand blade: a mirror of the main one in the left fist
+        o = prim("primitive_cube_add", mats["metal"], size=1, location=(0, 0, 0.17)); o.scale = (0.01, 0.035, 0.3)
+        g = prim("primitive_cylinder_add", mats["main"], vertices=8, radius=0.016, depth=0.12, location=(0, 0, -0.02))
+        for x in bpy.context.selected_objects: x.select_set(False)
+        o.select_set(True); g.select_set(True); bpy.context.view_layer.objects.active = o; bpy.ops.object.join(); o = bpy.context.object
+        o.matrix_world = grip_frame(arm, "l") @ o.matrix_world; apply_xform(o); o.name = "Kit_Offhand"; out.append(bind(o, arm, {"hand_l": 1.0}))
     if has(text, "shield"):
-        m = grip_frame(arm, "l")
-        o = prim("primitive_cylinder_add", mats["metal"], vertices=24, radius=0.26, depth=0.03, location=(0, 0, 0))
-        o.scale = (1, 1.25 if has(text, "tower") else 1, 1)
-        o.matrix_world = m @ Matrix.Translation((-0.09, 0, 0.0)) @ Matrix.Rotation(math.radians(90), 4, "Y") @ o.matrix_world  # on the back of the forearm
-        apply_xform(o); o.name = "Kit_Shield"; out.append(bind(o, arm, {"lowerarm_l": 1.0}))
-    hh, ht = rest_bone(arm, "Head"); top = ht + Vector((0, 0, 0.1))
+        # strapped flat to the OUTSIDE of the left forearm, centred along it
+        lh, lt = rest_bone(arm, "lowerarm_l"); hl, _ = rest_bone(arm, "hand_l")
+        # the outside of the forearm = the back of the hand, which faces UP in the rest T-pose (palm down)
+        along = (hl - lh).normalized(); out_dir = Vector((0, 0, 1))
+        out_dir = (out_dir - along * out_dir.dot(along)).normalized()
+        tower = has(text, "tower")
+        o = prim("primitive_cylinder_add", mats["metal"], vertices=28, radius=0.25, depth=0.035, location=(0, 0, 0))
+        o.scale = (1.0, 1.35 if tower else 1.08, 1)                  # local Y runs along the forearm
+        boss = prim("primitive_uv_sphere_add", mats["acc"], segments=12, ring_count=6, radius=0.05, location=(0, 0, 0.03)); boss.scale = (1, 1, 0.45)
+        rim = prim("primitive_torus_add", mats["acc"], major_segments=28, minor_segments=5, major_radius=0.25, minor_radius=0.012, location=(0, 0, 0)); rim.scale = o.scale
+        for x in bpy.context.selected_objects: x.select_set(False)
+        for q in (o, boss, rim): q.select_set(True)
+        bpy.context.view_layer.objects.active = o; bpy.ops.object.join(); o = bpy.context.object
+        y = along; z = out_dir; xax = y.cross(z).normalized()
+        M = Matrix((xax, y, z)).transposed().to_4x4(); M.translation = lh + (hl - lh) * 0.5 + out_dir * 0.06
+        o.matrix_world = M @ o.matrix_world; apply_xform(o); o.name = "Kit_Shield"; out.append(bind(o, arm, {"lowerarm_l": 1.0}))
+    hb = head_box(arm); top = Vector((hb["cx"], hb["cy"], hb["top"]))
+    helmeted = has(str(c.get("outfit", {}).get("head", "")).lower(), "armet", "hood", "helm")
     if has(text, "halo") or (c.get("rarity") == "Legendary" and not has(text, "crown", "helm", "hood")):
-        bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=6, major_radius=0.14, minor_radius=0.012, location=top + Vector((0, 0, 0.12)))
+        bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=6, major_radius=hb["hw"] * 1.15, minor_radius=0.012, location=top + Vector((0, 0.02, 0.13)))
         o = bpy.context.object; o.data.materials.append(mats["glow"]); o.name = "Kit_Halo"; out.append(bind(o, arm, {"Head": 1.0}))
     if has(text, "crown", "circlet", "diadem") and not str(c.get("outfit", {}).get("head", "")).startswith("Noble_Head_Crown"):
-        o = prim("primitive_cylinder_add", mats["acc"], vertices=16, radius=0.105, depth=0.04, location=top - Vector((0, 0, 0.03)), end_fill_type="NOTHING")
-        o.name = "Kit_Crown"; out.append(bind(o, arm, {"Head": 1.0}))
-    if has(text, "horn", "antler"):
+        # a band on the crown of the head, above the brow, with points (a circlet stays low and thin)
+        circ = has(text, "circlet", "diadem")
+        r = hb["hw"] * (0.93 if circ else 0.98); z0 = hb["top"] - (0.055 if circ else 0.035)
+        o = prim("primitive_cylinder_add", mats["acc"], vertices=20, radius=r, depth=0.022 if circ else 0.045, location=(hb["cx"], hb["cy"], z0), end_fill_type="NOTHING")
+        parts = [o]
+        if not circ:
+            for k in range(6):
+                a = k / 6 * 2 * math.pi
+                parts.append(prim("primitive_cone_add", mats["acc"], vertices=4, radius1=0.018, depth=0.05, location=(hb["cx"] + math.cos(a) * r, hb["cy"] + math.sin(a) * r, z0 + 0.045)))
+        for x in bpy.context.selected_objects: x.select_set(False)
+        for q in parts: q.select_set(True)
+        bpy.context.view_layer.objects.active = o; bpy.ops.object.join(); o = bpy.context.object; o.name = "Kit_Crown"; out.append(bind(o, arm, {"Head": 1.0}))
+    if has(text, "horn", "antler") and not helmeted:
         for sx in (-1, 1):
-            o = prim("primitive_cone_add", mats["acc"], vertices=8, radius1=0.035, depth=0.2, location=top + Vector((0.09 * sx, 0.02, -0.02)), rotation=(0, math.radians(25 * sx), 0))
+            o = prim("primitive_cone_add", mats["acc"], vertices=8, radius1=0.032, depth=0.18,
+                     location=(hb["cx"] + hb["hw"] * 0.7 * sx, hb["cy"] + 0.01, hb["top"] - 0.01), rotation=(math.radians(-15), math.radians(28 * sx), 0))
             o.name = "Kit_Horn"; out.append(bind(o, arm, {"Head": 1.0}))
     nh, _ = rest_bone(arm, "neck_01")
     if has(text, "cape", "cloak", "mantle"):
         out += make_cape(arm, mats["main"], mats["acc"], long_=not has(text, "short cape", "half cape", "shoulder cape", "mantle"))
     if has(text, "robe", "skirt", "dress", "gown") or str(c.get("outfit", {}).get("legs", "")).startswith("none"):
         ph, _ = rest_bone(arm, "pelvis"); tl, _ = rest_bone(arm, "thigh_l"); tr, _ = rest_bone(arm, "thigh_r")
-        bpy.ops.mesh.primitive_cone_add(vertices=24, radius1=0.36, radius2=0.17, depth=0.95, location=ph + Vector((0, 0, -0.42)), end_fill_type="NOTHING")
-        o = bpy.context.object; o.data.materials.append(mats["main"]); apply_xform(o)
-        topz, hemz = ph.z + 0.05, ph.z - 0.9
+        kl, _ = rest_bone(arm, "foot_l")
+        topz, hemz = ph.z + 0.07, kl.z + 0.06
+        o = make_robe(ph, topz, hemz, mats["main"], mats["acc"])
         def robe_w(p):
             t = max(0.0, min(1.0, 1.8 * (topz - p.z) / (topz - hemz))) * 0.95
             sl = max(0.0, min(1.0, (p.x - tr.x) / max(1e-6, tl.x - tr.x))); sl = sl * sl * (3 - 2 * sl)
             return {"pelvis": 1 - t, "thigh_l": t * sl, "thigh_r": t * (1 - sl)}
         o.name = "Kit_Robe"; out.append(bind(o, arm, robe_w))
     if has(text, "wing"):
-        for sx in (-1, 1):
-            o = prim("primitive_cube_add", mats["glow"] if c.get("element") in ("Light", "Flame") else mats["main"], size=1,
-                     location=nh + Vector((0.42 * sx, 0.22, -0.15)), rotation=(0, math.radians(-25 * sx), 0))
-            o.scale = (0.8, 0.02, 0.44); apply_xform(o); o.name = "Kit_Wing"; out.append(bind(o, arm, {"spine_03": 1.0}))
+        out += make_wings(arm, mats["glow"] if c.get("element") in ("Light", "Flame") else mats["main"], mats["acc"])
     out += species(c, arm, mats)
     return out
 
@@ -320,16 +423,16 @@ def species(c, arm, mats):
     pal = c.get("palette", {}); out = []
     skin = P.flat("K_Skin", P.hexc(c.get("skin") if str(c.get("skin", "")).startswith("#") else P.SKIN.get(c.get("skin"), "#c8915f")), rough=0.7)
     fur = P.flat("K_Fur", P.hexc((c.get("hair") or {}).get("colour", pal.get("secondary"))), rough=0.8)
-    hh, ht = rest_bone(arm, "Head"); top = ht + Vector((0, 0, 0.06)); ear_z = hh.z + (ht.z - hh.z) * 0.75
+    hb = head_box(arm); hh = Vector((hb["cx"], hb["cy"], hb["base"])); top = Vector((hb["cx"], hb["cy"], hb["top"])); ear_z = hb["eye"]
     def piece(kind, mat, bone, **kw):
         o = prim(kind, mat, **kw); o.name = "Kit_Species"; apply_xform(o); out.append(bind(o, arm, {bone: 1.0})); return o
     if any(k in sp for k in ("elf", "sylph", "sprite", "dryad", "gnome", "fae")):
-        for sx in (-1, 1): piece("primitive_cone_add", skin, "Head", vertices=8, radius1=0.022, depth=0.1, location=(hh.x + 0.1 * sx, hh.y + 0.01, ear_z), rotation=(0, math.radians(-70 * sx), 0))
+        for sx in (-1, 1): piece("primitive_cone_add", skin, "Head", vertices=8, radius1=0.022, depth=0.1, location=(hb["cx"] + hb["hw"] * 1.02 * sx, hb["cy"] + 0.01, ear_z), rotation=(0, math.radians(-70 * sx), 0))
     if any(k in sp for k in ("fox", "cat", "lion", "wolf", "bear", "hare", "rabbit", "goat")):
         long_ = "hare" in sp or "rabbit" in sp
-        for sx in (-1, 1): piece("primitive_cone_add", fur, "Head", vertices=8, radius1=0.04, depth=0.17 if long_ else 0.08, location=(hh.x + 0.075 * sx, hh.y + 0.01, top.z + (0.06 if long_ else 0.02)), rotation=(0, math.radians(12 * sx), 0))
+        for sx in (-1, 1): piece("primitive_cone_add", fur, "Head", vertices=8, radius1=0.04, depth=0.17 if long_ else 0.08, location=(hb["cx"] + hb["hw"] * 0.6 * sx, hb["cy"] + 0.01, top.z + (0.06 if long_ else 0.02)), rotation=(0, math.radians(12 * sx), 0))
     if "raven" in sp or "owl" in sp:
-        piece("primitive_cone_add", mats["acc"], "Head", vertices=8, radius1=0.028, depth=0.07, location=(hh.x, hh.y - 0.13, ear_z - 0.05), rotation=(math.radians(-90), 0, 0))
+        piece("primitive_cone_add", mats["acc"], "Head", vertices=8, radius1=0.028, depth=0.07, location=(hb["cx"], hb["front"] - 0.03, ear_z - 0.04), rotation=(math.radians(-90), 0, 0))
     if any(k in sp for k in ("fox", "cat", "lion", "wolf", "hare", "lizard", "shark")):
         ph, _ = rest_bone(arm, "pelvis")
         piece("primitive_cylinder_add", fur if "shark" not in sp and "lizard" not in sp else skin, "pelvis", vertices=10, radius=0.045, depth=0.42, location=(ph.x, ph.y + 0.24, ph.z - 0.12), rotation=(math.radians(55), 0, 0))
@@ -340,11 +443,27 @@ def species(c, arm, mats):
         s3, _ = rest_bone(arm, "spine_03")
         piece("primitive_cone_add", skin, "spine_03", vertices=4, radius1=0.12, depth=0.22, location=(s3.x, s3.y + 0.2, s3.z), rotation=(math.radians(-20), 0, 0))
     if any(k in sp for k in ("goat", "stag", "dryad")):
-        for sx in (-1, 1): piece("primitive_cone_add", mats["acc"], "Head", vertices=8, radius1=0.028, depth=0.16, location=(hh.x + 0.08 * sx, hh.y + 0.02, top.z), rotation=(0, math.radians(30 * sx), 0))
+        for sx in (-1, 1): piece("primitive_cone_add", mats["acc"], "Head", vertices=8, radius1=0.028, depth=0.16, location=(hb["cx"] + hb["hw"] * 0.65 * sx, hb["cy"] + 0.02, top.z - 0.01), rotation=(0, math.radians(30 * sx), 0))
     if "golem" in sp:
-        for bone, off in (("spine_02", (0.18, -0.02, 0.05)), ("spine_03", (-0.17, -0.02, 0.08)), ("upperarm_l", (0.04, 0, 0.04)), ("upperarm_r", (-0.04, 0, 0.04))):
-            b0, _ = rest_bone(arm, bone)
-            piece("primitive_ico_sphere_add", fur, bone, subdivisions=1, radius=0.11, location=(b0.x + off[0], b0.y + off[1], b0.z + off[2]))
+        # stone armour: pauldron plates over each shoulder, a breastplate and a back slab (bevelled blocks)
+        stone = P.flat("K_Stone", P.hexc("#7a746a"), rough=0.95)
+        def slab(bone, loc, size, rot=(0, 0, 0)):
+            o = prim("primitive_cube_add", stone, size=1, location=loc, rotation=rot); o.scale = size
+            bv = o.modifiers.new("B", "BEVEL"); bv.width = 0.02; bv.segments = 2
+            for x in bpy.context.selected_objects: x.select_set(False)
+            o.select_set(True); bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="B")
+            o.name = "Kit_Species"; apply_xform(o); out.append(bind(o, arm, {bone: 1.0}))
+        for sx, side in ((1, "l"), (-1, "r")):
+            ua, _ = rest_bone(arm, "upperarm_" + side)
+            slab("upperarm_" + side, ua + Vector((0.05 * sx, 0, 0.11)), (0.2, 0.2, 0.06), (0, math.radians(-14 * sx), 0))
+        s2, _ = rest_bone(arm, "spine_03"); nk, _ = rest_bone(arm, "neck_01"); s2 = Vector((s2.x, s2.y, nk.z - 0.2))
+        # breast and back plates sit ON the chest: measured from the body surface, not a fixed offset
+        bvh = body_bvh(); cz = s2.z
+        fr = bvh.ray_cast(Vector((s2.x, s2.y - 1.0, cz)), Vector((0, 1, 0)), 2.0)[0]
+        bk = bvh.ray_cast(Vector((s2.x, s2.y + 1.0, cz)), Vector((0, -1, 0)), 2.0)[0]
+        fy = (fr.y if fr is not None else s2.y - 0.12) - 0.03; by = (bk.y if bk is not None else s2.y + 0.12) + 0.035
+        slab("spine_03", Vector((s2.x, fy, cz)), (0.28, 0.05, 0.24), (math.radians(-6), 0, 0))
+        slab("spine_03", Vector((s2.x, by, cz + 0.02)), (0.3, 0.06, 0.28), (math.radians(8), 0, 0))
     if "wraith" in sp or "spirit" in sp:
         ph, _ = rest_bone(arm, "pelvis"); tl, _ = rest_bone(arm, "thigh_l"); tr, _ = rest_bone(arm, "thigh_r")
         bpy.ops.mesh.primitive_cone_add(vertices=20, radius1=0.12, radius2=0.32, depth=0.95, location=(ph.x, ph.y, ph.z - 0.45), end_fill_type="NOTHING")
