@@ -16,6 +16,10 @@ new: Buffs and debuffs now show as icons under each health bar (gold rims for bu
 change: Worm's-eye now sits just behind your team, low and looking up, with your heroes in the foreground and the Titan towering behind them.
 change: Meteor Leap: the camera zooms out to take in the Titan's whole leap, fall and slam, then zooms back in.
 
+## 2026-11-26 | Every hero remade
+new: Every hero has been rebuilt with real modelled weapons and shields, flowing gowns, proper wings, crowns, horns, hats, masks, veils and accessories from their designs.
+new: Hand-painted shading on every hero: soft shadows in folds and worn, brighter edges.
+
 ## 2026-11-26 | Ready for hero portraits
 new: Heroes can now show painted portraits on the hero list and in the summon reveal (they arrive as the art is made).
 

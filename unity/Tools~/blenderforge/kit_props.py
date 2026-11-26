@@ -25,6 +25,10 @@ _EXTRA = {}
 def mats_for(mats):
     """The ubc.py kit materials plus shared wood/leather/stone/string/dark-iron ones (created once)."""
     import ubc_parts as P
+    try:
+        for v in _EXTRA.values(): v.name        # materials go away when a caller clears the scene data
+    except ReferenceError:
+        _EXTRA.clear()
     if not _EXTRA:
         _EXTRA["wood"] = P.flat("K_Wood", P.hexc("#6e4a2c"), rough=0.75)
         _EXTRA["darkwood"] = P.flat("K_DarkWood", P.hexc("#3e2a1c"), rough=0.8)
@@ -673,8 +677,8 @@ def w_staff(m, o):
         out[0] = shaft(m, z0, z1, r=0.019, mat=m["darkwood"], gnarl=0.01)
         out.append(lathe([(0, z1), (0.03, z1 + 0.03), (0.04, z1 + 0.08), (0.03, z1 + 0.13), (0, z1 + 0.17)], m["glow"], segs=10))
         for k in range(4):
-            pt = blade2d([(0.0, z1), (0.03, z1 + 0.06), (0.0, z1 + 0.14), (-0.03, z1 + 0.06)], 0.004, m["acc"])
-            pt.data.transform(Matrix.Rotation(k / 4 * TAU, 4, "Z") @ Matrix.Translation((0.03, 0, 0)) @ Matrix.Rotation(math.radians(15), 4, "Y"))
+            pt = blade2d([(0.0, 0.0), (0.03, 0.06), (0.0, 0.14), (-0.03, 0.06)], 0.004, m["acc"])
+            pt.data.transform(Matrix.Translation((0, 0, z1)) @ Matrix.Rotation(k / 4 * TAU, 4, "Z") @ Matrix.Translation((0.02, 0, 0)) @ Matrix.Rotation(math.radians(20), 4, "Y") @ Matrix.Rotation(math.pi / 2, 4, "Z"))
             out.append(pt)
     elif head == "sceptre":
         out.append(lathe([(0, z1), (0.03, z1 + 0.02), (0.04, z1 + 0.08), (0.02, z1 + 0.12), (0, z1 + 0.13)], m["gold"], segs=12))
@@ -846,14 +850,20 @@ def w_anchor(m, o):
     return out
 
 def w_spade(m, o):
-    out = [shaft(m, -0.55, 0.65, r=0.019), grip(m, -0.1, 0.12, r=0.02)]
+    out = _spade(m, o)
+    for ob in out: ob.data.transform(Matrix.Rotation(math.pi, 4, "Y"))   # blade up, D-handle at the butt
+    out.append(grip(m, -0.1, 0.12, r=0.02))
+    if o.get("lantern"): out += lantern(m, (0.0, -0.06, 0.45), s=0.6, hang=True)
+    return out
+
+def _spade(m, o):
+    out = [shaft(m, -0.55, 0.65, r=0.019)]
     out.append(tube([(0, -0.07, 0.75), (0, -0.05, 0.68), (0, 0.05, 0.68), (0, 0.07, 0.75), (0, 0, 0.78)][:4], 0.012, m["wood"], segs=6))
     w = o.get("w", 0.13)
     sh = [(-w, -0.62), (w, -0.62), (w * 1.05, -0.85), (0.0, -0.95 if o.get("pointed", True) else -0.9), (-w * 1.05, -0.85)]
     if o.get("shovel"): sh = [(-w, -0.62), (w, -0.62), (w * 1.1, -0.92), (-w * 1.1, -0.92)]
     out.append(yz_plate(sh, 0.008, m["metal"]))
     out.append(lathe([(0.018, -0.6), (0.026, -0.62), (0.02, -0.55)], m["iron"], segs=8))
-    if o.get("lantern"): out += lantern(m, (0.0, -0.06, 0.5), s=0.6, hang=True)
     return out
 
 def w_peel(m, o):
@@ -1008,6 +1018,7 @@ def w_drum(m, o):
     out[0].data.transform(Matrix.Translation((0, 0.22, -0.12)) @ Matrix.Rotation(math.pi / 2, 4, "Y"))
     out.append(xform(lathe([(0, 0.0), (0.141, 0.0), (0.0, 0.002)], m["paper"], segs=18), (0.061, 0.22, -0.12), ry(90)))
     out.append(lathe([(0, -0.08), (0.01, -0.08), (0.012, 0.25), (0.02, 0.27), (0.0, 0.29)], m["wood"], segs=8))
+    out.append(tube([(0, 0.0, -0.02), (0.02, 0.1, -0.03), (0.0, 0.22, -0.06)], 0.008, m["leather"], segs=4, sq=0.3))   # the drum's strap to the wrist
     return out
 
 def w_marionette(m, o):
@@ -1123,8 +1134,8 @@ def w_focus(m, o):
         out += book(m, (0.04, 0, 0.02))
     elif k == "mirror":
         out.append(lathe([(0, -0.1), (0.014, -0.1), (0.012, 0.06), (0.02, 0.07), (0, 0.075)], m["metal"], segs=10))
-        out.append(xform(lathe([(0, -0.012), (0.1, -0.01), (0.11, 0.0), (0.1, 0.01), (0, 0.012)], m["metal"], segs=24, sx=0.72, sy=1.0), (0, 0, 0.21), ry(90)))
-        out.append(xform(lathe([(0, 0.011), (0.095, 0.011), (0.0, 0.013)], m["glow"], segs=24, sx=0.72), (0, 0, 0.21), ry(90)))
+        out.append(xform(lathe([(0, -0.012), (0.1, -0.01), (0.11, 0.0), (0.1, 0.01), (0, 0.012)], m["metal"], segs=24, sx=0.72, sy=1.0), (0, 0, 0.18), ry(90)))
+        out.append(xform(lathe([(0, 0.011), (0.095, 0.011), (0.0, 0.013)], m["glow"], segs=24, sx=0.72), (0, 0, 0.18), ry(90)))
         out[-1].data.transform(Matrix.Rotation(0, 4, "Z"))
     elif k == "orb":
         out.append(lathe([(0, -0.08), (0.016, -0.08), (0.014, 0.06), (0, 0.07)], m["metal"], segs=8))
@@ -1373,6 +1384,9 @@ def classify(c):
                 if _has(w, "gold"): o.update(bmat="gold")
                 if _has(w, "storm", "burning"): o.update(glow_edge=True)
             if typ == "club" and _has(w, "spiked"): o.update(kind="spiked")
+            if typ == "spade":
+                if "lantern" in str(c.get("kit", "")).lower(): o.update(lantern=True)
+                if _has(w, "shovel"): o.update(shovel=True)
             if typ == "focus" and o.get("kind") == "orb" and _has(w, "abyss", "black", "void"): o.update(omat="iron")
             return typ, o
     print(f"[kit_props] {c.get('id')}: no rule for weapon {w!r}: plain staff")
@@ -1489,13 +1503,33 @@ def build_shield(c, mats):
     out.append(subdivided_plate(ol, 0.022, face, bulge, cuts=2))
     # rim
     out.append(tube([(x, y, 0.024) for x, y in ol], 0.011, m["acc"] if o.get("face") != "iron" else m["metal"], segs=5, closed=True))
+    def span(poly, v, axis):
+        """[lo, hi] where the line (x = v if axis == 0, else y = v) crosses the outline."""
+        hits = []
+        for i in range(len(poly)):
+            a, b = poly[i], poly[(i + 1) % len(poly)]
+            if (a[axis] - v) * (b[axis] - v) <= 0 and a[axis] != b[axis]:
+                t = (v - a[axis]) / (b[axis] - a[axis]); hits.append(a[1 - axis] + (b[1 - axis] - a[1 - axis]) * t)
+        return (min(hits), max(hits)) if len(hits) >= 2 else None
+    Rm = max(Vector(p).length for p in ol)
+    def zt(x, y): return 0.022 + bulge * (1 - min(1, Vector((x, y)).length / Rm) ** 2)
     if o.get("face") == "wood" and shape not in ("buckler", "dome"):
-        ys = [x for x, _ in ol]; xmin, xmax = min(ys), max(ys)
+        # plank seams run along the forearm (Y); two iron bands cross them
+        xs = [x for x, _ in ol]; xmin, xmax = min(xs), max(xs)
         for k in range(1, 5):
-            x = xmin + (xmax - xmin) * k / 5
-            out.append(box((0.006, 0.003, H * 2.2 if shape not in ("tower", "pavise") else H * 3.0), (x, 0, 0.022 + bulge * (1 - (x / max(W, 1e-3)) ** 2) * 0.95), m["darkwood"], bevel=0))
-        for yb in (H * 0.45, -H * 0.45):
-            out.append(box((W * 1.8, 0.03, 0.006), (0, yb, 0.03 + bulge * 0.7), m["iron"], bevel=0.002))
+            x = xmin + (xmax - xmin) * k / 5; sp_ = span(ol, x, 0)
+            if not sp_: continue
+            lo, hi = sp_[0] + 0.012, sp_[1] - 0.012
+            pts = [(x, lo + (hi - lo) * i / 6, zt(x, lo + (hi - lo) * i / 6) + 0.0015) for i in range(7)]
+            out.append(tube(pts, 0.0035, m["darkwood"], segs=4, sq=0.4))
+        ys = [y for _, y in ol]
+        for f in (0.3, 0.7):
+            y = min(ys) + (max(ys) - min(ys)) * f; sp_ = span(ol, y, 1)
+            if not sp_: continue
+            lo, hi = sp_[0] + 0.01, sp_[1] - 0.01
+            pts = [(lo + (hi - lo) * i / 8, y, zt(lo + (hi - lo) * i / 8, y) + 0.003) for i in range(9)]
+            out.append(tube(pts, 0.012, m["iron"], segs=4, sq=0.3))
+            for i in (1, 4, 7): out.append(xform(lathe([(0, 0), (0.008, 0.0), (0.0, 0.007)], m["metal"], segs=6), pts[i]))
     if shape in ("round", "buckler", "dome", "scallop", "kite", "heater") and o.get("face") != "glass":
         out.append(xform(lathe([(0, 0), (0.06, 0), (0.06, 0.01), (0.04, 0.035), (0, 0.045)], m["metal"] if o.get("face") != "metal" else m["acc"], segs=16), (0, 0, 0.02 + bulge)))
     if shape == "scallop":
@@ -1507,7 +1541,7 @@ def build_shield(c, mats):
             a = k / 8 * TAU
             out.append(tube([(0, 0, 0.03 + bulge), (math.cos(a) * W * 0.95, math.sin(a) * H * 0.95, 0.028)], 0.006, m["iron"], segs=4))
         out.append(torus(W * 0.45, 0.006, m["iron"], loc=(0, 0, 0.03 + bulge * 0.8), seg=24, mseg=4))
-    e = o.get("emblem"); ez = 0.03 + bulge
+    e = o.get("emblem"); ez = 0.03 + bulge; n_before = len(out)
     if e == "sun":
         out.append(xform(lathe([(0, 0), (0.06, 0), (0.0, 0.012)], m["glow"], segs=16), (0, 0, ez + 0.01)))
         for k in range(12):
@@ -1543,6 +1577,11 @@ def build_shield(c, mats):
         out += chain(m, (-W * 0.8, H * 1.1, 0.04), (W * 0.6, -H * 0.3, 0.05), sag=0.05, links=9, r=0.018)
     elif e == "notches":
         for k in range(10): out.append(box((0.006, 0.05, 0.01), (-W * 0.7 + 0.03 * (k % 5) * 3, H * 0.9 - 0.18 * (k // 5), 0.03), m["darkwood"], bevel=0))
+    # emblems are built flat at the dome's peak: lay them onto the curved face
+    for ob in out[n_before:]:
+        if e == "chains": break
+        for v in ob.data.vertices:
+            v.co.z += zt(v.co.x, v.co.y) - (0.022 + bulge) + 0.004
     if o.get("spike"):
         out.append(xform(lathe([(0.03, 0), (0.0, 0.18)], m["iron"], segs=6, smooth=False), (0, -H * 1.55, 0.02), rx(90)))
     # strap and grip on the inside (toward the forearm)

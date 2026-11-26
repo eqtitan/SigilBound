@@ -111,11 +111,16 @@ def build(c, pose=True):
             for a, b in FEMALE_ALT.items():
                 if a in o[slot]: f = part_file(o[slot].replace(a, b), sex, slot)
         robe_legs = slot == "legs" and str(o.get(slot, "")).startswith("none")
-        # The pack's own full-length wizard robe (the Wizard "legs" piece) under a Wizard top (men only).
-        if robe_legs and sex == "male" and "Wizard" in str(o.get("body", "")) and "Male_Wizard_Legs" in FILES: f = "Male_Wizard_Legs"
-        if f is None and not robe_legs: f = DEFAULT[sex][slot]
+        # Under a robe: plain leggings (whatever shows when a knee lifts the skirt is cloth, not bare skin)
+        if f is None: f = DEFAULT[sex][slot]
         if f: parts.append((slot, f))
     hp = part_file(o.get("head"), sex, "head")
+    # A custom head built on a pack piece ("Knight_Head_Armet with storm wings", "Ranger_Head_Hood with thorn
+    # antlers"): load the pack piece; kit_head.py adds the extras. Not when the design reshapes it away.
+    hs_ = str(o.get("head", ""))
+    if hp is None and hs_.startswith("custom") and "reshaped" not in hs_:
+        m_ = re.search(r"((?:Female_|Male_)?(?:Knight|Ranger|Noble)_Head_[A-Za-z]+)", hs_)
+        if m_: hp = part_file(m_.group(1), sex, "head")
     if hp: parts.append(("headgear", hp))
     for a in o.get("acc", []) or []:
         f = part_file(a, sex, "acc")
