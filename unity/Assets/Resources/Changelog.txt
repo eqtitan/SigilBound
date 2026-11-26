@@ -2,6 +2,11 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Clearer horizons and a fiercer caldera
+fix: Painted hills now close off every arena, also from the home screen's high view, instead of a flat blue band.
+fix: Sea and lake water is painted with waves and a foam line instead of mirroring a blue sky.
+change: The Titan's lava lake is dark crusted rock split by glowing veins, burning brightest far out.
+
 ## 2026-11-26 | Spells with more sparkle
 new: Flame spells lick with real fire, embers and smoke; gale spells whip wind ribbons and leaves; tide spells splash with droplets and foam.
 new: Light spells blaze with rays and a halo flare; shadow spells spill inky smoke and curling violet tendrils.

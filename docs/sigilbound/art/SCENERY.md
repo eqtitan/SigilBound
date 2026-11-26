@@ -128,17 +128,32 @@ stones and is broken by noise. Glowing parts use the glow material:
   mirrors it in numpy for the review renders.
   - **Ramp:** 64 x 64.
   - **Sky:** 384 x 160. Domain-warped fbm clouds lit from above, plus the sun glow and horizon haze.
+  - **Water and lava strips:** 512 x 96 each (lava adds a 512 x 96 glow mask).
   - **Ridges:** three 512 x 96 alpha strips, one per style, with a sun-side rim and haze at the foot.
   - **Ground:** 256², mipmapped. Broad two-tone strokes, then the worn patch with its trodden rim,
     pebbles, flagstones in the ruins and wet sand toward water.
   - **Crack decal:** 128².
   - **Cache.** Textures are kept until the arena theme changes. Painting takes about 50 ms per arena on
     desktop .NET; expect 3–5 times that on a phone, once, during the battle's loading.
-- **Backdrop.** The sky and the three ridges are unlit arcs (200° and 170°) around the arena. They are
-  drawn far to near (render queue 2996–2999) and are never hidden as occluders (their names start with
-  "Sky"). A plain far field runs under them so the ground never ends in view.
-- **Water and lava** now run 90 x 16 m from a shore line at z 10. The ground turns to wet sand before
-  the water.
+- **Backdrop** (revised after release build 132). The sky and the three ridges are unlit painted
+  strips: a straight front card with chamfered corners and side cards running back past the cameras.
+  - **Placement:** the near ridge at z 28 (x ±30), the others at z 33 and 38, the sky at z 44
+    (50 m tall).
+  - **Why straight and close:** the menu/gallery and battle cameras look down about 30° and never see
+    the true horizon; the top of their frame meets the ground about 30 m out. A ridge any farther is
+    hidden behind the ground, and the first pass's 36–46 m arcs never showed there. Straight cards also
+    stay level lines from a high camera, where a curved arc bowed into an arch.
+  - **Ground fade:** the ground fades to a horizon colour where it meets the near card.
+  - **Low cameras:** the Titan's views see all three ranges and the sky.
+  - **Draw order:** far to near (render queue 2996–2999). The strips are never hidden as occluders
+    (their names start with "Sky"), and a plain far field runs under them.
+- **Water** is a painted strip: shallows, wave streaks and a foam line at the shore, deep water further
+  out, then haze. It uses low gloss. The first pass's glossy plane mirrored Unity's default blue sky and
+  showed a hard sun streak, which the build-132 tour mistook for the sky.
+- **Lava** (Titan) is dark crusted basalt split by glowing veins. The veins widen and open pools of glow
+  appear only far out, with emission ×1.1 from a vein mask. Before, a flat plane glowed at full
+  emission and read as an overexposed yellow band.
+- Both water and lava run 90 × 16 m from a shore line at z 10, with wet sand before the water.
 
 ## 5. Budgets and quality tiers
 

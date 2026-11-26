@@ -133,7 +133,7 @@ def ridge(layer, style, sil, fog, sun, seed, w=512, h=96):
 
 
 # ---------------- painted ground (mirror of the C# GroundTexture)
-def ground(g1, g2, worn, rock, n=256, extent=45.0, seed=0, flag=False, wet=None, water_z=None):
+def ground(g1, g2, worn, rock, n=256, extent=45.0, seed=0, flag=False, wet=None, water_z=None, horizon=None):
     xs = np.arange(n); X, Y = np.meshgrid(xs, xs)
     wx = -(X / (n - 1) * 2 - 1) * extent; wz = -(Y / (n - 1) * 2 - 1) * extent
     big = fbm(wx * 0.06 + seed, wz * 0.06, 11, 4)
@@ -160,4 +160,37 @@ def ground(g1, g2, worn, rock, n=256, extent=45.0, seed=0, flag=False, wet=None,
     if water_z is not None and wet is not None:
         c = lerp(c, wet, smooth(water_z - 3.0, water_z - 0.5, wz))
     c = c * (0.94 + 0.12 * fbm(wx * 3, wz * 3, 83, 2))[..., None]
+    if horizon is not None:   # fade into the near ridge card (z 28, x +-30)
+        hn = (fbm(wx * 0.3, wz * 0.3, 91, 2) - 0.5) * 3
+        c = lerp(c, horizon, np.maximum(smooth(21, 27.5, wz + hn), smooth(23, 29.5, np.abs(wx) + hn)) * 0.75)
     return np.clip(c, 0, 1)
+
+
+def water(deep, light, foam, fog, seed, w=512, h=96):
+    u = (np.arange(w) + 0.5) / w; v = (np.arange(h) + 0.5) / h
+    U, V = np.meshgrid(u, v)
+    wx = -(U * 2 - 1) * 45; d = (1 - V) * 16
+    c = lerp(light, deep, smooth(0, 6, d))
+    c = lerp(c, light * 1.25, smooth(0.58, 0.74, fbm(wx * 0.18, d * 1.7, seed + 3, 4)) * 0.45)
+    c = c * (0.93 + 0.14 * fbm(wx * 1.1, d * 3, seed + 7, 2))[..., None]
+    edge = d + (fbm(wx * 0.6, np.full_like(wx, 0.5), seed + 11, 3) - 0.5) * 0.9
+    c = lerp(c, foam, smooth(1.1, 0.25, edge) * 0.75)
+    c = lerp(c, fog * 0.85, smooth(7, 16, d) * 0.55)
+    return np.clip(c, 0, 1)   # row 0 = v 0 = the far edge
+
+
+def lava(seed, w=512, h=96):
+    u = (np.arange(w) + 0.5) / w; v = (np.arange(h) + 0.5) / h
+    U, V = np.meshgrid(u, v)
+    wx = -(U * 2 - 1) * 45; d = (1 - V) * 16; far = smooth(3, 16, d)
+    crust, crust2, hot, warm = np.array([0.10, 0.075, 0.07]), np.array([0.2, 0.15, 0.13]), np.array([1, 0.42, 0.1]), np.array([0.45, 0.14, 0.05])
+    wu = wx * 0.32 + 0.6 * fbm(wx * 0.1, d * 0.2, seed + 21, 2); wv = d * 0.9 + 0.5 * fbm(wx * 0.12 + 3, d * 0.2, seed + 23, 2)
+    r = 1 - np.abs(fbm(wu, wv, seed + 25, 4) * 2 - 1)
+    vein = smooth(0.935 - 0.17 * far, 0.99, r)
+    c = lerp(crust, crust2, fbm(wx * 1.4, d * 1.4, seed + 27, 3)) * (0.85 + 0.3 * fbm(wx * 0.2, d * 0.4, seed + 29, 2))[..., None]
+    c = lerp(c, warm, smooth(0.75, 0.95, r) * 0.5)
+    c = lerp(c, hot, vein)
+    pool = smooth(10, 16, d) * smooth(0.45, 0.75, fbm(wx * 0.08, d * 0.25, seed + 31, 3))
+    c = lerp(c, hot, pool * 0.8)
+    glow = np.clip(vein * (0.55 + 0.45 * far) + pool * 0.9 + far * 0.12, 0, 1)
+    return np.clip(c, 0, 1), hot * glow[..., None]

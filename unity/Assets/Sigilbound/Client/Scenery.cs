@@ -58,7 +58,7 @@ namespace Sigilbound.Client
 
         // The painted textures for the last arena (they are rebuilt only when the arena changes).
         static string _paintKey; static readonly List<Object> _paint = new List<Object>();
-        static Material _groundMat, _ramp, _glow, _fire; static Material[] _backMats; static Mesh[] _arcs;
+        static Material _groundMat, _waterMat, _ramp, _glow, _fire; static Material[] _backMats; static Mesh[] _arcs;
         static T Keep<T>(T o) where T : Object { _paint.Add(o); return o; }
 
         // Builds the arena under `root`. density: scatter density (quality tier). top/fog: the sky's
@@ -79,13 +79,33 @@ namespace Sigilbound.Client
                 foreach (var o in _paint) if (o != null) Object.Destroy(o);
                 _paint.Clear(); _paintKey = key;
                 uint seed = (uint)(titan ? 1337 : 101 + chapter * 7);
-                var groundTex = Keep(SceneryPaint.Ground(D(th.Grass, AG), D(th.Grass2, AG), D(th.Worn, AG * 0.9f), D(th.Rock, 0.5f), (uint)(chapter % 7), th.Ruins, D(th.Worn, 0.25f), waterZ));
+                var horizon = Color.Lerp(D(th.Hill, AG), fog * 0.6f, 0.5f);
+                var groundTex = Keep(SceneryPaint.Ground(D(th.Grass, AG), D(th.Grass2, AG), D(th.Worn, AG * 0.9f), D(th.Rock, 0.5f), (uint)(chapter % 7), th.Ruins, D(th.Worn, 0.25f), waterZ, horizon));
                 _groundMat = Keep(new Material(Materials.Lit(Color.white, 0, 0.08f)) { name = "GroundPaint", mainTexture = groundTex });
                 if (_groundMat.HasProperty("_BaseMap")) _groundMat.SetTexture("_BaseMap", groundTex);
-                // sky and three ridge layers: painted arcs around the arena, pre-hazed and unlit
-                var arcCentre = new Vector2(0, 4);
-                _arcs = new[] { Keep(SceneryPaint.Arc(46, -2, 46, 200 * Mathf.Deg2Rad, arcCentre)), Keep(SceneryPaint.Arc(44, -1.5f, 16, 170 * Mathf.Deg2Rad, arcCentre)),
-                                Keep(SceneryPaint.Arc(40, -1.5f, 11, 170 * Mathf.Deg2Rad, arcCentre)), Keep(SceneryPaint.Arc(36, -1.5f, 7, 170 * Mathf.Deg2Rad, arcCentre)) };
+                // sky and three ridge layers: painted strips around the arena, pre-hazed and unlit. The nearest
+                // ridge card stands at z 28 (x +-30), inside the ground the high menu/gallery and battle cameras see at the
+                // top of the frame (they look down ~30 degrees and never see the true horizon), so the field
+                // always ends in painted hills; low Titan cameras see the farther ranges and the sky above.
+                _arcs = new[] { Keep(SceneryPaint.Backdrop(50, 44, -32, -2, 50)), Keep(SceneryPaint.Backdrop(42, 38, -28, -1.5f, 15)),
+                                Keep(SceneryPaint.Backdrop(36, 33, -26, -1.5f, 10)), Keep(SceneryPaint.Backdrop(30, 28, -24, -1.5f, 7)) };
+                // water: painted, low gloss (a glossy plane mirrored Unity's default blue sky and a hard sun streak);
+                // lava: dark crust with glowing veins, the glow building only far out
+                if (titan)
+                {
+                    var (crust, veins) = SceneryPaint.Lava(seed);
+                    _waterMat = Keep(new Material(Materials.Glow(Color.white, Color.white, 1f)) { name = "LavaCrust", mainTexture = Keep(crust) });
+                    if (_waterMat.HasProperty("_BaseMap")) _waterMat.SetTexture("_BaseMap", crust);
+                    if (_waterMat.HasProperty("_BaseColor")) _waterMat.SetColor("_BaseColor", Color.white);
+                    if (_waterMat.HasProperty("_EmissionMap")) { _waterMat.EnableKeyword("_EMISSION"); _waterMat.SetTexture("_EmissionMap", Keep(veins)); _waterMat.SetColor("_EmissionColor", Color.white * 1.1f); }
+                    if (_waterMat.HasProperty("_Smoothness")) _waterMat.SetFloat("_Smoothness", 0.15f);
+                }
+                else if (th.Water != null)
+                {
+                    var wt = Keep(SceneryPaint.Water(D(th.Water, 0.75f), Color.Lerp(D(th.Water, 1.25f), D(th.Worn, 0.6f), 0.25f), D("#e8f0f0", 0.75f), fog, seed));
+                    _waterMat = Keep(new Material(Materials.Lit(Color.white, 0, 0.25f)) { name = "WaterPaint", mainTexture = wt });
+                    if (_waterMat.HasProperty("_BaseMap")) _waterMat.SetTexture("_BaseMap", wt);
+                }
                 _backMats = new Material[4];
                 for (int i = 0; i < 4; i++)
                 {
@@ -131,7 +151,7 @@ namespace Sigilbound.Client
                 // stays above the ground through its whole bob (SceneryWave); 90 x 16 m from the shore line at z 10
                 w.transform.localPosition = new Vector3(0, titan ? 0.04f : 0.06f, waterZ + 8f);
                 w.transform.localScale = new Vector3(9, 1, 1.6f);
-                w.GetComponent<Renderer>().sharedMaterial = titan ? Materials.Glow(Palette.Hex("#3a0a04"), Palette.Hex("#ff5a10"), 1.6f) : Materials.Lit(D(th.Water, 0.9f), 0.2f, 0.7f); // a sheen, not a mirror: no glare jumping with screen shake
+                w.GetComponent<Renderer>().sharedMaterial = _waterMat;
                 w.GetComponent<Renderer>().receiveShadows = false; // tree shadows popping with the quality tier's shadow distance
                 w.AddComponent<SceneryWave>().Lava = titan;
             }
@@ -155,7 +175,7 @@ namespace Sigilbound.Client
                 int n = Mathf.RoundToInt(70 * density);
                 for (int i = 0; i < n; i++)
                 {
-                    float a = R(0, Mathf.PI * 2), r = R(6.5f, 22f), x = Mathf.Cos(a) * r, z = Mathf.Sin(a) * r * 0.9f + 4f;
+                    float a = R(0, Mathf.PI * 2), r = R(6.5f, 20.5f), x = Mathf.Cos(a) * r, z = Mathf.Sin(a) * r * 0.9f + 4f; // inside the near ridge
                     if (Clear(x, z)) continue;
                     float pick = R(0, total); var e = table[0];
                     foreach (var p in table) { if (pick < p.w) { e = p; break; } pick -= p.w; }

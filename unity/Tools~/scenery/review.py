@@ -143,6 +143,23 @@ def arc(name, radius, y0, height, span, centre, mat, segs=48):
     return ob
 
 
+def backdrop(name, half_w, z, back_z, y0, height, mat):
+    """Mirror of SceneryPaint.Backdrop: a straight front card with chamfered corners and side cards."""
+    c = 8.0
+    path = [(-half_w, back_z), (-half_w, z - c), (-half_w + c, z), (half_w - c, z), (half_w, z - c), (half_w, back_z)]
+    L = [0.0]
+    for i in range(1, len(path)): L.append(L[-1] + math.dist(path[i - 1], path[i]))
+    bm = bmesh.new(); uv = bm.loops.layers.uv.new()
+    vs = [(bm.verts.new((x, zz, y0)), bm.verts.new((x, zz, y0 + height)), L[i] / L[-1]) for i, (x, zz) in enumerate(path)]
+    for i in range(len(vs) - 1):
+        (a0, a1, u0), (b0, b1, u1) = vs[i], vs[i + 1]
+        f = bm.faces.new((a0, b0, b1, a1))
+        for l, (uu, vv) in zip(f.loops, ((u0, 0), (u1, 0), (u1, 1), (u0, 1))): l[uv].uv = (uu, vv)
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free(); me.materials.append(mat)
+    ob = bpy.data.objects.new(name, me); bpy.context.collection.objects.link(ob)
+    return ob
+
+
 def setup(theme, t, meshes, lineup):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
@@ -181,25 +198,34 @@ def setup(theme, t, meshes, lineup):
     # diorama: painted ground, sky arc, three ridge arcs, props scattered off the ring, as the game does
     water_z = 10.5 if ("water" in t or t.get("lava")) else None
     gtex = P.ground(P.hexc(t["grass"]) * 0.46, P.hexc(t["grass2"]) * 0.46, P.hexc(t["worn"]) * 0.46 * 0.9, P.hexc(t["rock"]) * 0.5,
-                    seed=seed % 7, flag=t.get("flag", False), wet=P.hexc(t["worn"]) * 0.25, water_z=water_z)
+                    seed=seed % 7, flag=t.get("flag", False), wet=P.hexc(t["worn"]) * 0.25, water_z=water_z,
+                    horizon=P.lerp(P.hexc(t["hill"]) * 0.46, P.hexc(t["bot"]) * 0.6, 0.5))
     gimg = to_image("ground", gtex[::-1, ::-1])
     bpy.ops.mesh.primitive_plane_add(size=90); g = bpy.context.object
     g.data.materials.append(lit_mat("ground", gimg))
     if water_z is not None:
         bpy.ops.mesh.primitive_plane_add(size=1); wp = bpy.context.object
-        wp.scale = (90, 30, 1); wp.location = (0, water_z + 15, 0.06)
-        wp.data.materials.append(lit_mat("lava", color=P.hexc("#3a0a04"), emit=P.hexc("#ff5a10")) if t.get("lava") else lit_mat("water", color=P.hexc(t["water"]) * 0.9, rough=0.3))
+        wp.scale = (90, 16, 1); wp.location = (0, water_z + 8, 0.06)
+        if t.get("lava"):
+            alb, glo = P.lava(seed)
+            m = lit_mat("lava", to_image("crust", alb[::-1, ::-1]))
+            nt = m.node_tree; et = nt.nodes.new("ShaderNodeTexImage"); et.image = to_image("veins", glo[::-1, ::-1])
+            b = nt.nodes["Principled BSDF"]; nt.links.new(et.outputs[0], b.inputs["Emission Color"]); b.inputs["Emission Strength"].default_value = 1.1
+        else:
+            wcol = P.hexc(t["water"])
+            m = lit_mat("water", to_image("water", P.water(wcol * 0.75, P.lerp(wcol * 1.25, P.hexc(t["worn"]) * 0.6, 0.25), P.hexc("#e8f0f0") * 0.75, P.hexc(t["bot"]), seed)[::-1, ::-1]), rough=0.75)
+        wp.data.materials.append(m)
     fog = bot
     skyimg = to_image("sky", P.sky(top, bot, sun, seed, cloudiness=0.65 if t.get("storm") else 0.5, storm=t.get("storm", False)))
-    arc("Sky", 46, -2, 46, math.radians(200), (0, 4), emission_mat("skym", skyimg))
-    for layer, (rad, hh) in enumerate(((44, 16), (40, 11), (36, 7))):
+    backdrop("Sky", 50, 44, -32, -2, 50, emission_mat("skym", skyimg))
+    for layer, (hw, zz, bz, hh) in enumerate(((42, 38, -28, 15), (36, 33, -26, 10), (30, 28, -24, 7))):
         rimg = to_image(f"ridge{layer}", P.ridge(layer, t["style"], P.hexc(t["sil"]), fog, sun, seed))
-        arc(f"SkyRidge{layer}", rad, -1.5, hh, math.radians(170), (0, 4), emission_mat(f"rm{layer}", rimg, alpha=True))
+        backdrop(f"SkyRidge{layer}", hw, zz, bz, -1.5, hh, emission_mat(f"rm{layer}", rimg, alpha=True))
     rng = random.Random(seed)
     names = t["props"]
     placed = 0
     while placed < 46:
-        a, r = rng.uniform(0, math.tau), rng.uniform(6.8, 22)
+        a, r = rng.uniform(0, math.tau), rng.uniform(6.8, 20.5)
         x, z = math.cos(a) * r, math.sin(a) * r * 0.9 + 4
         if (x / 6.4) ** 2 + ((z - 0.6) / 5.8) ** 2 < 1 or z < -7: continue
         if water_z is not None and z > water_z - 0.5: continue
@@ -230,8 +256,9 @@ def setup(theme, t, meshes, lineup):
         bpy.context.object.data.materials.append(lit_mat(f"h{i}", color=(0.55, 0.5, 0.45)))
     cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam")); sc.collection.objects.link(cam); sc.camera = cam
     cam.data.sensor_fit = "VERTICAL"; cam.data.angle = math.radians(42); cam.data.clip_end = 150
-    cam.location = (0, -13.5, 7.4)
-    d = np.array([0, 4.0, 1.2]) - np.array(cam.location)
+    cam.location, look = ((0, -9.6, 7.2), (0, 1.1, 0.9)) if os.environ.get("CAM") == "menu" else ((0, -13.5, 7.4), (0, 4.0, 1.2))
+    if os.environ.get("CAM") == "low": cam.location, look = (2.5, -6.0, 1.5), (0, 6.0, 4.5)
+    d = np.array(look) - np.array(cam.location)
     cam.rotation_euler = (math.atan2(math.hypot(d[0], d[1]), -d[2]), 0, 0)
     # fog: a volume would be slow; tint distant things through the mist pass instead
     sc.world.mist_settings.start = 26; sc.world.mist_settings.depth = 38

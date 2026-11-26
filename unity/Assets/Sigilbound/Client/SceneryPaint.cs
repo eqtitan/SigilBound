@@ -169,7 +169,9 @@ namespace Sigilbound.Client
 
         // ---------- painted ground: two grass tones in broad strokes, the worn arena patch with a
         // trodden rim and pebbles, flagstones in the ruins, wet sand toward water ----------
-        public static Texture2D Ground(Color g1, Color g2, Color worn, Color rock, uint seed, bool flag, Color wet, float waterZ, int n = 256, float extent = 45f)
+        // horizon: the colour the field fades to where it meets the near ridge card (z 28, x +-30),
+        // so the ground runs into the painted hills instead of ending on a hard line.
+        public static Texture2D Ground(Color g1, Color g2, Color worn, Color rock, uint seed, bool flag, Color wet, float waterZ, Color horizon, int n = 256, float extent = 45f)
         {
             var t = Tex(n, n, "GroundPaint", true, TextureWrapMode.Clamp);
             var px = new Color32[n * n];
@@ -203,10 +205,68 @@ namespace Sigilbound.Client
                     }
                     if (waterZ > 0) c = L(c, wet, Smooth(waterZ - 3f, waterZ - 0.5f, wz));
                     c *= 0.94f + 0.12f * Fbm(wx * 3, wz * 3, 83, 2);
+                    float hn = (Fbm(wx * 0.3f, wz * 0.3f, 91, 2) - 0.5f) * 3f;
+                    c = L(c, horizon, Mathf.Max(Smooth(21f, 27.5f, wz + hn), Smooth(23f, 29.5f, Mathf.Abs(wx) + hn)) * 0.75f);
                     px[y * n + x] = C32(c);
                 }
             t.SetPixels32(px); t.Apply(true, true);
             return t;
+        }
+
+        // ---------- water and lava strips (the 90 x 16 m plane beyond the arena; v = 0 at the far edge) ----------
+        // Water: shallow near the shore with a foam line, painted wave streaks, deep further out, then haze.
+        public static Texture2D Water(Color deep, Color light, Color foam, Color fog, uint seed, int w = 512, int h = 96)
+        {
+            var t = Tex(w, h, "WaterPaint", true, TextureWrapMode.Clamp);
+            var px = new Color32[w * h];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float u = (x + 0.5f) / w, v = (y + 0.5f) / h;
+                    float wx = -(u * 2 - 1) * 45f, d = (1 - v) * 16f; // metres across, metres out from the shore
+                    Color c = L(light, deep, Smooth(0f, 6f, d));
+                    float streak = Fbm(wx * 0.18f, d * 1.7f, seed + 3, 4);
+                    c = L(c, light * 1.25f, Smooth(0.58f, 0.74f, streak) * 0.45f);
+                    c *= 0.93f + 0.14f * Fbm(wx * 1.1f, d * 3f, seed + 7, 2);
+                    float edge = d + (Fbm(wx * 0.6f, 0.5f, seed + 11, 3) - 0.5f) * 0.9f;
+                    c = L(c, foam, Smooth(1.1f, 0.25f, edge) * 0.75f);                       // the foam line at the shore
+                    c = L(c, fog * 0.85f, Smooth(7f, 16f, d) * 0.55f);                       // out to the haze
+                    px[y * w + x] = C32(c);
+                }
+            t.SetPixels32(px); t.Apply(true, true);
+            return t;
+        }
+
+        // Lava: dark crusted basalt split by glowing veins; the veins widen and the glow only builds far out.
+        // Returns (albedo, emission mask).
+        public static (Texture2D albedo, Texture2D glow) Lava(uint seed, int w = 512, int h = 96)
+        {
+            var a = Tex(w, h, "LavaCrust", true, TextureWrapMode.Clamp);
+            var g = Tex(w, h, "LavaGlow", true, TextureWrapMode.Clamp);
+            var pa = new Color32[w * h]; var pg = new Color32[w * h];
+            Color crust = new Color(0.10f, 0.075f, 0.07f), crust2 = new Color(0.2f, 0.15f, 0.13f), hot = new Color(1f, 0.42f, 0.1f), warm = new Color(0.45f, 0.14f, 0.05f);
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    float u = (x + 0.5f) / w, v = (y + 0.5f) / h;
+                    float wx = -(u * 2 - 1) * 45f, d = (1 - v) * 16f, far = Smooth(3f, 16f, d);
+                    // plates of crust: ridged noise lines are the cracks between them
+                    float wu = wx * 0.32f + 0.6f * Fbm(wx * 0.1f, d * 0.2f, seed + 21, 2), wv = d * 0.9f + 0.5f * Fbm(wx * 0.12f + 3, d * 0.2f, seed + 23, 2);
+                    float r = 1 - Mathf.Abs(Fbm(wu, wv, seed + 25, 4) * 2 - 1);
+                    float vein = Smooth(0.935f - 0.17f * far, 0.99f, r);
+                    float tex = Fbm(wx * 1.4f, d * 1.4f, seed + 27, 3);
+                    Color c = L(crust, crust2, tex) * (0.85f + 0.3f * Fbm(wx * 0.2f, d * 0.4f, seed + 29, 2));
+                    c = L(c, warm, Smooth(0.75f, 0.95f, r) * 0.5f);                          // crust scorched beside the cracks
+                    c = L(c, hot, vein);
+                    float pool = Smooth(10f, 16f, d) * Smooth(0.45f, 0.75f, Fbm(wx * 0.08f, d * 0.25f, seed + 31, 3)); // open lava far out
+                    c = L(c, hot, pool * 0.8f);
+                    float glow = Mathf.Clamp01(vein * (0.55f + 0.45f * far) + pool * 0.9f + far * 0.12f);
+                    pa[y * w + x] = C32(c);
+                    pg[y * w + x] = C32(hot * glow);
+                }
+            a.SetPixels32(pa); a.Apply(true, true);
+            g.SetPixels32(pg); g.Apply(true, true);
+            return (a, g);
         }
 
         // A crack decal for boss slams: jagged dark lines radiating from the centre (alpha only).
@@ -250,21 +310,26 @@ namespace Sigilbound.Client
                 }
         }
 
-        // An arc strip (sky, ridges) around `centre` in the XZ plane, u along the arc, v up.
-        public static Mesh Arc(float radius, float y0, float height, float span, Vector2 centre, int segs = 48)
+        // A backdrop strip (sky, ridges): a straight front card at depth z across +-halfW, chamfered
+        // corners and side cards running back to backZ, u along the strip, v up. Straight cards project as
+        // straight lines from the high battle cameras (a curved arc bowed into an arch).
+        public static Mesh Backdrop(float halfW, float z, float backZ, float y0, float height)
         {
-            var m = new Mesh { name = "Arc" };
-            var v = new Vector3[(segs + 1) * 2]; var uv = new Vector2[v.Length]; var tri = new int[segs * 6];
-            for (int i = 0; i <= segs; i++)
+            float c = 8f; // chamfer
+            var path = new[] { new Vector2(-halfW, backZ), new Vector2(-halfW, z - c), new Vector2(-halfW + c, z), new Vector2(halfW - c, z), new Vector2(halfW, z - c), new Vector2(halfW, backZ) };
+            var len = new float[path.Length];
+            for (int i = 1; i < path.Length; i++) len[i] = len[i - 1] + Vector2.Distance(path[i - 1], path[i]);
+            var m = new Mesh { name = "Backdrop" };
+            var v = new Vector3[path.Length * 2]; var uv = new Vector2[v.Length]; var tri = new int[(path.Length - 1) * 6];
+            for (int i = 0; i < path.Length; i++)
             {
-                float a = -span / 2 + span * i / segs, x = Mathf.Sin(a) * radius + centre.x, z = Mathf.Cos(a) * radius + centre.y;
-                v[i * 2] = new Vector3(x, y0, z); v[i * 2 + 1] = new Vector3(x, y0 + height, z);
-                uv[i * 2] = new Vector2(i / (float)segs, 0); uv[i * 2 + 1] = new Vector2(i / (float)segs, 1);
+                v[i * 2] = new Vector3(path[i].x, y0, path[i].y); v[i * 2 + 1] = new Vector3(path[i].x, y0 + height, path[i].y);
+                float u = len[i] / len[path.Length - 1];
+                uv[i * 2] = new Vector2(u, 0); uv[i * 2 + 1] = new Vector2(u, 1);
             }
-            for (int i = 0; i < segs; i++)
+            for (int i = 0; i < path.Length - 1; i++)
             {
-                int b = i * 2;
-                // seen from inside the arc (the camera is near the centre)
+                int b = i * 2; // seen from inside (the materials draw both sides anyway)
                 tri[i * 6] = b; tri[i * 6 + 1] = b + 1; tri[i * 6 + 2] = b + 3;
                 tri[i * 6 + 3] = b; tri[i * 6 + 4] = b + 3; tri[i * 6 + 5] = b + 2;
             }
