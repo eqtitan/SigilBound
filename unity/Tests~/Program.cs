@@ -10,8 +10,20 @@ static class Program
     static int failures;
     static void Check(bool ok, string what) { Console.WriteLine((ok ? "PASS " : "FAIL ") + what); if (!ok) failures++; }
 
-    static int Main()
+    static int Main(string[] args)
     {
+        // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).
+        if (args.Length > 0 && args[0] == "balance")
+        {
+            foreach (var id in args.Skip(1))
+            {
+                var nh = Heroes.First(x => x.Id == id);
+                var peers = Classic.Where(x => x.Rarity == nh.Rarity && x.Role == nh.Role).ToList();
+                if (peers.Count == 0) peers = Classic.Where(x => x.Role == nh.Role).ToList();
+                Console.WriteLine($"RATE {id} {peers.Average(pp => RosterTests.WinRate(nh, pp)):0.000}");
+            }
+            return 0;
+        }
         Check(Classic.Length == 24 && Classic.Select(h => h.Id).Distinct().Count() == 24 && Heroes.Select(h => h.Id).Distinct().Count() == Heroes.Length, $"24 classic heroes, {Heroes.Length} in all, unique ids");
         Check(ElementMultiplier(Element.Flame, Element.Gale) == 1.3 && ElementMultiplier(Element.Gale, Element.Flame) == 0.8 && ElementMultiplier(Element.Light, Element.Shadow) == 1.3, "element triangle");
         Check(Game.StageLevel(0) == 2 && Game.StageLevel(59) == 58, $"stage levels match web ({Game.StageLevel(0)}, {Game.StageLevel(59)})");

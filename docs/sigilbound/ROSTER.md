@@ -209,3 +209,20 @@ They are tested in `unity/Tests~/MechanicsTests.cs`. They are Unity only: the we
 3. Engine work for the phase 2 mechanics, then phase 2 (5 batches).
 4. Phase 3 mechanics, then phase 3 (5 batches).
 5. Campaign act 2 (chapters 11 to 15), then phase 4 (5 batches).
+
+## 7. Phase H: 50 new heroes (owner-approved concepts, 2026-11-26)
+
+Designs: `docs/sigilbound/concepts/new_heroes.json` and `NEW_HEROES.md`. Brought into the game by `docs/sigilbound/newheroes.py`, 10 per step, each balanced against the classic hero(es) of its rarity and role.
+
+| Id | Name | Rarity | Element | Role | Species | Concept |
+|---|---|---|---|---|---|---|
+| `dace` | Dace Sootworth | Common | Flame | Defense | gnome | The gnomes of Saltreach's rooftops sweep every chimney in the harbour. |
+| `dulcie` | Dulcie Oventhorne | Common | Flame | Hp | human | Her Saltreach bakehouse oven has not gone cold in forty years. |
+| `holt` | Holt Ironpot | Rare | Flame | Defense | bear-folk | A bear-folk cook who fed the Ashgrave Pass forge crews. |
+| `rhosyn` | Rhosyn Slingcoal | Rare | Flame | Attack | human | Raised among the Ember Groves' charcoal kilns, she learned to hit a crow at sixty paces with a hot coal. |
+| `ansel` | Brother Ansel Smokewright | Rare | Flame | Support | human | A brother of the Last Pyre who swung the censer at the eternal flame's vigil. |
+| `saskia` | Saskia Emberbark | Epic | Flame | Defense | ember dryad (living tree) | The tree-spirit of the oldest ember tree. |
+| `kasimir` | Kasimir Brand | Epic | Flame | Attack | human | The Pyre guard's brander once marked supply crates. |
+| `imogen` | Imogen Drumfire | Epic | Flame | Support | human | Saltreach's harbour guard marched to her drum before the Hollow came. |
+| `ilsabet` | Ilsabet Cometheart | Legendary | Flame | Attack | human | When the Titan first erupted, a burning stone fell into Ashgrave Pass and a girl caught it on a chain. |
+| `obrecht` | Obrecht | Legendary | Flame | Hp | hearth golem (stone construct) | The last living hearth of the Ember Groves' charcoal village stood up when the Hollow came, built itself a body from its own fieldstones, and has guarded the groves' people ever since. |

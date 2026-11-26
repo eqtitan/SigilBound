@@ -396,6 +396,16 @@ Owner decisions (2026-11-25): frame rate defaults to **Auto (match the screen)**
   - Rejected tests are reworked before steps 59–63 roll the clips out to all 100 heroes.
   - T11 (frame rate) is also checked live in the Unity build on the S26+.
 
+## Phase H: 50 new heroes (owner-approved concepts, 2026-11-26)
+
+The art director's 50 new heroes (22 non-human: elves, gnomes, beastfolk, golems, dryads, a wraith and more), approved by the owner on the review page. Roster 100 → 150. `docs/sigilbound/newheroes.py` writes them into `Core/GameData.cs` (skills from the design) and `Core/Looks.cs` (a stand-in look), lists them in ROSTER.md section 7, and balances each with team-swap sims against the classic hero(es) of its rarity and role (40-60%, bracketing search on a power factor in `concepts/tuning.json`). Each gets a high-detail model from `ubc.py` (species pieces included).
+
+- [x] **70. Heroes 101-110:** Dace, Dulcie, Holt, Rhosyn, Ansel, Saskia, Kasimir, Imogen, Ilsabet, Obrecht. All balanced 42-58%; models built.
+- [ ] **71. Heroes 111-120.**
+- [ ] **72. Heroes 121-130.**
+- [ ] **73. Heroes 131-140.**
+- [ ] **74. Heroes 141-150,** then a summon-pacing check (more heroes per rarity means rarer duplicates; ROSTER.md section 5).
+
 ## Known device bugs (owner tests on Windows and a Galaxy S26+, Unity builds 7–8)
 
 - Text duplicated or misplaced everywhere; tip popups show the body text twice, and the heading is "3".
