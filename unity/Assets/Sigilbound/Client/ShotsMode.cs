@@ -133,6 +133,16 @@ namespace Sigilbound.Client
             yield return new WaitForSecondsRealtime(2f);
             yield return Shot("battle-result");
 
+            // A Titan practice fight (no rewards, nothing saved): the arrival intro, then the worm's-eye view
+            // every few seconds, so Titan framing and cinematics can be checked without a phone.
+            CloseModal(); Go(ScreenId.Home); yield return new WaitForSecondsRealtime(1f);
+            G.S.settings.auto = true; G.S.settings.speed = 1;
+            Battle.Begin(BattleSpec.TitanPractice());
+            yield return new WaitForSecondsRealtime(1.6f);
+            yield return Shot("titan-intro");
+            yield return new WaitForSecondsRealtime(4f);
+            for (int i = 1; i <= 6 && Battle.InProgress; i++) { yield return Shot($"titan-{i}"); yield return new WaitForSecondsRealtime(3.2f); }
+
             ShotLog($"DONE {_shotCount}");
             Application.Quit(0);
         }
