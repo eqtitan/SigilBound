@@ -280,6 +280,9 @@ namespace Sigilbound.Client
         {
             if (_dead || Model == null) return;
             _model?.Tick();
+            // Legendary heroes carry a faint ambient aura of their signature motif (not at Low quality).
+            if (Unit.Template.Rarity == Rarity.Legendary && !Unit.Titan && SkillFx.I != null && (Quality.I == null || Quality.I.Tier > 0) && Time.time >= _auraAt)
+            { _auraAt = Time.time + 0.35f; SkillFx.I.Aura(transform.position, Unit.El, HeroSignatures.Of(Unit.Template.Id, Unit.El)); }
             float t = Time.time + _phase;
             if (_animator == null && _model == null)
             {
@@ -351,6 +354,7 @@ namespace Sigilbound.Client
                 m.Run();
                 for (float k = 0; k < 1; k += Time.deltaTime / 0.26f) { transform.position = Vector3.Lerp(_home, to, EaseIO(k)); yield return null; }
                 transform.position = to;
+                SkillFx.I?.WeaponTrail(BodyShaper.Find(m.Root.transform, "hand_r") ?? BodyShaper.Find(m.Root.transform, "Hand.R"), Unit.El);
                 if (!m.HasSkill(skill)) m.Strike(); else m.Skill(skill);
                 // Contact at the family's impact time in the clip (MECHANICS.md 3.2), not a fixed wait.
                 yield return m.WaitNormalized((float)Impact.ImpactTime(Impact.FamilyOf(Unit.Template.Id)), 0.6f);
@@ -431,7 +435,7 @@ namespace Sigilbound.Client
             }
             if (!Unit.Titan) _hitCo = StartCoroutine(HitRoutine(big));
         }
-        Coroutine _hitCo;
+        Coroutine _hitCo; float _auraAt;
         public void Win() { if (!_dead && _model != null) { _busy = true; _model.Win(); } }
         // "Revived!": the Revive effect saved this hero from falling. Buckle toward the ground (the death
         // clip to its middle), hold a beat, then rise back up (the same clip played backwards).

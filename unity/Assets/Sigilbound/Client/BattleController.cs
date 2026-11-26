@@ -202,6 +202,14 @@ namespace Sigilbound.Client
                 }
                 yield return view.Attack(aim, melee, support, ult, () => { Vfx.I.Shake(0.35f); fx?.TitanSlam(view.transform.position, u.El); }, skillIdx);
                 if (support && fx == null) Vfx.I.Cast(view.transform.position + Vector3.up * 0.1f, color);
+                // Ultimates show the hero's signature big, on the caster and on every target or ally reached.
+                if (ult && fx != null && !u.Titan)
+                {
+                    var motif = HeroSignatures.Of(u.Template.Id, u.El);
+                    fx.Signature(view.Center, u.El, motif, 1.4f);
+                    foreach (var t in events.Where(e => e.Unit != null && e.Unit != u && (e.Type == EvType.Damage || e.Type == EvType.Heal || e.Type == EvType.Status)).Select(e => e.Unit).Distinct())
+                        if (_views.TryGetValue(t, out var tv) && tv != null) fx.Signature(tv.Center, u.El, motif, 1.0f);
+                }
                 if (!melee && hit.Count > 0)
                 {
                     var from = view.Center + view.transform.forward * 0.4f;
@@ -249,6 +257,8 @@ namespace Sigilbound.Client
                         if (e.Amount <= 0) break; // fully absorbed by a shield: the "Shield" number says it (no "CRIT 0")
                         Sound.I?.Play(e.Crit ? "crit" : "hit", e.Crit ? 1 : 0.8f);
                         if (SkillFx.I != null) SkillFx.I.Impact(c, e.Source != null ? e.Source.El : _lastEl, e.Crit); else Vfx.I.Burst(c, color, e.Crit);
+                        // The attacker's signature motif on each hit (phase E 53-55).
+                        if (SkillFx.I != null && e.Source != null && !e.Source.Titan) SkillFx.I.Signature(c, e.Source.El, HeroSignatures.Of(e.Source.Template.Id, e.Source.El), e.Crit ? 0.9f : 0.6f);
                         // Heavier reaction on crits and hits over 14% of max HP; weak glancing blows may be rolled away.
                         v.Hit(e.Crit || e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp) > 0.14f, e.Elem < 1 || e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp) < 0.04f);
                         if (e.Crit) SkillFx.I?.CritFlash(e.Source != null ? e.Source.El : _lastEl);

@@ -38,7 +38,7 @@ namespace Sigilbound.Client
         static readonly Pal AQUA = new Pal { Core = L(1.8f, 3.4f, 4.2f), Main = L(0.5f, 1.9f, 3.8f), Deep = L(0.1f, 0.5f, 1.4f) };
         public static Pal Of(Element e) => Palettes[e.ToString().ToLowerInvariant()];
 
-        Camera _cam; ParticleSystem _over, _under; Material _add, _alpha;
+        Camera _cam; ParticleSystem _over, _under, _fall; Material _add, _alpha;
         Texture2D _dot, _ring, _rune, _streak, _hex, _burst;
         float _mult = 1f; // particle count scale by quality tier (Low 0.35 .. Ultra 1.2)
         Renderer _flash; float _flashT = -1, _flashDur;
@@ -62,6 +62,7 @@ namespace Sigilbound.Client
             _mult = new[] { 0.35f, 0.6f, 1f, 1.2f }[tier];
             if (_over != null) { var m = _over.main; m.maxParticles = new[] { 500, 900, 1500, 2000 }[tier]; }
             if (_under != null) { var m = _under.main; m.maxParticles = new[] { 150, 300, 500, 700 }[tier]; }
+            if (_fall != null) { var m = _fall.main; m.maxParticles = new[] { 200, 350, 600, 800 }[tier]; }
         }
 
         void Init()
@@ -85,6 +86,7 @@ namespace Sigilbound.Client
             _hex = Tex(128, (u, v) => { float x = (u + 1) * 6, y = (v + 1) * 6; float h = Mathf.Abs(Mathf.Sin(x * 1.732f) * Mathf.Sin(y * 2f + x)); return 0.25f + 0.75f * Mathf.Pow(h, 6); });
             _over = MakeSystem("Over", _add, _dot, 1500, 0);
             _under = MakeSystem("Under", _alpha, _dot, 500, 0);
+            _fall = MakeSystem("Fall", _add, _dot, 600, 0.6f); // signature motifs that arc and drop (petals, drops, bones)
             // Crit flash: a quad in front of the camera.
             var fq = GameObject.CreatePrimitive(PrimitiveType.Quad); Destroy(fq.GetComponent<Collider>());
             fq.transform.SetParent(_cam.transform, false); fq.transform.localPosition = new Vector3(0, 0, _cam.nearClipPlane + 0.05f); fq.transform.localScale = new Vector3(3, 3, 1);
@@ -392,6 +394,98 @@ namespace Sigilbound.Client
             Wall(pos, 0.45f, 0.15f, 1.6f, 2.6f, P.Main, 0.35f, 1.5f);
             StartCoroutine(Stream(1.2f, N(60), k => Spark(_over, pos + new Vector3(Random.Range(-0.35f, 0.35f), Random.Range(0.1f, 1.8f) * (1 - k * 0.6f), Random.Range(-0.35f, 0.35f)), new Vector3(Random.Range(-0.15f, 0.15f), Random.Range(0.6f, 1.4f), Random.Range(-0.15f, 0.15f)), Hdr(P.Core, 1), Random.Range(0.06f, 0.14f), Random.Range(0.6f, 1.1f))));
             Smoke(pos + Vector3.up * 0.8f, N(16), new Color(0.12f, 0.11f, 0.12f), 0.3f, 0.9f, 1.2f, 0.6f);
+        }
+
+        // ---------- signatures (phase E steps 53-55) ----------
+        // Each hero's motif (Core HeroSignatures, from its design's fx line): a small burst on each of its
+        // hits (scale ~0.6), a big one on its ultimates (~1.4). Coloured from the hero's element palette.
+        public void Signature(Vector3 pos, Element el, Motif m, float scale = 1f)
+        {
+            var P = Of(el); float s = scale; int n = N(14 * s);
+            Vector3 Out(float spd) { var d = Random.onUnitSphere; d.y = Mathf.Abs(d.y) * 0.6f; return d * spd * Random.Range(0.5f, 1f); }
+            Color Pale(Color c, float w) => Color.Lerp(c, new Color(3, 3, 3, 1), w);
+            switch (m)
+            {
+                case Motif.Wind:
+                    for (int i = 0; i < n; i++) { float a = i / (float)n * Mathf.PI * 2; var r = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)); Spark(_over, pos + r * 0.45f * s, Vector3.Cross(Vector3.up, r) * 2.6f * s + Vector3.up * Random.Range(0.3f, 1f), Hdr(P.Core, 1), 0.07f * s, 0.45f); }
+                    GroundFx(_ring, pos, 0.3f * s, 1.3f * s, P.Main, 0.5f, 0.3f, 6f, 0, true); break;
+                case Motif.Embers:
+                    for (int i = 0; i < n; i++) Spark(_over, pos + Random.insideUnitSphere * 0.3f * s, new Vector3(Random.Range(-0.5f, 0.5f), Random.Range(1.0f, 2.4f), Random.Range(-0.5f, 0.5f)) * s, Hdr(i % 3 == 0 ? P.Core : P.Main, 1.1f), Random.Range(0.04f, 0.09f) * s, Random.Range(0.6f, 1.1f)); break;
+                case Motif.Water:
+                    for (int i = 0; i < n; i++) Spark(_fall, pos, Out(2.2f * s) + Vector3.up * 2.2f * s, Hdr(i % 2 == 0 ? AQUA.Core : P.Main, 0.9f), Random.Range(0.05f, 0.11f) * s, 0.7f);
+                    GroundFx(_ring, new Vector3(pos.x, 0.02f, pos.z), 0.3f * s, 1.4f * s, AQUA.Main, 0.5f, 0.5f); break;
+                case Motif.Bubbles:
+                    for (int i = 0; i < n; i++) Spark(_over, pos + Random.insideUnitSphere * 0.4f * s, new Vector3(Random.Range(-0.2f, 0.2f), Random.Range(0.4f, 0.9f), Random.Range(-0.2f, 0.2f)), Hdr(Pale(AQUA.Main, 0.3f), 0.6f), Random.Range(0.1f, 0.2f) * s, 1.2f); break;
+                case Motif.Frost:
+                    for (int i = 0; i < n; i++) Spark(_over, pos, Out(3.2f * s), Hdr(Pale(AQUA.Core, 0.5f), 1f), 0.06f * s, 0.4f);
+                    Smoke(pos, N(4 * s), new Color(0.85f, 0.92f, 1f), 0.3f * s, 0.6f * s, 0.9f, 0.3f); break;
+                case Motif.Petals: case Motif.Leaves: case Motif.Feathers:
+                    var pc = m == Motif.Petals ? Pale(P.Main, 0.35f) : m == Motif.Leaves ? Color.Lerp(P.Main, HEAL.Main, 0.5f) : Pale(P.Core, 0.6f);
+                    for (int i = 0; i < n; i++) Spark(_fall, pos + Random.insideUnitSphere * 0.3f * s, Out(1.4f * s) + Vector3.up * 1.6f * s, Hdr(pc, 0.8f), Random.Range(0.08f, m == Motif.Feathers ? 0.18f : 0.13f) * s, Random.Range(0.9f, 1.4f)); break;
+                case Motif.Stars:
+                    for (int i = 0; i < n; i++) Spark(_over, pos, Out(2.6f * s), Hdr(i % 2 == 0 ? GOLD.Core : P.Core, 1.2f), Random.Range(0.05f, 0.14f) * s, Random.Range(0.4f, 0.8f));
+                    GroundFx(_burst, pos, 0.4f * s, 1.1f * s, GOLD.Core, 0.6f, 0.22f, 2f, 0, true); break;
+                case Motif.Lightning:
+                    StartCoroutine(BoltRoutine(pos, P, s)); Sparks(pos, N(10 * s), P.Core, 3.5f * s, 0.06f, 0.25f); break;
+                case Motif.Smoke:
+                    Smoke(pos, N(6 * s), Color.Lerp(new Color(0.2f, 0.19f, 0.2f), P.Dark, 0.3f), 0.35f * s, 0.7f * s, 1.0f, 0.55f); break;
+                case Motif.Wisps:
+                    for (int i = 0; i < n; i++) Spark(_over, pos + Random.insideUnitSphere * 0.5f * s, new Vector3(Random.Range(-0.3f, 0.3f), Random.Range(0.5f, 1.1f), Random.Range(-0.3f, 0.3f)), Hdr(i % 2 == 0 ? CURSE.Main : P.Main, 0.8f), Random.Range(0.12f, 0.22f) * s, Random.Range(0.9f, 1.5f)); break;
+                case Motif.Bones:
+                    for (int i = 0; i < n; i++) Spark(_fall, pos, Out(2.4f * s) + Vector3.up * 1.4f * s, Hdr(new Color(1.1f, 1.05f, 0.9f), 0.7f), 0.07f * s, 0.6f);
+                    GroundFx(_ring, pos, 0.3f * s, 1.2f * s, CURSE.Main, 0.4f, 0.3f, 0, 0, true); break;
+                case Motif.Mud:
+                    Smoke(pos, N(5 * s), new Color(0.32f, 0.24f, 0.15f), 0.3f * s, 0.5f * s, 0.7f, 0.7f);
+                    for (int i = 0; i < N(8 * s); i++) Spark(_under, pos, Out(2f * s), new Color(0.28f, 0.2f, 0.12f, 0.9f), 0.08f * s, 0.45f); break;
+                case Motif.Runes:
+                    GroundFx(_rune, pos, 0.4f * s, 1.0f * s, P.Main, 0.8f, 0.5f, 2.2f, 0, true); Sparks(pos, N(8 * s), P.Core, 1.6f * s, 0.06f, 0.4f); break;
+                case Motif.Notes:
+                    for (int i = 0; i < n; i++) { float a = Random.Range(0, Mathf.PI * 2); Spark(_over, pos + new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 0.35f * s, new Vector3(Mathf.Cos(a) * 0.4f, Random.Range(0.8f, 1.5f), Mathf.Sin(a) * 0.4f), Hdr(GOLD.Core, 0.9f), Random.Range(0.06f, 0.11f) * s, 0.9f); }
+                    GroundFx(_ring, pos, 0.2f * s, 1.0f * s, GOLD.Main, 0.5f, 0.35f, 0, 0, true); break;
+                case Motif.Poison:
+                    Smoke(pos, N(4 * s), new Color(0.35f, 0.55f, 0.2f), 0.3f * s, 0.5f * s, 0.9f, 0.45f);
+                    for (int i = 0; i < n; i++) Spark(_over, pos + Random.insideUnitSphere * 0.3f, new Vector3(0, Random.Range(0.4f, 1f), 0), Hdr(new Color(0.7f, 2.4f, 0.4f), 0.8f), 0.07f * s, 0.8f); break;
+                case Motif.Shards:
+                    for (int i = 0; i < n; i++) Spark(_over, pos, Out(4f * s), Hdr(Pale(P.Core, 0.3f), 1.2f), Random.Range(0.05f, 0.1f) * s, 0.3f);
+                    GroundFx(_burst, pos, 0.3f * s, 1.0f * s, P.Core, 0.6f, 0.18f, 0, 0, true); break;
+                default: // Motes
+                    for (int i = 0; i < n; i++) Spark(_over, pos + Random.insideUnitSphere * 0.4f * s, new Vector3(Random.Range(-0.25f, 0.25f), Random.Range(0.5f, 1.2f), Random.Range(-0.25f, 0.25f)), Hdr(i % 2 == 0 ? P.Core : GOLD.Core, 0.9f), Random.Range(0.05f, 0.1f) * s, 1.0f); break;
+            }
+        }
+        IEnumerator BoltRoutine(Vector3 pos, Pal P, float s)
+        {
+            var go = new GameObject("Bolt"); go.transform.SetParent(transform, false);
+            var lr = go.AddComponent<LineRenderer>(); lr.sharedMaterial = _add; lr.positionCount = 9; lr.widthMultiplier = 0.06f * s;
+            lr.colorGradient = Grad(Hdr(P.Core, 2f), Hdr(P.Main, 1.5f));
+            for (int flick = 0; flick < 3; flick++)
+            {
+                var top = pos + new Vector3(Random.Range(-0.4f, 0.4f), 2.4f * s, Random.Range(-0.4f, 0.4f));
+                for (int i = 0; i < 9; i++) { float u = i / 8f; lr.SetPosition(i, Vector3.Lerp(top, pos, u) + (i > 0 && i < 8 ? Random.insideUnitSphere * 0.18f * s : Vector3.zero)); }
+                yield return new WaitForSeconds(0.05f);
+            }
+            Destroy(go);
+        }
+
+        // A short glowing trail on the weapon hand for one melee strike (element colour).
+        public void WeaponTrail(Transform hand, Element el, float dur = 0.45f) { if (hand != null) StartCoroutine(TrailRoutine(hand, Of(el), dur)); }
+        IEnumerator TrailRoutine(Transform hand, Pal P, float dur)
+        {
+            var go = new GameObject("WeaponTrail"); go.transform.SetParent(hand, false); go.transform.localPosition = Vector3.zero;
+            var tr = go.AddComponent<TrailRenderer>(); tr.sharedMaterial = _add; tr.time = 0.18f; tr.widthMultiplier = 0.12f; tr.widthCurve = AnimationCurve.Linear(0, 1, 1, 0);
+            tr.colorGradient = Grad(Hdr(P.Core, 1.2f), Hdr(P.Main, 0.6f)); tr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            yield return new WaitForSeconds(dur);
+            if (go != null) { go.transform.SetParent(transform, true); tr.emitting = false; Destroy(go, 0.3f); }
+        }
+
+        // Legendary heroes' ambient aura: one or two motif motes drifting up around them.
+        public void Aura(Vector3 pos, Element el, Motif m)
+        {
+            var P = Of(el);
+            for (int i = 0; i < N(1.5f); i++)
+            {
+                var off = Random.insideUnitCircle * 0.55f;
+                Spark(m == Motif.Petals || m == Motif.Leaves || m == Motif.Feathers ? _fall : _over, pos + new Vector3(off.x, Random.Range(0.1f, 1.2f), off.y), new Vector3(0, Random.Range(0.25f, 0.6f), 0), Hdr(P.Core, 0.5f), Random.Range(0.04f, 0.08f), 1.4f);
+            }
         }
 
         public void TitanSlam(Vector3 pos, Element el)

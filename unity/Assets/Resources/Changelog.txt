@@ -2,6 +2,11 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Signature effects
+new: Every hero now has a signature effect from their design: embers, wind swirls, splashes, petals, lightning, wisps, notes and more, on every hit and big on ultimates.
+new: Melee strikes leave a glowing trail in the hero's element colour.
+new: Legendary heroes carry a faint aura of their signature effect.
+
 ## 2026-11-26 | Painted buttons
 new: Buttons are now hand-painted gold, violet and crimson plates with jewelled ornaments. Prefer the old look? Settings > Painted interface > Classic.
 

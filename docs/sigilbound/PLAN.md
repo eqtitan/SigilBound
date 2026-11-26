@@ -335,7 +335,7 @@ Owner decision: do all four upgrades, all free (CC0 and code; no paid tools). Go
 - [ ] **51–52. Painted details.**
   - A decal pass in forge.py's baking that paints per-hero patterns into the albedo and glow: tattoos, scars, embroidery, armour trim, face paint, element runes.
   - Checked in the hero viewer close-up and at battle size.
-- [ ] **53–55. Signature animations and effects.**
+- [x] **53–55. Signature animations and effects.** Done 2026-11-26 (game side): every hero has a signature motif read from its approved design's fx line (`docs/sigilbound/sigfx.py` → `Core/Kit/HeroSignatures.cs`, 19 motifs: wind swirls, rising embers, splashes, bubbles, frost, petals, leaves, feathers, stars, lightning, smoke, wisps, bones, mud, runes, notes, poison, shards, motes). It plays on each of the hero's hits, big on ultimates (caster and every target), melee strikes leave an element trail on the weapon hand, and Legendary heroes carry a faint ambient aura (off at Low quality). Per-hero clips: the free UAL tier is used up (48 clips, assigned per weapon family, role and hero desync); more distinct clips would be hand-authored in `make_clips.py` (as Spear_Thrust, Hit_Kneel), not bought. SignatureTests guard full coverage and the spread.
   - Every hero gets its own attack and cast clips from the free UAL animation library (more clips added to anims_ual.json, retargeted as today).
   - Plus an element aura or trail and a signature skill effect (SkillFx), so heroes feel different in battle as well as looking different.
   - The screenshot tour gallery checks every batch.
