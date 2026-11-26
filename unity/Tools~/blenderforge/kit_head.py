@@ -29,6 +29,8 @@ class Ctx:
         self.rng = random.Random(zlib.crc32(c["id"].encode()))
         self.hb = U.head_box(arm)
         self.fit = G.Fit(U.body_bvh())
+        self._face = None
+
         o = c.get("outfit", {}) or {}
         self.head_txt = str(o.get("head", "")).replace("custom:", "").lower()
         self.kit_txt = " | ".join(str(k) for k in c.get("kit", [])).lower()
@@ -36,6 +38,26 @@ class Ctx:
         self.species = str(c.get("species", "human")).lower()
         self.pal = c.get("palette", {})
         self._m = {}
+
+    @property
+    def face(self):
+        """Fitting against the bare head only (skin faces above the neck): masks sit on the face, not on
+        hair or a hood (owner polish pass: masks bulged where rays hit the hair)."""
+        if self._face is None:
+            from mathutils.bvhtree import BVHTree
+            dg = bpy.context.evaluated_depsgraph_get(); verts, polys = [], []
+            nz = self.hb["base"]
+            for o in bpy.context.scene.objects:
+                if o.type != "MESH" or o.name.startswith(("Kit_", "Icosphere")): continue
+                skin = {i for i, m in enumerate(o.data.materials) if m and "Regular" in m.name}
+                if not skin: continue
+                me = o.evaluated_get(dg).to_mesh(); mw = o.matrix_world; base = len(verts)
+                verts += [mw @ v.co for v in me.vertices]
+                for p_ in me.polygons:
+                    if p_.material_index in skin and (mw @ p_.center).z > nz - 0.02: polys.append([base + i for i in p_.vertices])
+                o.evaluated_get(dg).to_mesh_clear()
+            self._face = G.Fit(BVHTree.FromPolygons(verts, polys)) if polys else self.fit
+        return self._face
 
     # materials: kind = cloth | metal | glow | leather | stone | horn | skin | fur | glass
     def mat(self, hexcol, kind="cloth"):
@@ -758,7 +780,7 @@ def veil(X, text, back=True, hood=False):
     cloth simulation against the dressed body (like kit_cloth's gowns), then skinned head -> neck -> spine."""
     base_c = G.colour_in(text, None)
     if base_c is None:
-        mc = P.hexc(X.pal.get("main", "#c8c0d0")); base_c = "#%02x%02x%02x" % tuple(int(255 * min(1, (c ** (1 / 2.2)) * 0.45 + 0.5)) for c in mc[:3])
+        mc = P.hexc(X.pal.get("main", "#c8c0d0")); base_c = "#%02x%02x%02x" % tuple(int(255 * min(1, (c ** (1 / 2.2)) * 0.35 + 0.62)) for c in mc[:3])
     if has(text, "black", "eclipse"): base_c = "#1e1b22"
     if has(text, "frost", "ice"): base_c = "#d8ecfa"
     vm = X.mat(base_c)
@@ -818,7 +840,12 @@ def veil(X, text, back=True, hood=False):
     for b in colliders:
         for m in [m for m in b.modifiers if m.name == "SBCollisionV"]: b.modifiers.remove(m)
     o.vertex_groups.remove(o.vertex_groups["pin"])
-    KC._select(o); md = o.modifiers.new("S", "SOLIDIFY"); md.thickness = 0.003; md.offset = 1.0; bpy.ops.object.modifier_apply(modifier="S")
+    # a soft hem: the lowest rows in a lighter tint of the veil (it reads thinner toward its edge)
+    hem_m = X.mat("#%02x%02x%02x" % tuple(min(255, int(int(base_c[k:k + 2], 16) * 0.55 + 255 * 0.45)) for k in (1, 3, 5)))
+    o.data.materials.append(hem_m); zmin = min(v.co.z for v in o.data.vertices)
+    for p_ in o.data.polygons:
+        if p_.center.z < zmin + 0.05: p_.material_index = 1
+    KC._select(o); md = o.modifiers.new("S", "SOLIDIFY"); md.thickness = 0.0015; md.offset = 1.0; bpy.ops.object.modifier_apply(modifier="S")
     for p_ in o.data.polygons: p_.use_smooth = True
     parts = [o]
     if has(text, "star", "fleck"):
@@ -863,7 +890,7 @@ def mask(X, text):
             u = -1 + 2 * j / cols_
             if has(text, "cracked"): u = -1 + (2 * j / cols_) * 0.62
             a = FRONT + u * wa * w_
-            r = X.fit.radius(X.cx, X.cy, z, a, X.hw, 0.45) + 0.012
+            r = X.face.radius(X.cx, X.cy, z, a, X.hw, 0.45) + 0.007
             row.append(bm.verts.new((X.cx + math.cos(a) * r, X.cy + math.sin(a) * r, z)))
         grid.append(row)
     for i in range(rows_):
@@ -877,16 +904,16 @@ def mask(X, text):
     for sx in (-1, 1):
         a = FRONT + sx * 0.38
         if a > a1: continue
-        r = X.fit.radius(X.cx, X.cy, X.eye, a, X.hw, 0.45) + 0.016
+        r = X.face.radius(X.cx, X.cy, X.eye, a, X.hw, 0.45) + 0.016
         p = Vector((X.cx + math.cos(a) * r, X.cy + math.sin(a) * r, X.eye))
         parts.append(G.sphere(p, 0.012, dark, segs=10, scale=(1.3, 0.35, 0.7), M=G.frame_xz((-math.sin(a), math.cos(a), 0), (0, 0, 1))))
     if has(text, "bone"):
         for k in range(7):
             a = FRONT - 0.6 + k * 0.2; z = X.eye - 0.04 - 0.01 * (k % 2)
-            r = X.fit.radius(X.cx, X.cy, z, a, X.hw, 0.45) + 0.02
+            r = X.face.radius(X.cx, X.cy, z, a, X.hw, 0.45) + 0.02
             parts.append(G.sphere(Vector((X.cx + math.cos(a) * r, X.cy + math.sin(a) * r, z)), 0.007, X.mat("#e0d4b6", "horn"), segs=8, scale=(1, 1, 1.6)))
     if has(text, "crack"):
-        a = FRONT + 0.1; r = X.fit.radius(X.cx, X.cy, X.eye, a, X.hw, 0.45) + 0.019
+        a = FRONT + 0.1; r = X.face.radius(X.cx, X.cy, X.eye, a, X.hw, 0.45) + 0.019
         p = Vector((X.cx + math.cos(a) * r, X.cy + math.sin(a) * r, X.eye + 0.01))
         parts.append(G.extrude([(0, 0.03), (0.004, 0.012), (-0.003, 0.0), (0.004, -0.018), (0.001, -0.02), (-0.007, 0.0), (0.0, 0.012), (-0.003, 0.03)], 0.002, dark, p, Vector((1, 0, 0)), Vector((0, 0, 1))))
     return X.add(G.join(parts), "Head", piece="mask" + (":half" if half else ""))
@@ -979,6 +1006,54 @@ def animal_ears(X, kind, mat, inner_mat, z_off=0.0):
         ipts = [p + Vector((0, -0.007, 0.004)) for p in pts[:-1]]
         parts.append(G.sweep(ipts, [(p * 0.62, max(0.002, p * 0.12)) for p in prof[:-1]], inner_mat, segs=8, side=side))
     return G.join(parts, "Kit_Species")
+
+
+def face_plate(X, mat, z_lo, z_hi, half_w=1.05, out=0.006):
+    """A feathered or furred cover over the middle of the face (cheeks to brow), fitted to the bare head,
+    so a beak or muzzle grows from it instead of sitting on a human nose."""
+    rows_, cols_ = 10, 16; bm = bmesh.new(); grid = []
+    for i in range(rows_ + 1):
+        v = i / rows_; z = z_lo + (z_hi - z_lo) * v
+        w_ = half_w * (0.75 + 0.25 * math.sin(math.pi * v))
+        row = []
+        for j in range(cols_ + 1):
+            a = FRONT + (-1 + 2 * j / cols_) * w_
+            r = X.face.radius(X.cx, X.cy, z, a, X.hw, 0.45) + out
+            row.append(bm.verts.new((X.cx + math.cos(a) * r, X.cy + math.sin(a) * r, z)))
+        grid.append(row)
+    for i in range(rows_):
+        for j in range(cols_): bm.faces.new((grid[i][j], grid[i][j + 1], grid[i + 1][j + 1], grid[i + 1][j]))
+    o = G._obj("Kit_Species", bm, mat)
+    for x in bpy.context.selected_objects: x.select_set(False)
+    o.select_set(True); bpy.context.view_layer.objects.active = o
+    md = o.modifiers.new("S", "SOLIDIFY"); md.thickness = 0.004; md.offset = 1.0; bpy.ops.object.modifier_apply(modifier="S")
+    return o
+
+
+def beak2(X, kind, mat, plate_mat):
+    """Polish pass: a beak with a broad base that grows out of a feathered face plate (raven: long, hooked;
+    owl: short and hooked down), so it reads as a bird's face, not a nose."""
+    root = Vector((X.cx, X.face.radius(X.cx, X.cy, X.eye - 0.02, FRONT, X.hw, 0.45) * -1 + X.cy + 0.004, X.eye - 0.02))
+    plate = face_plate(X, plate_mat, X.eye - 0.07, X.brow + 0.01)
+    if kind == "owl":
+        pts = G.bezier(root + Vector((0, 0.012, 0.004)), root + Vector((0, -0.022, -0.004)), root + Vector((0, -0.03, -0.04)), n=9)
+        b = G.sweep(pts, [(r * 1.25, r * 0.9) for r in G.taper(10, 0.026, 0.002)], mat, segs=12, side=Vector((0, 0, 1)))
+    else:
+        pts = G.bezier(root + Vector((0, 0.014, 0.006)), root + Vector((0, -0.05, -0.002)), root + Vector((0, -0.085, -0.035)), n=11)
+        b = G.sweep(pts, [(r * 1.3, r * 0.85) for r in G.taper(12, 0.03, 0.0015)], mat, segs=12, side=Vector((0, 0, 1)))
+    return G.join([plate, b], "Kit_Species")
+
+
+def muzzle2(X, mat, nose_mat, plate_mat):
+    """Polish pass: a bear or lion muzzle: a furred face plate over cheeks and mouth with a broad snout
+    pad sunk into it and a nose at the tip, so it blends into the face."""
+    zc = X.eye - 0.05
+    plate = face_plate(X, plate_mat, X.base + 0.01, X.eye - 0.005, half_w=1.2, out=0.005)
+    fr = X.face.radius(X.cx, X.cy, zc, FRONT, X.hw, 0.45)
+    c = Vector((X.cx, X.cy - fr - 0.004, zc))
+    snout = G.sphere(c, 0.04, mat, segs=16, scale=(1.25, 0.95, 0.72))
+    nose = G.sphere(c + Vector((0, -0.036, 0.012)), 0.014, nose_mat, segs=12, scale=(1.35, 0.85, 0.8))
+    return G.join([plate, snout, nose], "Kit_Species")
 
 
 def beak(X, kind, mat):
@@ -1319,9 +1394,12 @@ def species(c, arm, mats, U):
     if ("tidekin" in sp or "merfolk" in sp or has(accs, "fin ears")) and not has(h, "fin-ear"):
         if True: X.add(fin_ears(X, X.mat("#5ac8c0", "glass")), "Head", tag="Kit_Species", piece="fin ears")
     # faces
-    if "raven" in sp: X.add(beak(X, "raven", X.mat("#1e1b22", "horn")), "Head", tag="Kit_Species", piece="raven beak"); X.add(crest_feathers(X, X.mat("#2a2632")), "Head", tag="Kit_Species", piece="raven crest")
-    if "owl" in sp: X.add(beak(X, "owl", X.mat("#d8b04a", "horn")), "Head", tag="Kit_Species", piece="owl beak"); X.add(ear_tufts(X, fur), "Head", tag="Kit_Species", piece="owl ear tufts")
-    # (no muzzles or turtle beaks: on the human face they read as a stuck-on nose; ears, manes and tails carry the species)
+    if "raven" in sp: X.add(beak2(X, "raven", X.mat("#1e1b22", "horn"), X.mat("#2a2632")), "Head", tag="Kit_Species", piece="raven beak + face"); X.add(crest_feathers(X, X.mat("#2a2632")), "Head", tag="Kit_Species", piece="raven crest")
+    if "owl" in sp: X.add(beak2(X, "owl", X.mat("#d8b04a", "horn"), fur), "Head", tag="Kit_Species", piece="owl beak + face"); X.add(ear_tufts(X, fur), "Head", tag="Kit_Species", piece="owl ear tufts")
+    # Polish pass: bear and lion muzzles grow from a furred face plate (alone they read as a stuck-on nose)
+    for k in ("bear", "lion"):
+        if k in sp and not has(h, "mask", "helm"):
+            X.add(muzzle2(X, fur, X.mat("#1e1712", "horn"), fur), "Head", tag="Kit_Species", piece=k + " muzzle + face"); break
     if "lion" in sp: X.add(mane(X, X.mat((c.get("hair") or {}).get("colour", "#9a6a2a"))), {"Head": 0.8, "neck_01": 0.2}, tag="Kit_Species", piece="lion mane")
     if has(accs, "bulbous", "nose"): X.add(G.sphere(Vector((X.cx, X.front - 0.004, X.eye - 0.028)), 0.018, skin, segs=12, scale=(1, 0.9, 0.85)), "Head", tag="Kit_Species", piece="bulbous nose")
     # horns from species (if the design text did not already give them)
