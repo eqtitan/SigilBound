@@ -609,6 +609,20 @@ namespace Sigilbound.Client
             t.SetPixels32(px); t.Apply(true);
         }
 
+        // Low quality: the high-detail heroes' normal maps off (on again above Low). Applies to every loaded
+        // hero material now and to any loaded later.
+        static bool _lowDetail;
+        public static void SetLowDetail(bool low)
+        {
+            _lowDetail = low;
+            foreach (var kv in _hdLibs) NormalMapOn(kv.Value.mat);
+        }
+        static void NormalMapOn(Material m)
+        {
+            if (m == null || !m.HasProperty("_BumpMap")) return;
+            if (!_lowDetail && m.GetTexture("_BumpMap") != null) m.EnableKeyword("_NORMALMAP"); else m.DisableKeyword("_NORMALMAP");
+        }
+
         static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D glow, Element el, bool hollow = false)
         {
             var sh = Shader.Find("Sigilbound/CharacterPainted");
@@ -628,6 +642,7 @@ namespace Sigilbound.Client
             }
             if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", hollow ? Palette.Hex("#ff3355") : Palette.Element(el));
             if (hollow) mat.name += "_Hollow";
+            NormalMapOn(mat);
             return mat;
         }
 

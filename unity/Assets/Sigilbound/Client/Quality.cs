@@ -116,6 +116,12 @@ namespace Sigilbound.Client
 #endif
             SkillFx.I?.SetTier(Tier);
             PostFx.SetTier(Tier);
+            // Low: up to 10 high-detail heroes on screen, so skinning takes 2 bones per vertex and the hero
+            // materials drop their normal maps (PLAN step 58).
+#if UNITY_2019_3_OR_NEWER
+            QualitySettings.skinWeights = Tier == 0 ? SkinWeights.TwoBones : SkinWeights.FourBones;
+#endif
+            HeroModels.SetLowDetail(Tier == 0);
             _acc = 0; _frames = 0; _settle = 3f; _pending = -1;
         }
 
