@@ -15,6 +15,20 @@ namespace Sigilbound.Client
         public Unit Unit;
         public GearLook Gear;             // equipped gear shown on the model (rarity and set)
         public HeroModel Hero => _model;
+        public Vector3 Home => _home;
+        // Thrown back from `from` by `dist` metres and back again (Titan finishers): out 0.14 s, hold, back 0.5 s.
+        public void Shove(Vector3 from, float dist) { if (!gameObject.activeInHierarchy) return; if (_hitCo != null) { StopCoroutine(_hitCo); _hitCo = null; } StartCoroutine(ShoveRoutine(from, dist)); }
+        IEnumerator ShoveRoutine(Vector3 from, float dist)
+        {
+            var dir = transform.position - from; dir.y = 0; if (dir.sqrMagnitude < 1e-4f) dir = -transform.forward; dir.Normalize();
+            var start = transform.position; var outPos = start + dir * dist;
+            if (_model != null && !_dead) _model.Hit(true);
+            for (float t = 0; t < 0.14f; t += Time.deltaTime) { float k = t / 0.14f; transform.position = Vector3.Lerp(start, outPos, 1 - (1 - k) * (1 - k)) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 0.25f * dist; yield return null; }
+            transform.position = outPos;
+            yield return new WaitForSeconds(0.15f);
+            for (float t = 0; t < 0.5f; t += Time.deltaTime) { transform.position = Vector3.Lerp(outPos, _home, EaseIO(t / 0.5f)); yield return null; }
+            transform.position = _home;
+        }
         public Transform Model, ArmR, ArmL, HeadTop, Aura, Ring;
         Animator _animator;
         HeroModel _model;

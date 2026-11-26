@@ -2,6 +2,7 @@
 // is testable outside Unity. Coordinates here are Unity's (left-handed, +Z away from the default
 // camera): the web's three.js (x, y, z) maps to (x, y, -z), which keeps the same picture on screen.
 using System;
+using System.Linq;
 
 namespace Sigilbound.Core
 {
@@ -19,7 +20,10 @@ namespace Sigilbound.Core
         public override string ToString() => $"({X:0.###}, {Y:0.###}, {Z:0.###})";
     }
 
-    public sealed class CameraPreset { public string Key, Name; public double Yaw, Pitch; }
+    public sealed class CameraPreset { public string Key, Name; public double Yaw, Pitch; public bool TitanOnly; }
+
+    // A solved camera: where it stands, what it looks at, its vertical field of view (degrees).
+    public struct CamView { public V3 Eye, Target; public double Fov; }
 
     public static class BattleLayout
     {
@@ -70,10 +74,100 @@ namespace Sigilbound.Core
             return new V3(t.X + Math.Sin(yaw) * h, t.Y + Math.Sin(pitch) * dist, t.Z - Math.Cos(yaw) * h);
         }
         // The Titan's head-and-tag points (each must stay under TitanCeiling).
+        // The high-detail Titan stands behind the far rim, head at TitanHead metres (heroes: 1.85), so it
+        // towers over the team (owner: "players should say wow, that Titan is massive").
+        public const double TitanHead = 4.8, TitanBack = 1.2;
+        public static V3 TitanSlot() => Slot(false, 0, 1) + new V3(0, 0, TitanBack);
         public static V3[] TitanPoints()
         {
-            var s = Slot(false, 0, 1);
-            return new[] { new V3(s.X, 4.9, s.Z), new V3(s.X - 1.2, 4.3, s.Z), new V3(s.X + 1.2, 4.3, s.Z) };
+            var s = TitanSlot(); double top = TitanHead * 1.22; // horns and the name tag above the head
+            return new[] { new V3(s.X, top, s.Z), new V3(s.X - 1.5, TitanHead * 0.85, s.Z), new V3(s.X + 1.5, TitanHead * 0.85, s.Z) };
+        }
+
+        // ---------- Titan-only views (owner picks, 2026-11-26) ----------
+        public static readonly CameraPreset[] TitanCameras =
+        {
+            new CameraPreset { Key = "worm", Name = "Worm's-eye", TitanOnly = true },
+            new CameraPreset { Key = "side", Name = "Side duel", TitanOnly = true },
+            new CameraPreset { Key = "shoulder", Name = "Titan's shoulder", TitanOnly = true },
+        };
+        public const string DefaultTitanCamera = "worm";
+        // The View button's cycle in a Titan fight: the Titan views first, then the usual five.
+        public static CameraPreset[] TitanCycle => TitanCameras.Concat(Cameras).ToArray();
+        public static CameraPreset AnyCamera(string key, bool titan) =>
+            (titan ? Array.Find(TitanCameras, c => c.Key == key) : null) ?? Camera(key);
+
+        static V3 NearArc => new V3(RimCx, 0, RimCz - RimRz);
+        public static V3 TeamCentre => new V3(0, 0, RimCz - RimRz * 0.72);
+
+        // Points a Titan view must keep in frame: each ally (4 slots, feet and head) and the Titan's feet;
+        // the Titan's head and tag (TitanPoints) must also stay under TitanCeiling, except over its shoulder.
+        public static V3[] AllyPoints()
+        {
+            var pts = new System.Collections.Generic.List<V3>();
+            for (int i = 0; i < 4; i++) { var p = Slot(true, i, 4); pts.Add(p + new V3(0, 0.05, 0)); pts.Add(p + new V3(0, 2.4, 0)); }
+            return pts.ToArray();
+        }
+
+        // Projects p for a camera at `eye` looking at `target`.
+        public static (double x, double y)? ProjectTo(V3 eye, V3 target, double fovDeg, double aspect, V3 p)
+        {
+            var f = (target - eye).Normalized;
+            var r = new V3(0, 1, 0).Cross(f).Normalized;
+            var u = f.Cross(r);
+            var d = p - eye;
+            double z = d.Dot(f);
+            if (z <= 0.3) return null;
+            double t = Math.Tan(fovDeg * Math.PI / 360);
+            return (d.Dot(r) / (z * t * aspect), d.Dot(u) / (z * t));
+        }
+
+        // True when the view keeps every ally and the Titan's feet in frame, and (unless shoulder) its head
+        // and tag under the HUD ceiling.
+        public static bool TitanViewFits(CamView v, double aspect, bool headRule)
+        {
+            bool In(V3 p, double top) { var q = ProjectTo(v.Eye, v.Target, v.Fov, aspect, p); return q != null && Math.Abs(q.Value.x) <= 0.95 && q.Value.y <= top && q.Value.y >= -0.84; }
+            foreach (var p in AllyPoints()) if (!In(p, 0.84)) return false;
+            if (!headRule) return true;
+            if (!In(TitanSlot() + new V3(0, 0.05, 0), 0.84)) return false;
+            foreach (var p in TitanPoints()) if (!In(p, TitanCeiling)) return false;
+            return true;
+        }
+
+        // Solves a Titan view for this aspect: each kind has a rail (eye(d)) and the closest d that fits.
+        public static CamView TitanView(string key, double aspect)
+        {
+            var ts = TitanSlot(); var near = NearArc; bool portrait = aspect < 0.75;
+            Func<double, CamView> rail; bool head = true;
+            switch (key)
+            {
+                case "side": // ground-level, side-on: the team on the left of the screen, the Titan on the right
+                    double mid = (near.Z + ts.Z) / 2;
+                    rail = d => new CamView { Eye = new V3(d, 1.5, mid - 0.4), Target = new V3(0, TitanHead * 0.8, mid), Fov = portrait ? 60 : 26 };
+                    break;
+                case "shoulder": // behind and above the Titan's right shoulder (its right is world -X), looking down at the team
+                    head = false;
+                    var sh = new V3(ts.X - 1.1, TitanHead * 1.12, ts.Z + 1.3);
+                    var tgt = TeamCentre + new V3(0, 0.9, 0);
+                    var back = (sh - tgt).Normalized;
+                    rail = d => new CamView { Eye = sh + back * (1.5 + d), Target = tgt, Fov = portrait ? 62 : 48 };
+                    break;
+                default: // worm: knee height behind the team, a long lens tilted up at the Titan
+                    rail = d => new CamView { Eye = new V3(0, 0.85, near.Z - 24.0 - d), Target = new V3(0, TitanHead * 0.78, ts.Z), Fov = portrait ? 28 : 15 };
+                    break;
+            }
+            double lo = 0, hi = 60;
+            if (!TitanViewFits(rail(hi), aspect, head)) return rail(hi);
+            for (int i = 0; i < 26; i++) { double m = (lo + hi) / 2; if (TitanViewFits(rail(m), aspect, head)) hi = m; else lo = m; }
+            return rail(hi);
+        }
+
+        // Any battle view (the usual presets, or a Titan view in a Titan fight).
+        public static CamView View(string key, double aspect, bool titan)
+        {
+            var c = AnyCamera(key, titan);
+            if (c.TitanOnly) return TitanView(c.Key, aspect);
+            return new CamView { Eye = CameraPosition(c, FitDistance(c, aspect, titan), titan), Target = Target(titan), Fov = FovFor(aspect) };
         }
 
         // Points that must stay on screen: the whole rim with head height and HUD-tag points above it.

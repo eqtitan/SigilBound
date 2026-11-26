@@ -39,7 +39,7 @@ namespace Sigilbound.Client
         public static Pal Of(Element e) => Palettes[e.ToString().ToLowerInvariant()];
 
         Camera _cam; ParticleSystem _over, _under, _fall; Material _add, _alpha;
-        Texture2D _dot, _ring, _rune, _streak, _hex, _burst;
+        Texture2D _dot, _ring, _rune, _streak, _hex, _burst, _crack;
         float _mult = 1f; // particle count scale by quality tier (Low 0.35 .. Ultra 1.2)
         Renderer _flash; float _flashT = -1, _flashDur;
 
@@ -71,6 +71,23 @@ namespace Sigilbound.Client
             _add = new Material(addShader); _alpha = new Material(Shader.Find("Sprites/Default"));
             _dot = Tex(64, (u, v) => { float d = Mathf.Sqrt(u * u + v * v); return Mathf.Clamp01(1 - d) * Mathf.Clamp01(1 - d); });
             _ring = Tex(128, (u, v) => { float d = Mathf.Sqrt(u * u + v * v); return Mathf.Clamp01(1 - Mathf.Abs(d - 0.82f) / 0.1f); });
+            // Ground cracks (Titan finishers): nine jagged rays branching out from the centre.
+            _crack = Tex(256, (u, v) =>
+            {
+                float r = Mathf.Sqrt(u * u + v * v), a = Mathf.Atan2(v, u), step = Mathf.PI * 2 / 9, best = 0;
+                if (r < 0.04f || r > 1) return 0;
+                for (int k = -1; k <= 9; k++)
+                {
+                    float ray = k * step + Mathf.Sin(r * 11 + k * 7.3f) * 0.16f + Mathf.Sin(r * 31 + k) * 0.05f;
+                    float d = Mathf.Abs(Mathf.DeltaAngle(a * Mathf.Rad2Deg, ray * Mathf.Rad2Deg)) * Mathf.Deg2Rad * r;
+                    float w = 0.022f * (1 - r * 0.7f);
+                    best = Mathf.Max(best, Mathf.Clamp01(1 - d / w));
+                    // a side branch from each ray halfway out
+                    float ray2 = ray + 0.35f * (k % 2 == 0 ? 1 : -1);
+                    if (r > 0.45f) { float d2 = Mathf.Abs(Mathf.DeltaAngle(a * Mathf.Rad2Deg, ray2 * Mathf.Rad2Deg)) * Mathf.Deg2Rad * r; best = Mathf.Max(best, 0.8f * Mathf.Clamp01(1 - d2 / (w * 0.7f))); }
+                }
+                return best * Mathf.Clamp01((1 - r) * 3);
+            });
             _burst = Tex(128, (u, v) => { float d = Mathf.Sqrt(u * u + v * v), a = Mathf.Atan2(v, u); return Mathf.Clamp01(1 - d) * (0.4f + 0.6f * Mathf.Pow(Mathf.Abs(Mathf.Cos(a * 6)), 8)); });
             _rune = Tex(256, (u, v) =>
             {
@@ -486,6 +503,27 @@ namespace Sigilbound.Client
                 var off = Random.insideUnitCircle * 0.55f;
                 Spark(m == Motif.Petals || m == Motif.Leaves || m == Motif.Feathers ? _fall : _over, pos + new Vector3(off.x, Random.Range(0.1f, 1.2f), off.y), new Vector3(0, Random.Range(0.25f, 0.6f), 0), Hdr(P.Core, 0.5f), Random.Range(0.04f, 0.08f), 1.4f);
             }
+        }
+
+        // Burning cracks spreading across the ground from pos (Titan finishers), with a dust ring.
+        public void Cracks(Vector3 pos, Element el, float radius = 4)
+        {
+            var P = Of(el); var g = new Vector3(pos.x, 0.03f, pos.z);
+            GroundFx(_crack, g, radius * 0.3f, radius, P.Main, 1.2f, 1.8f);
+            GroundFx(_crack, g, radius * 0.2f, radius * 0.85f, P.Core, 0.7f, 1.0f, 0, 0.05f);
+            Dust(pos, radius * 0.6f, el);
+        }
+        // A rolling ring of dust and grit (the Titan landing, roaring, slamming).
+        public void Dust(Vector3 pos, float radius, Element el)
+        {
+            int n = N(18 * Mathf.Clamp(radius / 2, 0.5f, 2));
+            for (int i = 0; i < n; i++)
+            {
+                float a = i / (float)n * Mathf.PI * 2; var d = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
+                var col = new Color(0.32f, 0.27f, 0.22f, 0.55f);
+                Spark(_under, new Vector3(pos.x, 0.25f, pos.z) + d * radius * 0.3f, d * Random.Range(1.4f, 2.6f) * radius / 2 + Vector3.up * Random.Range(0.2f, 0.7f), col, Random.Range(0.5f, 0.9f) * Mathf.Clamp(radius / 2, 0.6f, 1.6f), Random.Range(0.8f, 1.3f));
+            }
+            Sparks(pos + Vector3.up * 0.2f, N(12), Of(el).Main, 3f, 0.07f, 0.5f, 1.5f);
         }
 
         public void TitanSlam(Vector3 pos, Element el)

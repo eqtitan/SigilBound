@@ -31,16 +31,52 @@ namespace Sigilbound.Client
             fill.type = LightType.Directional; fill.intensity = 0.35f; fill.color = new Color(0.6f, 0.7f, 1f);
             fill.transform.rotation = Quaternion.Euler(20, 150, 0);
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            a.SetPose(new Vector3(0, 7.2f, -9.6f), new Vector3(0, 0.9f, 1.1f), 42); // the rig's starting pose
             return a;
+        }
+
+        // ---------- camera rig ----------
+        // The camera's pose = the framed view (_pose*), then the Titan's breathing tilt, then any cinematic
+        // override (Titan intro, finishers), then the screen-shake offset (Vfx.ShakeOffset). LateUpdate
+        // composes them, so nothing else writes the camera transform.
+        Vector3 _posePos; Quaternion _poseRot = Quaternion.identity; float _poseFov = 42;
+        float _breath, _ovW; public float BreathTarget;   // 0..1: the Titan winding up (BattleController)
+        Vector3 _ovPos; Quaternion _ovRot = Quaternion.identity; float _ovFov = 42;
+        public Vector3 BreathFocus;                        // where the breathing tilt looks (the Titan's head)
+        public static float MotionScale => (Vfx.ShakeSetting?.Invoke() ?? "full") switch { "off" => 0f, "reduced" => 0.4f, _ => 1f };
+
+        void SetPose(Vector3 pos, Vector3 target, float fov)
+        {
+            _posePos = pos; _poseRot = Quaternion.LookRotation(target - pos); _poseFov = fov;
+            Cam.transform.position = pos; Cam.transform.rotation = _poseRot; Cam.fieldOfView = fov;
+        }
+        // A cinematic camera, blended in with weight w (0 = the battle view).
+        public void Override(Vector3 pos, Vector3 lookAt, float fov, float w)
+        {
+            _ovPos = pos; if ((lookAt - pos).sqrMagnitude > 1e-4f) _ovRot = Quaternion.LookRotation(lookAt - pos); _ovFov = fov; _ovW = Mathf.Clamp01(w);
+        }
+        public void ClearOverride() => _ovW = 0;
+        public Vector3 PosePosition => _posePos;
+        public Quaternion PoseRotation => _poseRot;
+
+        void ComposeCamera()
+        {
+            // Breathing tilt: eases toward the target in ~0.35 s (time-based, frame-rate independent).
+            _breath = Mathf.MoveTowards(_breath, _framedTitan ? Mathf.Clamp01(BreathTarget) : 0, Time.deltaTime / 0.35f);
+            float b = Mathf.SmoothStep(0, 1, _breath) * MotionScale;
+            var pos = _posePos + Vector3.down * 0.7f * b - (_poseRot * Vector3.forward) * 0.6f * b;
+            if (pos.y < 0.4f) pos.y = 0.4f;
+            var rot = b > 0 && BreathFocus != Vector3.zero ? Quaternion.Slerp(_poseRot, Quaternion.LookRotation(BreathFocus - pos), 0.3f * b) : _poseRot;
+            float fov = _poseFov;
+            if (_ovW > 0) { pos = Vector3.Lerp(pos, _ovPos, _ovW); rot = Quaternion.Slerp(rot, _ovRot, _ovW); fov = Mathf.Lerp(fov, _ovFov, _ovW); }
+            Cam.transform.position = pos + Vfx.ShakeOffset; Cam.transform.rotation = rot; Cam.fieldOfView = fov;
         }
 
         // Menu view: the team lineup stands in front of a fixed camera.
         public void FrameMenu()
         {
-            _framedBattle = false;
-            Cam.fieldOfView = 42;
-            Cam.transform.position = new Vector3(0, 7.2f, -9.6f);
-            Cam.transform.LookAt(new Vector3(0, 0.9f, 1.1f));
+            _framedBattle = false; _framedTitan = false; _ovW = 0; BreathTarget = 0; _breath = 0;
+            SetPose(new Vector3(0, 7.2f, -9.6f), new Vector3(0, 0.9f, 1.1f), 42);
         }
 
         // Battle view: a camera preset (Three-quarter by default) at the closest distance that fits
@@ -49,11 +85,10 @@ namespace Sigilbound.Client
         {
             _camKey = camKey; _framedBattle = true; _framedTitan = titan;
             _framedAspect = Cam.aspect;
-            var preset = BattleLayout.Camera(camKey);
             double aspect = Mathf.Max(0.2f, Cam.aspect);
-            Cam.fieldOfView = (float)BattleLayout.FovFor(aspect);
-            Cam.transform.position = ToUnity(BattleLayout.CameraPosition(preset, BattleLayout.FitDistance(preset, aspect, titan), titan));
-            Cam.transform.LookAt(ToUnity(BattleLayout.Target(titan)));
+            var v = BattleLayout.View(camKey, aspect, titan); // the usual presets, or a Titan-only view
+            SetPose(ToUnity(v.Eye), ToUnity(v.Target), (float)v.Fov);
+            _viewTarget = ToUnity(v.Target);
             HideOccluders();
         }
 
@@ -61,14 +96,14 @@ namespace Sigilbound.Client
         // inside a rock or behind a tree): hide every prop the camera is inside or near, or that cuts a
         // sight line from the camera to the battle circle (its centre, its left/right/front edges and
         // head height). Restored when the camera changes. Ground, sky, water and the rune circle stay.
-        readonly List<Renderer> _hidden = new List<Renderer>();
+        readonly List<Renderer> _hidden = new List<Renderer>(); Vector3 _viewTarget;
         void HideOccluders()
         {
             foreach (var r in _hidden) if (r) r.enabled = true;
             _hidden.Clear();
             if (!_scenery || !_framedBattle) return;
             Vector3 eye = Cam.transform.position;
-            var c = ToUnity(BattleLayout.Target(_framedTitan));
+            var c = _viewTarget;
             Vector3 right = Vector3.Cross(Vector3.up, (c - eye).normalized).normalized;
             // Sight lines to the whole battle ring (where every hero stands, plus a margin for the
             // name tags above them): centre, two rings of points, at foot, chest and tag height.
@@ -114,6 +149,7 @@ namespace Sigilbound.Client
             }
             // Re-fit when the screen changes shape (rotation, split screen, foldables).
             if (_framedBattle && Mathf.Abs(Cam.aspect - _framedAspect) > 0.01f) FrameBattle(_camKey, _framedTitan);
+            ComposeCamera();
         }
 
         public void Show(bool on)

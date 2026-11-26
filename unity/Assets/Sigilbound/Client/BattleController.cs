@@ -64,7 +64,7 @@ namespace Sigilbound.Client
                 _ => Game.ChapterOf(spec.Stage),
             };
             App.Arena.Build(Mathf.Min(chapter, Chapters.Length - 1), IsTitan);
-            App.Arena.FrameBattle(G.S.settings.cam, IsTitan);
+            App.Arena.FrameBattle(CamKey, IsTitan);
             Clear();
             Spawn(_b.Allies, true); Spawn(_b.Enemies, false);
             _finished = false; _awaiting = false; _banner = ""; _actor = null;
@@ -81,7 +81,7 @@ namespace Sigilbound.Client
             {
                 var u = units[i];
                 float scale = u.Titan ? 1.3f : u.Boss ? 1.35f : 1f;
-                var pos = u.Titan ? Arena.Slot(false, 0, 1) : Arena.Slot(ally, i, units.Count);
+                var pos = u.Titan ? Arena.ToUnity(BattleLayout.TitanSlot()) : Arena.Slot(ally, i, units.Count);
                 _views[u] = CharacterView.Create(u, pos, Arena.FacingYaw(pos), scale, G.GearLookOf(u));
             }
         }
@@ -117,19 +117,135 @@ namespace Sigilbound.Client
             else AskRetreat();
         }
 
+        // Titan fights keep their own view (PlayerPrefs, not the save): Worm's-eye by default.
+        static string TitanCam { get => PlayerPrefs.GetString("sb.titanCam", BattleLayout.DefaultTitanCamera); set { PlayerPrefs.SetString("sb.titanCam", value); PlayerPrefs.Save(); } }
+        string CamKey => IsTitan ? TitanCam : G.S.settings.cam;
+
         public void CycleCamera()
         {
-            var cams = BattleLayout.Cameras;
-            int i = System.Array.FindIndex(cams, c => c.Key == BattleLayout.Camera(G.S.settings.cam).Key);
+            var cams = IsTitan ? BattleLayout.TitanCycle : BattleLayout.Cameras;
+            int i = System.Array.FindIndex(cams, c => c.Key == BattleLayout.AnyCamera(CamKey, IsTitan).Key);
             var next = cams[(i + 1) % cams.Length];
-            G.S.settings.cam = next.Key; App.Save();
+            if (IsTitan) TitanCam = next.Key; else { G.S.settings.cam = next.Key; App.Save(); }
             App.Arena.FrameBattle(next.Key, IsTitan);
             App.Toast($"Camera: {next.Name} ({(i + 1) % cams.Length + 1}/{cams.Length})");
+        }
+
+        // ---------- Titan cinematics (owner picks 2026-11-26; presentation only, results unchanged) ----------
+        bool _cinema, _skippable;  // HUD hidden while a cinematic plays; the intro can be skipped by a tap
+        static bool IsHdTitan(CharacterView v) => v != null && v.Hero != null && v.Hero.Style == AnimStyle.TitanHd;
+        float TitanHeight(CharacterView v) => v != null && v.HeadTop ? Mathf.Max(2f, v.HeadTop.position.y - v.transform.position.y) : (float)BattleLayout.TitanHead;
+        static float Ease(float u) => Mathf.SmoothStep(0, 1, Mathf.Clamp01(u));
+
+        // Arrival: from the Titan's feet the camera tilts up its body to the burning visor, it roars, and
+        // the camera pulls back into the battle view. About 3 s; a tap skips it.
+        IEnumerator TitanIntro()
+        {
+            var tu = _views.Keys.FirstOrDefault(k => k.Titan); if (tu == null) yield break;
+            var tv = _views[tu];
+            for (float w = 0; w < 3f && tv != null && tv.Hero == null; w += Time.unscaledDeltaTime) yield return null; // its model is loading
+            if (tv == null) yield break;
+            var arena = App.Arena; float keepSpeed = Time.timeScale; Time.timeScale = 1;
+            _cinema = _skippable = true;
+            var T = tv.transform.position; var toTeam = Arena.ToUnity(BattleLayout.TeamCentre) - T; toTeam.y = 0; toTeam.Normalize();
+            var side = Vector3.Cross(Vector3.up, toTeam);
+            float H = TitanHeight(tv); bool roared = false;
+            for (float t = 0; t < 3.1f; t += Time.unscaledDeltaTime)
+            {
+                if (t > 0.2f && Input.GetMouseButtonDown(0)) break;
+                float u = Ease(t / 1.6f);
+                var eye = T + toTeam * Mathf.Lerp(H * 0.62f, H * 0.95f, u) + side * 0.9f + Vector3.up * Mathf.Lerp(0.45f, 1.3f, u);
+                var look = T + Vector3.up * Mathf.Lerp(0.3f, H * 0.93f, u);
+                arena.Override(eye, look, 52f, t < 2.3f ? 1f : 1f - Ease((t - 2.3f) / 0.8f));
+                if (!roared && t >= 1.6f)
+                {
+                    roared = true;
+                    if (tv.Hero != null) foreach (var n in new[] { "Yes", "Wave", "Interact" }) if (tv.Hero.Has(n)) { tv.Hero.Play(n, false, 0.2f, 0.9f); break; }
+                    Vfx.I.ShakeLong(0.3f, 0.9f); Sound.I?.Play("bigKill", 0.7f);
+                    SkillFx.I?.Dust(T, H * 0.7f, tu.El);
+                }
+                yield return null;
+            }
+            arena.ClearOverride(); _cinema = _skippable = false; Time.timeScale = _paused ? 0 : keepSpeed;
+        }
+
+        // The Titan's fight-ending blow: slow motion, a low camera looking up as it raises its weapon high,
+        // then the slam: burning cracks, a shockwave, a flash, the team thrown back.
+        IEnumerator Earthsplitter(Unit u, CharacterView v)
+        {
+            var m = v.Hero; var arena = App.Arena; float speed = Time.timeScale; _cinema = true;
+            var T = v.transform.position; var team = Arena.ToUnity(BattleLayout.TeamCentre);
+            var toTeam = team - T; toTeam.y = 0; float dist = toTeam.magnitude; toTeam /= Mathf.Max(0.01f, dist);
+            float H = TitanHeight(v);
+            var eye = T + toTeam * (dist * 0.62f) + Vector3.Cross(Vector3.up, toTeam) * 1.8f + Vector3.up * 0.55f;
+            Time.timeScale = 0.32f;
+            string clip = m.Has("Sword_Attack") ? "Sword_Attack" : "Punch_Cross";
+            m.PlayFrom(clip, 0f, 0.7f);
+            for (float t = 0; t < 1.0f; t += Time.unscaledDeltaTime)
+            {
+                arena.Override(eye, T + Vector3.up * H * 0.8f, 44f, Ease(t / 0.25f));
+                if (m.CurrentNormalized >= 0.3f) m.SetFrozen(true); // held high at the top of the swing
+                yield return null;
+            }
+            m.SetFrozen(false); Time.timeScale = Mathf.Max(1f, speed);
+            m.PlayFrom(clip, 0.32f, 2.2f);
+            yield return new WaitForSecondsRealtime(0.1f);
+            var hit = T + toTeam * Mathf.Min(dist * 0.62f, 5.5f); hit.y = 0;
+            var fx = SkillFx.I;
+            if (fx != null) { fx.Cracks(hit, u.El, 5f); fx.TitanSlam(hit, u.El); fx.Shockwave(hit, u.El, 6f); fx.CritFlash(u.El); }
+            Vfx.I.ShakeLong(0.55f, 0.8f); Sound.I?.Play("bigKill", 1f);
+            foreach (var kv in _views) if (kv.Key.Ally && kv.Value != null) kv.Value.Shove(hit, 1.1f);
+            for (float t = 0; t < 0.7f; t += Time.unscaledDeltaTime) { arena.Override(eye, Vector3.Lerp(T + Vector3.up * H * 0.8f, hit + Vector3.up, Ease(t / 0.2f)), 44f, 1f - Ease((t - 0.3f) / 0.4f)); yield return null; }
+            arena.ClearOverride(); _cinema = false; Time.timeScale = _paused ? 0 : speed;
+        }
+
+        // The Titan's ultimate: it crouches, leaps out of the top of the frame, a beat of silence, then
+        // crashes down onto the middle of the team with a crater shockwave.
+        IEnumerator MeteorLeap(Unit u, CharacterView v)
+        {
+            var m = v.Hero; var arena = App.Arena; _cinema = true;
+            var T0 = v.transform.position; var team = Arena.ToUnity(BattleLayout.TeamCentre); team.y = T0.y;
+            float H = TitanHeight(v); var eye = arena.PosePosition; float fov = arena.Cam.fieldOfView;
+            arena.BreathTarget = 0;
+            if (m.Has("Crouch_Idle_Loop")) m.Play("Crouch_Idle_Loop", true, 0.15f, 1f);
+            yield return new WaitForSeconds(0.35f);
+            m.Play("Jump", false, 0.08f, 1.4f, true);
+            SkillFx.I?.Dust(T0, H * 0.5f, u.El); Vfx.I.Shake(0.2f);
+            for (float t = 0; t < 0.5f; t += Time.deltaTime)
+            {
+                float k = t / 0.5f; var p = T0 + Vector3.up * 18f * k * k; v.transform.position = p;
+                arena.Override(eye, Vector3.Lerp(T0 + Vector3.up * H * 0.5f, p + Vector3.up * H * 0.5f, 0.85f), fov, Ease(t / 0.2f));
+                yield return null;
+            }
+            var sky = team + Vector3.up * 20f; v.transform.position = sky;
+            for (float t = 0; t < 0.45f; t += Time.deltaTime) { arena.Override(eye, Vector3.Lerp(T0 + Vector3.up * 18f, team + Vector3.up * 1.2f, Ease(t / 0.45f)), fov, 1f); yield return null; }
+            if (m.Has("Jump_Land")) m.Play("Jump_Land", false, 0.05f, 1.2f, true);
+            for (float t = 0; t < 0.22f; t += Time.deltaTime) { float k = t / 0.22f; v.transform.position = Vector3.Lerp(sky, team, k * k); arena.Override(eye, team + Vector3.up * 1.2f, fov, 1f); yield return null; }
+            v.transform.position = team;
+            var fx = SkillFx.I;
+            if (fx != null) { fx.TitanSlam(team, u.El); fx.Cracks(team, u.El, 4.5f); fx.Shockwave(team, u.El, 6f); }
+            Vfx.I.ShakeLong(0.6f, 0.8f); Sound.I?.Play("bigKill", 0.9f);
+            foreach (var kv in _views) if (kv.Key.Ally && kv.Value != null) kv.Value.Shove(team, 1.4f);
+            for (float t = 0; t < 0.5f; t += Time.deltaTime) { arena.Override(eye, team + Vector3.up * 1.2f, fov, 1f - Ease(t / 0.5f)); yield return null; }
+            arena.ClearOverride(); _cinema = false;
+        }
+        // After the Meteor leap: a heavy hop back to its place.
+        IEnumerator TitanHopHome(Unit u, CharacterView v)
+        {
+            var m = v.Hero; var from = v.transform.position; var to = v.Home;
+            if (m.Has("Jump")) m.Play("Jump", false, 0.1f, 1.2f, true);
+            for (float t = 0; t < 0.6f; t += Time.deltaTime) { float k = Ease(t / 0.6f); v.transform.position = Vector3.Lerp(from, to, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 3f; yield return null; }
+            v.transform.position = to;
+            if (m.Has("Jump_Land")) m.Play("Jump_Land", false, 0.08f, 1.2f);
+            Vfx.I.Shake(0.25f); SkillFx.I?.Dust(to, 2.5f, u.El);
+            yield return new WaitForSeconds(0.3f);
+            m.Idle(0.2f);
         }
 
         // ---------- turn loop ----------
         IEnumerator Loop()
         {
+            if (IsTitan) yield return TitanIntro();
             yield return new WaitForSeconds(0.5f);
             while (!_b.Over)
             {
@@ -173,7 +289,7 @@ namespace Sigilbound.Client
         IEnumerator DoAct(Unit u, int skillIdx, Unit target)
         {
             var sk = u.Template.Skills[skillIdx];
-            _banner = sk.Name;
+            _banner = sk.Name; bool meteor = false;
             yield return new WaitForSeconds(0.2f);
             var events = _b.Act(u, skillIdx, target);
             var color = Palette.Element(u.El);
@@ -200,7 +316,15 @@ namespace Sigilbound.Client
                         fx.Aoe(c, 1.9f, u.El); StartCoroutine(Later(0.45f, () => fx.Shockwave(c, u.El, 2.6f)));
                     }
                 }
-                yield return view.Attack(aim, melee, support, ult, () => { Vfx.I.Shake(0.35f); fx?.TitanSlam(view.transform.position, u.El); }, skillIdx);
+                // Titan turns: the camera breathes down and tilts up at it during the wind-up; the HD Titan's
+                // fight-ending blow is the Earthsplitter and its ultimate the Meteor leap.
+                bool hdTitan = u.Titan && IsHdTitan(view);
+                bool finale = hdTitan && (_b.Allies.All(a => !a.Alive) || _b.BossTurns + 1 >= _b.TurnLimit);
+                meteor = hdTitan && !finale && ult;
+                if (u.Titan) { App.Arena.BreathFocus = view.HeadTop ? view.HeadTop.position : view.transform.position + Vector3.up * 5f; App.Arena.BreathTarget = 1; }
+                if (finale) yield return Earthsplitter(u, view);
+                else if (meteor) yield return MeteorLeap(u, view);
+                else yield return view.Attack(aim, melee, support, ult, () => { Vfx.I.Shake(0.35f); fx?.TitanSlam(view.transform.position, u.El); }, skillIdx);
                 if (support && fx == null) Vfx.I.Cast(view.transform.position + Vector3.up * 0.1f, color);
                 // Ultimates show the hero's signature big, on the caster and on every target or ally reached.
                 if (ult && fx != null && !u.Titan)
@@ -210,7 +334,7 @@ namespace Sigilbound.Client
                     foreach (var t in events.Where(e => e.Unit != null && e.Unit != u && (e.Type == EvType.Damage || e.Type == EvType.Heal || e.Type == EvType.Status)).Select(e => e.Unit).Distinct())
                         if (_views.TryGetValue(t, out var tv) && tv != null) fx.Signature(tv.Center, u.El, motif, 1.0f);
                 }
-                if (!melee && hit.Count > 0)
+                if (!melee && hit.Count > 0 && !finale && !meteor)
                 {
                     var from = view.Center + view.transform.forward * 0.4f;
                     string prop = u.Titan ? "" : Looks.Of(u.Template.Id).Prop;
@@ -235,6 +359,8 @@ namespace Sigilbound.Client
             _ultBy = ult && !support ? u : null;
             yield return ShowEvents(events, color, sk.Hits > 1);
             _ultBy = null;
+            if (meteor && view != null) yield return TitanHopHome(u, view);
+            if (u.Titan) App.Arena.BreathTarget = 0;
             if (view != null) { yield return view.Recover(); view.FaceHome(); }
             yield return new WaitForSeconds(0.25f);
         }
@@ -544,6 +670,12 @@ namespace Sigilbound.Client
         public void DrawHud()
         {
             if (_b == null) return;
+            if (_cinema)
+            {
+                // Titan cinematics: the HUD steps aside (a skip hint during the arrival).
+                if (_skippable) Ui.Text(new Rect(0, Ui.Safe.yMax - 40, Ui.W, 28), "Tap to skip", 13, new Color(1, 1, 1, 0.7f), FontStyle.Normal, TextAnchor.MiddleCenter);
+                return;
+            }
             if (Ui.Landscape) { DrawHudWide(); return; }
             var safe = Ui.Safe; var cam = App.Arena.Cam;
             float top = safe.y;

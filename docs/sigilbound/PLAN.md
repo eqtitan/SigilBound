@@ -396,6 +396,8 @@ Owner decisions (2026-11-25): frame rate defaults to **Auto (match the screen)**
   - Rejected tests are reworked before steps 59–63 roll the clips out to all 100 heroes.
   - T11 (frame rate) is also checked live in the Unity build on the S26+.
 
+- [x] **Titan cinematics (owner request 2026-11-26).** The HD Titan stands at `BattleLayout.TitanSlot()` (1.2 m behind the far rim) with its head at `TitanHead` 4.8 m (heroes 1.85). Titan-only views (`BattleLayout.TitanCameras`: Worm's-eye default, Side duel, Titan's shoulder) are solved per aspect (`TitanView`: a rail and the closest distance that keeps the team in frame and the Titan's head and tag under `TitanCeiling`); the View cycle in Titan fights is those three then the usual five, remembered in PlayerPrefs `sb.titanCam` (not the save). The camera is a rig in `Arena` (framed pose + breathing tilt + cinematic override + `Vfx.ShakeOffset`). Arrival intro, Earthsplitter (fight-ending blow) and Meteor Leap (Titan ultimate) live in `BattleController`; presentation only. TitanCameraTests: every view and aspect, Titan at least 2x a hero on screen in its own views.
+
 ## Phase H: 50 new heroes (owner-approved concepts, 2026-11-26)
 
 The art director's 50 new heroes (22 non-human: elves, gnomes, beastfolk, golems, dryads, a wraith and more), approved by the owner on the review page. Roster 100 → 150. `docs/sigilbound/newheroes.py` writes them into `Core/GameData.cs` (skills from the design) and `Core/Looks.cs` (a stand-in look), lists them in ROSTER.md section 7, and balances each with team-swap sims against the classic hero(es) of its rarity and role (40-60%, bracketing search on a power factor in `concepts/tuning.json`). Each gets a high-detail model from `ubc.py` (species pieces included).
