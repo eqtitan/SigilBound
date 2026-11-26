@@ -18,7 +18,27 @@ namespace Sigilbound.Client
 
         public static bool Ready { get { Load(); return _meshes != null && _meshes.Count > 0; } }
 
-        public static Mesh Get(string name) { Load(); return _meshes != null && _meshes.TryGetValue(name, out var m) ? m : null; }
+        public static Mesh Get(string name)
+        {
+            Load();
+            if (_meshes != null && _meshes.TryGetValue(name, out var m)) return m;
+            foreach (var pack in _packs.Values) if (pack != null && pack.TryGetValue(name, out m)) return m;
+            return null;
+        }
+
+        // The story packs (Resources/Scenery/story_act1.bytes, story_act2.bytes: the campaign stops' set-pieces,
+        // Tools~/scenery/make_landmarks.py), loaded the first time a chapter of that act is built.
+        static readonly Dictionary<string, Dictionary<string, Mesh>> _packs = new Dictionary<string, Dictionary<string, Mesh>>();
+        public static void EnsurePack(string pack)
+        {
+            if (_packs.ContainsKey(pack)) return;
+            _packs[pack] = null;
+            var ta = Resources.Load<TextAsset>("Scenery/" + pack);
+            if (ta == null) { Debug.LogWarning($"[scenery] Resources/Scenery/{pack}.bytes missing"); return; }
+            try { _packs[pack] = Parse(ta.bytes); }
+            catch (System.Exception e) { Debug.LogWarning($"[scenery] {pack} failed to load: " + e.Message); }
+            Resources.UnloadAsset(ta);
+        }
 
         static void Load()
         {

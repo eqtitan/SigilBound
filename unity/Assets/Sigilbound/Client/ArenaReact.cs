@@ -6,6 +6,7 @@
 // lightning splits the sky in storm themes, and the ground cracks under a warlord's slam.
 using System.Collections.Generic;
 using UnityEngine;
+using Sigilbound.Core;
 
 namespace Sigilbound.Client
 {
@@ -17,6 +18,10 @@ namespace Sigilbound.Client
         public static void RaiseHit(Vector3 p, float frac, bool crit, bool heavy) => Hit?.Invoke(p, frac, crit, heavy);
         public static void RaiseKill(Vector3 p) => Kill?.Invoke(p);
         public static void RaiseShock(Vector3 p, float strength, bool slam) => Shock?.Invoke(p, strength, slam);
+        // A story lair's set-piece answered (bell toll, wheel spin-up, pyre flare ...): the sound cue
+        // (StoryScenes.CueOf) and where. ArenaReactor raises it and plays the cue; listeners may add more.
+        public static event System.Action<string, Vector3> LairCue;
+        public static void RaiseLairCue(string cue, Vector3 p) { LairCue?.Invoke(cue, p); Sound.I?.PlayAt(cue, p, 0.8f); }
     }
 
     public sealed class ArenaReactor : MonoBehaviour
@@ -28,6 +33,9 @@ namespace Sigilbound.Client
         public readonly List<Transform> Cloths = new List<Transform>();    // banner cloths: swing about the crossbar
         public readonly List<Transform> Braziers = new List<Transform>();
         public readonly List<Vector3> Vents = new List<Vector3>();
+        // The lair's moving set-pieces (Core.StoryScenes LairFx): wheel, bell, lamp, pyre, lanterns, crag ...
+        public sealed class LairPart { public Transform T; public LairFx Fx; public Vector3 Anchor; public Material Glow; public Quaternion Rest; public float A, W, Spin, Pulse; public bool Out; }
+        public readonly List<LairPart> Lair = new List<LairPart>();
         public Hazard Kind; public bool Storm, NoCracks; public Color Tint = Color.white; public Material Ramp; public Light Sun; public int Tier = 2;
 
         Quaternion[] _rest, _clothRest; Vector2[] _a, _w; float[] _ca, _cw, _phase;
@@ -69,11 +77,89 @@ namespace Sigilbound.Client
             if (Sun != null) _sunBase = Sun.intensity;
             _ambBase = RenderSettings.ambientLight;
             _nextStrike = Time.time + Random.Range(5f, 9f);
+            foreach (var l in Lair)
+            {
+                l.Rest = l.T.localRotation;
+                if (l.Glow != null && l.Glow.HasProperty("_EmissionColor")) _glowBase[l] = l.Glow.GetColor("_EmissionColor");
+                if (l.Fx == LairFx.Flare) _lairFlames[l] = MakeBurst("LairFlame", new Color(1f, 0.55f, 0.18f, 1), true, 0.6f, 1.1f, 3.5f, -0.4f);
+            }
+        }
+        readonly Dictionary<LairPart, Color> _glowBase = new Dictionary<LairPart, Color>();
+        readonly Dictionary<LairPart, ParticleSystem> _lairFlames = new Dictionary<LairPart, ParticleSystem>();
+
+        // ---------- the lair answers ----------
+        void LairEvent(string what, Vector3 p, bool crit, bool heavy)
+        {
+            foreach (var l in Lair)
+            {
+                if (l.T == null) continue;
+                switch (l.Fx)
+                {
+                    case LairFx.Spin when crit || heavy || what == "shock":    // the mill wheel spins up
+                        if (l.Spin < 60) ArenaEvents.RaiseLairCue("lairWheel", l.Anchor);
+                        l.Spin = Mathf.Min(l.Spin + 220, 420); break;
+                    case LairFx.Swing when what == "kill":                     // the bell swings and tolls
+                        l.W += 120; ArenaEvents.RaiseLairCue("lairBell", l.Anchor); break;
+                    case LairFx.Toll when what == "kill":                      // a bell on a post: a toll and a shiver
+                        Push(l.T.position + Vector3.back, 0.3f); ArenaEvents.RaiseLairCue("lairBell", l.Anchor); break;
+                    case LairFx.Beam when crit:                                // the lighthouse beam flashes
+                        l.Pulse = 1; ArenaEvents.RaiseLairCue("lairBeam", l.Anchor); break;
+                    case LairFx.Flare when what == "kill" || what == "shock":  // the pyre, torches and lanterns flare
+                        if (_lairFlames.TryGetValue(l, out var f) && f) { f.transform.position = l.Anchor; f.Emit(Tier == 0 ? 14 : 34); }
+                        ArenaEvents.RaiseLairCue("lairPyre", l.Anchor); break;
+                    case LairFx.Strike when crit || what == "shock":           // lightning finds the crag or the throne
+                        Lightning(true, l.Anchor); ArenaEvents.RaiseLairCue("lairThunder", l.Anchor); break;
+                    case LairFx.Chime when crit:                               // the glass spires flash and sing
+                        l.Pulse = 1; ArenaEvents.RaiseLairCue("lairChime", l.Anchor); break;
+                    case LairFx.Drip when what == "shock":                     // the rose window / cavern glow swells
+                        l.Pulse = 1; ArenaEvents.RaiseLairCue("lairDrip", l.Anchor); break;
+                    case LairFx.Pulse when what == "shock" || (what == "kill" && heavy): // a Sigil shard pulses
+                        l.Pulse = 1; ArenaEvents.RaiseLairCue("lairShard", l.Anchor); break;
+                }
+            }
+            // the fen lanterns go out, one per kill or boss crit
+            if (what == "kill" || (crit && heavy))
+                foreach (var l in Lair)
+                    if (l.Fx == LairFx.Snuff && !l.Out && l.T != null)
+                    {
+                        l.Out = true;
+                        if (l.Glow != null && l.Glow.HasProperty("_EmissionColor")) l.Glow.SetColor("_EmissionColor", Color.black);
+                        if (l.Glow != null) Materials.SetBase(l.Glow, new Color(0.05f, 0.05f, 0.06f));
+                        ArenaEvents.RaiseLairCue("lairSnuff", l.Anchor);
+                        break;
+                    }
+        }
+
+        void UpdateLair(float dt, float t)
+        {
+            foreach (var l in Lair)
+            {
+                if (l.T == null) continue;
+                switch (l.Fx)
+                {
+                    case LairFx.Spin:   // a slow turn, spun up by crits and easing back
+                        l.Spin = Mathf.MoveTowards(l.Spin, 0, dt * 90);
+                        l.A += (25 + l.Spin) * dt;
+                        l.T.localRotation = l.Rest * Quaternion.Euler(0, 0, -l.A); break;
+                    case LairFx.Swing:  // a damped pendulum about the yoke
+                        l.W += (-l.A * 9f - l.W * 0.9f) * dt; l.A = Mathf.Clamp(l.A + l.W * dt, -40, 40);
+                        l.T.localRotation = l.Rest * Quaternion.Euler(l.A, 0, 0); break;
+                    case LairFx.Beam:   // the lamp turns its beam steadily
+                        l.T.localRotation = Quaternion.Euler(0, t * 40f, 0) * l.Rest; break;
+                }
+                if (l.Glow != null && !l.Out && _glowBase.TryGetValue(l, out var baseC))
+                {
+                    l.Pulse = Mathf.MoveTowards(l.Pulse, 0, dt * 1.2f);
+                    float k = 1 + 2.2f * l.Pulse + (l.Fx == LairFx.Beam ? 0.25f * Mathf.Sin(t * 3f) : 0);
+                    l.Glow.SetColor("_EmissionColor", baseC * k);
+                }
+            }
         }
 
         // ---------- events ----------
         void OnHit(Vector3 p, float frac, bool crit, bool heavy)
         {
+            LairEvent("hit", p, crit, heavy);
             if (crit || heavy) Push(p, heavy ? 0.8f : 0.45f);
             if (frac > 0.18f || heavy) Geyser(p, false);
             if (crit || heavy) Debris(p, heavy ? 3 : 2);
@@ -81,6 +167,7 @@ namespace Sigilbound.Client
         }
         void OnKill(Vector3 p)
         {
+            LairEvent("kill", p, false, false);
             _brazierFlare = 1f;
             foreach (var f in _flames) if (f) f.Emit(Tier == 0 ? 12 : 28);
             Push(p, 0.35f);
@@ -88,6 +175,7 @@ namespace Sigilbound.Client
         }
         void OnShock(Vector3 p, float strength, bool slam)
         {
+            LairEvent("shock", p, false, slam);
             Push(p, Mathf.Clamp(strength, 0.3f, 1.6f));
             Geyser(p, true);
             Debris(p, slam ? 4 : 3, true);
@@ -139,6 +227,7 @@ namespace Sigilbound.Client
             for (int i = 0; i < _lights.Count; i++) if (_lights[i]) _lights[i].intensity = 1.2f + 3.2f * _brazierFlare + Mathf.PerlinNoise(t * 6f, i) * 0.4f;
             _cdGeyser -= dt; _cdDebris -= dt; _cdBolt -= dt;
             UpdateRocks(dt);
+            UpdateLair(dt, t);
             UpdateCracks(dt);
             // lightning flash and the bolt
             if (_flash > 0 || _boltT > 0)
@@ -297,7 +386,7 @@ namespace Sigilbound.Client
         }
 
         // ---------- lightning ----------
-        void Lightning(bool force = false)
+        void Lightning(bool force = false, Vector3? target = null)
         {
             if (!force && _cdBolt > 0) return;
             _cdBolt = 1.6f;
@@ -310,7 +399,7 @@ namespace Sigilbound.Client
                 _bolt.sharedMaterial = add != null ? new Material(add) { color = new Color(0.75f, 0.85f, 1f) } : Materials.Unlit(new Color(0.85f, 0.9f, 1f));
                 _bolt.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-            var end = new Vector3(Random.Range(-26f, 26f), 0, Random.Range(26f, 36f));
+            var end = target ?? new Vector3(Random.Range(-26f, 26f), 0, Random.Range(26f, 36f)); // a lair crag or throne, else the far ridges
             var start = end + new Vector3(Random.Range(-6f, 6f), 36f, Random.Range(2f, 6f));
             for (int i = 0; i < 16; i++)
             {

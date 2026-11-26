@@ -161,24 +161,38 @@ namespace Sigilbound.Client
         }
 
         // interactive: a campaign boss stage or the Titan; the backdrop answers the fight (ArenaReactor).
-        public void Build(int chapter, bool titan, bool interactive = false)
+        // stage: the stage within the chapter (0-5) for a campaign battle, -1 otherwise: picks the route stop
+        // (Core.StoryScenes) and its time of day. hard: Hard mode, the same stops by night.
+        public void Build(int chapter, bool titan, bool interactive = false, int stage = -1, bool hard = false)
         {
-            PostFx.SetArena(chapter, titan, true); // per-arena colour grade (postfx2 presets)
+            var set = titan || stage < 0 ? null : StoryScenes.Of(chapter, stage);
+            var mood = titan ? Mood.Day : hard ? Mood.Night : set?.Mood ?? Mood.Day;
+            var (moodLight, dusk, fogK) = StoryScenes.MoodOf(mood);
+            bool night = mood == Mood.Night;
+            PostFx.SetArena(chapter, titan, true, night); // per-arena colour grade (postfx2 presets), cooler by night
             if (_scenery) Destroy(_scenery);
             _scenery = new GameObject("Scenery");
             var (top, bottom, ground, prop) = titan ? (Palette.Hex("#1a0a0a"), Palette.Hex("#c0401a"), Palette.Hex("#24100c"), Palette.Hex("#100606")) : Palette.Scene(chapter);
+            if (!titan && dusk > 0)
+            {
+                // Later stops drift toward dusk inside the chapter palette: the horizon toward the theme's shadow colour.
+                var sil = Scenery.ShadowColor(chapter, false);
+                bottom = Color.Lerp(bottom, sil * 1.6f, dusk);
+                top = Color.Lerp(top, top * 0.55f, night ? 0.7f : dusk);
+            }
             Cam.backgroundColor = top;
             RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogColor = bottom;
             // Fog per theme: thicker over marsh, fen, barrow and storm, clearer over the badlands (the battle camera sits ~19 m out).
             var (fogNear, fogFar) = Scenery.FogRange(chapter, titan);
-            RenderSettings.fogStartDistance = fogNear; RenderSettings.fogEndDistance = fogFar;
-            RenderSettings.ambientLight = Color.Lerp(bottom, Color.white, 0.35f) * 0.55f;
+            RenderSettings.fogStartDistance = fogNear * fogK; RenderSettings.fogEndDistance = fogFar * fogK;
+            RenderSettings.ambientLight = Color.Lerp(bottom, Color.white, 0.35f) * 0.55f * (night ? 0.8f : 1f - dusk * 0.25f);
             // The sun takes a little of the horizon's colour (warm dusks, cold storms); kept close to white so the
             // heroes' painted look holds. Storms are dimmer.
             if (Sun != null)
             {
                 Sun.color = Color.Lerp(Color.white, Color.Lerp(bottom, Color.white, 0.4f), 0.35f);
-                Sun.intensity = Scenery.Stormy(chapter, titan) && !titan ? 0.9f : 1.15f;
+                Sun.intensity = (Scenery.Stormy(chapter, titan) && !titan ? 0.9f : 1.15f) * moodLight;
+                if (night) Sun.color = Color.Lerp(Sun.color, new Color(0.7f, 0.8f, 1f), 0.5f); // moonlight
             }
             // The sky (painted clouds) and the distant ridges are painted arcs built with the scenery.
 
@@ -194,7 +208,7 @@ namespace Sigilbound.Client
 
             // Ground, water or lava, scatter, horizon silhouettes and motes (scenery.mjs themes).
             float density = Quality.I == null ? 1f : new[] { 0.4f, 0.7f, 1f, 1.3f }[Quality.I.Tier];
-            Scenery.Build(_scenery.transform, chapter, titan, density, bottom, top, interactive, Sun);
+            Scenery.Build(_scenery.transform, chapter, titan, density, bottom, top, interactive, Sun, set, hard);
             StaticBatch(_scenery);
             HideOccluders(); // a re-built arena under an already framed camera
             Shafts(titan ? Palette.Hex("#ff9a5a") : Color.Lerp(bottom, new Color(1f, 0.95f, 0.8f), 0.7f));

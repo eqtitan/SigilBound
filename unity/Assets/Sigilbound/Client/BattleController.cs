@@ -66,7 +66,9 @@ namespace Sigilbound.Client
             };
             // Boss stages of the campaign (normal and Hard) and the Titan get the interactive backdrop.
             bool bossArena = IsTitan || ((spec.Mode == BattleMode.Stage || spec.Mode == BattleMode.Hard) && Game.IsBossStage(spec.Stage));
-            App.Arena.Build(Mathf.Min(chapter, Chapters.Length - 1), IsTitan, bossArena);
+            // Campaign battles stand at their route stop (Core.StoryScenes); Hard mode is the same stop by night.
+            bool campaign = spec.Mode == BattleMode.Stage || spec.Mode == BattleMode.Hard;
+            App.Arena.Build(Mathf.Min(chapter, Chapters.Length - 1), IsTitan, bossArena, campaign ? spec.Stage % StagesPerChapter : -1, spec.Mode == BattleMode.Hard);
             App.Arena.FrameBattle(CamKey, IsTitan);
             Clear();
             Spawn(_b.Allies, true); Spawn(_b.Enemies, false);

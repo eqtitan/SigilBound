@@ -44,92 +44,101 @@ ALL = dict(T); ALL.update(EXTRA)
 for k in ("storm coast", "titan caldera"):  # the review's boss extras (debris) stay off in story shots
     ALL[k] = dict(ALL[k]); ALL[k]["debris"] = False
 
+EXTRA["glass desert"] = theme("", top="#2a3a4e", bot="#d8c8a8", grass="#b8aa8a", grass2="#c8bc9c", worn="#9a8e76", hill="#a89a7c", rock="#8a8478", bark="#5a4e44",
+                              tuft="#9a9070", cloth="#6a8aa0", sil="#3a4458", mote="#c8f4ff", style="dunes", props=["dead0", "crystal0", "crystal1", "rock1", "tuft2"])
+EXTRA["stormcrown crag"] = theme("", top="#0c1424", bot="#6a7a92", grass="#5a6260", grass2="#6a706c", worn="#7a7a74", hill="#4a5052", rock="#5a5e66", bark="#3a3430",
+                                 leaves=["#2e4a3a", "#3a5240"], tuft="#6a7062", cloth="#4a5a7a", sil="#141c2c", mote="#e8f0ff", style="peaks", storm=True,
+                                 props=["pine0", "pine1", "stone0", "rock3", "tuft0"])
+ALL.update({k: v for k, v in EXTRA.items() if k in ("glass desert", "stormcrown crag")})
+CHAPTER_THEME = ["dusk forest", "teal shore", "red badlands", "green marsh", "gold ruins", "glass desert", "stormcrown crag", "amethyst badlands",
+                 "glow marsh", "burning ruins", "saltreach harbor", "black fens", "wraithmoor barrows", "ember groves", "storm coast"]
 GLOW = {"fire": "#ffa040", "flame": "#ff7a2a", "shadow": "#b070ff", "tide": "#4ab8ff", "light": "#ffe07a", "gale": "#7affb0",
         "hollow": "#c060ff", "glass": "#a8f0ff", "rose": "#ffb860"}
-
-# A placement: (mesh, x, z, height, yaw, scale, glow key or None)
-def lair(theme_name, items, keep, light=1.0, dusk=0.0):
-    return dict(theme=theme_name, items=items, keep=keep, boss=True, light=light, dusk=dusk)
-
-def stop(theme_name, items, keep, light=1.0, dusk=0.0, boss=False):
-    return dict(theme=theme_name, items=items, keep=keep, boss=boss, light=light, dusk=dusk)
-
-MILL_FAR = [("drowned_mill", 3.0, 24.0, 0, -12, 0.95, None), ("drowned_mill_wheel", 0.7, 24.0, 0.9, 78, 0.95, None)]
-THRONE_FAR = [("sea_throne", -2.0, 25.0, 0, 8, 1.1, "gale")]
-
-SHOTS = {
-    # ---------------- lairs (stage 6 of every chapter)
-    "c01_thornwick_lair": lair("dusk forest", [("thornwick", 0.5, 10.8, 0, 6, 1.6, None)], [(0.5, 11, 7)], dusk=0.25),
-    "c02_drowned_mill_lair": lair("teal shore", [("drowned_mill", 1.0, 12.8, 0, -12, 1.45, None), ("drowned_mill_wheel", -2.2, 12.2, 1.2, 78, 1.45, None),
-                                                 ("rowboat", 5.5, 10.6, 0.05, 30, 1.0, None)], [(1, 13, 6)], light=0.85, dusk=0.35),
-    "c03_ashgrave_lair": lair("red badlands", [("ashgrave", 0, 9.8, 0, 0, 1.55, None)], [(0, 12, 7.5)], dusk=0.2),
-    "c04_saltmarsh_lair": lair("green marsh", [("saltmarsh", 0.5, 12.0, 0, 0, 1.6, None)], [(0.5, 12, 7.5)]),
-    "c05_bellspire_lair": lair("gold ruins", [("bellspire", 1.5, 12.5, 0, 15, 1.2, None), ("bellspire_bell", 0.2, 12.5, 9.3, 15, 1.2, None)], [(1.5, 13, 4.5)], dusk=0.2),
-    "c06_glass_wastes_lair": lair("blossom forest", [("glass_wastes", 0, 12.0, 0, 0, 1.15, "glass")], [(0, 13, 6.5)]),
-    "c07_stormcrown_lair": lair("moonlit shore", [("stormcrown", 0, 14.0, 0, 0, 1.45, None), ("bolt", 3.0, 14.8, 0, 0, 1.0, "gale")], [(0, 14, 7)]),
-    "c08_hollow_deep_lair": lair("amethyst badlands", [("hollow_deep", 0, 13.0, 0, 0, 1.15, "hollow")], [(0, 13, 6.5)]),
-    "c09_sunken_cathedral_lair": lair("glow marsh", [("sunken_cathedral", 0, 8.6, 0, 0, 1.3, "rose")], [(0, 13, 8)]),
-    "c10_last_pyre_lair": lair("burning ruins", [("last_pyre", 0, 13.0, 0, 0, 1.15, "fire")], [(0, 13, 6)]),
-    "c11_saltreach_lair": lair("saltreach harbor", [("lighthouse", 5.5, 21.0, 0, 0, 1.1, None), ("lighthouse_lamp", 5.5, 21.0, 8.4, 25, 1.1, "flame")], [(5.5, 21, 6)], dusk=0.35),
-    "c12_black_fens_lair": lair("black fens", [("drowned_shrine", 0, 11.0, 0, 0, 1.65, "shadow")], [(0, 11, 6.5)]),
-    "c13_wraithmoor_lair": lair("wraithmoor barrows", [("kings_barrow", 0, 14.0, 0, 0, 1.35, "tide")], [(0, 13, 9)]),
-    "c14_ember_groves_lair": lair("ember groves", [("great_tree", 0, 14.0, 0, 0, 1.15, "light")], [(0, 14, 6)]),
-    "c15_storm_coast_lair": lair("storm coast", [("sea_throne", 0, 12.5, 0, 0, 0.75, "gale"), ("bolt", 4.5, 14.0, 0, 0, 0.8, "gale")], [(0, 14, 7)], light=0.95),
-
-    # ---------------- route strip: The Drowned Mill (stages 1-5; stage 6 is the lair above)
-    "c02_s1_flooded_road": stop("teal shore", MILL_FAR + [("post0", -5.5, 6.0, 0, 0, 1.0, None), ("post1", -4.6, 8.5, 0, 0, 1.0, None), ("post0", 5.4, 7.2, 0, 0, 1.0, None),
-                                                          ("rowboat", -7.5, 9.6, 0.05, 70, 1.0, None)], [(3, 24, 4)], dusk=0.0),
-    "c02_s2_millpond_reeds": stop("teal shore", MILL_FAR[:0] + [("drowned_mill", 6.0, 21.0, 0, -20, 1.0, None), ("drowned_mill_wheel", 3.8, 21.0, 0.9, 70, 1.0, None),
-                                                               ("reeds0", -6.0, 7.5, 0, 0, 1.3, None), ("reeds1", 6.5, 6.5, 0, 0, 1.3, None), ("reeds0", -3.0, 9.6, 0, 40, 1.2, None),
-                                                               ("rowboat", -2.0, 11.2, 0.05, 15, 1.0, None)], [(6, 21, 4)], dusk=0.05),
-    "c02_s3_sluice_gate": stop("teal shore", [("sluice_gate", -1.0, 11.0, 0, 0, 1.2, None), ("drowned_mill", 8.5, 20.0, 0, -25, 0.95, None),
-                                              ("drowned_mill_wheel", 6.3, 20.0, 0.9, 65, 0.95, None), ("reeds1", 4.5, 9.0, 0, 0, 1.2, None)], [(-1, 11, 4)], dusk=0.1),
-    "c02_s4_millers_cottage": stop("teal shore", [("cottage", -5.0, 9.5, 0, 20, 1.15, None), ("drowned_mill", 7.0, 17.5, 0, -20, 1.0, None),
-                                                  ("drowned_mill_wheel", 4.7, 17.5, 0.9, 70, 1.0, None), ("crate", 3.5, 7.0, 0, 30, 1.0, None)], [(-5, 9.5, 4.5)], dusk=0.2),
-    "c02_s5_mill_yard": stop("teal shore", [("mill_yard", -1.5, 9.0, 0, 10, 1.15, None), ("drowned_mill", 6.5, 15.0, 0, -15, 1.05, None),
-                                            ("drowned_mill_wheel", 4.1, 15.0, 0.9, 75, 1.05, None), ("cottage", -9.5, 13.5, 0, 40, 0.9, None)], [(-1.5, 9, 4.5)], light=0.9, dusk=0.3),
-
-    # ---------------- route strip: The Storm Coast
-    "c15_s1_cliff_path": stop("storm coast", THRONE_FAR + [("stone0", -5.5, 6.5, 0, 0, 1.1, None), ("stone1", 6.0, 8.0, 0, 0, 1.0, None),
-                                                           ("rock3", -3.5, 10.0, 0, 0, 1.4, None)], [(-2, 25, 5)], light=1.05),
-    "c15_s2_the_wreck": stop("storm coast", [("sea_throne", -6.0, 25.0, 0, 15, 1.1, "gale"), ("shipwreck", 1.5, 11.5, 0, 70, 1.15, None),
-                                             ("crate", -4.5, 8.0, 0, 20, 1.0, None), ("crate", -5.2, 8.6, 0.6, 50, 0.8, None)], [(1.5, 11.5, 5)], light=1.0),
-    "c15_s3_dead_beacon": stop("storm coast", [("beacon", -4.0, 11.0, 0, 0, 1.15, None), ("sea_throne", 5.0, 24.0, 0, -10, 1.1, "gale"),
-                                               ("rock0", 4.0, 8.0, 0, 0, 1.3, None)], [(-4, 11, 4)], light=0.95),
-    "c15_s4_sea_stacks": stop("storm coast", [("sea_stacks", 2.0, 14.0, 0, 0, 1.1, None), ("sea_throne", -5.0, 22.5, 0, 10, 1.15, "gale"),
-                                              ("bolt", -9.0, 23.5, 0, 0, 1.0, "gale")], [(2, 14, 5.5)], light=0.9),
-    "c15_s5_hollow_camp": stop("storm coast", [("sea_throne", 1.0, 20.0, 0, 0, 1.2, "gale"), ("banner_pole", -4.0, 9.0, 0, 0, 1.15, None), ("banner_pole", 4.5, 9.5, 0, 0, 1.15, None),
-                                               ("brazier", -6.5, 6.0, 0, 0, 1.1, "fire"), ("brazier", 6.6, 6.5, 0, 0, 1.1, "fire"), ("crate", -2.5, 10.5, 0, 10, 1.0, None),
-                                               ("bolt", 8.0, 21.5, 0, 0, 1.0, "gale")], [(1, 20, 5)], light=0.85),
-}
+MOOD = {"Day": (1.0, 0.0), "Late": (0.95, 0.1), "Golden": (0.9, 0.2), "Dusk": (0.85, 0.35), "Night": (0.65, 0.5)}
 
 
-def place(shot, meshes, kit):
-    t = copy.deepcopy(ALL[shot["theme"]])
-    if shot["dusk"]:  # later stops of a route drift toward dusk inside the same palette
-        t["bot"] = "#%02x%02x%02x" % tuple(int(c * 255) for c in P.lerp(P.hexc(t["bot"]), P.hexc(t["sil"]) * 1.6, shot["dusk"]))
-    t["boss"] = shot["boss"]; t["keepout"] = shot["keep"]; t["scatter"] = 34
-    R.setup(shot["name"], t, kit, lineup=False)
+def _calls(src, fn):
+    """Yields the argument text of each fn(...) call, with balanced parentheses."""
+    i = 0
+    while True:
+        i = src.find(fn + "(", i)
+        if i < 0: return
+        j = i + len(fn) + 1; depth = 1
+        while depth:
+            depth += {"(": 1, ")": -1}.get(src[j], 0); j += 1
+        yield src[i + len(fn) + 1:j - 1]; i = j
+
+
+def _split(args):
+    out, depth, cur = [], 0, ""
+    for ch in args:
+        if ch == "," and depth == 0: out.append(cur.strip()); cur = ""; continue
+        depth += {"(": 1, ")": -1}.get(ch, 0); cur += ch
+    if cur.strip(): out.append(cur.strip())
+    return out
+
+
+def load_sets():
+    """Core/StoryScenes.cs -> [chapter][stage] = (name, mood, [piece dicts]): the mock renders the game's own data."""
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "Assets", "Sigilbound", "Core", "StoryScenes.cs")).read()
+    src = src[src.index("// ACT1-BEGIN"):src.index("// ACT2-END")]
+    stops = []
+    for args in _calls(src, "S"):
+        a = _split(args)
+        name, mood = a[0].strip('"'), a[1].split(".")[1]
+        pieces = []
+        for pa in _calls(args, "P"):
+            v = _split(pa); d = dict(mesh=v[0].strip('"'), x=0, z=0, yaw=0, scale=1, r=2, glow=None, y=0, fx="None", fxY=0, far=False)
+            pos = ["mesh", "x", "z", "yaw", "scale", "r", "glow"]
+            for n, tok in enumerate(v[1:], 1):
+                if ":" in tok: key, val = [t.strip() for t in tok.split(":", 1)]
+                else: key, val = pos[n], tok
+                val = val.rstrip("f")
+                if key == "glow": d[key] = None if val == "null" else val.strip('"')
+                elif key == "fx": d[key] = val.split(".")[1]
+                elif key == "far": d[key] = val == "true"
+                else: d[key] = float(val)
+            pieces.append(d)
+        stops.append((name, mood, pieces))
+    return [stops[c * 6:(c + 1) * 6] for c in range(15)]
+
+
+def place(chapter, stage, sets, meshes, kit, name):
     import bpy
+    sname, mood, pieces = sets[chapter][stage]
+    t = copy.deepcopy(ALL[CHAPTER_THEME[chapter]])
+    light, dusk = MOOD[mood]
+    if dusk:
+        t["bot"] = "#%02x%02x%02x" % tuple(int(min(1, c) * 255) for c in P.lerp(P.hexc(t["bot"]), P.hexc(t["sil"]) * 1.6, dusk))
+        t["top"] = "#%02x%02x%02x" % tuple(int(c * 255) for c in P.lerp(P.hexc(t["top"]), P.hexc(t["top"]) * 0.55, 0.7 if mood == "Night" else dusk))
+    t["boss"] = stage == 5; t["debris"] = False
+    t["keepout"] = [(p["x"], p["z"], p["r"] + 0.6) for p in pieces]; t["scatter"] = 34
+    R.setup(name, t, kit, lineup=False)
     ramp = bpy.data.materials["kit"]
-    for (name, x, z, y, yaw, sc, glow) in shot["items"]:
-        v, s = (meshes if name in meshes else kit)[name]
-        gm = R.lit_mat("g_" + name, color=P.hexc(GLOW[glow]) * 0.4, emit=P.hexc(GLOW[glow])) if glow else bpy.data.materials["glow"]
-        if glow: gm.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = 0.9  # nearer the game's glow than the review's 2.5
-        ob = R.kit_object(name, v, s, ramp, gm)
-        ob.location = (x, z, y); ob.rotation_euler = (0, 0, math.radians(yaw)); ob.scale = (sc, sc, sc)
-        if name == "banner_pole":
+    far_mat = R.lit_mat("far", color=P.lerp(P.hexc(t["sil"]), P.hexc(t["bot"]), 0.25) * 0.8)
+    for p in pieces:
+        v, s = (meshes if p["mesh"] in meshes else kit)[p["mesh"]]
+        g = p["glow"] or ("fire" if p["mesh"] in ("brazier", "lantern", "torch_post") else None)
+        gm = R.lit_mat("g_" + p["mesh"], color=P.hexc(GLOW[g]) * 0.4, emit=P.hexc(GLOW[g])) if g else bpy.data.materials["glow"]
+        if g: gm.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = 0.9
+        ob = R.kit_object(p["mesh"], v, s, far_mat if p["far"] else ramp, gm)
+        ob.location = (p["x"], p["z"], p["y"]); ob.rotation_euler = (0, 0, math.radians(p["yaw"])); ob.scale = (p["scale"],) * 3
+        if p["mesh"] == "banner_pole":
             v2, s2 = kit["banner_cloth"]; c = R.kit_object("cloth", v2, s2, ramp, gm); c.parent = ob; c.location = (0, 0, 2.85)
-    sun = bpy.data.objects["sun"]; sun.data.energy *= shot["light"]
+    bpy.data.objects["sun"].data.energy *= light
+    return sname
 
 
 if __name__ == "__main__":
+    # python story_review.py OUT [c:s ...]   (1-based chapter:stage; default: every lair plus the shot-tour stops)
     out = sys.argv[1]; os.makedirs(out, exist_ok=True)
-    picks = sys.argv[2:] or list(SHOTS)
+    picks = [tuple(int(x) - 1 for x in a.split(":")) for a in sys.argv[2:]] or [(c, 5) for c in range(15)] + [(1, 0)]
     _, kit, _ = mp.export(os.path.join(out, "_kit.bytes")); os.remove(os.path.join(out, "_kit.bytes"))
-    meshes = L.build_all()
-    for name in picks:
-        shot = dict(SHOTS[name]); shot["name"] = name
-        place(shot, meshes, kit)
+    sets = load_sets()
+    need = sorted({p["mesh"] for c, s in picks for p in sets[c][s][2] if p["mesh"] not in kit})
+    meshes = L.build_all(need)
+    for c, st in picks:
+        name = f"c{c + 1:02d}_s{st + 1}"
+        sname = place(c, st, sets, meshes, kit, name)
         R.render(os.path.join(out, name + ".png"))
-        print("rendered", name, flush=True)
+        print("rendered", name, sname, flush=True)

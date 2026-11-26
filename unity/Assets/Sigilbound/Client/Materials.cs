@@ -30,6 +30,7 @@ namespace Sigilbound.Client
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
             if (m.HasProperty("_Color")) m.SetColor("_Color", c);
         }
+        public static void SetBase(Material m, Color c) { if (m != null) SetColor(m, c); }
         public static Color BaseColor(Material m) =>
             m == null ? Color.grey : m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.HasProperty("_Color") ? m.GetColor("_Color") : Color.grey;
 

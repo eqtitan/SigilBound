@@ -26,6 +26,7 @@ namespace Sigilbound.Client
             // boss stages' vent eruptions, and the fog range.
             public string Style = "hills"; public bool Ruins, Storm; public ArenaReactor.Hazard Vent = ArenaReactor.Hazard.Dust;
             public float FogNear = 26, FogFar = 64, Clouds = 0.5f;
+            public bool Pines; // conifers only (the Stormcrown crag)
         }
         // scenery.mjs THEMES and TITAN_THEME.
         static readonly Theme[] Themes =
@@ -47,9 +48,15 @@ namespace Sigilbound.Client
             new Theme { Name = "ember groves", Grass = "#3a3230", Grass2 = "#4a3c34", Worn = "#5a4a40", Hill = "#34302e", Rock = "#4a4440", Bark = "#2a2220", Leaves = new[] { "#ff7a2a", "#ffaa3a", "#e04a1a" }, Tuft = "#5a4a3a", Cloth = "#6a1a10", Sil = "#2a0e0a", Motes = "embers", MoteColor = "#ff9a3a", GlowLeaves = true, Style = "forest", Vent = ArenaReactor.Hazard.Lava },
             new Theme { Name = "storm coast", Grass = "#4a5052", Grass2 = "#565c5c", Worn = "#6a6a66", Hill = "#3e4446", Rock = "#3a3e46", Bark = "#3a3432", Tuft = "#5a6456", Water = "#0e2234", Cloth = "#8a9aa8", Sil = "#0e1622", Motes = "rain", MoteColor = "#b8d0ff", Stones = true, Style = "peaks", Storm = true, Vent = ArenaReactor.Hazard.Water, FogNear = 20, FogFar = 58, Clouds = 0.8f },
         };
+        // Themes 15 and 16 (GameData.GlassTheme, CragTheme): their own lands for The Glass Wastes and Stormcrown Heights.
+        static readonly Theme GlassDesert = new Theme { Name = "glass desert", Grass = "#b8aa8a", Grass2 = "#c8bc9c", Worn = "#9a8e76", Hill = "#a89a7c", Rock = "#8a8478", Bark = "#5a4e44", Tuft = "#9a9070", Cloth = "#6a8aa0", Sil = "#3a4458", Motes = "sparks", MoteColor = "#c8f4ff", Crystals = true, DeadTrees = true, Style = "dunes", Vent = ArenaReactor.Hazard.Crystal, FogNear = 30, FogFar = 74, Clouds = 0.3f };
+        static readonly Theme StormcrownCrag = new Theme { Name = "stormcrown crag", Grass = "#5a6260", Grass2 = "#6a706c", Worn = "#7a7a74", Hill = "#4a5052", Rock = "#5a5e66", Bark = "#3a3430", Leaves = new[] { "#2e4a3a", "#3a5240" }, Tuft = "#6a7062", Cloth = "#4a5a7a", Sil = "#141c2c", Motes = "dust", MoteColor = "#e8f0ff", Stones = true, Pines = true, Style = "peaks", Storm = true, Vent = ArenaReactor.Hazard.Dust, FogNear = 22, FogFar = 60, Clouds = 0.75f };
+        static Theme[] _all;
+        static Theme[] All => _all ??= new List<Theme>(Themes) { GlassDesert, StormcrownCrag }.ToArray();
         static readonly Theme TitanTheme = new Theme { Name = "titan caldera", Grass = "#3a3436", Grass2 = "#463e3e", Worn = "#6a625e", Hill = "#332e30", Rock = "#2e2a2e", Bark = "#2a2222", Tuft = "#3a3030", Cloth = "#5a1a10", Sil = "#1e0c0a", Motes = "embers", MoteColor = "#ff7a2a", Style = "volcano", Storm = true, Vent = ArenaReactor.Hazard.Lava, Clouds = 0.6f };
-        public static string ThemeName(int chapter, bool titan) => titan ? TitanTheme.Name : Themes[GameData.ThemeOf(chapter)].Name;
-        static Theme ThemeOf(int chapter, bool titan) => titan ? TitanTheme : Themes[GameData.ThemeOf(chapter)];
+        public static string ThemeName(int chapter, bool titan) => ThemeOf(chapter, titan).Name;
+        static Theme ThemeOf(int chapter, bool titan) => titan ? TitanTheme : All[Mathf.Clamp(GameData.ThemeOf(chapter), 0, All.Length - 1)];
+        public static Color ShadowColor(int chapter, bool titan) => Palette.Hex(ThemeOf(chapter, titan).Sil);
         public static (float near, float far) FogRange(int chapter, bool titan) { var th = ThemeOf(chapter, titan); return (th.FogNear, th.FogFar); }
         public static bool Stormy(int chapter, bool titan) => ThemeOf(chapter, titan).Storm;
 
@@ -58,12 +65,16 @@ namespace Sigilbound.Client
 
         // The painted textures for the last arena (they are rebuilt only when the arena changes).
         static string _paintKey; static readonly List<Object> _paint = new List<Object>();
-        static Material _groundMat, _waterMat, _ramp, _glow, _fire; static Material[] _backMats; static Mesh[] _arcs;
+        static Material _groundMat, _waterMat, _ramp, _farRamp, _glow, _fire; static Material[] _backMats; static Mesh[] _arcs;
+        static readonly Dictionary<string, Material> _glows = new Dictionary<string, Material>();
         static T Keep<T>(T o) where T : Object { _paint.Add(o); return o; }
 
         // Builds the arena under `root`. density: scatter density (quality tier). top/fog: the sky's
-        // zenith and horizon (Palette.Scene). interactive: a boss stage or the Titan (ArenaReactor).
-        public static void Build(Transform root, int chapter, bool titan, float density, Color fog, Color top = default, bool interactive = false, Light sun = null)
+        // zenith and horizon (Palette.Scene, after the stop's mood). interactive: a boss stage or the Titan
+        // (ArenaReactor). set: the campaign stop (Core.StoryScenes) whose set-pieces stand here; night: Hard
+        // mode, the same stops by night with lanterns lit.
+        public static void Build(Transform root, int chapter, bool titan, float density, Color fog, Color top = default, bool interactive = false, Light sun = null,
+                                 StageSet set = null, bool night = false)
         {
             var th = ThemeOf(chapter, titan);
             var rng = new System.Random(titan ? 1337 : 101 + chapter * 7);
@@ -73,7 +84,7 @@ namespace Sigilbound.Client
             bool kit = SceneryKit.Ready;
             float waterZ = th.Water != null || titan ? 10f : -1f;
 
-            string key = $"{th.Name}/{chapter}/{titan}/{kit}";
+            string key = $"{th.Name}/{chapter}/{titan}/{kit}/{ColorUtility.ToHtmlStringRGB(fog)}{ColorUtility.ToHtmlStringRGB(top)}"; // the mood changes sky and ridges
             if (key != _paintKey)
             {
                 foreach (var o in _paint) if (o != null) Object.Destroy(o);
@@ -119,6 +130,13 @@ namespace Sigilbound.Client
                     var ramp = Keep(SceneryPaint.Ramp(Rows(th), Palette.Hex(th.Sil), sunTint));
                     _ramp = Keep(new Material(Materials.Lit(Color.white, 0, 0.12f)) { name = "SceneryRamp", mainTexture = ramp });
                     if (_ramp.HasProperty("_BaseMap")) _ramp.SetTexture("_BaseMap", ramp);
+                    // Landmarks on the horizon: the same painting pushed toward the ridges' shadow colour and darkened,
+                    // so after the fog they still read as a silhouette instead of washing out (owner check, build 133).
+                    var sil = Palette.Hex(th.Sil); var rows = Rows(th);
+                    for (int i = 0; i < rows.Length; i++) { var c = Color.Lerp(rows[i], sil, 0.55f) * 0.7f; c.a = 1; rows[i] = c; }
+                    var farRamp = Keep(SceneryPaint.Ramp(rows, sil, Color.Lerp(sil, sunTint, 0.3f)));
+                    _farRamp = Keep(new Material(Materials.Lit(Color.white, 0, 0.05f)) { name = "SceneryFarRamp", mainTexture = farRamp });
+                    if (_farRamp.HasProperty("_BaseMap")) _farRamp.SetTexture("_BaseMap", farRamp);
                 }
                 var mote = Palette.Hex(th.MoteColor);
                 _glow = Materials.Glow(mote * 0.4f, mote, th.Mushrooms ? 0.9f : 1.2f);
@@ -169,7 +187,9 @@ namespace Sigilbound.Client
             else
             {
                 // ---- scatter (kept off the arena ellipse and the camera side) ----
-                bool Clear(float x, float z) => Mathf.Pow(x / 6.2f, 2) + Mathf.Pow((z - 0.6f) / 5.6f, 2) < 1 || z < -7 || (waterZ > 0 && z > waterZ - 0.6f);
+                var pieces = set?.Pieces ?? new Piece[0];
+                bool UnderPiece(float x, float z) { foreach (var pc in pieces) if ((x - pc.X) * (x - pc.X) + (z - pc.Z) * (z - pc.Z) < (pc.R + 0.6f) * (pc.R + 0.6f)) return true; return false; }
+                bool Clear(float x, float z) => Mathf.Pow(x / 6.2f, 2) + Mathf.Pow((z - 0.6f) / 5.6f, 2) < 1 || z < -7 || (waterZ > 0 && z > waterZ - 0.6f) || UnderPiece(x, z);
                 var table = Picks(th);
                 float total = 0; foreach (var p in table) total += p.w;
                 int n = Mathf.RoundToInt(70 * density);
@@ -194,6 +214,12 @@ namespace Sigilbound.Client
                     if (z < -6.5f) continue;
                     Place(root, "tuft" + (int)R(0, 2.99f), new Vector3(x, 0, z), R(0.5f, 0.8f), R(0, 360));
                 }
+                // ---- the campaign stop: its set-pieces, the landmark ahead or the lair ----
+                if (set != null) Stop(root, set, chapter, react);
+                // ---- Hard mode by night: lanterns lit along the flanks ----
+                if (night && !titan)
+                    foreach (var (lx, lz) in new[] { (-7.6f, 3f), (7.6f, 3f), (-8.4f, 9.5f), (8.4f, 9.5f) })
+                        if (!UnderPiece(lx, lz)) Place(root, "lantern", new Vector3(lx, 0, lz), 1.05f, 0);
                 // ---- boss stages: braziers flanking the foes, war banners behind them, vents beyond ----
                 if (react != null)
                 {
@@ -223,9 +249,43 @@ namespace Sigilbound.Client
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
         }
 
+        // Places a stop's pieces (meshes from the base kit or this act's story pack) and hands the lair's
+        // moving parts to the reactor.
+        static void Stop(Transform root, StageSet set, int chapter, ArenaReactor react)
+        {
+            SceneryKit.EnsurePack(GameData.ActOf(chapter) == 1 ? "story_act1" : "story_act2");
+            foreach (var pc in set.Pieces)
+            {
+                var glow = GlowFor(pc);
+                bool pulses = react != null && (pc.Fx == LairFx.Chime || pc.Fx == LairFx.Drip || pc.Fx == LairFx.Pulse || pc.Fx == LairFx.Beam || pc.Fx == LairFx.Snuff);
+                if (pulses) glow = Keep(new Material(glow)); // its own glow, so the reactor can pulse or snuff just this piece
+                var go = SceneryKit.Place(root, pc.Mesh, new Vector3(pc.X, pc.Y, pc.Z), pc.Scale, pc.Yaw, pc.Far ? _farRamp : _ramp, glow);
+                if (go == null) { Debug.LogWarning("[scenery] story piece missing: " + pc.Mesh); continue; }
+                go.name = "Story_" + pc.Mesh;
+                if (pc.Mesh == "banner_pole") Banner(root, go, react);
+                if (react == null) continue;
+                if (pc.Fx == LairFx.Sway) { go.AddComponent<SceneryMoves>(); react.Sway.Add(go.transform); }
+                else if (pc.Fx == LairFx.Vent) react.Vents.Add(go.transform.position);
+                else if (pc.Fx != LairFx.None)
+                {
+                    go.AddComponent<SceneryMoves>();
+                    react.Lair.Add(new ArenaReactor.LairPart { T = go.transform, Fx = pc.Fx, Anchor = go.transform.position + Vector3.up * pc.FxY * pc.Scale, Glow = pulses ? glow : null });
+                }
+            }
+        }
+
+        static Material GlowFor(Piece pc)
+        {
+            string hex = StoryScenes.GlowHex(pc.Glow);
+            if (pc.Glow == "fire" || (hex == null && (pc.Mesh == "brazier" || pc.Mesh == "lantern" || pc.Mesh == "torch_post"))) return _fire;
+            if (hex == null) return _glow;
+            if (!_glows.TryGetValue(hex, out var m) || m == null) { var c = Palette.Hex(hex); _glows[hex] = m = Materials.Glow(c * 0.4f, c, 1.2f); }
+            return m;
+        }
+
         static GameObject Place(Transform root, string name, Vector3 p, float s, float yaw)
         {
-            bool fire = name == "brazier" || name == "lantern";
+            bool fire = name == "brazier" || name == "lantern" || name == "torch_post";
             return SceneryKit.Place(root, name, p, s, yaw, _ramp, fire ? _fire : _glow);
         }
 
@@ -259,7 +319,8 @@ namespace Sigilbound.Client
         static List<(string prefix, float w, float lo, float hi, bool sway)> Picks(Theme th)
         {
             var l = new List<(string, float, float, float, bool)> { ("rock", 3f, 0.7f, 1.8f, false), ("tuft", 1.2f, 0.8f, 1.3f, false) };
-            if (th.Leaves != null) { l.Add(("oak", 3f, 0.8f, 1.3f, true)); l.Add(("bush", 1.5f, 0.8f, 1.3f, true)); if (!th.GlowLeaves && th.Style == "forest") l.Add(("pine", 1.5f, 0.8f, 1.2f, true)); }
+            if (th.Leaves != null && th.Pines) { l.Add(("pine", 3.5f, 0.8f, 1.3f, true)); l.Add(("bush", 0.6f, 0.7f, 1.0f, true)); }
+            else if (th.Leaves != null) { l.Add(("oak", 3f, 0.8f, 1.3f, true)); l.Add(("bush", 1.5f, 0.8f, 1.3f, true)); if (!th.GlowLeaves && th.Style == "forest") l.Add(("pine", 1.5f, 0.8f, 1.2f, true)); }
             if (th.DeadTrees) l.Add(("dead", 2.5f, 0.8f, 1.3f, true));
             if (th.Strata != null) l.Add(("mesa", 2.5f, 1.0f, 1.8f, false));
             if (th.Crystals) l.Add(("crystal", 1.5f, 0.8f, 1.5f, false));

@@ -334,10 +334,17 @@ namespace Sigilbound.Core
         public static int ActOf(int chapter) => chapter < ClassicChapters ? 1 : 2;
         // Scenery/colour-grade theme per chapter: act 2 picks act 1 themes that suit the coast and fens.
         // Act 2 chapters have their own themes 10-14 (harbor, fens, barrows, ember groves, storm coast).
-        public static int ThemeOf(int chapter) => chapter < ClassicChapters ? ((chapter % 10) + 10) % 10 : ClassicChapters + (chapter - ClassicChapters) % 5;
+        // The Glass Wastes (chapter 6) and Stormcrown Heights (chapter 7) have their own themes, 15 and 16: a pale
+        // glass desert and a cold mountain crag (story scenes, PLAN step 85); every other chapter keeps its theme.
+        public const int GlassTheme = 15, CragTheme = 16;
+        public static int ThemeOf(int chapter)
+        {
+            int t = chapter < ClassicChapters ? ((chapter % 10) + 10) % 10 : ClassicChapters + (chapter - ClassicChapters) % 5;
+            return t == 5 ? GlassTheme : t == 6 ? CragTheme : t;
+        }
 
-        // Act 2 story (Unity only): the introduction shown once when Act II opens, and a few lines per
-        // chapter at the top of its stage list.
+        // Campaign story (Unity only): the Act II introduction shown once when it opens, and a line per
+        // chapter (both acts) at the top of its stage list.
         public const string Act2Title = "Act II · The Sigil Bearers";
         public const string Act2Intro =
             "The Last Pyre is quiet, but the Sigil did not mend. Its five shards fled west on the storm, " +
@@ -345,7 +352,17 @@ namespace Sigilbound.Core
             "Find the bearers before the Hollow King does.";
         public static readonly string[] ChapterStory =
         {
-            null, null, null, null, null, null, null, null, null, null, // act 1 has no chapter text
+            // act 1 (owner-approved drafts, STORY_SCENES.md)
+            "The Sigil cracked in the night, and the Hollow came down Thornwick Road with the dark. Follow the wagon tracks: whatever overturned them is still close.",
+            "The river rose the night the Sigil broke. The old mill went under, yet its wheel still turns, and the Hollow gather where it groans.",
+            "Ash falls like snow over the pass. The mourners fled and left their dead unburied, but the graves are not quiet.",
+            "The marsh folk have pulled up their ladders. From their stilt huts they watch lights moving in the reeds, lights that aren't theirs.",
+            "The Bellspire has not rung in a hundred years. Tonight it tolls by itself, and every toll calls more Hollow to the ruins.",
+            "The first Sigil war burned these sands to glass. The spires sing in the wind, and something Hollow sings back.",
+            "Lightning never leaves the Stormcrown. Climb to the crown of rock, where a splinter of the old storm still answers the Hollow.",
+            "The Hollow did not come from nowhere. Under the badlands a cavern breathes violet light. Go down, and find where they are made.",
+            "The cathedral sank with its choir still singing. Its rose window glows under the water, and the drowned congregation is waking.",
+            "At the Last Pyre the Hollow mean to burn what's left of the Sigil. Reach the fire before it takes the shards, or the night never ends.",
             "Saltreach's lamps still burn, but the docks are full of Hollow. A street urchin swears the Flame shard sleeps in the old lighthouse.",
             "Beyond the city walls the fens are black and still. Something drowned here has learned to walk, and it carries the Shadow shard's chill.",
             "The barrows of Wraithmoor hum at night. The dead kings beneath them are restless, and the Tide shard sings under the stones.",

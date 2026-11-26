@@ -98,6 +98,8 @@ def ridge_height(u, layer, style, seed):
         q = np.floor(n * 4) / 4; hgt = 0.2 + 0.55 * (q + (n - q) * 0.15)
     elif style == "sea":
         hgt = 0.08 + 0.25 * n
+    elif style == "dunes":
+        hgt = 0.1 + 0.3 * n ** 1.3
     elif style == "volcano":
         c = np.exp(-((u - 0.5) / (0.12 + layer * 0.05)) ** 2); hgt = 0.2 + 0.25 * n + c * (0.75 - layer * 0.2)
         hgt = np.minimum(hgt, 0.9 - layer * 0.15)

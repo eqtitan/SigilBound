@@ -1,6 +1,6 @@
 # Story scenes brief
 
-Status: **brief and mock-ups for approval.** Nothing here is wired into the game yet.
+Status: **approved by the owner and built into the game (PLAN step 85).** §7 records the owner's decisions and how they were implemented.
 
 The owner asked: "Let's work on scene art and flesh it out more based on the story build", and
 refined it: "Each level of campaign progression should show different parts of the world scene,
@@ -660,3 +660,69 @@ Cycles renders in the same style as the arena sheets, with grey cylinders standi
    agent; the scenery would raise them as events only.
 5. **Dungeons, Hard mode and arena rivals** reuse chapter themes today. Should Hard stages reuse the
    same stops with a night mood, so Hard reads as "the same road, at night"?
+
+
+## 7. Built (owner decisions, 2026-11-26)
+
+1. **Routes and lairs.**
+   - `Core/StoryScenes.cs` holds `StageSet[chapter][stage]`: stop name, `Mood`, and pieces (mesh, x, z, yaw,
+     scale, footprint radius, glow key, far flag, lair behaviour).
+   - `Arena.Build(chapter, titan, interactive, stage, hard)` picks the stop and applies its mood:
+     horizon drift, sun, ambient, fog and colour grade.
+   - `Scenery.Build` places the pieces and keeps the scatter off their footprints.
+   - Some stops have changed since the mock-ups. The data in StoryScenes.cs is authoritative, and
+     `Tools~/scenery/story_review.py` renders straight from it.
+2. **Modelling pass.**
+   - **Hollow King's throne:** a stepped headland of cliff strata with steps cut up its face, flanking
+     spires, and chains to the sea.
+   - **Cathedral arcades:** true pointed (equilateral) arches swept along the curve, on clustered piers.
+     The west front has buttresses.
+   - **Thornwick wagon:** a slatted bed, a torn canvas tilt on hoops, running gear, a lost wheel, a
+     snapped shaft, barrels and sacks.
+3. **Distant landmarks.** Pieces flagged `Far` use a second ramp. It is pushed 55 % toward the theme's
+   shadow colour and darkened, so they read as a silhouette through the fog. Their glows (the pyre, the
+   lighthouse lamp, the shards) stay lit on the horizon.
+4. **Per-act packs.**
+   - `Resources/Scenery/story_act1.bytes`: 44 meshes, 22.8k triangles, 523 KB.
+   - `story_act2.bytes`: 23 meshes, 14.4k triangles, 262 KB.
+   - Together 784 KB, under the 900 KB budget.
+   - `make_landmarks.py` builds them from the meshes each act's stops name (`P("…")` between the ACT
+     markers) that the base kit lacks.
+   - `SceneryKit.EnsurePack` loads a pack the first time a chapter of that act is built.
+5. **Own themes.**
+   - Theme 15, **glass desert** (The Glass Wastes): pale sand, a cool blue-violet shadow colour, glass
+     glints, dune ridges, a clear fog range (30–74) and crystal vents.
+   - Theme 16, **Stormcrown crag** (Stormcrown Heights): cold slate, pine-only scatter, standing stones,
+     peaks, storm lightning, drifting snow-white motes and fog at 22–60.
+   - Each has a row in Palette.Scene and a PostFx grade. `GameData.ThemeOf` sends chapters 6 and 7
+     (indices 5 and 6) to them; every other chapter keeps its theme.
+6. **Act 1 story lines** are in `GameData.ChapterStory[0..9]`. The stage list already shows any
+   chapter's line, so act 1 now shows them too.
+7. **Stop names.**
+   - The stage list shows the stage number (with the Boss tag) and the stop's name under it.
+   - The prep title reads "Stage 2-3 · The sluice gate".
+   - On the narrow campaign grid, the buttons keep only the number; the name shows on the prep screen.
+8. **Hard mode at night.** Hard mode uses the same stops with the Night mood:
+   - darker sky, horizon toward the shadow colour, a moonlit sun at 0.65, ambient light at 0.8, fog closer
+   - a cooler, less saturated PostFx grade
+   - four lanterns lit along the flanks, plus the stop's own torches and braziers glowing
+9. **Lair interactions and sound cues.** These are raised as `ArenaEvents.LairCue(cue, position)` and
+   played with `Sound.I.PlayAt(cue, pos, 0.8)`.
+
+| Cue | Lair (behaviour) | Fires when |
+|---|---|---|
+| `lairWheel` | Drowned Mill wheel (Spin) | The wheel spins up on a crit, a boss/ultimate hit or a shock. Once per spin-up, not again while it is still fast. |
+| `lairBell` | Bellspire bell (Swing); Ashgrave bell-post (Toll) | Every kill. |
+| `lairBeam` | Saltreach lighthouse lamp (Beam: turns all fight) | The beam flashes on a crit. |
+| `lairPyre` | Last Pyre and its torches, Thornwick and Saltmarsh lanterns, the Ember great tree (Flare) | A kill or a shock (ultimate, boss blow): flame burst. |
+| `lairSnuff` | Black Fens spirit lanterns (Snuff) | One lantern goes out per kill or boss crit. |
+| `lairThunder` | Stormcrown crag, Hollow King's throne (Strike) | A crit or a shock: a bolt hits the landmark. |
+| `lairChime` | Glass Wastes spires (Chime) | A crit: the spires flash. |
+| `lairDrip` | Hollow Deep cavern, Sunken Cathedral rose window (Drip) | A shock (ultimate, boss blow): the glow swells. |
+| `lairShard` (new, not yet in Sound.cs) | Black Fens Shadow shard, Wraithmoor Tide shard (Pulse) | A shock, or a heavy hit that kills: the shard pulses. |
+
+Other lair movement, with no cue of its own:
+- the Thornwick hedges and the Saltmarsh stilt huts sway (Sway)
+- the Ashgrave cairns puff ash (Vent)
+
+The Saltmarsh lantern and the Thornwick lantern use the shared `lairPyre` whoosh.

@@ -2,6 +2,13 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Every chapter is a journey
+new: Each campaign chapter now travels through its own place: every stage is a new stop on the road, with the chapter's landmark ahead, and the boss waits in its lair at stage 6.
+new: Lairs answer the fight: the mill wheel spins, the Bellspire tolls, glass spires sing, lightning strikes the crown crag and the Hollow King's throne, the Last Pyre roars, and the fen lanterns go out one by one.
+new: The Glass Wastes are now a pale glass desert, and Stormcrown Heights a cold mountain crag.
+new: Act I chapters have their own story lines, and every stage shows the name of its stop.
+change: Hard mode walks the same roads by night, under lit torches and lanterns.
+
 ## 2026-11-26 | No more stand-ins
 fix: Heroes and the Titan no longer appear as old block figures before their real models load; they now arrive as themselves.
 

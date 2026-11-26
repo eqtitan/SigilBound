@@ -117,6 +117,17 @@ namespace Sigilbound.Client
                 ShotLog($"arena {GameData.Chapters[c]}");
                 yield return Shot($"arena-{c + 1}");
             }
+            // Story stops (PLAN step 85): a route's first stop and lairs, from the battle camera.
+            foreach (var (c, st, label) in new[] { (1, 0, "story-mill-1"), (1, 5, "story-mill-6"), (14, 5, "story-storm-6"), (5, 5, "story-glass-6"), (6, 5, "story-crown-6") })
+            {
+                Arena.Build(c, false, st == GameData.StagesPerChapter - 1, st);
+                Arena.FrameBattle(BattleLayout.DefaultCamera, false);
+                yield return new WaitForSecondsRealtime(1.5f);
+                ShotLog($"story {GameData.Chapters[c]} stage {st + 1}: {StoryScenes.Of(c, st)?.Name}");
+                yield return Shot(label);
+                LogBudget(label);
+            }
+            Arena.FrameMenu();
             Arena.Build(0, false);
             _shotLineup = null; _shotNoUi = false; _lineupKey = "";
             Go(ScreenId.Home);

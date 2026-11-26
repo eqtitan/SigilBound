@@ -173,7 +173,7 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(Pad, y, 80, 34), "‹ Back", Ui.Kind.Secondary, 13)) Go(_prepBack);
             Ui.Text(new Rect(Ui.W - 200, y, 184, 34), $"Power {Ui.Fmt(G.TeamPower)}", 13, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
             y += 44;
-            string title = _prepTitan ? "Titan Challenge" : $"{(_prepHard ? "Hard " : "Stage ")}{Game.StageLabel(_prepStage)} · {Chapters[Game.ChapterOf(_prepStage)]}";
+            string title = _prepTitan ? "Titan Challenge" : $"{(_prepHard ? "Hard " : "Stage ")}{Game.StageLabel(_prepStage)} · {StoryScenes.StopName(_prepStage) ?? Chapters[Game.ChapterOf(_prepStage)]}";
             string sub = _prepTitan ? (_prepPractice ? $"{TitanElement(System.DateTime.Now)} Titan · Practice: no rewards, no try used" : $"{TitanElement(System.DateTime.Now)} Titan today · {G.S.daily.titanTries} tries left")
                 : $"Enemy Lv {Game.StageLevel(_prepStage) + (_prepHard ? Game.HardLvl : 0)} · {(Game.IsBossStage(_prepStage) ? "3 waves · Boss" : "2 waves")}{(_prepHard ? " · Hard" : "")}";
             Ui.Text(new Rect(Pad, y, Ui.W - 32, 28), title, 19, Palette.Text, FontStyle.Bold); y += 28;

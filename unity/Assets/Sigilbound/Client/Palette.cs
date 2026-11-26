@@ -49,6 +49,8 @@ namespace Sigilbound.Client
                 { "#1a2436", "#c89060", "#22262a", "#ffcf70" }, { "#080e0a", "#2a3a28", "#0e160e", "#b0ff6a" },
                 { "#1a1c26", "#8a8e9a", "#24262c", "#d8e0f0" }, { "#140806", "#c04a1a", "#1e100c", "#ff9a3a" },
                 { "#0a1018", "#3a4a5e", "#141a22", "#b8d0ff" },
+                // themes 15, 16: the glass desert (The Glass Wastes) and the Stormcrown crag (Stormcrown Heights)
+                { "#2a3a4e", "#d8c8a8", "#3a3630", "#a8f0ff" }, { "#0c1424", "#6a7a92", "#1a2030", "#c8dcff" },
             };
             int c = GameData.ThemeOf(chapter); // act 2 chapters use their own theme picks
             return (Hex(s[c, 0]), Hex(s[c, 1]), Hex(s[c, 2]), Hex(s[c, 3]));

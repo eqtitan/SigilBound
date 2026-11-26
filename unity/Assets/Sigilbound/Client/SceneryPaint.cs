@@ -115,6 +115,7 @@ namespace Sigilbound.Client
                 case "peaks": { float r = 1 - Mathf.Abs(n * 2 - 1); hgt = 0.25f + 0.6f * Mathf.Pow(r, 1.6f); break; }
                 case "mesas": { float q = Mathf.Floor(n * 4) / 4; hgt = 0.2f + 0.55f * (q + (n - q) * 0.15f); break; }
                 case "sea": hgt = 0.08f + 0.25f * n; break;
+                case "dunes": hgt = 0.1f + 0.3f * Mathf.Pow(n, 1.3f); break; // long low dune lines (the glass desert)
                 case "volcano":
                 {
                     float c = Mathf.Exp(-Mathf.Pow((u - 0.5f) / (0.12f + layer * 0.05f), 2));

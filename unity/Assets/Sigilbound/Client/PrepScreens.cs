@@ -58,17 +58,19 @@ namespace Sigilbound.Client
                 bool clear = hard ? idx < G.S.hardCleared : idx < G.S.cleared;
                 bool next = hard ? idx == G.S.hardCleared : idx == G.S.cleared;
                 GUI.DrawTexture(row, Ui.RoundTex(next ? Palette.Hex("#3a2f22") : Palette.Hex("#1a1522"), next ? Palette.Gold : Palette.Bronze, 8));
-                // Label and status.
-                Ui.Text(new Rect(row.x + 8, row.y, 70, row.height), $"{(Game.IsBossStage(idx) ? Ui.ColorTag("Boss ", Palette.Gold) : "")}{Game.StageLabel(idx)}", 12, open ? Palette.Text : Palette.Dim, FontStyle.Bold);
-                if (clear) Icons.Draw(new Rect(row.x + 74, row.center.y - 7, 14, 14), Icon.Check, Palette.Good);
-                else if (!open) Icons.Draw(new Rect(row.x + 74, row.center.y - 7, 14, 14), Icon.Lock, Palette.Dim);
+                // Label (stage number, Boss tag, the route stop's name) and status.
+                float lw = Mathf.Clamp(row.width * 0.24f, 96, 150);
+                Ui.Text(new Rect(row.x + 8, row.y + 2, lw - 26, row.height * 0.5f), $"{(Game.IsBossStage(idx) ? Ui.ColorTag("Boss ", Palette.Gold) : "")}{Game.StageLabel(idx)}", 12, open ? Palette.Text : Palette.Dim, FontStyle.Bold, TextAnchor.LowerLeft);
+                Ui.Text(new Rect(row.x + 8, row.y + row.height * 0.5f, lw - 10, row.height * 0.5f - 2), StoryScenes.StopName(idx) ?? "", 10, open ? Palette.Dim : Palette.Line, FontStyle.Italic, TextAnchor.UpperLeft, false, true);
+                if (clear) Icons.Draw(new Rect(row.x + lw - 18, row.y + row.height * 0.25f - 7, 14, 14), Icon.Check, Palette.Good);
+                else if (!open) Icons.Draw(new Rect(row.x + lw - 18, row.y + row.height * 0.25f - 7, 14, 14), Icon.Lock, Palette.Dim);
                 // Final wave's enemies.
                 var wave = WavesFor(idx, hard).Last();
-                float ex = row.x + 96, ew = Mathf.Min(110, (row.width * 0.52f) / wave.Count);
+                float ex = row.x + lw + 4, ew = Mathf.Min(110, (row.width * 0.44f) / wave.Count);
                 foreach (var e in wave) { EnemyChip(new Rect(ex, row.y, ew - 4, row.height), e); ex += ew; }
                 // Drops: gold, first-clear shards, gear chance.
                 var rw = hard ? Game.HardRewards(idx, !clear) : Game.StageRewards(idx, !clear);
-                float dx = row.x + 96 + row.width * 0.52f + 4;
+                float dx = row.x + lw + 4 + row.width * 0.44f + 4;
                 Icons.Draw(new Rect(dx, row.center.y - 7, 14, 14), Icon.Coin, Palette.Gold);
                 Ui.Text(new Rect(dx + 16, row.y, 50, row.height), Ui.Fmt(rw.Gold), 11, Palette.Text); dx += 62;
                 if (rw.Common > 0 || rw.Mystic > 0 || rw.Radiant > 0)
@@ -98,7 +100,7 @@ namespace Sigilbound.Client
             // ---- left: title, team, battle, presets ----
             if (Ui.Button(new Rect(L.x, L.y, 74, 30), "Back", Ui.Kind.Secondary, 12)) Go(_prepBack);
             Ui.Text(new Rect(L.x + 80, L.y, L.width - 80, 30), $"Power {Ui.Fmt(G.TeamPower)}", 13, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight);
-            string title = _prepTitan ? "Titan Challenge" : $"{(_prepHard ? "Hard " : "Stage ")}{Game.StageLabel(_prepStage)} · {Chapters[Game.ChapterOf(_prepStage)]}";
+            string title = _prepTitan ? "Titan Challenge" : $"{(_prepHard ? "Hard " : "Stage ")}{Game.StageLabel(_prepStage)} · {StoryScenes.StopName(_prepStage) ?? Chapters[Game.ChapterOf(_prepStage)]}";
             string sub = _prepTitan ? (_prepPractice ? $"{TitanElement(DateTime.Now)} Titan · Practice: no rewards, no try used" : $"{TitanElement(DateTime.Now)} Titan today · {G.S.daily.titanTries} tries left")
                 : $"Enemy Lv {Game.StageLevel(_prepStage) + (_prepHard ? Game.HardLvl : 0)} · {waves.Count} waves{(Game.IsBossStage(_prepStage) ? " · Boss" : "")}{(_prepHard ? " · Hard" : "")}";
             Ui.Text(new Rect(L.x, L.y + 34, L.width, 22), title, 15, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);

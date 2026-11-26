@@ -33,6 +33,8 @@ namespace Sigilbound.Client
             new Grade { Temp = -0.1f, ShHue = 230, ShAmt = 0.12f, HiHue = 210, HiAmt = 0.06f, Contrast = 0.08f, Sat = 0.8f },   // wraithmoor barrows
             new Grade { Temp = 0.22f, ShHue = 350, ShAmt = 0.1f, HiHue = 24, HiAmt = 0.18f, Contrast = 0.16f, Sat = 1.05f },   // ember groves
             new Grade { Temp = -0.18f, ShHue = 215, ShAmt = 0.16f, HiHue = 200, HiAmt = 0.08f, Contrast = 0.14f, Sat = 0.82f }, // storm coast
+            new Grade { Temp = 0.04f, ShHue = 205, ShAmt = 0.08f, HiHue = 45, HiAmt = 0.08f, Contrast = 0.06f, Sat = 0.9f },   // glass desert (theme 15)
+            new Grade { Temp = -0.16f, ShHue = 222, ShAmt = 0.15f, HiHue = 205, HiAmt = 0.06f, Contrast = 0.12f, Sat = 0.84f }, // stormcrown crag (theme 16)
         };
         static readonly Grade Titan = new Grade { Temp = 0.14f, ShHue = 350, ShAmt = 0.12f, HiHue = 28, HiAmt = 0.13f, Contrast = 0.17f, Sat = 1.02f };
         static readonly Grade Neutral = new Grade();
@@ -76,14 +78,16 @@ namespace Sigilbound.Client
         }
 
         // Battle arena grade (postfx2 lutPresetForChapter: chapter % 10 themes, the Titan caldera).
-        public static void SetArena(int chapter, bool titan, bool battle)
+        // night: Hard mode and the routes' night stops: a cooler, slightly less saturated grade.
+        public static void SetArena(int chapter, bool titan, bool battle, bool night = false)
         {
 #if SB_URP
             Ensure();
-            var g = !battle ? Neutral : titan ? Titan : Themes[Sigilbound.Core.GameData.ThemeOf(chapter)];
-            _wb.temperature.Override(g.Temp * 60f); _wb.tint.Override(g.Tint * 60f);
-            _color.saturation.Override((g.Sat - 1) * 100f); _color.contrast.Override(g.Contrast * 100f);
-            _split.shadows.Override(Toned(g.ShHue, g.ShAmt)); _split.highlights.Override(Toned(g.HiHue, g.HiAmt)); _split.balance.Override(g.Balance * 100f);
+            var g = !battle ? Neutral : titan ? Titan : Themes[Mathf.Clamp(Sigilbound.Core.GameData.ThemeOf(chapter), 0, Themes.Length - 1)];
+            float temp = g.Temp - (night ? 0.14f : 0), sat = g.Sat * (night ? 0.9f : 1), contrast = g.Contrast + (night ? 0.04f : 0);
+            _wb.temperature.Override(temp * 60f); _wb.tint.Override(g.Tint * 60f);
+            _color.saturation.Override((sat - 1) * 100f); _color.contrast.Override(contrast * 100f);
+            _split.shadows.Override(night ? Toned(228, g.ShAmt + 0.05f) : Toned(g.ShHue, g.ShAmt)); _split.highlights.Override(Toned(g.HiHue, g.HiAmt)); _split.balance.Override(g.Balance * 100f);
 #endif
         }
         // SplitToning colours: grey is neutral; push toward the hue by the preset's amount.
