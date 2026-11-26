@@ -252,7 +252,7 @@ namespace Sigilbound.Client
             if (_shotNoUi) return;
             Ui.Begin(Screen == ScreenId.Battle || Screen == ScreenId.Modes || ((Screen == ScreenId.Campaign || Screen == ScreenId.Prep) && Ui.Landscape)); // battle and the modes hub use the whole width; menus a column
             GUI.enabled = !ModalOpen; // a modal blocks taps on the screen behind it
-            if (Screen == ScreenId.Battle) { Battle.DrawHud(); DrawModalAndToasts(); return; }
+            if (Screen == ScreenId.Battle) { Battle.DrawHud(); Tutorial.DrawBattle(this); DrawModalAndToasts(); return; }
             var safe = Ui.Safe;
             float top = safe.y, bottom = safe.yMax;
             if (Screen == ScreenId.Intro) { DrawIntro(new Rect(0, top, Ui.W, bottom - top)); DrawModalAndToasts(); return; }
@@ -280,6 +280,7 @@ namespace Sigilbound.Client
                 case ScreenId.Blocked: DrawBlocked(content); break;
             }
             DrawNav(new Rect(0, bottom - 64, Ui.W, 64 + (Ui.H - bottom)));
+            Tutorial.Draw(this, bottom - 64); // first-time guide (new saves only)
             DrawModalAndToasts();
         }
 

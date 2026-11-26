@@ -39,6 +39,7 @@ namespace Sigilbound.EditorTools
             PlayerSettings.enableFrameTimingStats = true;
 #endif
             PlayerSettings.productName = AppName;
+            ApplyIcons();
             PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, AppId);
             PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS, AppId);
             // Landscape on phones, either way round.
@@ -74,6 +75,30 @@ namespace Sigilbound.EditorTools
             if (!AssetDatabase.IsValidFolder(dir)) AssetDatabase.CreateFolder("Assets/Resources", "SigilMaterials");
             AssetDatabase.CreateAsset(new Material(sh) { name = "HeroPainted" }, path);
             AssetDatabase.SaveAssets();
+        }
+
+        // The app icon (docs/sigilbound/store/make_icon.py draws it): Android adaptive (background +
+        // foreground sigil), legacy and round icons, and the default icon used by Windows and the rest.
+        public const string IconDir = "Assets/Sigilbound/Art/Icon/";
+        static void ApplyIcons()
+        {
+#if UNITY_2022_2_OR_NEWER
+            var bg = AssetDatabase.LoadAssetAtPath<Texture2D>(IconDir + "icon_background.png");
+            var fg = AssetDatabase.LoadAssetAtPath<Texture2D>(IconDir + "icon_foreground.png");
+            var full = AssetDatabase.LoadAssetAtPath<Texture2D>(IconDir + "icon_full.png");
+            if (full == null) { Debug.LogWarning("Sigilbound: app icon textures missing under " + IconDir); return; }
+            PlayerSettings.SetIcons(UnityEditor.Build.NamedBuildTarget.Unknown, new[] { full }, IconKind.Any);
+            var android = UnityEditor.Build.NamedBuildTarget.Android;
+            void Fill(PlatformIconKind kind, params Texture2D[] layers)
+            {
+                var icons = PlayerSettings.GetPlatformIcons(android, kind);
+                foreach (var ic in icons) ic.SetTextures(layers);
+                PlayerSettings.SetPlatformIcons(android, kind, icons);
+            }
+            if (bg != null && fg != null) Fill(UnityEditor.Android.AndroidPlatformIconKind.Adaptive, bg, fg); // layer 0 background, layer 1 foreground
+            Fill(UnityEditor.Android.AndroidPlatformIconKind.Round, full);
+            Fill(UnityEditor.Android.AndroidPlatformIconKind.Legacy, full);
+#endif
         }
 }
 }

@@ -35,7 +35,7 @@ namespace Sigilbound.Client
                 Ui.Text(new Rect(r.x + 14, r.y + 52, r.width - 28, 20), string.Join(" · ", t.Skills.Select(s => s.Name)), 12, Palette.Text);
                 if (Ui.Button(r, "", Ui.Kind.Ghost))
                 {
-                    G.StartWith(id); Save(); Go(ScreenId.Home);
+                    G.StartWith(id); Save(); Go(ScreenId.Home); Tutorial.Start();
                     Modal("Welcome!", 230, b =>
                     {
                         Ui.Text(new Rect(b.x, b.y, b.width, 90), $"{t.Name} answers your call, joined by Pell and Odo. Summon more heroes with your shards, then fight in the Campaign.", 15, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);

@@ -1,0 +1,100 @@
+// First-time tutorial (release prep): a short guided first session for NEW saves only. It points at the
+// Summon tab, then Heroes, then the Campaign, explains the battle screen (turn order, skills, Auto,
+// speed) and the rewards. Skippable at any time and never shown again. Its state lives in PlayerPrefs
+// (sb.tutorial), not the save, so saves stay identical to the web version's.
+using UnityEngine;
+using Sigilbound.Core;
+
+namespace Sigilbound.Client
+{
+    public static class Tutorial
+    {
+        // 0 = not running (finished, skipped or an existing player). 1.. = the current step.
+        public static int Step
+        {
+            get => PlayerPrefs.GetInt("sb.tutorial", 0);
+            set { PlayerPrefs.SetInt("sb.tutorial", value); PlayerPrefs.Save(); }
+        }
+        public static bool Active => Step > 0;
+        public static void Start() { if (!PlayerPrefs.HasKey("sb.tutorialDone")) Step = 1; }
+        public static void Finish() { Step = 0; PlayerPrefs.SetInt("sb.tutorialDone", 1); PlayerPrefs.Save(); }
+
+        static int _heroCount = -1; static bool _sawBattle;
+
+        // Menus: called from App.OnGUI after the screen and nav are drawn (not under a modal).
+        public static void Draw(App app, float navTop)
+        {
+            if (!Active || app.ModalOpen) return;
+            var G = app.G; int heroes = G.S.heroes.Count;
+            Rect Nav(int i) { float w = Ui.W / 6f; return new Rect(i * w, navTop, w, 64); }
+            switch (Step)
+            {
+                case 1:
+                    if (app.Screen == ScreenId.Summon) { Step = 2; _heroCount = heroes; break; }
+                    Coach(app, "Summon heroes", "Your first team is ready. Shards call new heroes: tap Summon below.", Nav(3), false); break;
+                case 2:
+                    if (_heroCount < 0) _heroCount = heroes;
+                    if (heroes > _heroCount || app.Screen != ScreenId.Summon) { Step = 3; break; }
+                    Coach(app, "Call a hero", "Pick a banner and summon with your shards. Rarer shards call rarer heroes.", Rect.zero, true); break;
+                case 3:
+                    if (app.Screen == ScreenId.Heroes || app.Screen == ScreenId.Hero) { Step = 4; break; }
+                    Coach(app, "Your heroes", "Tap Heroes to see everyone you have.", Nav(2), false); break;
+                case 4:
+                    if (app.Screen != ScreenId.Heroes && app.Screen != ScreenId.Hero) { Step = 5; break; }
+                    Coach(app, "Team and levels", "Open a hero to see its skills, level it up and equip gear. Up to four heroes fight as your team.", Rect.zero, true); break;
+                case 5:
+                    if (app.Screen == ScreenId.Campaign || app.Screen == ScreenId.Prep || app.Screen == ScreenId.Battle) { Step = 6; break; }
+                    Coach(app, "To battle", "Tap Battle, then the Campaign, and start the first stage.", Nav(1), false); break;
+                case 6: case 7: case 8: case 9:
+                    if (app.Screen == ScreenId.Battle) _sawBattle = true;
+                    else if (_sawBattle) { Step = 10; break; }
+                    if (app.Screen != ScreenId.Battle && Step == 6) Coach(app, "Start a stage", "Pick the first stage, check your team and press Battle.", Rect.zero, false);
+                    break;
+                case 10:
+                    Coach(app, "Rewards", "Wins give gold, shards and hero XP. Claim daily quests and logins on Home, and try the Trials when you're stronger. Have fun!", Nav(0), true, "Done"); break;
+                default: Finish(); break;
+            }
+        }
+
+        // Battle: called at the end of the battle HUD. Three short pointers, then it lets you play.
+        public static void DrawBattle(App app)
+        {
+            if (!Active || app.ModalOpen || Step < 6 || Step > 9) return;
+            _sawBattle = true;
+            var safe = Ui.Safe;
+            switch (Step)
+            {
+                case 6: Coach(app, "Turn order", "The bar at the top shows who acts next. Faster heroes act more often.", new Rect(Ui.W * 0.22f, safe.y + 46, Ui.W * 0.56f, 34), true); break;
+                case 7: Coach(app, "Skills", "On your hero's turn, pick a skill at the bottom, then tap a target. Strong skills need a few turns to recharge.", new Rect(Ui.W * 0.2f, safe.yMax - 110, Ui.W * 0.6f, 100), true); break;
+                case 8: Coach(app, "Auto and speed", "Auto plays your turns for you; the speed button runs the fight at 2x or 3x.", new Rect(Ui.W - 150, safe.y + 6, 100, 44), true); break;
+                case 9: break; // playing: the tutorial resumes on the results screen
+            }
+        }
+
+        // The coach panel (text, Next/Done and Skip) and, when target isn't empty, a pulsing ring and arrow on it.
+        static void Coach(App app, string title, string text, Rect target, bool next, string nextLabel = "Next")
+        {
+            if (target.width > 0)
+            {
+                float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f);
+                var ring = new Rect(target.x - 4, target.y - 4, target.width + 8, target.height + 8);
+                var c = new Color(1f, 0.82f, 0.35f, 0.35f + 0.45f * pulse);
+                GUI.DrawTexture(ring, Ui.RoundTex(new Color(0, 0, 0, 0), c, 12));
+                GUI.DrawTexture(new Rect(ring.x - 2, ring.y - 2, ring.width + 4, ring.height + 4), Ui.RoundTex(new Color(0, 0, 0, 0), new Color(c.r, c.g, c.b, c.a * 0.5f), 14));
+                bool below = target.center.y < Ui.H * 0.5f;
+                float ay = below ? ring.yMax + 6 + pulse * 6 : ring.y - 30 - pulse * 6;
+                Ui.Text(new Rect(target.center.x - 20, ay, 40, 24), below ? "▲" : "▼", 22, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter);
+            }
+            float w = Mathf.Min(Ui.W - 24, 520), h = 112;
+            bool low = target.width <= 0 || target.center.y < Ui.H * 0.5f;
+            var r = new Rect((Ui.W - w) / 2, low ? Ui.Safe.yMax - 64 - h - 70 : Ui.Safe.y + 60, w, h);
+            Ui.Card(r, true);
+            Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 28, 22), title, 15, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+            Ui.Text(new Rect(r.x + 14, r.y + 30, r.width - 28, 46), text, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+            var was = GUI.enabled; GUI.enabled = true;
+            if (Ui.Button(new Rect(r.x + 14, r.yMax - 34, 110, 28), "Skip tutorial", Ui.Kind.Ghost, 11)) Finish();
+            if (next && Ui.Button(new Rect(r.xMax - 110, r.yMax - 36, 96, 30), nextLabel, Ui.Kind.Primary, 13)) { if (Step >= 10) Finish(); else Step = Step + 1; }
+            GUI.enabled = was;
+        }
+    }
+}
