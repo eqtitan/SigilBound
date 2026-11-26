@@ -72,6 +72,7 @@ namespace Sigilbound.Client
             _t0 = Time.unscaledTime; _paused = false; _taken.Clear(); _healed.Clear();
             App.Go(ScreenId.Battle);
             Sound.I?.StartMusic(IsTitan);
+            Sound.I?.Ambience(GameData.ThemeOf(Mathf.Min(chapter, Chapters.Length - 1)), IsTitan);   // a quiet bed of the arena's weather
             Time.timeScale = Mathf.Clamp(G.S.settings.speed, 1, 3);
             _loop = StartCoroutine(Loop());
         }
@@ -152,7 +153,7 @@ namespace Sigilbound.Client
             _cinema = _skippable = true;
             var T = tv.transform.position; var toTeam = Arena.ToUnity(BattleLayout.TeamCentre) - T; toTeam.y = 0; toTeam.Normalize();
             var side = Vector3.Cross(Vector3.up, toTeam);
-            float H = TitanHeight(tv); bool roared = false;
+            float H = TitanHeight(tv); bool roared = false; int steps = 0;
             for (float t = 0; t < 3.1f; t += Time.unscaledDeltaTime)
             {
                 if (t > 0.2f && Input.GetMouseButtonDown(0)) break;
@@ -160,6 +161,8 @@ namespace Sigilbound.Client
                 var eye = T + toTeam * Mathf.Lerp(H * 0.62f, H * 0.95f, u) + side * 0.9f + Vector3.up * Mathf.Lerp(0.45f, 1.3f, u);
                 var look = T + Vector3.up * Mathf.Lerp(0.3f, H * 0.93f, u);
                 arena.Override(eye, look, 52f, t < 2.3f ? 1f : 1f - Ease((t - 2.3f) / 0.8f));
+                // it shifts its weight as the camera climbs: plates grinding, chains rattling, the ground thudding
+                if (steps < 2 && t >= 0.35f + 0.6f * steps) { steps++; Sound.I?.PlayAt("titanStep", T, 0.8f, 1, 0.04f); }
                 if (!roared && t >= 1.6f)
                 {
                     roared = true;
@@ -196,7 +199,7 @@ namespace Sigilbound.Client
             var hit = T + toTeam * Mathf.Min(dist * 0.62f, 5.5f); hit.y = 0;
             var fx = SkillFx.I;
             if (fx != null) { fx.Cracks(hit, u.El, 5f); fx.TitanSlam(hit, u.El); fx.Shockwave(hit, u.El, 6f); fx.CritFlash(u.El); }
-            Vfx.I.ShakeLong(0.55f, 0.8f); Sound.I?.Play("earthsplit", 1f, 1, 0);
+            Vfx.I.ShakeLong(0.55f, 0.8f); Sound.I?.PlayAt("earthsplit", hit, 1f, 1, 0);
             foreach (var kv in _views) if (kv.Key.Ally && kv.Value != null) kv.Value.Shove(hit, 1.1f);
             for (float t = 0; t < 0.7f; t += Time.unscaledDeltaTime) { arena.Override(eye, Vector3.Lerp(T + Vector3.up * H * 0.8f, hit + Vector3.up, Ease(t / 0.2f)), 44f, 1f - Ease((t - 0.3f) / 0.4f)); yield return null; }
             arena.ClearOverride(); _cinema = false; Time.timeScale = _paused ? 0 : speed;
@@ -243,7 +246,7 @@ namespace Sigilbound.Client
             v.transform.position = team;
             var fx = SkillFx.I;
             if (fx != null) { fx.TitanSlam(team, u.El); fx.Cracks(team, u.El, 4.5f); fx.Shockwave(team, u.El, 6f); }
-            Vfx.I.ShakeLong(0.6f, 0.8f); Sound.I?.Play("titanSlam", 1f, 1, 0);
+            Vfx.I.ShakeLong(0.6f, 0.8f); Sound.I?.PlayAt("titanSlam", team, 1f, 1, 0);
             foreach (var kv in _views) if (kv.Key.Ally && kv.Value != null) kv.Value.Shove(team, 1.4f);
             var look = team + Vector3.up * H * 0.45f;
             // Quake: three aftershock rings roll out while the camera rocks on a tilt.
@@ -268,7 +271,7 @@ namespace Sigilbound.Client
             for (float t = 0; t < 1.5f; t += Time.deltaTime)
             {
                 float k = Ease(t / 1.5f); v.transform.position = Vector3.Lerp(T0, dest, k);
-                if (Mathf.Repeat(t, 0.45f) < Time.deltaTime) { Vfx.I.Shake(0.12f); SkillFx.I?.Dust(v.transform.position, 1.6f, u.El); }
+                if (Mathf.Repeat(t, 0.45f) < Time.deltaTime) { Vfx.I.Shake(0.12f); SkillFx.I?.Dust(v.transform.position, 1.6f, u.El); Sound.I?.PlayAt("titanStep", v.transform.position, 0.9f, 1, 0.04f); }
                 var mid = Vector3.Lerp(v.transform.position, tp, 0.5f);
                 float e = Ease(t / 0.4f);
                 arena.Override(Vector3.Lerp(eye0, mid + side * 12f - dir * 2f + Vector3.up * 3.0f, e), Vector3.Lerp(eye0 + arena.PoseRotation * Vector3.forward * 10f, mid + Vector3.up * 3.0f, e), Mathf.Lerp(fov0, 50f, e), Ease(t / 0.3f));
@@ -291,7 +294,7 @@ namespace Sigilbound.Client
             // 3. The slam.
             var fx = SkillFx.I;
             if (fx != null) { fx.Cracks(tp, u.El, 2.6f); fx.Shockwave(tp, u.El, 4f); fx.TitanSlam(tp, u.El); }
-            Vfx.I.ShakeLong(0.45f, 0.6f); Sound.I?.Play("titanSlam", 0.9f, 1, 0);
+            Vfx.I.ShakeLong(0.45f, 0.6f); Sound.I?.PlayAt("titanSlam", tp, 0.9f, 1, 0);
             if (target != null) target.Shove(tp + dir, 0.8f);
             // aftermath: cracks spread and dust rolls while the camera eases back and levels out
             for (float t = 0; t < 1.7f; t += Time.deltaTime)
@@ -305,7 +308,12 @@ namespace Sigilbound.Client
         {
             var m = v.Hero; var from = v.transform.position; var to = v.Home;
             if (m.Has("Walk_Loop")) m.Play("Walk_Loop", true, 0.15f, 0.9f);
-            for (float t = 0; t < 0.9f; t += Time.deltaTime) { v.transform.position = Vector3.Lerp(from, to, Ease(t / 0.9f)); yield return null; }
+            for (float t = 0; t < 0.9f; t += Time.deltaTime)
+            {
+                v.transform.position = Vector3.Lerp(from, to, Ease(t / 0.9f));
+                if (Mathf.Repeat(t, 0.45f) < Time.deltaTime) Sound.I?.PlayAt("titanStep", v.transform.position, 0.7f, 1, 0.04f);
+                yield return null;
+            }
             v.transform.position = to; m.Idle(0.25f);
         }
 
@@ -340,7 +348,7 @@ namespace Sigilbound.Client
             var mouth = T - back * 0.6f + Vector3.up * H * 1.02f; var ots2 = ots - back * 0.6f;
             // 2. The breath sweeps across the team (1.8 s), the Titan still in frame.
             if (fx != null) StartCoroutine(fx.Breath(mouth, a + Vector3.up * 0.6f, b + Vector3.up * 0.6f, u.El, 1.8f));
-            Sound.I?.Cast(Element.Flame);
+            Sound.I?.Play("titanBreath", 1f, 1, 0);   // a torrent of fire, sweeping left to right with the cone
             for (float t = 0; t < 1.8f; t += Time.deltaTime)
             {
                 var aim = Vector3.Lerp(a, b, t / 1.8f);
@@ -368,7 +376,7 @@ namespace Sigilbound.Client
             for (float t = 0; t < 0.6f; t += Time.deltaTime) { float k = Ease(t / 0.6f); v.transform.position = Vector3.Lerp(from, to, k) + Vector3.up * Mathf.Sin(k * Mathf.PI) * 3f; yield return null; }
             v.transform.position = to;
             if (m.Has("Jump_Land")) m.Play("Jump_Land", false, 0.08f, 1.2f);
-            Vfx.I.Shake(0.25f); SkillFx.I?.Dust(to, 2.5f, u.El);
+            Vfx.I.Shake(0.25f); SkillFx.I?.Dust(to, 2.5f, u.El); Sound.I?.PlayAt("titanStep", to, 1f, 0.9f, 0.03f);
             yield return new WaitForSeconds(0.3f);
             m.Idle(0.2f);
         }
@@ -432,9 +440,10 @@ namespace Sigilbound.Client
             _lastEl = u.El;
             var fx = SkillFx.I;
             // Each hero sounds like its weapon (melee and bows) or its element (casters); the Titan swings heavy.
-            if (u.Titan) Sound.I?.Play("swing_heavy", 0.9f, 0.7f);
-            else if (melee || Impact.FamilyOf(u.Template.Id) == WeaponFamily.Bow) Sound.I?.Swing(Impact.FamilyOf(u.Template.Id));
-            else Sound.I?.Cast(u.El);
+            float upan = view != null ? Sound.PanOf(view.Center) : 0;   // heard from where the attacker stands
+            if (u.Titan) Sound.I?.Play("titanSwing", 0.9f, 1, 0.04f, upan);
+            else if (melee || Impact.FamilyOf(u.Template.Id) == WeaponFamily.Bow) Sound.I?.Swing(Impact.FamilyOf(u.Template.Id), 0.6f, upan);
+            else Sound.I?.Cast(u.El, 0.6f, upan);
             if (view != null)
             {
                 var tgtView = hit.Count > 0 && _views.ContainsKey(hit[0]) ? _views[hit[0]] : null;
@@ -481,7 +490,7 @@ namespace Sigilbound.Client
                     var from = view.Center + view.transform.forward * 0.4f;
                     string prop = u.Titan ? "" : Looks.Of(u.Template.Id).Prop;
                     string kind = prop == "bow" ? "arrow" : prop == "mirror" || prop == "staff" ? "bolt" : prop == "orb" || prop == "candle" ? "orb" : "shard";
-                    if (kind == "arrow") Sound.I?.Play("arrow", 0.7f);
+                    if (kind == "arrow") Sound.I?.PlayAt("arrow", from, 0.7f);
                     var flights = hit.Where(_views.ContainsKey).Select(h => StartCoroutine(
                         fx == null ? Vfx.I.Projectile(from, _views[h].Center, color)
                         : ult && single && !support ? fx.Beam(from, _views[h].Center, u.El) : fx.Projectile(from, _views[h].Center, u.El, kind))).ToList();
@@ -525,9 +534,12 @@ namespace Sigilbound.Client
                     case EvType.Damage:
                         if (e.Dot) { SkillFx.I?.DebuffTick(v.transform.position, "poison"); Vfx.I.Number(c, Ui.Fmt(e.Amount), new Color(0.5f, 1f, 0.45f)); break; }
                         if (e.Amount <= 0) break; // fully absorbed by a shield: the "Shield" number says it (no "CRIT 0")
-                        if (e.Source != null && !e.Source.Titan) Sound.I?.Hit(Impact.FamilyOf(e.Source.Template.Id), e.Crit);
-                        else if (e.Source != null) Sound.I?.Play("hit_heavy", 1f, 0.7f);
-                        else Sound.I?.Play(e.Crit ? "crit" : "hit", e.Crit ? 1 : 0.8f);
+                        // weapon x armour: the attacker's weapon landing and the defender's armour answering (plate clangs,
+                        // mail jingles, leather slaps, cloth thuds), heard from where the blow lands; the Titan is plate.
+                        float hpan = Sound.PanOf(c);
+                        if (e.Source != null && !e.Source.Titan) Sound.I?.Hit(Impact.FamilyOf(e.Source.Template.Id), e.Crit, Sound.ArmourOf(e.Unit), hpan, e.Unit.Titan ? 0.8f : 1f);
+                        else if (e.Source != null) Sound.I?.Hit(WeaponFamily.Heavy, e.Crit, Sound.ArmourOf(e.Unit), hpan, 0.75f);
+                        else Sound.I?.Play(e.Crit ? "crit" : "hit", e.Crit ? 1 : 0.8f, 1, 0.06f, hpan);
                         if (SkillFx.I != null) SkillFx.I.Impact(c, e.Source != null ? e.Source.El : _lastEl, e.Crit); else Vfx.I.Burst(c, color, e.Crit);
                         // The attacker's signature motif on each hit (phase E 53-55).
                         if (SkillFx.I != null && e.Source != null && !e.Source.Titan) SkillFx.I.Signature(c, e.Source.El, HeroSignatures.Of(e.Source.Template.Id, e.Source.El), e.Crit ? 0.9f : 0.6f);
@@ -546,10 +558,10 @@ namespace Sigilbound.Client
                         }
                         else yield return new WaitForSeconds(0.12f);
                         break;
-                    case EvType.Heal: Sound.I?.Play("heal", 0.5f); if (SkillFx.I != null) SkillFx.I.Heal(v.transform.position); else Vfx.I.Heal(v.transform.position); Vfx.I.Number(c, "+" + Ui.Fmt(e.Amount), new Color(0.45f, 1f, 0.5f)); break;
+                    case EvType.Heal: Sound.I?.PlayAt("heal", c, 0.5f); if (SkillFx.I != null) SkillFx.I.Heal(v.transform.position); else Vfx.I.Heal(v.transform.position); Vfx.I.Number(c, "+" + Ui.Fmt(e.Amount), new Color(0.45f, 1f, 0.5f)); break;
                     case EvType.Absorb: Vfx.I.Number(c + Vector3.up * 0.5f, "Shield " + Ui.Fmt(e.Amount), new Color(0.6f, 0.85f, 1f), 0.7f); break;
                     case EvType.Status:
-                        Sound.I?.Status(e.Fx);
+                        Sound.I?.Status(e.Fx, Sound.PanOf(c));
                         if (SkillFx.I == null) Vfx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
                         else if (e.Fx == FxType.Shield) SkillFx.I.Shield(v.transform.position);
                         else SkillFx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
@@ -564,7 +576,7 @@ namespace Sigilbound.Client
                             if (hitEv?.Unit != null && _views.TryGetValue(hitEv.Unit, out var av) && av != null) v.Counter(av.transform.position);
                         }
                         break;
-                    case EvType.Death: Sound.I?.Play(e.Unit.Ally ? "downed" : "kill", 0.9f); v.Die(); if (SkillFx.I != null) SkillFx.I.DeathFade(v.transform.position, e.Unit.El); else Vfx.I.Dissolve(v.transform.position + Vector3.up * 0.8f); break;
+                    case EvType.Death: Sound.I?.PlayAt(e.Unit.Ally ? "downed" : "kill", c, 0.9f); v.Die(); if (SkillFx.I != null) SkillFx.I.DeathFade(v.transform.position, e.Unit.El); else Vfx.I.Dissolve(v.transform.position + Vector3.up * 0.8f); break;
                 }
             }
             yield return new WaitForSeconds(0.2f);

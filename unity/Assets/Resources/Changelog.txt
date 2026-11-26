@@ -9,6 +9,13 @@ change: Arrows, bolts, orbs and shards each have their own look in flight, and h
 change: Cinder Breath pours rolling flames with heat shimmer and molten splashes; its lava pools crust over and bubble.
 change: Titan slams and cracks hurl rock chunks and roll out clouds of dust.
 
+## 2026-11-26 | Real battle sound
+new: Armour answers every blow: plate clangs and rattles, chainmail jingles, leather slaps and robes thud, matched to each hero's outfit.
+change: New weapon sounds built from real recordings: blades bite, hammers crunch, spears punch, daggers scrape, arrows thunk.
+new: Sound is in stereo and comes from where things happen on screen.
+new: The Titan's plates grind and its chains rattle with every step; a deep growling roar, ground-shaking slams with falling debris and a real torrent of fire.
+new: Each arena has its own quiet ambience under the music: birdsong, surf, wind, marsh insects, crackling fires, a storm, and the Titan's rumbling caldera.
+
 ## 2026-11-26 | Finer outfits
 change: Heroes in gowns now wear fitted bodices that match their dress, some with flowing sleeves.
 change: Masks fit the face, animal heroes have proper muzzles and beaks, and small held items are easier to see.

@@ -66,7 +66,7 @@ def main():
         im.save(os.path.join(tmp, f"{f:03d}.jpg"), quality=95)
     # sound: the Titan theme fades in, builds, and resolves at the title; effects on the beats (seconds)
     sfx = [("sfx_buff", 0.7, 0.35), ("sfx_cast_shadow", 2.0, 0.5), ("sfx_cast_gale", 2.6, 0.5), ("sfx_cast_light", 3.2, 0.5),
-           ("sfx_cast_tide", 3.8, 0.5), ("sfx_cast_flame", 4.4, 0.55), ("sfx_titan_roar", 6.6, 1.0), ("sfx_meteor_whoosh", 8.0, 0.9),
+           ("sfx_cast_tide", 3.8, 0.5), ("sfx_cast_flame", 4.4, 0.55), ("sfx_titan_roar", 6.6, 1.0), ("sfx_meteor", 8.0, 0.9),
            ("sfx_titan_slam", 10.0, 1.0), ("sfx_earthsplit", 10.02, 0.85), ("sfx_cast_flame", 10.45, 0.9), ("sfx_cast_gale", 11.0, 0.8),
            ("sfx_hit_heavy", 11.55, 0.8), ("sfx_cast_shadow", 12.0, 0.8), ("sfx_hit_magic", 12.5, 0.9), ("sfx_summon_legendary", 13.05, 0.9)]
     # input 0 is the image sequence; audio inputs start at 1
