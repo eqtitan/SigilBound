@@ -4,7 +4,7 @@
 // AssetPipeline/AssetImporter.bindings.cs, ImportSettings/ModelImporter.bindings.cs,
 // ImportSettings/TextureImporter.bindings.cs, TextureImporterEnums.cs, AssetDatabase/AssetDatabase.bindings.cs,
 // Prefabs/PrefabUtility.cs, EditorUtility.bindings.cs, Animation/AnimatorController.cs,
-// Animation/StateMachine.bindings.cs). Only what our editor scripts call is declared. CI also compiles
+// Animation/StateMachine.bindings.cs, ImportSettings/AudioImporter.bindings.cs). Only what our editor scripts call is declared. CI also compiles
 // against the real Unity 6000.0.58f1 assemblies, which is what proves these match.
 // Bodies throw: this code is compiled, never run.
 #pragma warning disable CS0067
@@ -25,6 +25,22 @@ namespace UnityEditor
     {
         public string assetPath { get; set; }
         public AssetImporter assetImporter => throw new NotImplementedException();
+        public virtual uint GetVersion() => 0;
+    }
+
+    // ImportSettings/AudioImporter.bindings.cs (the members Editor/Audio/AudioImportRules.cs sets)
+    public struct AudioImporterSampleSettings
+    {
+        public AudioClipLoadType loadType;
+        public AudioCompressionFormat compressionFormat;
+        public float quality;
+        public bool preloadAudioData;
+    }
+    public sealed class AudioImporter : AssetImporter
+    {
+        public bool forceToMono { get; set; }
+        public bool loadInBackground { get; set; }
+        public AudioImporterSampleSettings defaultSampleSettings { get; set; }
     }
 
     public enum ModelImporterAnimationType { None = 0, Legacy = 1, Generic = 2, Human = 3 }

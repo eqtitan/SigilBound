@@ -5,6 +5,9 @@
 Every effect is synthesized here from noise, oscillators and filters (synth.py): per weapon family
 swings and hits, element spells, status sounds, the Titan's roar/slam/crack/leap, UI and summon
 stings. Levels: peak -1 dBFS, loudness by category (hits loud, UI soft) so they sit together.
+
+Since the 2026-11-26 audio pass the battle sounds (swings, hits, armour, casts, statuses, the Titan) come
+from make_real.py; this script now writes only the UI/summon/reward stings (OWNED_BY_REAL is skipped).
 """
 import os, sys
 import numpy as np
@@ -114,6 +117,10 @@ leg = sting([(60, 0), (64, 0.1), (67, 0.2), (72, 0.32), (76, 0.44), (79, 0.56), 
 leg[:len(leg)] += 0.3 * reverb(metal(1046, 2.0, tau=1.2), 1.5, 0.3)[:len(leg)]
 S["sfx_summon_legendary"] = (leg, -15)
 n = int(SR * 0.7); S["sfx_downed"] = (square(np.linspace(330, 110, n), 0.7) * env(n, 0.01, 0.4, 0.3, 0.25) * 0.4 + thud(70, 0.7, 0.2) * 0.5, -18)
+
+OWNED_BY_REAL = ("sfx_swing_", "sfx_hit_", "sfx_cast_", "sfx_titan_", "sfx_earthsplit", "sfx_meteor", "sfx_arrow", "sfx_heal", "sfx_buff",
+                 "sfx_debuff", "sfx_stun", "sfx_poison", "sfx_shield", "sfx_downed")
+S = {k: v for k, v in S.items() if not k.startswith(OWNED_BY_REAL)}
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
