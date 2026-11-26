@@ -135,7 +135,9 @@ namespace Sigilbound.Client
         // ---------- Titan cinematics (owner picks 2026-11-26; presentation only, results unchanged) ----------
         bool _cinema, _skippable;  // HUD hidden while a cinematic plays; the intro can be skipped by a tap
         static bool IsHdTitan(CharacterView v) => v != null && v.Hero != null && v.Hero.Style == AnimStyle.TitanHd;
-        float TitanHeight(CharacterView v) => v != null && v.HeadTop ? Mathf.Max(2f, v.HeadTop.position.y - v.transform.position.y) : (float)BattleLayout.TitanHead;
+        // The HD Titan's real head height (model 4.8 m x the view's 1.3 scale); the HeadTop marker sits at 87% of
+        // a nominal height and under-read it. The old stand-in Titan keeps its marker.
+        float TitanHeight(CharacterView v) => IsHdTitan(v) ? (float)BattleLayout.TitanHead : v != null && v.HeadTop ? Mathf.Max(2f, v.HeadTop.position.y - v.transform.position.y) : (float)BattleLayout.TitanHead;
         static float Ease(float u) => Mathf.SmoothStep(0, 1, Mathf.Clamp01(u));
 
         // Arrival: from the Titan's feet the camera tilts up its body to the burning visor, it roars, and

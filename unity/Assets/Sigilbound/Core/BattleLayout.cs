@@ -76,7 +76,7 @@ namespace Sigilbound.Core
         // The Titan's head-and-tag points (each must stay under TitanCeiling).
         // The high-detail Titan stands behind the far rim, head at TitanHead metres (heroes: 1.85), so it
         // towers over the team (owner: "players should say wow, that Titan is massive").
-        public const double TitanHead = 4.8, TitanBack = 1.2;
+        public const double TitanHead = 4.8 * 1.3, TitanBack = 1.2; // the model's 4.8 m head times the battle view's 1.3 Titan scale (BattleController.Spawn)
         public static V3 TitanSlot() => Slot(false, 0, 1) + new V3(0, 0, TitanBack);
         public static V3[] TitanPoints()
         {
