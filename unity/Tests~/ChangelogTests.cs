@@ -39,7 +39,7 @@ static class HdClipTests
     public static void Run(System.Action<bool, string> check)
     {
         var have = new System.Collections.Generic.HashSet<string>(Sigilbound.Core.AnimStyle.HdClips);
-        check(have.Count == 47, "hd clips: 46 free UAL clips + Defeat_Slump listed");
+        check(have.Count == 49, "hd clips: 46 free UAL clips + 3 hand-made (Defeat_Slump, Spear_Thrust, Hit_Kneel)");
         var bad = new System.Collections.Generic.List<string>();
         foreach (var h in Sigilbound.Core.GameData.Heroes)
         {

@@ -127,7 +127,7 @@ Fallbacks are the current base-rig clips (`Idle_Sword`, `Sword_Slash`, `Punch_Ri
 | Counter **new** | no | 0.05 | `Counter!` text event | the hero's Attack_1 at 1.3x, turning in place in 0.10 s | same | `impact` as Attack_1 |
 | Buffed / Debuffed **new**, additive | no | 0.10 | `EvType.Status` | additive layer: chest-up 4° (buff), shoulders down 4° (debuff), 0.4 s | the effect alone | |
 | Victory | yes | 0.25 | winners after the last wave, staggered 0.10–0.12 s | per role, see section 5 | `Wave`, `Yes` | |
-| Defeat **new** | clamp | 0.30 | the losing side's survivors when the battle is lost | `Defeat_Slump` (owner decision 2026-11-25: fall to the knees, then slump forward onto the stomach and hold; hand-authored by `blenderforge/make_clips.py`, 2.0 s) | Idle at 0.5x, slumped 12° | |
+| Defeat **new** | clamp | 0.30 | the losing side's survivors when the battle is lost | `Defeat_Slump` (owner decisions 2026-11-25/26: Arena (PvP) losses only; fall to the knees, then slump forward onto the stomach pivoting on the planted knees, and hold; hand-authored by `blenderforge/make_clips.py`, 2.0 s) | Idle at 0.5x, slumped 12° | |
 
 **Transition rules:**
 - **Priority order:** Death > Revive > Knocked_Down > Stunned > Hit_Big > Block or Dodge > Hit > Attack or Cast > Ready > Fidget > Idle.
@@ -443,3 +443,8 @@ Status column: **pending** until the owner approves, rejects or asks for changes
 - **2026-11-25:** First version. Agent created at the owner's request ("set up a character
   mechanics agent… mechanics must adjust the frame to match the device's refresh rate"; "come up
   with some animation tests for approval").
+
+
+## 8. Owner review of the animation tests (2026-11-25)
+
+Approved: T1 idle, T2 blade attack, T6 spell cast, T9 death, and all 150 concepts. Changes requested and done: T3 spear (now `Spear_Thrust`: guard, draw, lunge, recover), T8 heavy hit (now `Hit_Kneel`: stagger, drop to one knee, rise), T10 defeat (fall pivots on the planted knees; PvP losses only, owner 2026-11-26). Deaths always use the death clip. Hand-made clips are authored in `unity/Tools~/blenderforge/make_clips.py`.

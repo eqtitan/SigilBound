@@ -299,7 +299,7 @@ namespace Sigilbound.Client
             _finished = true;
             Time.timeScale = 1; _paused = false;
             if (_b.Result == BattleResult.Victory) StartCoroutine(Celebrate(true));
-            else StartCoroutine(Celebrate(true)); // the survivors take their defeat poses (MECHANICS.md 3.1)
+            else if (_spec.Mode == BattleMode.Arena) StartCoroutine(Celebrate(true)); // PvP only (owner): survivors kneel and slump forward; fallen heroes keep their death pose
             Sound.I?.StopMusic();
             if (_spec.Mode == BattleMode.Titan) { Sound.I?.Play("bigKill"); StartCoroutine(Later(0.6f, () => Sound.I?.Play("coin"))); }
             else if (_b.Result == BattleResult.Victory) { Sound.I?.Play("victory", 1, 1, 0); StartCoroutine(Later(0.45f, () => Sound.I?.Play("coin"))); }
