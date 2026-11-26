@@ -36,7 +36,7 @@ namespace Sigilbound.Client
             ["cast_flame"] = "sfx_cast_flame", ["cast_gale"] = "sfx_cast_gale", ["cast_tide"] = "sfx_cast_tide", ["cast_light"] = "sfx_cast_light", ["cast_shadow"] = "sfx_cast_shadow",
             // boss lairs: the landmark set-pieces reacting to the fight (story scenes; Tools~/audio/make_lairs.py)
             ["lairBell"] = "sfx_lair_bell", ["lairWheel"] = "sfx_lair_wheel", ["lairPyre"] = "sfx_lair_pyre", ["lairBeam"] = "sfx_lair_beam",
-            ["lairSnuff"] = "sfx_lair_snuff", ["lairThunder"] = "sfx_lair_thunder", ["lairChime"] = "sfx_lair_chime", ["lairDrip"] = "sfx_lair_drip",
+            ["lairSnuff"] = "sfx_lair_snuff", ["lairThunder"] = "sfx_lair_thunder", ["lairChime"] = "sfx_lair_chime", ["lairDrip"] = "sfx_lair_drip", ["lairShard"] = "sfx_lair_chime", // shard pulse: the glass chord for now
         };
         // Ambience beds (amb_*.ogg, loaded when a battle starts) and the bed each arena theme uses
         // (index = GameData.ThemeOf(chapter), the Scenery theme order); the Titan's caldera has its own.
@@ -49,6 +49,7 @@ namespace Sigilbound.Client
         {
             "forest", "shore", "wind", "marsh", "meadow", "meadow", "shore", "wind", "marsh", "fire",   // act 1: dusk forest .. burning ruins
             "shore", "marsh", "wind", "fire", "storm",                                                 // act 2: harbor, fens, barrows, ember groves, storm coast
+            "wind", "storm",                                                                           // the Glass Wastes' glass desert, Stormcrown Heights' crag
         };
         public static readonly Dictionary<string, string> Tracks = new Dictionary<string, string>
         {
