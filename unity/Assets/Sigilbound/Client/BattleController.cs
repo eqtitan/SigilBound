@@ -318,7 +318,10 @@ namespace Sigilbound.Client
             var T = v.transform.position; var team = Arena.ToUnity(BattleLayout.TeamCentre); team.y = T.y;
             float H = TitanHeight(v); var fx = SkillFx.I;
             var back = T - team; back.y = 0; back.Normalize(); var right = Vector3.Cross(Vector3.up, -back).normalized;
-            var ots = T + right * 2.6f + back * 4.6f + Vector3.up * H * 1.18f;   // far enough back for horns, shoulders and the chest glow
+            // Over the shoulder, far enough back for horns, shoulders and the chest glow: offsets scale with the
+            // Titan's real size (at 6.24 m the old fixed offsets put the camera inside its shoulder plate).
+            float sz = H / 4.8f;
+            var ots = T + right * 3.4f * sz + back * 5.6f * sz + Vector3.up * H * 1.2f;
             arena.BreathTarget = 0;
             string clip = m.Has("Ult_Channel") ? "Ult_Channel" : "Interact";
             m.PlayFrom(clip, 0f, 0.55f);
