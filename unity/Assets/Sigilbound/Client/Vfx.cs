@@ -1,6 +1,7 @@
 // Battle effects built in code: particle bursts, projectiles with trails,
 // floating damage numbers, heal sparkles and camera shake.
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Sigilbound.Client
@@ -154,19 +155,32 @@ namespace Sigilbound.Client
             StartCoroutine(ShakeRoutine(s == "reduced" ? intensity * 0.4f : intensity));
         }
         // Time-based, so it looks the same at 30, 60 and 120 fps: a smooth noise offset sampled at a fixed
-        // 28 Hz of shake (not a new random jump every rendered frame) that fades over 0.22 s.
-        IEnumerator ShakeRoutine(float intensity)
+        // 28 Hz of shake (not a new random jump every rendered frame) that fades over `dur`. It is an
+        // OFFSET (ShakeOffset) the Arena's camera rig adds, so shakes, the breathing tilt and cinematic
+        // cameras never fight over the camera transform.
+        public static Vector3 ShakeOffset;
+        static readonly List<Vector3> _shakes = new List<Vector3>();
+        public void ShakeLong(float intensity, float dur)
         {
-            var home = _cam.transform.position; // the battle camera moves with the chosen preset
-            float seed = Random.value * 100f;
-            for (float t = 0; t < 0.22f; t += Time.deltaTime)
+            string s = ShakeSetting?.Invoke() ?? "full";
+            if (s == "off") return;
+            StartCoroutine(ShakeRoutine(s == "reduced" ? intensity * 0.4f : intensity, dur));
+        }
+        IEnumerator ShakeRoutine(float intensity, float dur = 0.22f)
+        {
+            float seed = Random.value * 100f; int slot = _shakes.Count; _shakes.Add(Vector3.zero);
+            for (float t = 0; t < dur; t += Time.deltaTime)
             {
-                float k = t / 0.22f, f = (seed + t) * 28f;
+                float k = t / dur, f = (seed + t) * 28f;
                 var n = new Vector3(Mathf.PerlinNoise(f, 0.3f) - 0.5f, Mathf.PerlinNoise(0.7f, f) - 0.5f, Mathf.PerlinNoise(f, f * 0.5f) - 0.5f) * 2f;
-                _cam.transform.position = home + n * intensity * (1 - k);
+                if (slot < _shakes.Count) _shakes[slot] = n * intensity * (1 - k);
+                Sum();
                 yield return null;
             }
-            _cam.transform.position = home;
+            if (slot < _shakes.Count) _shakes[slot] = Vector3.zero;
+            if (_shakes.TrueForAll(v => v == Vector3.zero)) _shakes.Clear();
+            Sum();
         }
+        static void Sum() { var o = Vector3.zero; foreach (var v in _shakes) o += v; ShakeOffset = o; }
     }
 }

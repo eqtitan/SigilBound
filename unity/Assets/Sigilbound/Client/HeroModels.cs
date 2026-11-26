@@ -691,9 +691,11 @@ namespace Sigilbound.Client
             yield return EnsureHdBodies();
             float hgt = (float)body.H, bulk = 1f;
             if (_hdBody != null && _hdBody.TryGetValue(id, out var hb)) { hgt = hb.h; bulk = hb.b; }
-            float k = (titan ? 3.6f : 1.85f) / headY * hgt;
+            // The high-detail Titan towers over the team: head at BattleLayout.TitanHead (4.8 m; heroes 1.85).
+            float k = (titan ? (float)BattleLayout.TitanHead : 1.85f) / headY * hgt;
+            if (titan) bulk = 1.18f; // a broad stone colossus, not a stretched hero
             holder.localScale = new Vector3(k * bulk, k, k * bulk);
-            done(titan ? new HeroModel(holder.gameObject, anim, 4.7f, AnimStyle.TitanHd, AnimStyle.TitanHdAliases)
+            done(titan ? new HeroModel(holder.gameObject, anim, (float)BattleLayout.TitanHead * 1.25f, AnimStyle.TitanHd, AnimStyle.TitanHdAliases)
                        : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliases));
         }
 

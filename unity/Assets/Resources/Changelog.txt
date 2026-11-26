@@ -9,6 +9,14 @@ fix: The smaller-download change now actually shrinks the Android download.
 ## 2026-11-26 | Hollow enemies in high detail
 new: Hollow enemies now use the heroes' high-detail models, as dark violet shadows with a crimson glow.
 
+## 2026-11-26 | The Titan, colossal
+new: The Titan now towers over your team, far bigger than before.
+new: Three Titan-only camera views on the View button: Worm's-eye (looking up past your team, the new default), Side duel and over the Titan's shoulder.
+new: Titan fights open with an arrival: the camera climbs the Titan from its feet to its burning visor as it roars. Tap to skip.
+new: The Titan's ultimate is now the Meteor Leap: it bounds out of sight and crashes down on your team.
+new: Its fight-ending blow is the Earthsplitter: a slow-motion overhead slam that cracks the ground.
+change: On the Titan's turns the camera dips and looks up at it as it winds up (less with Reduced screen shake, none with Off).
+
 ## 2026-11-26 | Steady lakes
 fix: Lakes behind the arena no longer flicker in and out of view.
 
