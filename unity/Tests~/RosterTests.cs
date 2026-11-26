@@ -54,13 +54,14 @@ static class RosterTests
             $"{Heroes.Length} unique heroes; the first 24 are the web game's (Classic)");
         check(Heroes.All(h => Looks.Table.ContainsKey(h.Id)), "every hero has a model look (Core/Looks.cs), not the Brannoc fallback");
 
-        var bakedDir = RepoFile("unity", "Tools~", "models", "heroes");
+        var bakedDir = RepoFile("unity", "Tools~", "models", "heroes");   // free-path bakes (none left once every hero is high-detail)
         var hdDir = RepoFile("unity", "Tools~", "models", "heroes_hd");
-        if (bakedDir != null)
+        check(bakedDir != null || hdDir != null, "hero model folders found (models/heroes_hd)");
+        if (bakedDir != null || hdDir != null)
         {
             // A high-detail build (phase F, models/heroes_hd) replaces the free-path bake for that hero.
             bool Hd(string id) => hdDir != null && File.Exists(Path.Combine(hdDir, $"SB_Hero_{id}_HD.glb")) && (File.Exists(Path.Combine(hdDir, $"SB_Hero_{id}_HD_albedo.jpg")) || File.Exists(Path.Combine(hdDir, $"SB_Hero_{id}_HD_albedo.png")));
-            bool Baked(string id) => File.Exists(Path.Combine(bakedDir, $"SB_Hero_{id}_LOD0.glb")) && File.Exists(Path.Combine(bakedDir, $"SB_Hero_{id}_albedo.png"));
+            bool Baked(string id) => bakedDir != null && File.Exists(Path.Combine(bakedDir, $"SB_Hero_{id}_LOD0.glb")) && File.Exists(Path.Combine(bakedDir, $"SB_Hero_{id}_albedo.png"));
             var missing = Heroes.Where(h => !Hd(h.Id) && !Baked(h.Id)).Select(h => h.Id).ToList();
             check(missing.Count == 0, "every hero has a model (high-detail or free-path bake)" + (missing.Count > 0 ? " — missing: " + string.Join(", ", missing) : ""));
             var both = Heroes.Where(h => Hd(h.Id) && Baked(h.Id)).Select(h => h.Id).ToList();

@@ -226,3 +226,43 @@ Designs: `docs/sigilbound/concepts/new_heroes.json` and `NEW_HEROES.md`. Brought
 | `imogen` | Imogen Drumfire | Epic | Flame | Support | human | Saltreach's harbour guard marched to her drum before the Hollow came. |
 | `ilsabet` | Ilsabet Cometheart | Legendary | Flame | Attack | human | When the Titan first erupted, a burning stone fell into Ashgrave Pass and a girl caught it on a chain. |
 | `obrecht` | Obrecht | Legendary | Flame | Hp | hearth golem (stone construct) | The last living hearth of the Ember Groves' charcoal village stood up when the Hollow came, built itself a body from its own fieldstones, and has guarded the groves' people ever since. |
+| `tansy` | Tansy Burrfoot | Common | Gale | Attack | hare-folk | The fastest runner of the Thornwick warrens, she can outpace a fox and catch her boomerang before it lands. |
+| `barley` | Barley Fleecewell | Common | Gale | Hp | human | Stormcrown's high pastures taught him to stand in a gale. |
+| `clover` | Clover Kitewright | Common | Gale | Support | human | Saltreach's harbour children fly kites to read the storm. |
+| `edric` | Edric Millsail | Rare | Gale | Defense | human | When the Hollow burned his mill on the Thornwick hills he walked away with one sail on his back. |
+| `corran` | Corran Highstep | Rare | Gale | Attack | goat-folk | Goat-folk messenger of the Stormcrown passes who crosses ridges no human would try. |
+| `linnet` | Linnet Reedpipe | Rare | Gale | Support | elf | An elf of the Saltmarsh reed beds, where the wind plays the reeds by itself. |
+| `ysabeau` | Ysabeau Galecutter | Epic | Gale | Attack | human | She rode the storm from the coast cliffs into Saltreach's rigging and cut a Hollow ship loose before it docked, by the light of the Gale shard's lightning. |
+| `wendel` | Wendel Hivewarden | Epic | Gale | Hp | human | Bellspire's monks kept bees in the ruins long before the Hollow. |
+| `hilde` | Hilde Windrose | Epic | Gale | Defense | human | She guards the coast road where the storms land first. |
+| `aveline` | Aveline Skyloom | Legendary | Gale | Support | sylph (wind fae) | A wind-spirit of the Storm Coast whose sisters once wove the weather. |
+| `jory` | Jory Saltline | Common | Tide | Attack | human | Saltreach's best whaler stayed ashore when the Hollow filled the docks. |
+| `morag` | Morag Kelpwright | Common | Tide | Support | human | She works the Black Fens' tidal edges, where the kelp grows thick and glows at night, and brews it into poultices that close any cut. |
+| `wenna` | Wenna Shellback | Rare | Tide | Defense | turtle-folk | The turtle-folk keeper of Saltreach's tide pools, more than a hundred years old. |
+| `lazlo` | Lazlo Swordbill | Rare | Tide | Attack | shark-folk | A shark-folk dandy of the Saltreach docks who once duelled a swordfish for three days and kept its bill. |
+| `mungo` | Mungo Barrelhand | Rare | Tide | Hp | human | Saltreach's strongest docker can unload a ship alone. |
+| `neve` | Neve Conchcaller | Rare | Tide | Support | tidekin (merfolk) | A tidekin girl from the flooded halls beneath Wraithmoor. |
+| `hendrick` | Captain Hendrick Prowe | Epic | Tide | Defense | human | His galley sank off the Storm Coast with the Hollow aboard. |
+| `kaija` | Kaija Floebreaker | Epic | Tide | Attack | human | When the Drowned Mill's pond froze over the Hollow beneath it, she cut them out one block at a time. |
+| `morvoren` | Morvoren | Legendary | Tide | Hp | barrow wraith (drowned spirit) | She drowned in the Barrows' flooded halls a hundred years ago, and the Tide shard's song brought her back. |
+| `leofric` | Leofric Tidewarden | Legendary | Tide | Defense | human | Saltreach's sea-wall bears his family's name. |
+| `hettie` | Hettie Sunfield | Common | Light | Attack | human | Thornwick's harvest girl chased the Hollow out of the wheat with a pitchfork, and she hasn't stopped chasing. |
+| `abel` | Abel Millstone | Common | Light | Hp | human | The Bellspire miller ground flour for the ruined town's last bakery. |
+| `poppy` | Poppy Dawnseed | Common | Light | Support | petal sprite (fae) | A sprite who woke inside a sunflower on the Ember Groves' ashes when a spark of the falling Light shard landed in it. |
+| `benedict` | Benedict | Rare | Light | Defense | sandstone golem (construct) | Bellspire's old sundial, carved by the bell-makers, stood up when the bells fell silent. |
+| `emeric` | Emeric Larkspur | Rare | Light | Attack | human | A runner of the Ember Groves' fire-watch, he lights signal javelins and throws them at whatever the fire reveals. |
+| `agathe` | Mother Agathe | Rare | Light | Hp | human | The Sunken Cathedral's sisters carried their relics out before the water rose. |
+| `ottavia` | Ottavia Sunhalberd | Epic | Light | Attack | elf | An elf of the Ember Groves' dawn watch who has stood guard over the trees for three hundred years. |
+| `fabian` | Magister Fabian Orrery | Epic | Light | Support | gnome | A gnome astronomer of the Glass Wastes who mapped the shattered Sigil's shards across the night sky. |
+| `augustin` | Augustin Goldmane | Epic | Light | Hp | lion-folk | Bellspire's festival wrestler, a lion-folk who never lost a bout. |
+| `clemence` | Clemence Brightlens | Legendary | Light | Defense | human | She ground the great lens for Saltreach's lighthouse in the furnaces of the Glass Wastes. |
+| `rook` | Rook Fenwhistle | Common | Shadow | Attack | raven-folk | A raven-folk trapper of the Black Fens who knows every sinkhole and every safe tussock. |
+| `pernille` | Pernille Strings | Common | Shadow | Support | human | Saltreach's street puppeteer, whose shows made Hollow-frightened children laugh. |
+| `perpetua` | Lady Perpetua Nightshade | Rare | Shadow | Defense | cat-folk | A black-furred cat-folk shipping heiress of Saltreach who refuses to run from anything, the Hollow included. |
+| `jasper` | Jasper Blackcard | Rare | Shadow | Attack | fox-folk | A dusk-furred fox-folk who ran card tables on the fen barges until the Hollow sank them. |
+| `mabon` | Mabon Sandglass | Rare | Shadow | Support | human | Hollow Deep's clock-keeper counted the hours for miners who never saw the sun. |
+| `tindra` | Tindra Mirefang | Epic | Shadow | Attack | human | Something walks in the Black Fens, and she has hunted it for ten years. |
+| `ambrose` | Ambrose Keywarden | Epic | Shadow | Hp | human | He kept the gates of the Wraithmoor barrows for forty years. |
+| `lune` | Lune Duskfeather | Epic | Shadow | Support | owl-folk | An owl-folk night nurse of Hollow Deep's infirmary who moves without a sound. |
+| `aldric` | Sir Aldric Twinshade | Legendary | Shadow | Defense | human | In Wraithmoor he fought a Hollow knight for a night and a day, until his shadow rose to help him. |
+| `ondessa` | Ondessa Mirebloom | Legendary | Shadow | Hp | fen dryad (living plant) | The fen-folk whisper of a drowned thing that learned to walk. |
