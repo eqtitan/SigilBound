@@ -11,6 +11,10 @@ each bone's local axes. 30 fps.
 - Hit_Kneel: a heavy hit staggers the hero back, drops them to one knee (hand braced on the other
   knee), a held beat, then they rise.
 
+- Ult_*: eleven signature ultimates for Legendary and Epic heroes (LeapSlam, Whirlwind, Overhead, DashStrike,
+  Uppercut, GroundPound, Channel, Volley, Twirl, Blessing, TwinFlurry); ULTS holds each one's impact time, which
+  docs/sigilbound/ultfx.py copies into Core/Kit/HeroUlts.cs with the per-hero assignment.
+
     bpyenv/bin/python make_clips.py -- IN_ANIMS.glb OUT_ANIMS.glb
 """
 import bpy, sys, math
@@ -18,7 +22,11 @@ from mathutils import Matrix, Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 SRC, OUT = argv[0], argv[1]
-NEW = {"Defeat_Slump", "Spear_Thrust", "Hit_Kneel"}
+ULTS = {  # signature ultimates (owner request, 2026-11-26): clip -> normalized impact time (game: Core/Kit/HeroUlts.cs)
+    "Ult_LeapSlam": 0.62, "Ult_Whirlwind": 0.50, "Ult_Overhead": 0.55, "Ult_DashStrike": 0.36, "Ult_Uppercut": 0.45,
+    "Ult_GroundPound": 0.47, "Ult_Channel": 0.56, "Ult_Volley": 0.50, "Ult_Twirl": 0.70, "Ult_Blessing": 0.62, "Ult_TwinFlurry": 0.60,
+}
+NEW = {"Defeat_Slump", "Spear_Thrust", "Hit_Kneel"} | set(ULTS)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.context.scene.render.fps = 30
 bpy.ops.import_scene.gltf(filepath=SRC)
@@ -180,6 +188,160 @@ stand(); key(0); stagger(); key(5); one_knee(); key(13); one_knee(3); key(20); o
 sag(); key(38); stand(); key(48)
 finish()
 
+
+# ================================================================ signature ultimates
+# Each keyed at 30 fps; the impact frame / total length matches ULTS above (the game waits for it).
+def arms_overhead(spread=0.15, back=0.1):
+    aim("upperarm_l", V(spread, back, 1)); aim("lowerarm_l", V(-0.35, back, 1))
+    aim("upperarm_r", V(-spread, back, 1)); aim("lowerarm_r", V(0.35, back, 1))
+
+def crouch(depth=0.18, fwd=0.0):
+    aim("thigh_l", V(0.08, -0.55, -1)); aim("calf_l", V(0, 0.35, -1))
+    aim("thigh_r", V(-0.08, -0.55, -1)); aim("calf_r", V(0, 0.35, -1))
+    move("pelvis", Vector((0, -fwd, -depth)))
+
+def ready_guard():
+    reset(); stance(); aim("upperarm_r", V(-0.3, -0.2, -1)); aim("lowerarm_r", V(-0.1, -1, 0.1)); point_weapon("r", V(-0.1, -1, 0.6))
+    aim("upperarm_l", V(0.3, -0.2, -1)); aim("lowerarm_l", V(0.1, -1, 0.1))
+
+# ---- Ult_LeapSlam: crouch, leap with the weapon raised overhead in both hands, slam down, recover.
+new_action("Ult_LeapSlam")
+ready_guard(); key(0)
+reset(); crouch(0.24); arms_overhead(0.2, 0.25); point_weapon("r", V(0, 0.6, 1)); rot("spine_02", X, 10); key(8)
+reset(); aim("thigh_l", V(0, -0.8, -0.4)); aim("calf_l", V(0, 0.7, -1)); aim("thigh_r", V(0, -0.6, -0.6)); aim("calf_r", V(0, 0.9, -1))
+move("pelvis", Vector((0, -0.15, 0.55))); arms_overhead(0.12, 0.45); point_weapon("r", V(0, 0.9, 0.5)); rot("spine_02", X, -14); key(15)
+reset(); aim("thigh_l", V(0, -0.7, -0.6)); aim("calf_l", V(0, 0.5, -1)); aim("thigh_r", V(0, -0.5, -0.7)); aim("calf_r", V(0, 0.7, -1))
+move("pelvis", Vector((0, -0.3, 0.45))); arms_overhead(0.12, 0.6); point_weapon("r", V(0, 1, 0.1)); rot("spine_02", X, -18); key(20)
+reset(); crouch(0.32, 0.35); rot("spine_01", X, 30); rot("spine_02", X, 12)
+aim("upperarm_r", V(-0.1, -1, -0.7)); aim("lowerarm_r", V(0, -1, -0.9)); point_weapon("r", V(0, -0.7, -1))
+aim("upperarm_l", V(0.1, -1, -0.7)); aim("lowerarm_l", V(-0.1, -1, -0.9)); key(25)      # impact (25/40)
+key(30); reset(); crouch(0.12, 0.2); rot("spine_01", X, 12); aim("upperarm_r", V(-0.2, -0.6, -1)); aim("lowerarm_r", V(0, -1, -0.5)); key(35)
+ready_guard(); key(40)
+finish()
+
+# ---- Ult_Whirlwind: wind up, two full spins with the weapon arm out, settle.
+def whirl_pose(angle):
+    reset(); stance(fwd_l=0.35, back_r=0.35, drop=0.08)
+    aim("upperarm_r", V(-1, -0.1, -0.1)); aim("lowerarm_r", V(-1, -0.2, 0)); point_weapon("r", V(-1, -0.3, 0.05))
+    aim("upperarm_l", V(1, 0.1, -0.2)); aim("lowerarm_l", V(1, -0.2, 0))
+    rot("pelvis", Z, angle)
+new_action("Ult_Whirlwind")
+ready_guard(); key(0)
+whirl_pose(-50); key(6)
+for k in range(0, 17):                       # 2 turns (720 degrees) in 45-degree keys, frames 6..38
+    whirl_pose(-50 + k * 45); key(6 + k * 2)
+reset(); stance(); rot("spine_01", X, 8); aim("upperarm_r", V(-0.6, -0.5, -0.7)); aim("lowerarm_r", V(-0.3, -1, -0.3)); key(44)
+ready_guard(); key(50)
+finish()
+
+# ---- Ult_Overhead: raise the weapon high in both hands, a beat, chop down hard, recover.
+new_action("Ult_Overhead")
+ready_guard(); key(0)
+reset(); stance(drop=0.02); arms_overhead(0.1, 0.35); point_weapon("r", V(0, 1, 0.6)); rot("spine_02", X, -12); key(10); key(15)
+reset(); stance(fwd_l=0.55, back_r=0.45, drop=0.16, ahead=0.2); rot("spine_01", X, 26); rot("spine_02", X, 10)
+aim("upperarm_r", V(-0.08, -1, -0.4)); aim("lowerarm_r", V(0, -1, -0.7)); point_weapon("r", V(0, -0.8, -0.8))
+aim("upperarm_l", V(0.08, -1, -0.4)); aim("lowerarm_l", V(0, -1, -0.7)); key(20)    # impact (20/36)
+key(25); ready_guard(); key(36)
+finish()
+
+# ---- Ult_DashStrike: drop low, burst forward with a cross-body slash, follow through, return.
+new_action("Ult_DashStrike")
+ready_guard(); key(0)
+reset(); crouch(0.2); rot("spine_01", X, 18); aim("upperarm_r", V(-0.6, 0.6, -0.4)); aim("lowerarm_r", V(-0.4, 1, 0)); point_weapon("r", V(-0.5, 1, 0.2)); key(6)
+reset(); stance(fwd_l=0.75, back_r=0.7, drop=0.2, ahead=0.9, twist=25); rot("spine_01", X, 20)
+aim("upperarm_r", V(-0.2, -1, 0)); aim("lowerarm_r", V(0.5, -1, 0)); point_weapon("r", V(0.8, -0.6, 0)); key(10)   # impact (10/28)
+reset(); stance(fwd_l=0.7, back_r=0.6, drop=0.16, ahead=1.0, twist=40); aim("upperarm_r", V(0.4, -0.8, -0.2)); aim("lowerarm_r", V(1, -0.4, -0.2)); point_weapon("r", V(1, 0.2, -0.2)); key(16)
+reset(); stance(ahead=0.4); key(22); ready_guard(); key(28)
+finish()
+
+# ---- Ult_Uppercut: crouch low with the weapon down, a rising strike with a hop, land, recover.
+new_action("Ult_Uppercut")
+ready_guard(); key(0)
+reset(); crouch(0.28, 0.1); rot("spine_01", X, 24); aim("upperarm_r", V(-0.3, 0.2, -1)); aim("lowerarm_r", V(-0.1, -0.4, -1)); point_weapon("r", V(0, -0.5, -1)); key(8)
+reset(); aim("thigh_l", V(0, -0.3, -1)); aim("thigh_r", V(0, 0.1, -1)); aim("calf_r", V(0, 0.6, -1)); move("pelvis", Vector((0, -0.2, 0.25))); rot("spine_02", X, -16)
+aim("upperarm_r", V(-0.2, -0.4, 1)); aim("lowerarm_r", V(0, -0.2, 1)); point_weapon("r", V(0, -0.1, 1))
+aim("upperarm_l", V(0.4, 0.3, -0.8)); key(14)    # impact (14/30)
+reset(); crouch(0.12, 0.1); aim("upperarm_r", V(-0.3, -0.4, 0.6)); aim("lowerarm_r", V(0, -0.6, 0.8)); key(22)
+ready_guard(); key(30)
+finish()
+
+# ---- Ult_GroundPound: both fists raised high, slammed into the ground in a deep crouch, rise.
+new_action("Ult_GroundPound")
+ready_guard(); key(0)
+reset(); stance(drop=0.0); arms_overhead(0.25, 0.2); rot("spine_02", X, -14); rot("neck_01", X, -10); key(10)
+reset(); crouch(0.42, 0.25); rot("spine_01", X, 36); rot("spine_02", X, 14)
+aim("upperarm_r", V(-0.25, -0.6, -1)); aim("lowerarm_r", V(-0.05, -0.2, -1)); aim("upperarm_l", V(0.25, -0.6, -1)); aim("lowerarm_l", V(0.05, -0.2, -1)); key(15)   # impact (15/32)
+key(20); reset(); crouch(0.15); rot("spine_01", X, 14); key(26); ready_guard(); key(32)
+finish()
+
+# ---- Ult_Channel: gather power with arms raised, then thrust both hands forward and hold the blast.
+new_action("Ult_Channel")
+stand(); key(0)
+reset(); stance(drop=0.02); arms_overhead(0.4, 0.0); rot("spine_02", X, -10); rot("neck_01", X, -12); key(14)
+reset(); stance(fwd_l=0.45, back_r=0.35, drop=0.1, ahead=0.15); rot("spine_01", X, 10)
+aim("upperarm_r", V(-0.12, -1, 0.1)); aim("lowerarm_r", V(0.05, -1, 0.05)); aim("upperarm_l", V(0.12, -1, 0.1)); aim("lowerarm_l", V(-0.05, -1, 0.05)); key(20)  # release (20/36)
+key(28); stand(); key(36)
+finish()
+
+# ---- Ult_Volley: the bow (left hand) held out, three fast draws and releases, relax.
+def bow_pose(drawn):
+    reset(); stance(fwd_l=0.3, back_r=0.25, drop=0.05, twist=-20)
+    aim("upperarm_l", V(0.1, -1, 0.05)); aim("lowerarm_l", V(0.05, -1, 0.05)); point_weapon("l", V(0, 0, 1))
+    if drawn: aim("upperarm_r", V(-0.6, 0.4, 0.05)); aim("lowerarm_r", V(0.5, -0.6, 0.15))
+    else: aim("upperarm_r", V(-0.25, -1, 0.05)); aim("lowerarm_r", V(-0.1, -1, 0.05))
+new_action("Ult_Volley")
+stand(); key(0)
+bow_pose(False); key(4)
+for i in range(3):
+    bow_pose(True); key(6 + i * 7); bow_pose(False); key(9 + i * 7)    # releases at 9, 16, 23 (impact 15/30)
+stand(); key(30)
+finish()
+
+# ---- Ult_Twirl: the staff spun overhead, then planted hard in front.
+def twirl_pose(angle):
+    reset(); stance(drop=0.03)
+    aim("upperarm_r", V(-0.2, -0.1, 1)); aim("lowerarm_r", V(0.1, -0.1, 1))
+    a = math.radians(angle); point_weapon("r", V(math.cos(a), math.sin(a), 0.05))
+    aim("upperarm_l", V(0.5, -0.3, -0.6))
+new_action("Ult_Twirl")
+stand(); key(0)
+for k in range(0, 9):                        # one and a half turns overhead, frames 3..19
+    twirl_pose(k * 60); key(3 + k * 2)
+reset(); stance(fwd_l=0.5, back_r=0.4, drop=0.14, ahead=0.15); rot("spine_01", X, 18)
+aim("upperarm_r", V(-0.15, -0.8, -0.4)); aim("lowerarm_r", V(0, -0.5, -1)); point_weapon("r", V(0, -0.2, -1))
+aim("upperarm_l", V(0.15, -0.8, -0.4)); aim("lowerarm_l", V(0, -0.5, -1)); key(24)    # impact (24/34)
+key(29); stand(); key(34)
+finish()
+
+# ---- Ult_Blessing: arms open low, rise onto the toes as the arms sweep wide and high, release, relax.
+new_action("Ult_Blessing")
+stand(); key(0)
+reset(); aim("upperarm_l", V(0.8, -0.3, -0.6)); aim("lowerarm_l", V(0.6, -0.6, -0.3)); aim("upperarm_r", V(-0.8, -0.3, -0.6)); aim("lowerarm_r", V(-0.6, -0.6, -0.3))
+rot("neck_01", X, 12); key(8)
+reset(); move("pelvis", Vector((0, 0, 0.06))); aim("foot_l", V(0, -0.4, -1)); aim("foot_r", V(0, -0.4, -1))
+aim("upperarm_l", V(0.8, -0.2, 0.7)); aim("lowerarm_l", V(0.5, -0.2, 1)); aim("upperarm_r", V(-0.8, -0.2, 0.7)); aim("lowerarm_r", V(-0.5, -0.2, 1))
+rot("spine_02", X, -12); rot("neck_01", X, -16); key(18); key(22)    # release (22/36)
+reset(); arms_hang(0.25, 0.1); key(30); stand(); key(36)
+finish()
+
+# ---- Ult_TwinFlurry: blades in both hands, four crossing cuts, a final X slash.
+def cut(right_high, ahead=0.15):
+    reset(); stance(fwd_l=0.45, back_r=0.35, drop=0.14, ahead=ahead, twist=(15 if right_high else -15)); rot("spine_01", X, 14)
+    if right_high:
+        aim("upperarm_r", V(-0.3, -0.8, 0.5)); aim("lowerarm_r", V(0.6, -0.8, -0.4)); point_weapon("r", V(0.7, -0.5, -0.5))
+        aim("upperarm_l", V(0.5, -0.6, -0.6)); aim("lowerarm_l", V(0.2, -1, 0.1)); point_weapon("l", V(0.3, -1, 0.3))
+    else:
+        aim("upperarm_l", V(0.3, -0.8, 0.5)); aim("lowerarm_l", V(-0.6, -0.8, -0.4)); point_weapon("l", V(-0.7, -0.5, -0.5))
+        aim("upperarm_r", V(-0.5, -0.6, -0.6)); aim("lowerarm_r", V(-0.2, -1, 0.1)); point_weapon("r", V(-0.3, -1, 0.3))
+new_action("Ult_TwinFlurry")
+ready_guard(); key(0)
+for i in range(4): cut(i % 2 == 0, 0.15 + i * 0.05); key(4 + i * 4)
+reset(); stance(fwd_l=0.6, back_r=0.5, drop=0.18, ahead=0.4); rot("spine_01", X, 20)
+aim("upperarm_r", V(-0.1, -1, 0.3)); aim("lowerarm_r", V(0.7, -0.7, -0.2)); point_weapon("r", V(0.8, -0.4, -0.3))
+aim("upperarm_l", V(0.1, -1, 0.3)); aim("lowerarm_l", V(-0.7, -0.7, -0.2)); point_weapon("l", V(-0.8, -0.4, -0.3)); key(21)   # final X (impact 21/35)
+key(26); ready_guard(); key(35)
+finish()
+
 # ---------------------------------------------------------------- export everything
 tr = arm.animation_data.nla_tracks
 for t in list(tr): tr.remove(t)
@@ -190,3 +352,5 @@ arm.select_set(True); bpy.context.view_layer.objects.active = arm
 bpy.ops.export_scene.gltf(filepath=OUT, export_format="GLB", use_selection=True, export_skins=True, export_animations=True,
                           export_animation_mode="NLA_TRACKS", export_apply=False, export_yup=True)
 print("[clips] wrote", OUT, len(existing) + len(NEW), "clips")
+for a in bpy.data.actions:
+    if a.name in ULTS: print("[ult]", a.name, "frames", int(a.frame_range[1]), "impact", ULTS[a.name], flush=True)

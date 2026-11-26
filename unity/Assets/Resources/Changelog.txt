@@ -7,6 +7,9 @@ new: New players get a short guided tour: summoning, heroes, the first battle an
 new: Settings > Send feedback: write a note and copy a report (with device details and recent errors) to send to the developer.
 new: A new app icon: the gold Sigil with the five element gems.
 
+## 2026-11-26 | Signature ultimates
+new: Every Legendary and Epic hero now has its own ultimate animation: leaping slams, whirlwinds, overhead chops, dash strikes, uppercuts, ground pounds, channelled blasts, arrow volleys, staff twirls, blessings and blade flurries.
+
 ## 2026-11-26 | Titan framing
 change: Worm's-eye now frames the Titan with its name and health bars above it.
 change: Meteor Leap: slow motion as the Titan leaps while the view widens to follow it to the top; then full speed and a tight view as it crashes down.

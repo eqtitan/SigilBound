@@ -362,6 +362,29 @@ namespace Sigilbound.Client
                 else { m.Strike(); yield return new WaitForSeconds(0.5f); }
                 _busy = false; yield break;
             }
+            // Signature ultimate (Legendary and Epic heroes, Core/Kit/HeroUlts): its own hand-made clip. Single-target
+            // melee ultimates run in first when the clip travels; the rest play in place with a short step. The
+            // action returns at the clip's impact time, so damage, numbers and effects land on the blow.
+            string uc = ult && !support ? HeroUlts.ClipFor(Unit.Template.Id) : ult && support && HeroUlts.ClipFor(Unit.Template.Id) == "Ult_Blessing" ? "Ult_Blessing" : null;
+            if (uc != null && m.Has(uc))
+            {
+                if (melee && HeroUlts.Travels.Contains(uc))
+                {
+                    Vector3 to = _home + dir * Mathf.Max(0.35f, 1 - 1.15f / Mathf.Max(1.2f, dir.magnitude));
+                    m.Run();
+                    for (float k = 0; k < 1; k += Time.deltaTime / 0.26f) { transform.position = Vector3.Lerp(_home, to, EaseIO(k)); yield return null; }
+                    transform.position = to;
+                }
+                else
+                {
+                    Vector3 to = _home + dir.normalized * 0.3f;
+                    for (float k = 0; k < 1; k += Time.deltaTime / 0.15f) { transform.position = Vector3.Lerp(_home, to, Ease(k)); yield return null; }
+                }
+                SkillFx.I?.WeaponTrail(BodyShaper.Find(m.Root.transform, "hand_r"), Unit.El, 1.0f);
+                m.Play(uc, false, 0.1f);
+                yield return m.WaitNormalized((float)HeroUlts.Impact[uc], 2.5f);
+                _busy = false; yield break;
+            }
             if (melee)
             {
                 Vector3 to = _home + dir * Mathf.Max(0.35f, 1 - 1.15f / Mathf.Max(1.2f, dir.magnitude));

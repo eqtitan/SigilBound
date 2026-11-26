@@ -19,6 +19,16 @@ static class Program
             Console.WriteLine("titan " + Sigilbound.Core.AnimStyle.TitanHd.Idle);
             return 0;
         }
+        // `dotnet run --project Tests~ -- ults`: each hero's family, rarity, role and ultimate (docs/sigilbound/ultfx.py).
+        if (args.Length > 0 && args[0] == "ults")
+        {
+            foreach (var hu in Heroes)
+            {
+                var sk = hu.Skills.Length > 2 ? hu.Skills[2] : hu.Skills.Last();
+                Console.WriteLine($"{hu.Id}\t{Sigilbound.Core.Impact.FamilyOf(hu.Id)}\t{Sigilbound.Core.Looks.Of(hu.Id).Prop}\t{hu.Rarity}\t{hu.Role}\t{sk.Target}\t{sk.Mult}\t{sk.Name}");
+            }
+            return 0;
+        }
         // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).
         if (args.Length > 0 && args[0] == "balance")
         {
