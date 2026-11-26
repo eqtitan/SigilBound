@@ -135,6 +135,20 @@ namespace Sigilbound.Client
             foreach (Transform child in Model) if (child != holder) child.gameObject.SetActive(false);
             _model = built;
             ArmL = ArmR = null;
+            // Additive buff/debuff posture over the clips (MECHANICS.md 3.1).
+            _posture = built.Root.AddComponent<PostureLayer>();
+            _posture.Persistent = () =>
+            {
+                if (_dead || Unit == null) return (0f, 0f, false);
+                bool buff = false, debuff = false, tremor = false;
+                foreach (var e in Unit.Effects)
+                {
+                    if (e.Type == FxType.Stun) continue; // the dazed loop says it
+                    if (FxDef.IsBuff(e.Type)) buff = true; else debuff = true;
+                    if (e.Type == FxType.Poison || e.Type == FxType.Burn) tremor = true;
+                }
+                return (buff ? 1f : 0f, debuff ? 1f : 0f, tremor && !Unit.Titan);
+            };
             if (HeadTop == null) HeadTop = Pivot("HeadTop", Model, Vector3.zero);
             HeadTop.SetParent(Model, false);
             HeadTop.gameObject.SetActive(true);
@@ -466,6 +480,27 @@ namespace Sigilbound.Client
             transform.position = _home;
             _busy = false;
             if (!_dead && _model.Stunned()) StartCoroutine(StunRoutine()); else if (!_dead) _model.Idle(0.2f);
+        }
+
+        PostureLayer _posture;
+        // A buff or debuff just landed: the 0.4 s posture pulse (chest up / shoulders down).
+        public void StatusPulse(bool buff) { if (!_dead && _posture != null) _posture.Pulse(buff); }
+
+        // Counter (MECHANICS.md 3.1): the "Counter!" event. Turn toward the attacker in 0.10 s and strike
+        // in place at 1.3x, then face home again. Busy heroes (mid-action) skip the clip, not the hit.
+        public void Counter(Vector3 attacker) { if (!_dead && _model != null && !Unit.Titan && !_busy) StartCoroutine(CounterRoutine(attacker)); }
+        IEnumerator CounterRoutine(Vector3 attacker)
+        {
+            _busy = true;
+            Quaternion from = transform.rotation; var d = attacker - transform.position; d.y = 0;
+            Quaternion to = d.sqrMagnitude > 0.01f ? Quaternion.LookRotation(d) : from;
+            for (float t = 0; t < 0.10f; t += Time.deltaTime) { transform.rotation = Quaternion.Slerp(from, to, t / 0.10f); yield return null; }
+            transform.rotation = to;
+            float len = _model.Strike(1.3f);
+            yield return new WaitForSeconds(Mathf.Min(len, 0.7f));
+            for (float t = 0; t < 0.15f; t += Time.deltaTime) { transform.rotation = Quaternion.Slerp(to, _homeRot, t / 0.15f); yield return null; }
+            transform.rotation = _homeRot;
+            _busy = false;
         }
 
         public void Stun() { if (!_dead && _model != null && !Unit.Titan && !_busy && _model.Stunned()) StartCoroutine(StunRoutine()); }
