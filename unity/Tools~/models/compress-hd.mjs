@@ -1,6 +1,9 @@
 // Shrinks the high-detail hero builds (blenderforge/ubc.py) for phones before they are committed:
 // KHR_mesh_quantization on normals and texture coordinates only (see below) and JPEG albedo/normal textures
 // (the game loads .jpg or .png). Usage: node compress-hd.mjs DIR   (rewrites the files in DIR)
+// Pipeline for every high-detail build (PLAN.md step 58): blenderforge/ubc.py -> node compress-hd.mjs DIR
+// -> python3 compress-textures.py DIR (albedo q82, normal 768 px q88). At build time prepare-models.mjs
+// gzips the GLBs into StreamingAssets (lossless; Unity stores StreamingAssets uncompressed in the APK).
 import fs from "node:fs";
 import path from "node:path";
 import { NodeIO } from "@gltf-transform/core";

@@ -3,7 +3,10 @@
 // without the optional meshopt package. KHR_mesh_quantization stays (glTFast supports it).
 // Also copies the retargeted UAL clips and the credits file. Run before a Unity build
 // (CI does this):  cd unity/Tools~/models && npm ci && node prepare-models.mjs
+// Last step: the generated .glb files (hero folders, clip file) are gzipped to NAME.glb.gz (lossless; HeroModels.ReadBytes unzips).
+// Unity stores all StreamingAssets uncompressed in the APK, so this roughly halves the models' size.
 import fs from "node:fs";
+import zlib from "node:zlib";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { NodeIO } from "@gltf-transform/core";
@@ -65,4 +68,18 @@ if (fs.existsSync(hdSrc)) {
   console.log(`High-detail heroes: ${ids.join(", ") || "none"}`);
 }
 if (fs.existsSync(path.resolve(here, "ubc_anims.glb"))) fs.copyFileSync(path.resolve(here, "ubc_anims.glb"), path.join(out, "ubc_anims.glb"));
+// Gzip the generated GLBs (see the header): the hero folders and the clip file, almost all of the size.
+// The four small base models committed in StreamingAssets/Models stay plain (no tracked files change).
+// Plain copies are removed so only one form ships.
+let before = 0, after = 0;
+function gz(p) {
+  if (!fs.existsSync(p)) return;
+  if (fs.statSync(p).isDirectory()) { for (const n of fs.readdirSync(p)) gz(path.join(p, n)); return; }
+  if (!p.endsWith(".glb")) return;
+  const raw = fs.readFileSync(p), packed = zlib.gzipSync(raw, { level: 9 });
+  fs.writeFileSync(p + ".gz", packed); fs.rmSync(p);
+  before += raw.length; after += packed.length;
+}
+for (const n of ["heroes_hd", "heroes", "ubc_anims.glb"]) gz(path.join(out, n));
+console.log(`GLBs gzipped: ${(before / 1048576).toFixed(1)} MB -> ${(after / 1048576).toFixed(1)} MB`);
 console.log(`Models ready in ${path.relative(process.cwd(), out)}`);
