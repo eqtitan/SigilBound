@@ -49,7 +49,7 @@ def title_card():
     return card.convert("RGB")
 
 def main():
-    tmp = tempfile.mkdtemp(prefix="sbteaser_")
+    tmp = tempfile.mkdtemp(prefix="sbteaser_", dir=os.path.dirname(os.path.abspath(OUT)))
     card = title_card(); card.save(os.path.join(os.path.dirname(OUT) or ".", "teaser_title.png"))
     black = Image.new("RGB", (W, H))
     for f in range(TOTAL):
@@ -69,17 +69,19 @@ def main():
            ("sfx_cast_tide", 3.8, 0.5), ("sfx_cast_flame", 4.4, 0.55), ("sfx_titan_roar", 6.6, 1.0), ("sfx_meteor_whoosh", 8.0, 0.9),
            ("sfx_titan_slam", 10.0, 1.0), ("sfx_earthsplit", 10.02, 0.85), ("sfx_cast_flame", 10.45, 0.9), ("sfx_cast_gale", 11.0, 0.8),
            ("sfx_hit_heavy", 11.55, 0.8), ("sfx_cast_shadow", 12.0, 0.8), ("sfx_hit_magic", 12.5, 0.9), ("sfx_summon_legendary", 13.05, 0.9)]
-    inputs = ["-i", os.path.join(AUDIO, "music_titan.ogg")]; parts = ["[0:a]atrim=0:15,asetpts=PTS-STARTPTS,volume=0.75,afade=t=in:st=0:d=1.6,afade=t=out:st=13.0:d=2.0[m]"]
+    # input 0 is the image sequence; audio inputs start at 1
+    inputs = ["-i", os.path.join(AUDIO, "music_titan.ogg")]; parts = ["[1:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:15,asetpts=PTS-STARTPTS,volume=0.75,afade=t=in:st=0:d=1.6,afade=t=out:st=13.0:d=2.0[m]"]
     labels = ["[m]"]
     for i, (name, t, vol) in enumerate(sfx, start=1):
         inputs += ["-i", os.path.join(AUDIO, name + ".ogg")]
-        ms = int(t * 1000); parts.append(f"[{i}:a]volume={vol},adelay={ms}|{ms}[s{i}]"); labels.append(f"[s{i}]")
+        ms = int(t * 1000); parts.append(f"[{i + 1}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume={vol},adelay={ms}|{ms}[s{i}]"); labels.append(f"[s{i}]")
     parts.append("".join(labels) + f"amix=inputs={len(labels)}:normalize=0:duration=first,atrim=0:15,alimiter=limit=0.9[a]")
     cmd = ["/usr/bin/ffmpeg", "-y", "-v", "error", "-framerate", str(FPS), "-i", os.path.join(tmp, "%03d.jpg")] + inputs + [
         "-filter_complex", ";".join(parts), "-map", "0:v", "-map", "[a]",
         "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p", "-r", str(FPS),
         "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-t", "15", "-movflags", "+faststart", OUT]
-    subprocess.run(cmd, check=True)
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0: print(r.stderr[-2000:]); shutil.rmtree(tmp); sys.exit(1)
     shutil.rmtree(tmp)
     print("wrote", OUT)
 
