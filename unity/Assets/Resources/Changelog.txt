@@ -2,6 +2,10 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Every hero remade
+new: Every hero has been rebuilt with real modelled weapons and shields, flowing gowns, proper wings, crowns, horns, hats, masks, veils and accessories from their designs.
+new: Hand-painted shading on every hero: soft shadows in folds and worn, brighter edges.
+
 ## 2026-11-26 | Ready for hero portraits
 new: Heroes can now show painted portraits on the hero list and in the summon reveal (they arrive as the art is made).
 

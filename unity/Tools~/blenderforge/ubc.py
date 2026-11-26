@@ -9,7 +9,7 @@ triangle budget and bakes one atlas (albedo, tangent-space normal, glow).
 
 Writes SB_Hero_<id>_HD.glb (rest pose, skinned, no clips, placeholder material) with
 SB_Hero_<id>_HD_albedo/_normal/_glow PNGs, and SB_Hero_<id>_HD_LOD1.glb (same atlas, ~1/3 triangles).
-Kit pieces are still simple shapes; steps 59-63 replace them with modelled ones.
+Weapons, off-hand weapons, shields and focus items are modelled in kit_props.py (procedural bmesh).
 """
 import bpy, bmesh, sys, os, json, math, re, argparse
 from mathutils import Vector, Matrix
@@ -17,7 +17,10 @@ from mathutils import Vector, Matrix
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import ubc_parts as P  # noqa: E402
+import kit_props as KP  # noqa: E402  (modelled weapons, shields and focus items)
 import kit_cloth as KC  # noqa: E402
+import kit_head as KH  # noqa: E402  (modelled head pieces and species features)
+import kit_acc as KA  # noqa: E402  (modelled accessories)
 
 ELEM = P.ELEM
 
@@ -131,40 +134,11 @@ def make_bow(mat, string_mat, cross=False):
     return parts
 
 def weapon(c, arm, mats):
-    """A simple weapon along local +Z at the right-hand grip, rigid to hand_r."""
-    w = str(c.get("weapon", "")).lower()
-    metal, main, acc, glow = mats["metal"], mats["main"], mats["acc"], mats["glow"]
-    parts = []
-    def add(o): parts.append(o); return o
-    if has(w, "spear", "lance", "glaive", "trident", "halberd", "scythe", "staff", "sceptre", "pike", "oar", "polearm", "quarterstaff"):
-        add(prim("primitive_cylinder_add", main if has(w, "staff", "sceptre") else metal, vertices=10, radius=0.02, depth=2.0, location=(0, 0, 0.45)))
-        if has(w, "staff", "sceptre"): add(prim("primitive_uv_sphere_add", glow, segments=16, ring_count=8, radius=0.08, location=(0, 0, 1.5)))
-        else: add(prim("primitive_cone_add", metal, vertices=8, radius1=0.05, depth=0.32, location=(0, 0, 1.6)))
-        if has(w, "trident"):
-            for dx in (-0.08, 0.08): add(prim("primitive_cone_add", metal, vertices=6, radius1=0.025, depth=0.24, location=(dx, 0, 1.52)))
-        if has(w, "scythe", "glaive", "halberd"):
-            o = add(prim("primitive_cube_add", metal, size=1, location=(0.16, 0, 1.38))); o.scale = (0.32, 0.012, 0.09)
-    elif has(w, "sword", "katana", "rapier", "blade", "sabre", "cutlass", "longsword", "greatsword"):
-        o = add(prim("primitive_cube_add", metal, size=1, location=(0, 0, 0.55))); o.scale = (0.012, 0.05, 0.9)
-        o = add(prim("primitive_cube_add", acc, size=1, location=(0, 0, 0.08))); o.scale = (0.03, 0.18, 0.03)
-        add(prim("primitive_cylinder_add", main, vertices=8, radius=0.018, depth=0.18, location=(0, 0, -0.04)))
-    elif has(w, "hammer", "maul", "mace", "club", "flail", "tankard", "pickaxe", "pick", "axe"):
-        add(prim("primitive_cylinder_add", main, vertices=8, radius=0.022, depth=0.9, location=(0, 0, 0.3)))
-        o = add(prim("primitive_cube_add", metal, size=1, location=(0, 0, 0.75))); o.scale = (0.26, 0.15, 0.16)
-    elif has(w, "dagger", "knife", "sickle", "hook", "fan", "quill", "wand"):
-        o = add(prim("primitive_cube_add", metal, size=1, location=(0, 0, 0.17))); o.scale = (0.01, 0.035, 0.3)
-    elif has(w, "bow", "crossbow", "longbow", "shortbow"):
-        for o in make_bow(main, mats["acc"], cross=has(w, "crossbow")): add(o)
-    elif has(w, "orb", "lantern", "candle", "bell", "mirror", "book", "tome", "conch", "lamp", "harp", "lute", "lens"):
-        add(prim("primitive_uv_sphere_add", glow, segments=16, ring_count=8, radius=0.08, location=(0, 0, 0.1)))
-    else:
-        add(prim("primitive_cylinder_add", main, vertices=8, radius=0.02, depth=1.6, location=(0, 0, 0.4)))
-        add(prim("primitive_uv_sphere_add", glow, segments=12, ring_count=6, radius=0.06, location=(0, 0, 1.25)))
-    if not parts: return []
-    for x in bpy.context.selected_objects: x.select_set(False)
-    for o in parts: o.select_set(True)
-    bpy.context.view_layer.objects.active = parts[0]; bpy.ops.object.join()
-    o = bpy.context.object; o.name = "Kit_Weapon"
+    """The design's main-hand prop (kit_props: modelled weapons and focus items) along local +Z at the
+    grip, rigid to the weapon hand. Bare-handed designs get none."""
+    o = KP.build_weapon(c, mats)
+    if o is None: return []
+    o.name = "Kit_Weapon"
     side = weapon_side(c)
     o.matrix_world = grip_frame(arm, side) @ o.matrix_world
     apply_xform(o)
@@ -294,7 +268,7 @@ def make_cape(arm, mat, clasp_mat, long_=True, train=False):
             if t > 0.4: y = max(y, max_back + gap * (1 + 2.5 * (t - 0.4)))  # hang free below the shoulder blades / seat
             # wrap the sides forward a little (the cape curves around the body) and let the edges fall open
             y -= (abs(u) ** 2) * (0.10 + 0.06 * t)
-            if sy is not None and t > 0.3: y = max(y, sy + gap)   # the wrapped edges stay outside the body/gown
+            if sy is not None and t > 0.3: y = max(y, sy + gap * (1 + 1.8 * t))   # the wrapped edges stay outside the body/gown
             row.append(Vector((x, y, z)))
         verts.append(row)
     # Yoke: the top row rolls forward over the shoulders to the collarbones (where the clasps sit).
@@ -362,64 +336,34 @@ def kit(c, arm):
                     + [str(c.get("outfit", {}).get("head", ""))]).lower()
     out = weapon(c, arm, mats)
     w = str(c.get("weapon", "")).lower()
-    if has(w, "daggers", "twin", "dual", "pair", "knives", "blades", "sickles", "axes") and weapon_side(c) == "r":
-        # the off-hand blade: a mirror of the main one in the left fist
-        o = prim("primitive_cube_add", mats["metal"], size=1, location=(0, 0, 0.17)); o.scale = (0.01, 0.035, 0.3)
-        g = prim("primitive_cylinder_add", mats["main"], vertices=8, radius=0.016, depth=0.12, location=(0, 0, -0.02))
-        for x in bpy.context.selected_objects: x.select_set(False)
-        o.select_set(True); g.select_set(True); bpy.context.view_layer.objects.active = o; bpy.ops.object.join(); o = bpy.context.object
-        o.matrix_world = grip_frame(arm, "l") @ o.matrix_world; apply_xform(o); o.name = "Kit_Offhand"; out.append(bind(o, arm, {"hand_l": 1.0}))
-    if has(text, "shield"):
+    if weapon_side(c) == "r" and KP.offhand(c) is not None:
+        # the off-hand weapon (twin daggers, hatchets, sabres, ribbons): a second copy in the left fist
+        o = KP.build_offhand(c, mats)
+        if o is not None:
+            o.matrix_world = grip_frame(arm, "l") @ o.matrix_world; apply_xform(o); o.name = "Kit_Offhand"; out.append(bind(o, arm, {"hand_l": 1.0}))
+    if KP.shield_type(c) is not None:
         # strapped flat to the OUTSIDE of the left forearm, centred along it
         lh, lt = rest_bone(arm, "lowerarm_l"); hl, _ = rest_bone(arm, "hand_l")
         # the outside of the forearm = the back of the hand, which faces UP in the rest T-pose (palm down)
         along = (hl - lh).normalized(); out_dir = Vector((0, 0, 1))
         out_dir = (out_dir - along * out_dir.dot(along)).normalized()
-        tower = has(text, "tower")
-        o = prim("primitive_cylinder_add", mats["metal"], vertices=28, radius=0.25, depth=0.035, location=(0, 0, 0))
-        o.scale = (1.0, 1.35 if tower else 1.08, 1)                  # local Y runs along the forearm
-        boss = prim("primitive_uv_sphere_add", mats["acc"], segments=12, ring_count=6, radius=0.05, location=(0, 0, 0.03)); boss.scale = (1, 1, 0.45)
-        rim = prim("primitive_torus_add", mats["acc"], major_segments=28, minor_segments=5, major_radius=0.25, minor_radius=0.012, location=(0, 0, 0)); rim.scale = o.scale
-        for x in bpy.context.selected_objects: x.select_set(False)
-        for q in (o, boss, rim): q.select_set(True)
-        bpy.context.view_layer.objects.active = o; bpy.ops.object.join(); o = bpy.context.object
+        o = KP.build_shield(c, mats)                                # face in XY, local Y along the forearm, +Z out
         y = along; z = out_dir; xax = y.cross(z).normalized()
         M = Matrix((xax, y, z)).transposed().to_4x4(); M.translation = lh + (hl - lh) * 0.5 + out_dir * 0.06
         o.matrix_world = M @ o.matrix_world; apply_xform(o); o.name = "Kit_Shield"; out.append(bind(o, arm, {"lowerarm_l": 1.0}))
     hb = head_box(arm); top = Vector((hb["cx"], hb["cy"], hb["top"]))
-    helmeted = has(str(c.get("outfit", {}).get("head", "")).lower(), "armet", "hood", "helm")
-    if has(text, "halo") or (c.get("rarity") == "Legendary" and not has(text, "crown", "helm", "hood")):
-        bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=6, major_radius=hb["hw"] * 1.15, minor_radius=0.012, location=top + Vector((0, 0.02, 0.13)))
-        o = bpy.context.object; o.data.materials.append(mats["glow"]); o.name = "Kit_Halo"; out.append(bind(o, arm, {"Head": 1.0}))
-    if has(text, "crown", "circlet", "diadem") and not str(c.get("outfit", {}).get("head", "")).startswith("Noble_Head_Crown"):
-        # a band on the crown of the head, above the brow, with points (a circlet stays low and thin)
-        circ = has(text, "circlet", "diadem")
-        r = hb["hw"] * (0.93 if circ else 0.98); z0 = hb["top"] - (0.055 if circ else 0.035)
-        o = prim("primitive_cylinder_add", mats["acc"], vertices=20, radius=r, depth=0.022 if circ else 0.045, location=(hb["cx"], hb["cy"], z0), end_fill_type="NOTHING")
-        parts = [o]
-        if not circ:
-            for k in range(6):
-                a = k / 6 * 2 * math.pi
-                parts.append(prim("primitive_cone_add", mats["acc"], vertices=4, radius1=0.018, depth=0.05, location=(hb["cx"] + math.cos(a) * r, hb["cy"] + math.sin(a) * r, z0 + 0.045)))
-        for x in bpy.context.selected_objects: x.select_set(False)
-        for q in parts: q.select_set(True)
-        bpy.context.view_layer.objects.active = o; bpy.ops.object.join(); o = bpy.context.object; o.name = "Kit_Crown"; out.append(bind(o, arm, {"Head": 1.0}))
-    if has(text, "horn", "antler"):
-        for sx in (-1, 1):
-            big = has(text, "great", "curved", "colossal") or "titan" in str(c.get("species", ""))
-            o = prim("primitive_cone_add", mats["acc"], vertices=10, radius1=0.05 if big else 0.032, depth=0.32 if big else 0.18,
-                     location=(hb["cx"] + hb["hw"] * (0.95 if big else 0.7) * sx, hb["cy"] + 0.02, hb["top"] - 0.02), rotation=(math.radians(-25 if big else -15), math.radians((48 if big else 28) * sx), 0))
-            o.name = "Kit_Horn"; out.append(bind(o, arm, {"Head": 1.0}))
+    # Crowns, circlets, halos, horns and headwear, modelled and fitted to the head (kit_head.py)
+    out += KH.head(c, arm, mats, sys.modules[__name__])
     nh, _ = rest_bone(arm, "neck_01")
-    # Gowns and robes first (cloth-simulated, kit_cloth.py), so a cape is fitted over them. Heroes whose
-    # outfit pack robe is on the body (Male_Wizard_Legs) need none.
-    if KC.needs_gown(c, text) and not KC.pack_robe_present():
+    # Gowns and robes first (cloth-simulated, kit_cloth.py), so a cape is fitted over them.
+    if KC.needs_gown(c, text):
         out += KC.make_gown(c, arm, mats, bind)
     if has(text, "cape", "cloak", "mantle"):
         out += make_cape(arm, mats["main"], mats["metal"], long_=not has(text, "short cape", "half cape", "shoulder cape", "mantle", "half-cape", "capelet"),
                          train=has(text, "train"))
     out += KC.make_wings(c, arm, mats, bind, hb)
-    out += species(c, arm, mats)
+    out += KH.species(c, arm, mats, sys.modules[__name__])   # ears, beaks, tails, shells, golem stone (kit_head.py)
+    out += KA.accessories(c, arm, mats, sys.modules[__name__])   # belts, sashes, pauldrons, back items... (kit_acc.py)
     return out
 
 def species(c, arm, mats):
@@ -531,6 +475,7 @@ def bake(obj, size, out_dir, hid):
     bk = sc.render.bake; bk.margin = 4
     bk.use_pass_direct = False; bk.use_pass_indirect = False; bk.use_pass_color = True
     target(imgs["albedo"]); bpy.ops.object.bake(type="DIFFUSE")
+    import kit_paint; kit_paint.painted_pass(obj, imgs["albedo"], size)   # phase E 51-52: crevices, worn edges, top light
     target(imgs["normal"]); bk.normal_space = "TANGENT"; bpy.ops.object.bake(type="NORMAL", uv_layer="Atlas")
     target(imgs["glow"]); bpy.ops.object.bake(type="EMIT")
     paths = {}

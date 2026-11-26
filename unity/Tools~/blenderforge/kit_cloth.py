@@ -60,7 +60,7 @@ def gown_spec(c):
     if _has(txt, "apron", "apron-skirt"): s.update(length="knee", flare=0.2, open="back", hem="plain", belt="leather", stiff=True)
     if _has(txt, "dancer", "wrap"): s.update(length="calf", flare=1.0, slit=True)
     if _has(txt, "armour dress", "scale-armour", "plate"): s.update(length="calf" if "dress" in txt else "floor", flare=0.4, stiff=True)
-    if _has(txt, "layered"): s["layers"] = 2
+    if re.search(r"layered (\w+ )?(\w+ )?(robe|gown)", txt) or "layered robe" in txt: s["layers"] = 2   # not "layered sleeves"
     if _has(txt, "train"): s["train"] = 0.45
     if _has(txt, "tendril"): s["hem"] = "tendrils"
     if _has(txt, "bell") and _has(txt, "fringe", "fringed"): s.update(hem="bells", flare=1.05, stiff=True)
@@ -76,11 +76,6 @@ def gown_spec(c):
 def needs_gown(c, text):
     o = c.get("outfit", {}) or {}
     return _has(text, "robe", "skirt", "dress", "gown", "habit", "tabard") or str(o.get("legs", "")).startswith("none")
-
-
-def pack_robe_present():
-    """The outfit pack's own full-length robe (Male_Wizard_Legs) is already on the body."""
-    return any(o.type == "MESH" and o.name.startswith("Male_Wizard_Legs") for o in bpy.context.scene.objects)
 
 
 # ---------------------------------------------------------------- weights from the body
@@ -116,19 +111,28 @@ LEG_MAP = {"calf_l": "thigh_l", "foot_l": "thigh_l", "ball_l": "thigh_l", "calf_
            "calf_twist_02_l": "thigh_l", "calf_twist_02_r": "thigh_r", "thigh_twist_02_l": "thigh_l", "thigh_twist_02_r": "thigh_r"}
 
 
-def skirt_weights(bw, topz, kneez, leg_share=0.75):
-    """Callable for ubc.bind: pelvis at the waist, up to leg_share of the nearest leg toward the knee
-    and below (calves and feet map to the thighs, so the hem swings with the leg without kinking)."""
+def skirt_weights(bw, topz, kneez, leg_share=0.45, arm=None):
+    """Callable for ubc.bind: pelvis at the waist, blending toward the thighs below (at most leg_share,
+    reached at the knee), split between the legs by a smooth left/right ramp across the middle so the
+    front and back never tear open between the legs, and a skirt sways rather than kicking up with the
+    knee. (Nearest-surface weights flipped abruptly at the midline: tested on Jog_Fwd_Loop.)"""
+    import kit_cloth as _k  # noqa
+    xl = xr = py = None
+    if arm is not None:
+        xl = _rest(arm, "thigh_l")[0].x; xr = _rest(arm, "thigh_r")[0].x; py = _rest(arm, "pelvis")[0].y
     def w(p):
-        a = max(0.0, min(1.0, (topz - p.z) / max(1e-6, topz - kneez))) * leg_share
-        near = bw.near(p); legs = {}
-        for k, v in near.items():
-            k = LEG_MAP.get(k, k)
-            if k in ("thigh_l", "thigh_r"): legs[k] = legs.get(k, 0) + v
-        lt = sum(legs.values())
-        out = {"pelvis": 1.0 - (a if lt > 0 else 0)}
-        if lt > 0:
-            for k, v in legs.items(): out[k] = a * v / lt
+        a = max(0.0, min(1.0, (topz - p.z) / max(1e-6, topz - kneez))); a = a * a * (3 - 2 * a)
+        # the front panel rides the knees more than the back (a raised knee mustn't poke through)
+        if py is not None:
+            fy = max(0.0, min(1.0, (py + 0.06 - p.y) / 0.2)); a *= leg_share * (0.85 + 0.5 * fy)
+        else: a *= leg_share
+        if xl is None:
+            near = bw.near(p); l = sum(v for k, v in near.items() if LEG_MAP.get(k, k) == "thigh_l"); r = sum(v for k, v in near.items() if LEG_MAP.get(k, k) == "thigh_r")
+            sl = l / (l + r) if l + r > 0 else 0.5
+        else:
+            u = (p.x - (xl + xr) / 2) / max(1e-6, (xl - xr) * 1.6) + 0.5   # wide ramp: 50/50 at the centre
+            u = max(0.0, min(1.0, u)); sl = u * u * (3 - 2 * u)
+        out = {"pelvis": 1.0 - a, "thigh_l": a * sl, "thigh_r": a * (1 - sl)}
         return {k: v for k, v in out.items() if v > 1e-3}
     return w
 
@@ -148,7 +152,7 @@ def _tube(name, ring_pts, rows, hem_z_of, cols, mat, top_inset=0.0):
     for r in range(rows):
         for i in range(cols):
             a_, b_ = r * cols + i, r * cols + (i + 1) % cols
-            faces.append((a_, b_, b_ + cols, a_ + cols))
+            faces.append((a_, a_ + cols, b_ + cols, b_))   # outward normals
     me = bpy.data.meshes.new(name); me.from_pydata(verts, [], faces); me.update()
     o = bpy.data.objects.new(name, me); bpy.context.scene.collection.objects.link(o); o.data.materials.append(mat)
     return o
@@ -183,15 +187,19 @@ def simulate_gown(c, arm, mat, trim_mat, spec=None, bvh=None, colliders_extra=()
         tr = spec["train"] * max(0.0, math.cos(a - back)) ** 2 if length_scale >= 0.99 else 0.0
         return hem - tr
     o = _tube(name, ring, rows, hem_z, cols, mat)
-    # flare the initial shape outward with depth so gravity gathers it into folds
+    # flare the initial shape outward with depth so gravity gathers it into folds; an invisible A-line
+    # petticoat of the same oval section (smaller flare, always inside the cloth) gives the gown its
+    # volume so it can't collapse between the legs (removed after the simulation).
     flare = spec["flare"]
-    for v in o.data.vertices:
-        t = (topz - v.co.z) / max(1e-6, topz - hem)
+    pet_me = o.data.copy(); pet = bpy.data.objects.new("SBPetticoat", pet_me); bpy.context.scene.collection.objects.link(pet)
+    for v, pv in zip(o.data.vertices, pet_me.vertices):
+        t = max(0.0, min(1.0, (topz - v.co.z) / max(1e-6, topz - hem)))
         d = Vector((v.co.x - ph.x, v.co.y - ph.y - 0.01, 0))
         if d.length > 1e-6:
-            base = d.length
-            v.co.x = ph.x + d.x / base * (base + flare * 0.35 * max(0.0, min(1.0, t)) ** 1.1)
-            v.co.y = ph.y + 0.01 + d.y / base * (base + flare * 0.35 * max(0.0, min(1.0, t)) ** 1.1)
+            base = d.length; u = d / base
+            v.co.x = ph.x + u.x * (base + flare * 0.42 * t ** 1.1); v.co.y = ph.y + 0.01 + u.y * (base + flare * 0.42 * t ** 1.1)
+            rp = base - 0.016 + flare * 0.26 * t ** 1.3
+            pv.co.x = ph.x + u.x * rp; pv.co.y = ph.y + 0.01 + u.y * rp; pv.co.z = v.co.z - 0.02 * t
     # openings
     bm = bmesh.new(); bm.from_mesh(o.data)
     bm.faces.ensure_lookup_table(); bm.verts.ensure_lookup_table()
@@ -230,17 +238,7 @@ def simulate_gown(c, arm, mat, trim_mat, spec=None, bvh=None, colliders_extra=()
         if not any(m.type == "COLLISION" for m in b.modifiers):
             cm = b.modifiers.new("SBCollision", "COLLISION")
         b.collision.thickness_outer = 0.008; b.collision.cloth_friction = 6
-    # An invisible A-line petticoat under the cloth gives the gown its volume; the cloth drapes over it
-    # into folds (removed after the simulation).
-    hem_r = 0.2 + flare * 0.22
-    top_r = max((p - Vector((ph.x, ph.y + 0.01, topz))).length for _, p in ring) - 0.004
-    prof = []
-    for k in range(9):
-        t = k / 8; z = (hem - topz) * t * 1.02
-        prof.append((top_r + (hem_r - top_r) * (t ** 1.3), z))
-    pet = _lathe(prof, 32, mat, Vector((ph.x, ph.y + 0.01, topz - 0.01)))
-    pet.scale = (1, 0.82, 1); pet.location.y += (ph.y + 0.01) * (1 - 0.82)
-    pet.name = "SBPetticoat"; pet.modifiers.new("SBCollision", "COLLISION"); pet.collision.thickness_outer = 0.01
+    pet.modifiers.new("SBCollision", "COLLISION"); pet.collision.thickness_outer = 0.01; pet.collision.cloth_friction = 2
     cols_objs.append(pet)
     bpy.ops.mesh.primitive_plane_add(size=4, location=(0, 0, ground))
     floor = bpy.context.object; floor.name = "SBFloor"; floor.modifiers.new("SBCollision", "COLLISION")
@@ -356,12 +354,14 @@ def _sleeves(arm, mat, trim_mat):
     for side in ("l", "r"):
         e, _ = _rest(arm, "lowerarm_" + side); hnd, _ = _rest(arm, "hand_" + side)
         axis = (hnd - e).normalized(); L = (hnd - e).length
-        for layer, (m, r0, r1, extra) in enumerate(((trim_mat, 0.05, 0.12, 0.10), (mat, 0.055, 0.105, 0.03))):
-            prof = [(r0, 0.0), (r0 + (r1 - r0) * 0.3, -(L * 0.5)), (r1, -(L + extra))]
+        # wide sleeves from above the elbow to past the wrist: an inner layer in the trim colour shows
+        # below the outer one (the "layered sleeves")
+        for layer, (m, r0, r1, extra) in enumerate(((trim_mat, 0.052, 0.078, 0.07), (mat, 0.058, 0.074, 0.0))):
+            prof = [(r0, 0.0), (r0 + 0.004, -(L * 0.45)), (r0 + (r1 - r0) * 0.6, -(L * 0.85)), (r1, -(L + extra))]
             o = _lathe([(r, z) for r, z in prof], 20, m, Vector((0, 0, 0)))
             # the lathe runs down -Z; turn -Z onto the forearm axis, start at the elbow
             q = Vector((0, 0, -1)).rotation_difference(axis)
-            o.matrix_world = Matrix.Translation(e + axis * (L * 0.15)) @ q.to_matrix().to_4x4()
+            o.matrix_world = Matrix.Translation(e - axis * 0.06) @ q.to_matrix().to_4x4()
             _select(o); bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
             _thicken(o, 0.004); o.name = "Kit_Sleeve"
             out.append((o, {"lowerarm_" + side: 0.85, "upperarm_" + side: 0.15}))
@@ -378,36 +378,65 @@ def trim_fallback_skirt(topz):
         bmesh.ops.delete(bm, geom=dead, context="FACES"); bm.to_mesh(o.data); bm.free()
 
 
+def slim_leggings(arm):
+    """Leggings under a gown keep only what hugs the legs: pouches, belts and flaps that stand off the
+    leg (they poked through the cloth at the hip) are cut away."""
+    segs = []
+    for side in ("l", "r"):
+        t0, t1 = _rest(arm, "thigh_" + side); c0, c1 = _rest(arm, "calf_" + side); segs += [(t0, t1), (c0, c1)]
+    ph, _ = _rest(arm, "pelvis")
+    def dist(p):
+        best = 9
+        for a, b in segs:
+            ab = b - a; t = max(0.0, min(1.0, (p - a).dot(ab) / ab.length_squared)); best = min(best, (a + ab * t - p).length)
+        return best
+    for o in bpy.context.scene.objects:
+        if o.type != "MESH" or "_Legs" not in o.name or o.name.startswith("Kit_"): continue
+        bm = bmesh.new(); bm.from_mesh(o.data); mw = o.matrix_world
+        dead = [f for f in bm.faces if dist(mw @ f.calc_center_median()) > 0.095 or (mw @ f.calc_center_median()).z > ph.z + 0.02]
+        bmesh.ops.delete(bm, geom=dead, context="FACES"); bm.to_mesh(o.data); bm.free()
+
+
 def make_gown(c, arm, mats, bind):
     """The whole gown: draped layer(s), hem details, belt and sleeves, each skinned. Returns objects."""
     spec = gown_spec(c)
     from ubc import body_bvh  # noqa
     ph, _ = _rest(arm, "pelvis"); kl, _ = _rest(arm, "calf_l")
     trim_fallback_skirt(ph.z + 0.07)
+    if spec["open"] is None and not spec["slit"] and spec["length"] in ("floor", "ankle", "calf"): slim_leggings(arm)
     bvh = body_bvh()
     trim = mats["acc"] if spec["hem"] != "frost" else mats.get("frost", mats["acc"])
     out = []
     inner = simulate_gown(c, arm, mats["main"], trim, spec, bvh)
     layers = [inner]
     if spec["layers"] > 1:
-        _thicken(inner)
-        outer_mat = mats.get("second", mats["main"])
-        o2 = simulate_gown(c, arm, outer_mat, trim, dict(spec, flare=spec["flare"] * 0.8, hem="trim", train=0.0, slit=False),
-                           bvh, colliders_extra=[inner], radius_pad=0.026, length_scale=0.62, name="Kit_Robe")
+        # The overskirt follows the draped skirt's own folds, a little outside it and shorter, with a
+        # trim band at its hem: it can never cut into the layer beneath.
+        o2 = inner.copy(); o2.data = inner.data.copy(); bpy.context.scene.collection.objects.link(o2)
+        topz, hemz = inner["topz"], inner["hemz"]; cut = topz - (topz - hemz) * 0.62
+        bm = bmesh.new(); bm.from_mesh(o2.data)
+        for v in bm.verts:
+            d = Vector((v.co.x - ph.x, v.co.y - ph.y - 0.01, 0)); t = max(0.0, (topz - v.co.z) / max(1e-6, topz - hemz))
+            if d.length > 1e-6:
+                k = 1.0 + 0.07 * t; off = 0.012 + 0.02 * t
+                v.co.x = ph.x + d.x * k + d.normalized().x * off; v.co.y = ph.y + 0.01 + d.y * k + d.normalized().y * off
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.calc_center_median().z < cut], context="FACES")
+        for f in bm.faces:
+            f.material_index = 1 if f.calc_center_median().z < cut + 0.045 else 0
+        bm.to_mesh(o2.data); bm.free()
+        o2.data.materials[0] = mats.get("second", mats["main"])
         layers.append(o2)
-    else:
-        _thicken(inner)
-    if len(layers) > 1: _thicken(layers[1])
+    for lay in layers: _thicken(lay)
     bw = _BodyWeights()
     topz = inner["topz"]
     gown_info = {"topz": topz}
     for lay in layers:
-        lay.name = "Kit_Robe"; out.append(bind(lay, arm, skirt_weights(bw, topz, kl.z)))
+        lay.name = "Kit_Robe"; out.append(bind(lay, arm, skirt_weights(bw, topz, kl.z, arm=arm)))
     if spec["hem"] == "bells":
-        for b in _bells(arm, inner, mats["acc"]): out.append(bind(b, arm, skirt_weights(bw, topz, kl.z)))
+        for b in _bells(arm, inner, mats["acc"]): out.append(bind(b, arm, skirt_weights(bw, topz, kl.z, arm=arm)))
     belt_mat = mats.get("sash", mats["acc"]) if spec["belt"] != "leather" else mats.get("leather", mats["acc"])
     for b in _belt(arm, gown_info, belt_mat, spec["belt"], spec["tails"], mats.get("metal")):
-        b.name = "Kit_Belt"; out.append(bind(b, arm, skirt_weights(bw, topz, kl.z, 0.5)))
+        b.name = "Kit_Belt"; out.append(bind(b, arm, skirt_weights(bw, topz, kl.z, 0.3, arm=arm)))
     if spec["sleeves"]:
         for s_, w in _sleeves(arm, mats["main"], mats["acc"]): out.append(bind(s_, arm, w))
     return out
@@ -621,17 +650,22 @@ def make_wings(c, arm, mats, bind, head_box):
             hb = head_box
             metal = _has(phrase, "helm", "visor", "armet", "storm")
             m = mats["metal"] if metal else mats.get("white", mats["main"])
+            from ubc import body_bvh  # noqa
+            hbvh = body_bvh()
             for sx in (1, -1):
-                root = Vector((hb["cx"] + hb["hw"] * 1.02 * sx, hb["cy"] + 0.01, hb["eye"] + 0.03))
+                # rooted ON the side of the helm/hat (ray-cast in from the side), swept back and up
+                z0 = hb["eye"] + 0.02
+                hit = hbvh.ray_cast(Vector((hb["cx"] + 0.5 * sx, hb["cy"], z0)), Vector((-sx, 0, 0)), 0.6)[0]
+                root = (hit + Vector((0.004 * sx, 0, 0))) if hit is not None else Vector((hb["cx"] + hb["hw"] * sx, hb["cy"], z0))
                 pieces = []
-                lead = [root, root + Vector((0.04 * sx, 0.04, 0.08)), root + Vector((0.07 * sx, 0.1, 0.13))]
-                normal = Vector((sx, 0.15, 0)).normalized()
-                for k in range(6):
-                    p, _t = _polyline_at(lead, 0.15 + 0.85 * k / 5)
-                    d = Vector((0.15 * sx, 1.0, 0.45 - 0.5 * k / 5)).normalized()
-                    vs, fs = _feather(0.07 + 0.05 * math.sin(math.pi * (0.2 + 0.7 * k / 5)), 0.03, curl=0.01, segs=4)
+                lead = [root, root + Vector((0.02 * sx, 0.06, 0.05)), root + Vector((0.035 * sx, 0.14, 0.09))]
+                normal = Vector((sx, 0.0, 0.0))
+                for k in range(7):
+                    p, _t = _polyline_at(lead, 0.05 + 0.95 * k / 6)
+                    d = Vector((0.08 * sx, 0.55 + 0.45 * k / 6, -0.35 + 0.9 * (1 - k / 6))).normalized()
+                    vs, fs = _feather(0.12 + 0.09 * math.sin(math.pi * (0.25 + 0.6 * k / 6)), 0.055, curl=0.015, segs=4)
                     R = _frame(d, normal)
-                    pieces.append(([p + R @ v for v in vs], fs, 0))
+                    pieces.append(([p + normal * 0.002 * k + R @ v for v in vs], fs, 0))
                 o = _assemble("Kit_Wing", pieces, None, [m, m]); _thicken(o, 0.004)
                 out.append(bind(o, arm, {"Head": 1.0}))
             continue
