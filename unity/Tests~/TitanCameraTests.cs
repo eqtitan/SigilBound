@@ -40,16 +40,19 @@ static class TitanCameraTests
             foreach (var aspect in new[] { 2.17, 1.78, 1.33 })
             {
                 var v = BattleLayout.View(cam.Key, aspect, true);
-                bool fits = BattleLayout.TitanViewFits(v, aspect, cam.Key != "shoulder");
+                // Worm's-eye (option C): heads and tags of the team in frame (feet may crop), Titan under the HUD.
+                bool fits = cam.Key == "worm"
+                    ? BattleLayout.WormHeadsIn(v, aspect) && BattleLayout.TitanPoints().All(p => { var q = BattleLayout.ProjectTo(v.Eye, v.Target, v.Fov, aspect, p); return q != null && q.Value.y <= BattleLayout.TitanCeiling + 1e-6; })
+                    : BattleLayout.TitanViewFits(v, aspect, cam.Key != "shoulder");
                 double r = Ratio(v, aspect);
-                if (!fits || (cam.Key != "shoulder" && r < 2.0)) tbad.Add($"{cam.Key}@{aspect} (fits {fits}, titan/hero {r:0.0}x)");
+                if (!fits || (cam.Key == "side" && r < 2.0)) tbad.Add($"{cam.Key}@{aspect} (fits {fits}, titan/hero {r:0.0}x)");
                 if (aspect == 2.17)
                 {
                     var a = BattleLayout.ProjectTo(v.Eye, v.Target, v.Fov, aspect, BattleLayout.Slot(true, 1, 4)); var b = BattleLayout.ProjectTo(v.Eye, v.Target, v.Fov, aspect, BattleLayout.Slot(true, 1, 4) + new V3(0, 1.85, 0));
                     notes.Add($"{cam.Key} {r:0.0}x, hero {(a == null || b == null ? 0 : (b.Value.y - a.Value.y) / 2):P0} of screen");
                 }
             }
-        check(tbad.Count == 0, $"titan views: team in frame, head under the HUD, Titan at least 2x a hero on screen ({string.Join(", ", notes)})" + (tbad.Count > 0 ? " — fails: " + string.Join("; ", tbad) : ""));
+        check(tbad.Count == 0, $"titan views: team in frame, head under the HUD, side view shows the Titan at least 2x a hero ({string.Join(", ", notes)})" + (tbad.Count > 0 ? " — fails: " + string.Join("; ", tbad) : ""));
         check(BattleLayout.TitanCycle.Length == BattleLayout.Cameras.Length + 3 && BattleLayout.TitanCycle[0].Key == BattleLayout.DefaultTitanCamera,
             "titan views: the View button offers the three Titan views first, Worm's-eye by default, then the usual five");
     }

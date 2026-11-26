@@ -152,14 +152,48 @@ namespace Sigilbound.Core
                     var back = (sh - tgt).Normalized;
                     rail = d => new CamView { Eye = sh + back * (1.5 + d), Target = tgt, Fov = portrait ? 62 : 48 };
                     break;
-                default: // worm: knee height behind the team, a long lens tilted up at the Titan
-                    rail = d => new CamView { Eye = new V3(0, 0.85, near.Z - 24.0 - d), Target = new V3(0, TitanHead * 0.78, ts.Z), Fov = portrait ? 28 : 15 };
-                    break;
+                default:
+                    return WormView(aspect);
             }
             double lo = 0, hi = 60;
             if (!TitanViewFits(rail(hi), aspect, head)) return rail(hi);
             for (int i = 0; i < 26; i++) { double m = (lo + hi) / 2; if (TitanViewFits(rail(m), aspect, head)) hi = m; else lo = m; }
             return rail(hi);
+        }
+
+        // Worm's-eye (owner pick, mock-up option C, 2026-11-26): 5 m behind the team at 0.9 m, a normal lens
+        // (62 degrees across on a 2.17 screen, wider only if a narrower screen would cut off the outer heroes),
+        // aimed as LOW as the HUD allows: the Titan's horns and tag sit just under TitanCeiling, and the team
+        // stands in the foreground cut at the shins, backs to the camera.
+        public const double WormBack = 5.0, WormHeight = 0.9, WormHfov = 62;
+        public static CamView WormView(double aspect)
+        {
+            var ts = TitanSlot();
+            var eye = new V3(0, WormHeight, Slot(true, 1, 4).Z - WormBack);
+            double hfov = WormHfov;
+            for (int k = 0; k < 40; k++)
+            {
+                double vfov = 2 * Math.Atan(Math.Tan(hfov * Math.PI / 360) / Math.Max(0.3, aspect)) * 180 / Math.PI;
+                double lo = 0, hi = 14;
+                CamView V(double ty) => new CamView { Eye = eye, Target = new V3(0, ty, ts.Z), Fov = vfov };
+                bool Under(CamView v) => TitanPoints().All(p => { var q = ProjectTo(v.Eye, v.Target, v.Fov, aspect, p); return q != null && q.Value.y <= TitanCeiling; });
+                for (int i = 0; i < 30; i++) { double m = (lo + hi) / 2; if (Under(V(m))) hi = m; else lo = m; }
+                var view = V(hi);
+                if (WormHeadsIn(view, aspect) || hfov >= 100) return view;
+                hfov += 2;
+            }
+            return new CamView { Eye = eye, Target = new V3(0, TitanHead * 0.6, ts.Z), Fov = 40 };
+        }
+        // Every ally's head (and the space for its tag above) is on screen in the worm's-eye view.
+        public static bool WormHeadsIn(CamView v, double aspect)
+        {
+            for (int i = 0; i < 4; i++)
+                foreach (var h in new[] { 1.6, 2.4 })
+                {
+                    var q = ProjectTo(v.Eye, v.Target, v.Fov, aspect, Slot(true, i, 4) + new V3(0, h, 0));
+                    if (q == null || Math.Abs(q.Value.x) > 0.95 || q.Value.y > 0.84 || q.Value.y < -0.84) return false;
+                }
+            return true;
         }
 
         // Any battle view (the usual presets, or a Titan view in a Titan fight).

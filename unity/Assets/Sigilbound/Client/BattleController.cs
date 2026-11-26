@@ -200,34 +200,47 @@ namespace Sigilbound.Client
             arena.ClearOverride(); _cinema = false; Time.timeScale = _paused ? 0 : speed;
         }
 
-        // The Titan's ultimate: it crouches, leaps out of the top of the frame, a beat of silence, then
-        // crashes down onto the middle of the team with a crater shockwave.
+        // The Titan's ultimate (owner direction 2026-11-26): it crouches and leaps; the camera pulls back and
+        // widens so the whole arc stays in view, follows it up and down onto the middle of the team, holds on
+        // the impact, then eases back to the battle view.
         IEnumerator MeteorLeap(Unit u, CharacterView v)
         {
             var m = v.Hero; var arena = App.Arena; _cinema = true;
             var T0 = v.transform.position; var team = Arena.ToUnity(BattleLayout.TeamCentre); team.y = T0.y;
             float H = TitanHeight(v); var eye = arena.PosePosition; float fov = arena.Cam.fieldOfView;
+            var back = eye - team; back.y = 0; back = back.sqrMagnitude > 0.01f ? back.normalized : Vector3.back;
+            var far = eye + back * 7f + Vector3.up * 2.5f; float wide = fov + 14f;
             arena.BreathTarget = 0;
             if (m.Has("Crouch_Idle_Loop")) m.Play("Crouch_Idle_Loop", true, 0.15f, 1f);
-            yield return new WaitForSeconds(0.35f);
+            for (float t = 0; t < 0.35f; t += Time.deltaTime)
+            {   // the pull-back starts with the crouch
+                float e = Ease(t / 0.35f) * 0.4f;
+                arena.Override(Vector3.Lerp(eye, far, e), T0 + Vector3.up * H * 0.5f, Mathf.Lerp(fov, wide, e), Ease(t / 0.2f)); yield return null;
+            }
             m.Play("Jump", false, 0.08f, 1.4f, true);
             SkillFx.I?.Dust(T0, H * 0.5f, u.El); Vfx.I.Shake(0.2f);
-            for (float t = 0; t < 0.5f; t += Time.deltaTime)
+            const float dur = 1.15f, apex = 12f; bool landing = false;
+            for (float t = 0; t < dur; t += Time.deltaTime)
             {
-                float k = t / 0.5f; var p = T0 + Vector3.up * 18f * k * k; v.transform.position = p;
-                arena.Override(eye, Vector3.Lerp(T0 + Vector3.up * H * 0.5f, p + Vector3.up * H * 0.5f, 0.85f), fov, Ease(t / 0.2f));
+                float k = t / dur, e = 0.4f + 0.6f * Ease(Mathf.Clamp01(t / 0.4f));
+                var p = Vector3.Lerp(T0, team, k) + Vector3.up * (4f * apex * k * (1f - k));
+                v.transform.position = p;
+                if (!landing && k > 0.8f && m.Has("Jump_Land")) { landing = true; m.Play("Jump_Land", false, 0.05f, 1.2f, true); }
+                arena.Override(Vector3.Lerp(eye, far, e), Vector3.Lerp(team + Vector3.up * 1.5f, p + Vector3.up * H * 0.45f, 0.85f), Mathf.Lerp(fov, wide, e), 1f);
                 yield return null;
             }
-            var sky = team + Vector3.up * 20f; v.transform.position = sky;
-            for (float t = 0; t < 0.45f; t += Time.deltaTime) { arena.Override(eye, Vector3.Lerp(T0 + Vector3.up * 18f, team + Vector3.up * 1.2f, Ease(t / 0.45f)), fov, 1f); yield return null; }
-            if (m.Has("Jump_Land")) m.Play("Jump_Land", false, 0.05f, 1.2f, true);
-            for (float t = 0; t < 0.22f; t += Time.deltaTime) { float k = t / 0.22f; v.transform.position = Vector3.Lerp(sky, team, k * k); arena.Override(eye, team + Vector3.up * 1.2f, fov, 1f); yield return null; }
             v.transform.position = team;
             var fx = SkillFx.I;
             if (fx != null) { fx.TitanSlam(team, u.El); fx.Cracks(team, u.El, 4.5f); fx.Shockwave(team, u.El, 6f); }
             Vfx.I.ShakeLong(0.6f, 0.8f); Sound.I?.Play("bigKill", 0.9f);
             foreach (var kv in _views) if (kv.Key.Ally && kv.Value != null) kv.Value.Shove(team, 1.4f);
-            for (float t = 0; t < 0.5f; t += Time.deltaTime) { arena.Override(eye, team + Vector3.up * 1.2f, fov, 1f - Ease(t / 0.5f)); yield return null; }
+            var look = team + Vector3.up * H * 0.45f;
+            for (float t = 0; t < 0.3f; t += Time.deltaTime) { arena.Override(far, look, wide, 1f); yield return null; } // hold on the impact
+            for (float t = 0; t < 0.6f; t += Time.deltaTime)
+            {   // ease back to the battle view
+                float e = 1f - Ease(t / 0.6f);
+                arena.Override(Vector3.Lerp(eye, far, e), look, Mathf.Lerp(fov, wide, e), e); yield return null;
+            }
             arena.ClearOverride(); _cinema = false;
         }
         // After the Meteor leap: a heavy hop back to its place.
