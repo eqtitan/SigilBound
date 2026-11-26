@@ -231,15 +231,15 @@ namespace Sigilbound.Client
         // of the load says what it got.
         static void Trace(string msg) => Debug.Log("SBMODEL " + msg);
 
-        // GLBs ship gzipped (prepare-models.mjs writes NAME.glb.gz): Unity stores every StreamingAssets
+        // GLBs ship gzipped (prepare-models.mjs writes NAME.glbz; a ".gz" name is un-gzipped by Android's packaging): Unity stores every StreamingAssets
         // file uncompressed in the APK, so this halves the models' share of the download, losslessly.
-        // A .glb read tries the .gz first and unzips it, then falls back to a plain .glb.
+        // A .glb read tries the .glbz first and unzips it, then falls back to a plain .glb.
         static IEnumerator ReadBytes(string file, Action<byte[]> done)
         {
             if (file.EndsWith(".glb", StringComparison.OrdinalIgnoreCase))
             {
                 byte[] gz = null;
-                yield return ReadRaw(file + ".gz", b => gz = b, false);
+                yield return ReadRaw(file + "z", b => gz = b, false);
                 if (gz != null)
                 {
                     byte[] plain = null;
@@ -250,8 +250,8 @@ namespace Sigilbound.Client
                         using (var dst = new MemoryStream(gz.Length * 3))
                         { unzip.CopyTo(dst); plain = dst.ToArray(); }
                     }
-                    catch (Exception e) { Debug.LogWarning($"Sigilbound: couldn't unzip {file}.gz: {e.Message}"); }
-                    if (plain != null) { Trace($"read {file}.gz: {gz.Length} -> {plain.Length} bytes"); done(plain); yield break; }
+                    catch (Exception e) { Debug.LogWarning($"Sigilbound: couldn't unzip {file}z: {e.Message}"); }
+                    if (plain != null) { Trace($"read {file}z: {gz.Length} -> {plain.Length} bytes"); done(plain); yield break; }
                 }
             }
             yield return ReadRaw(file, done, true);
@@ -466,6 +466,18 @@ namespace Sigilbound.Client
                     if (hd != null) { done(hd); yield break; }
                 }
             }
+            if (!titan && hollow)
+            {
+                // Hollow copies use the hero's high-detail model too (PLAN step 58), darkened and crimson-lit.
+                yield return EnsureHdIndex();
+                if (_hd != null && _hd.Contains(id))
+                {
+                    HeroModel hd = null;
+                    yield return BuildHd(unit, body, parent, m => hd = m, null, true);
+                    Trace($"hd hollow {id}: {(hd != null ? "ok" : "FAILED, falling back")}");
+                    if (hd != null) { done(hd); yield break; }
+                }
+            }
             if (!titan && !hollow)
             {
                 yield return EnsureBakedIndex();
@@ -583,7 +595,21 @@ namespace Sigilbound.Client
 
         // The painted-character material for the baked atlas: albedo, tangent normal, and a mask whose
         // blue channel is the glow (from the _glow PNG) so the eyes, runes and auras light up.
-        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D glow, Element el)
+        // The Hollow look on a painted albedo (as Recolour does for the old models): half desaturated and
+        // pulled halfway toward deep violet, so enemy copies read as shadows of the hero.
+        static void Hollowed(Texture2D t)
+        {
+            var px = t.GetPixels32(); var v = new Color32(0x2e, 0x1f, 0x33, 255);
+            for (int i = 0; i < px.Length; i++)
+            {
+                var c = px[i]; int g = (c.r * 3 + c.g * 6 + c.b) / 10;
+                int r = (c.r + g) / 2, gg = (c.g + g) / 2, b = (c.b + g) / 2;
+                px[i] = new Color32((byte)((r + v.r) / 2), (byte)((gg + v.g) / 2), (byte)((b + v.b) / 2), c.a);
+            }
+            t.SetPixels32(px); t.Apply(true);
+        }
+
+        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D glow, Element el, bool hollow = false)
         {
             var sh = Shader.Find("Sigilbound/CharacterPainted");
             var tmpl = Resources.Load<Material>("SigilMaterials/HeroPainted");
@@ -598,17 +624,18 @@ namespace Sigilbound.Client
                 for (int i = 0; i < g.Length; i++) { byte lum = (byte)Mathf.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2); mask[i] = new Color32(0, 255, lum, 90); }
                 var mt = new Texture2D(glow.width, glow.height, TextureFormat.RGBA32, true, true); mt.SetPixels32(mask); mt.Apply(true, true);
                 mat.SetTexture("_MaskMap", mt);
-                if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", Palette.Element(el) * 2.2f);
+                if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", (hollow ? Palette.Hex("#ff3355") : Palette.Element(el)) * 2.2f);
             }
-            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", Palette.Element(el));
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", hollow ? Palette.Hex("#ff3355") : Palette.Element(el));
+            if (hollow) mat.name += "_Hollow";
             return mat;
         }
 
-        static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done, string hdId = null)
+        static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done, string hdId = null, bool hollow = false)
         {
             string id = hdId ?? unit.Template.Id;
             bool titan = id == "titan";
-            string cacheKey = titan ? $"titan|{unit.El}" : id; // the Titan's runes take its current element
+            string cacheKey = titan ? $"titan|{unit.El}" : hollow ? id + "|hollow" : id; // the Titan's runes take its current element
             yield return EnsureLibrary("ubc");
             var lib = Lib("ubc");
             if (lib == null || lib.Failed || parent == null) { done(null); yield break; }
@@ -629,7 +656,9 @@ namespace Sigilbound.Client
                 var load = gltf.LoadGltfBinary(glb, null, new GLTFast.ImportSettings { AnimationMethod = GLTFast.AnimationMethod.Legacy, GenerateMipMaps = false });
                 while (!load.IsCompleted) yield return null;
                 if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the high-detail {id}"); done(null); yield break; }
-                bk = (gltf, HdMaterial(id, LoadPng(alb, false), LoadPng(nrm, true), LoadPng(glow, false), unit.El)); _hdLibs[cacheKey] = bk;
+                var albTex = LoadPng(alb, false);
+                if (hollow && albTex != null) Hollowed(albTex);
+                bk = (gltf, HdMaterial(id, albTex, LoadPng(nrm, true), LoadPng(glow, false), unit.El, hollow)); _hdLibs[cacheKey] = bk;
             }
             var holder = new GameObject("Model").transform;
             holder.SetParent(parent, false);

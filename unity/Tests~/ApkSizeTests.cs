@@ -10,6 +10,14 @@ static class ApkSizeTests
 {
     public static void Run(System.Action<bool, string> check)
     {
+        // Android's packaging un-gzips assets named *.gz and ships them full size (build 102): the packed
+        // models must use another extension (.glbz).
+        {
+            string d0 = System.AppContext.BaseDirectory, prep = null;
+            for (int i = 0; i < 8 && d0 != null && prep == null; i++, d0 = Path.GetDirectoryName(d0))
+            { var p0 = Path.Combine(d0, "Tools~", "models", "prepare-models.mjs"); if (File.Exists(p0)) prep = p0; }
+            if (prep != null) { var t = File.ReadAllText(prep); check(!t.Contains("\".gz\"") && t.Contains("p + \"z\""), "apk size: packed models are .glbz, not .gz (Android un-gzips .gz assets)"); }
+        }
         string dir = System.AppContext.BaseDirectory, hd = null;
         for (int i = 0; i < 8 && dir != null && hd == null; i++, dir = Path.GetDirectoryName(dir))
         {

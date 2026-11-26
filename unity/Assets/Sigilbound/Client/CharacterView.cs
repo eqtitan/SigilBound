@@ -541,12 +541,11 @@ namespace Sigilbound.Client
             if (Ring) Ring.gameObject.SetActive(false);
         }
 
-        // After the death clip: wait, then sink into the ground (three3d.mjs die()).
+        // After the death clip the fallen stay where they fell (owner request, 2026-11-26: sinking into the
+        // ground read as vanishing); their ring and aura go out. Enemy bodies clear at the next wave.
         IEnumerator SinkAfterDeath()
         {
             yield return new WaitForSeconds(1.1f);
-            Vector3 p = transform.position;
-            for (float k = 0; k < 1; k += Time.deltaTime / 0.8f) { transform.position = p + Vector3.down * 0.9f * k; yield return null; }
             if (Aura) Aura.gameObject.SetActive(false);
             if (Ring) Ring.gameObject.SetActive(false);
         }

@@ -3,7 +3,8 @@
 // without the optional meshopt package. KHR_mesh_quantization stays (glTFast supports it).
 // Also copies the retargeted UAL clips and the credits file. Run before a Unity build
 // (CI does this):  cd unity/Tools~/models && npm ci && node prepare-models.mjs
-// Last step: the generated .glb files (hero folders, clip file) are gzipped to NAME.glb.gz (lossless; HeroModels.ReadBytes unzips).
+// Last step: the generated .glb files (hero folders, clip file) are gzipped to NAME.glbz (lossless; HeroModels.ReadBytes unzips).
+// Not a .gz name: Android's packaging silently un-gzips assets named *.gz and ships them full size (build 102).
 // Unity stores all StreamingAssets uncompressed in the APK, so this roughly halves the models' size.
 import fs from "node:fs";
 import zlib from "node:zlib";
@@ -77,7 +78,7 @@ function gz(p) {
   if (fs.statSync(p).isDirectory()) { for (const n of fs.readdirSync(p)) gz(path.join(p, n)); return; }
   if (!p.endsWith(".glb")) return;
   const raw = fs.readFileSync(p), packed = zlib.gzipSync(raw, { level: 9 });
-  fs.writeFileSync(p + ".gz", packed); fs.rmSync(p);
+  fs.writeFileSync(p + "z", packed); fs.rmSync(p);
   before += raw.length; after += packed.length;
 }
 for (const n of ["heroes_hd", "heroes", "ubc_anims.glb"]) gz(path.join(out, n));
