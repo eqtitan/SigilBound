@@ -1,0 +1,5 @@
+button_primary 67 65 67 66
+button_primary_pressed 67 65 67 66
+button_red 67 65 67 66
+button_secondary 67 65 67 66
+button_secondary_pressed 67 65 67 66

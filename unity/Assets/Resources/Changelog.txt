@@ -2,6 +2,9 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Painted buttons
+new: Buttons are now hand-painted gold, violet and crimson plates with jewelled ornaments. Prefer the old look? Settings > Painted interface > Classic.
+
 ## 2026-11-26 | Counters and body language
 new: Heroes with Counter now turn and strike back at their attacker.
 new: Heroes stand taller when buffed, sag their shoulders when weakened, and tremble while poisoned or burning.

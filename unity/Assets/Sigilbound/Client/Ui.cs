@@ -243,14 +243,8 @@ namespace Sigilbound.Client
                     border = new RectOffset(rad + 2, rad + 2, rad + 2, rad + 2),
                 };
                 if (k != Kind.Ghost) s.active.background = GradientTex(Color.Lerp(top, Color.black, 0.2f), Color.Lerp(bottom, Color.black, 0.2f), border, rad, Color.Lerp(midA, Color.black, 0.2f), 0.45f, Color.Lerp(midB, Color.black, 0.2f));
-                // Painted skin (Skin.cs): button_<kind> and button_<kind>_pressed replace the gradient plates.
-                string skn = "button_" + k.ToString().ToLowerInvariant();
-                var skt = k == Kind.Ghost ? null : Skin.Tex(skn);
-                if (skt != null)
-                {
-                    s.normal.background = skt; s.active.background = Skin.Tex(skn + "_pressed") ?? skt;
-                    s.border = Skin.Border(skn, rad + 2);
-                }
+                // Painted skin (Skin.cs): Button() draws the plate itself, so the style only carries the text.
+                if (k != Kind.Ghost && Skin.Tex(SkinName(k)) != null) { s.normal.background = s.active.background = s.hover.background = null; s.padding = new RectOffset(18, 18, 4, 6); }
                 bool display = serif && k != Kind.Ghost;
                 s.fontSize = size; s.fontStyle = display ? FontStyle.Normal : FontStyle.Bold; s.alignment = TextAnchor.MiddleCenter; s.wordWrap = true; s.richText = true;
                 s.normal.textColor = s.active.textColor = s.hover.textColor = text; s.hover.background = s.normal.background;
@@ -264,12 +258,16 @@ namespace Sigilbound.Client
         {
             var was = GUI.enabled; GUI.enabled = was && enabled;
             var col = GUI.color; if (!enabled) GUI.color = new Color(1, 1, 1, 0.4f);
+            if (k != Kind.Ghost && Event.current.type == EventType.Repaint)
+                Skin.DrawButton(r, SkinName(k), GUI.enabled && Input.GetMouseButton(0) && r.Contains(Event.current.mousePosition));
             bool hit = GUI.Button(r, text, ButtonStyle(k, size, SerifCanDraw(text)));
             GUI.color = col; GUI.enabled = was;
             hit = hit && !Scroller.WasDragging;
             if (hit && k != Kind.Ghost) Sound.I?.Play("tap", 0.45f, 1, 0); // every button taps, as the web
             return hit;
         }
+
+        static string SkinName(Kind k) => "button_" + k.ToString().ToLowerInvariant();
 
         public static void Text(Rect r, string text, int size = 15, Color? color = null, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleLeft, bool wrap = false, bool serif = false) =>
             GUI.Label(r, text, Label(size, color, fs, align, wrap, serif && SerifCanDraw(text)));

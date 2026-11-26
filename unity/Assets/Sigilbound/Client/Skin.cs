@@ -2,7 +2,9 @@
 // Resources/Skin/ replace the code-drawn plates when present; anything missing keeps today's look.
 // Each image is stretched as a 9-slice: Resources/Skin/skin.txt lists "name left top right bottom"
 // (border pixels that never stretch). Names: button_primary, button_primary_pressed (and
-// _secondary, _blue, _red, _chip, _chipon), panel, card, card_highlight, banner.
+// _secondary, _blue, _red, _chip, _chipon), panel, card, card_highlight, banner. A button may also
+// have NAME_orn: its centre ornament, drawn unstretched over the middle (Tools~/skin/button.py).
+// Buttons scale their borders with the button's height (DrawButton), so hi-res art fits any size.
 // The player can turn the skin off in Settings (PlayerPrefs, not the save, like fps and shake).
 using System.Collections.Generic;
 using UnityEngine;
@@ -29,6 +31,34 @@ namespace Sigilbound.Client
             if (!On) return null;
             if (!_tex.TryGetValue(name, out var t)) { t = Resources.Load<Texture2D>("Skin/" + name); _tex[name] = t; }
             return t;
+        }
+
+        // 9-slice scaled so the texture's full height maps to r.height (borders keep their proportions).
+        public static void Draw9(Rect r, Texture2D t, RectOffset b)
+        {
+            float k = r.height / t.height, W = t.width, H = t.height;
+            float l = b.left * k, rr = b.right * k, tp = b.top * k, bt = b.bottom * k;
+            if (l + rr > r.width) { float s = r.width / (l + rr); l *= s; rr *= s; }
+            float[] dx = { r.x, r.x + l, r.xMax - rr, r.xMax }, dy = { r.y, r.y + tp, r.yMax - bt, r.yMax };
+            float[] u = { 0, b.left / W, 1 - b.right / W, 1 }, v = { 1, 1 - b.top / H, b.bottom / H, 0 }; // GUI y down, UV y up
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                {
+                    var dst = new Rect(dx[i], dy[j], dx[i + 1] - dx[i], dy[j + 1] - dy[j]);
+                    if (dst.width <= 0 || dst.height <= 0) continue;
+                    GUI.DrawTextureWithTexCoords(dst, t, new Rect(u[i], v[j + 1], u[i + 1] - u[i], v[j] - v[j + 1]));
+                }
+        }
+
+        // A painted button: plate (pressed variant while held) plus its centre ornament. False if no art.
+        public static bool DrawButton(Rect r, string name, bool pressed)
+        {
+            var t = Tex(name); if (t == null) return false;
+            var tp = pressed ? Tex(name + "_pressed") : null;
+            Draw9(r, tp ?? t, Border(tp != null ? name + "_pressed" : name, 24));
+            var orn = (tp != null ? Tex(name + "_pressed_orn") : null) ?? Tex(name + "_orn");
+            if (orn != null) { float w = orn.width * r.height / orn.height; GUI.DrawTexture(new Rect(r.center.x - w / 2, r.y, w, r.height), orn); }
+            return true;
         }
 
         public static RectOffset Border(string name, int fallback)
