@@ -94,6 +94,12 @@ namespace Sigilbound.Client
                 Quality.SavedShake = shakes[i]; Toast("Screen shake: " + new[] { "full", "reduced", "off" }[i]);
             });
 
+            if (Skin.Any)
+            {
+                SettingRow(ref y, b, "Painted interface", "The painted frames and buttons, or the classic drawn look.");
+                Chips(ref y, b, new[] { "Painted", "Classic" }, Skin.On ? 0 : 1, i => { Skin.On = i == 0; Toast(i == 0 ? "Painted interface" : "Classic interface"); });
+            }
+
             var q = Quality.I;
             string[] qKeys = { "auto", "Ultra", "High", "Medium", "Low" };
             string qSub = st.quality == "auto" ? $"Auto picks what your phone runs smoothly{(q != null ? $" (now: {q.TierName})" : "")}"
