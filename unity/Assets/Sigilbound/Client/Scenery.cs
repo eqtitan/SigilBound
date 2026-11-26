@@ -69,8 +69,9 @@ namespace Sigilbound.Client
                 var w = GameObject.CreatePrimitive(PrimitiveType.Plane);
                 Object.Destroy(w.GetComponent<Collider>());
                 w.name = titan ? "Lava" : "Water"; w.transform.SetParent(root, false);
-                w.transform.localPosition = new Vector3(0, titan ? 0.02f : 0.015f, titan ? 16 : 18); w.transform.localScale = new Vector3(6, 1, 1.4f);
-                w.GetComponent<Renderer>().sharedMaterial = titan ? Materials.Glow(Palette.Hex("#3a0a04"), Palette.Hex("#ff5a10"), 1.6f) : Materials.Lit(D(th.Water, 0.9f), 0.2f, 0.92f);
+                w.transform.localPosition = new Vector3(0, titan ? 0.04f : 0.06f, titan ? 16 : 18); // stays above the ground through its whole bob (SceneryWave) w.transform.localScale = new Vector3(6, 1, 1.4f);
+                w.GetComponent<Renderer>().sharedMaterial = titan ? Materials.Glow(Palette.Hex("#3a0a04"), Palette.Hex("#ff5a10"), 1.6f) : Materials.Lit(D(th.Water, 0.9f), 0.2f, 0.7f); // a sheen, not a mirror: no glare jumping with screen shake
+                w.GetComponent<Renderer>().receiveShadows = false; // tree shadows popping with the quality tier's shadow distance
                 w.AddComponent<SceneryWave>().Lava = titan;
             }
 
@@ -335,6 +336,8 @@ namespace Sigilbound.Client
     {
         public bool Lava; Vector3 _p;
         void Start() { _p = transform.localPosition; }
-        void Update() { transform.localPosition = _p + Vector3.up * Mathf.Sin(Time.time * (Lava ? 0.8f : 1.2f)) * (Lava ? 0.01f : 0.03f); }
+        // Bob amplitude stays below the plane's height above the ground (0.06 water, 0.04 lava): a water plane
+        // that bobbed 3 cm from 1.5 cm sank under the ground every few seconds and flickered (owner report).
+        void Update() { transform.localPosition = _p + Vector3.up * Mathf.Sin(Time.time * (Lava ? 0.8f : 1.2f)) * (Lava ? 0.01f : 0.025f); }
     }
 }
