@@ -91,6 +91,17 @@ namespace Sigilbound.Core
             Idle = "Idle", Strike = new[] { "Attack_1", "Attack_2", "Attack_3" }, Cast = "Cast", Ult = "Cast_Ult", Support = "Cast_Support",
             Hit = new[] { "Hit" }, BigHit = new[] { "Hit_Big", "Hit" }, Death = new[] { "Death" }, Fidget = new[] { "Idle_Fidget" }, Win = "Victory",
         };
+        // The high-detail Titan (owner-approved 2026-11-26): the shared UAL clips, played heavy.
+        public static readonly AnimStyle TitanHd = new AnimStyle
+        {
+            Idle = "Idle_Loop", Strike = new[] { "Punch_Cross", "Sword_Attack", "Punch_Jab" }, Cast = "Punch_Cross", Support = "Interact",
+            Hit = new[] { "Hit_Chest" }, BigHit = new[] { "Hit_Head" }, Death = new[] { "Death01" }, Fidget = new[] { "Idle_Talking_Loop" }, Win = "Interact", Titan = true,
+        };
+        public static readonly Dictionary<string, string> TitanHdAliases = new Dictionary<string, string>
+        {
+            ["Jump"] = "Jump_Start", ["HitReact"] = "Hit_Chest", ["Yes"] = "Interact", ["No"] = "Idle_Talking_Loop", ["Wave"] = "Interact", ["Idle"] = "Idle_Loop",
+        };
+
         public static readonly AnimStyle TitanStyle = new AnimStyle
         {
             Idle = "Idle", Strike = new[] { "Punch", "Weapon", "Punch" }, Cast = "Punch", Support = "Yes", Hit = new[] { "HitReact" }, BigHit = new[] { "HitReact" },

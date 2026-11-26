@@ -392,6 +392,18 @@ namespace Sigilbound.Client
             // A free-path hero baked in Blender (Tools~/blenderforge/quat.py) replaces the runtime build
             // for that hero (not its Hollow enemy copy, nor the Titan); anything missing falls back below.
             Trace($"build {id} base={baseModel} hollow={hollow}");
+            if (titan)
+            {
+                // The high-detail Titan (heroes_hd/SB_Hero_titan_HD.glb), else the old stone yeti below.
+                yield return EnsureHdIndex();
+                if (_hd != null && _hd.Contains("titan"))
+                {
+                    HeroModel hd = null;
+                    yield return BuildHd(unit, new BodySpec(), parent, m => hd = m, "titan");
+                    Trace($"hd titan: {(hd != null ? "ok" : "FAILED, falling back")}");
+                    if (hd != null) { done(hd); yield break; }
+                }
+            }
             if (!titan && !hollow)
             {
                 yield return EnsureBakedIndex();
@@ -530,13 +542,15 @@ namespace Sigilbound.Client
             return mat;
         }
 
-        static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done)
+        static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done, string hdId = null)
         {
-            string id = unit.Template.Id;
+            string id = hdId ?? unit.Template.Id;
+            bool titan = id == "titan";
+            string cacheKey = titan ? $"titan|{unit.El}" : id; // the Titan's runes take its current element
             yield return EnsureLibrary("ubc");
             var lib = Lib("ubc");
             if (lib == null || lib.Failed || parent == null) { done(null); yield break; }
-            if (!_hdLibs.TryGetValue(id, out var bk))
+            if (!_hdLibs.TryGetValue(cacheKey, out var bk))
             {
                 byte[] glb = null, alb = null, nrm = null, glow = null;
                 bool low = Quality.I != null && Quality.I.Tier == 0;
@@ -553,7 +567,7 @@ namespace Sigilbound.Client
                 var load = gltf.LoadGltfBinary(glb, null, new GLTFast.ImportSettings { AnimationMethod = GLTFast.AnimationMethod.Legacy, GenerateMipMaps = false });
                 while (!load.IsCompleted) yield return null;
                 if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the high-detail {id}"); done(null); yield break; }
-                bk = (gltf, HdMaterial(id, LoadPng(alb, false), LoadPng(nrm, true), LoadPng(glow, false), unit.El)); _hdLibs[id] = bk;
+                bk = (gltf, HdMaterial(id, LoadPng(alb, false), LoadPng(nrm, true), LoadPng(glow, false), unit.El)); _hdLibs[cacheKey] = bk;
             }
             var holder = new GameObject("Model").transform;
             holder.SetParent(parent, false);
@@ -572,7 +586,8 @@ namespace Sigilbound.Client
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
             foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose")) anim.AddClip(c, c.name);
             anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
-            if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
+            if (titan) root.AddComponent<HandGrip>();
+            else if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
             float headY = 1.6f;
             var head = BodyShaper.Find(holder, "Head");
@@ -581,9 +596,10 @@ namespace Sigilbound.Client
             yield return EnsureHdBodies();
             float hgt = (float)body.H, bulk = 1f;
             if (_hdBody != null && _hdBody.TryGetValue(id, out var hb)) { hgt = hb.h; bulk = hb.b; }
-            float k = 1.85f / headY * hgt;
+            float k = (titan ? 3.6f : 1.85f) / headY * hgt;
             holder.localScale = new Vector3(k * bulk, k, k * bulk);
-            done(new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliases));
+            done(titan ? new HeroModel(holder.gameObject, anim, 4.7f, AnimStyle.TitanHd, AnimStyle.TitanHdAliases)
+                       : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliases));
         }
 
         // ---------- baked free-path heroes ----------
