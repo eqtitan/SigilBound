@@ -18,7 +18,7 @@ namespace Sigilbound.Core
         // High-detail heroes (phase F): the free CC0 UAL clips retargeted onto the 65-joint rig
         // (models/ubc_anims.glb). Clip choice per weapon family, as docs/sigilbound/MECHANICS.md section 3.
         // The free UAL clips retargeted onto the high-detail rig (models/ubc_anims.glb, MECHANICS.md 3.0).
-        public static readonly string[] HdClips = "A_TPose Crouch_Fwd_Loop Crouch_Idle_Loop Dance_Loop Death01 Driving_Loop Fixing_Kneeling Hit_Chest Hit_Head Idle_Loop Idle_Talking_Loop Idle_Torch_Loop Interact Jog_Fwd_Loop Jump_Land Jump_Loop Jump_Start PickUp_Table Pistol_Aim_Down Pistol_Aim_Neutral Pistol_Aim_Up Pistol_Idle_Loop Pistol_Reload Pistol_Shoot Punch_Cross Punch_Enter Punch_Jab Push_Loop Roll Roll_RM Sitting_Enter Sitting_Exit Sitting_Idle_Loop Sitting_Talking_Loop Spell_Simple_Enter Spell_Simple_Exit Spell_Simple_Idle_Loop Spell_Simple_Shoot Sprint_Loop Swim_Fwd_Loop Swim_Idle_Loop Sword_Attack Sword_Attack_RM Sword_Idle Walk_Formal_Loop Walk_Loop Defeat_Slump".Split(' ');
+        public static readonly string[] HdClips = "A_TPose Crouch_Fwd_Loop Crouch_Idle_Loop Dance_Loop Death01 Driving_Loop Fixing_Kneeling Hit_Chest Hit_Head Idle_Loop Idle_Talking_Loop Idle_Torch_Loop Interact Jog_Fwd_Loop Jump_Land Jump_Loop Jump_Start PickUp_Table Pistol_Aim_Down Pistol_Aim_Neutral Pistol_Aim_Up Pistol_Idle_Loop Pistol_Reload Pistol_Shoot Punch_Cross Punch_Enter Punch_Jab Push_Loop Roll Roll_RM Sitting_Enter Sitting_Exit Sitting_Idle_Loop Sitting_Talking_Loop Spell_Simple_Enter Spell_Simple_Exit Spell_Simple_Idle_Loop Spell_Simple_Shoot Sprint_Loop Swim_Fwd_Loop Swim_Idle_Loop Sword_Attack Sword_Attack_RM Sword_Idle Walk_Formal_Loop Walk_Loop Defeat_Slump Spear_Thrust Hit_Kneel".Split(' ');
 
         public static readonly Dictionary<string, string> HdAliases = new Dictionary<string, string>
         {
@@ -38,7 +38,8 @@ namespace Sigilbound.Core
             var st = new AnimStyle
             {
                 Cast = "Spell_Simple_Shoot", Support = "Spell_Simple_Enter", Ult = "Spell_Simple_Shoot",
-                Hit = new[] { "Hit_Chest" }, BigHit = new[] { "Hit_Head" }, Death = new[] { "Death01" },
+                // Heavy hits drop the hero to one knee, then they rise (owner review of test T8).
+                Hit = new[] { "Hit_Chest" }, BigHit = new[] { "Hit_Kneel", "Hit_Head" }, Death = new[] { "Death01" },
                 Fidget = new[] { "Idle_Loop", "Idle_Talking_Loop" },
             };
             switch (fam)
@@ -49,7 +50,8 @@ namespace Sigilbound.Core
                 case WeaponFamily.Support: st.Idle = "Idle_Loop"; st.Strike = new[] { "Spell_Simple_Shoot" }; break;
                 case WeaponFamily.Shield: st.Idle = "Sword_Idle"; st.Strike = new[] { "Punch_Cross", "Sword_Attack" }; st.Block = "Punch_Enter"; break;
                 case WeaponFamily.Unarmed: st.Idle = "Idle_Loop"; st.Strike = new[] { "Punch_Jab", "Punch_Cross" }; break;
-                default: st.Idle = "Sword_Idle"; st.Strike = new[] { "Sword_Attack" }; break; // blade, heavy, polearm
+                case WeaponFamily.Polearm: st.Idle = "Sword_Idle"; st.Strike = new[] { "Spear_Thrust" }; break; // owner review of test T3: a real thrust
+                default: st.Idle = "Sword_Idle"; st.Strike = new[] { "Sword_Attack" }; break; // blade, heavy
             }
             switch (role)
             {
@@ -58,7 +60,7 @@ namespace Sigilbound.Core
                 case Role.Hp: st.Win = "Idle_Talking_Loop"; st.WinSpeed = 0.8f; st.Defeat = "Sitting_Enter"; st.HitScale = 0.8f; break;
                 default: st.Win = "Spell_Simple_Enter"; st.WinHold = true; st.Defeat = "Crouch_Idle_Loop"; st.DefeatSpeed = 0.6f; break;
             }
-            // Defeat (owner request): fall to the knees and slump forward onto the stomach, then hold
+            // Defeat (owner request; PvP/Arena losses only): fall to the knees and slump forward onto the stomach, then hold
             // (Defeat_Slump, hand-authored by blenderforge/make_clips.py).
             st.Defeat = "Defeat_Slump"; st.DefeatSpeed = 1f;
             if (fam == WeaponFamily.Caster || fam == WeaponFamily.Support) st.Win = role == Role.Support ? "Spell_Simple_Enter" : st.Win;

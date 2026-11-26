@@ -2,6 +2,12 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Spear thrusts, heavy hits and fairer defeats
+new: Spear and polearm heroes attack with a real lunge and thrust.
+new: Heavy hits drop a hero to one knee before they rise.
+change: The kneel-and-slump defeat now plays only when you lose an Arena (PvP) battle; heroes who fall in battle use the death animation.
+change: Concept weapons and shields are held in the hand and on the forearm.
+
 ## 2026-11-25 | Battle feel, frame rate and a clearer camera
 new: High-detail heroes move by weapon type: daggers, bows, casters, shields and brawlers each have their own stance and attacks; defenders block, and the losing team shows it.
 new: Hits land on contact and freeze for a split second (hit-stop), so attacks feel heavier, at any frame rate.
