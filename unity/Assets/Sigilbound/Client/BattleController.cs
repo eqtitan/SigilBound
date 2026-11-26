@@ -526,7 +526,7 @@ namespace Sigilbound.Client
             if (meteor && view != null) yield return TitanHopHome(u, view);
             if (palm && view != null) yield return TitanWalkHome(u, view);
             if (u.Titan) App.Arena.BreathTarget = 0;
-            if (view != null) { yield return view.Recover(); view.FaceHome(); }
+            if (view != null) { yield return view.Recover(); if (view != null) view.FaceHome(); } // the view can be destroyed during Recover (scene change)
             yield return new WaitForSeconds(0.25f);
         }
 
