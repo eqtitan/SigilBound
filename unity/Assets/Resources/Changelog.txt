@@ -2,6 +2,10 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Finer outfits
+change: Heroes in gowns now wear fitted bodices that match their dress, some with flowing sleeves.
+change: Masks fit the face, animal heroes have proper muzzles and beaks, and small held items are easier to see.
+
 ## 2026-11-26 | Titan moves, longer and fiercer
 change: Crushing Palm and Cinder Breath play longer, with the whole Titan kept in view.
 new: Cinder Breath pours a real stream of fire, leaves pools of glowing lava and sets your heroes ablaze.
