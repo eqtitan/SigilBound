@@ -17,6 +17,7 @@ from mathutils import Vector, Matrix
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import ubc_parts as P  # noqa: E402
+import kit_cloth as KC  # noqa: E402
 
 ELEM = P.ELEM
 
@@ -244,31 +245,32 @@ def head_box(arm):
     return {"top": top, "base": base, "cx": (min(xs) + max(xs)) / 2, "cy": (min(ys) + max(ys)) / 2, "hw": (max(xs) - min(xs)) / 2,
             "eye": base + (top - base) * 0.58, "front": min(ys)}
 
-def body_bvh():
-    """BVH of the dressed body (every non-kit mesh, evaluated in the rest pose) for fitting kit to it."""
+def body_bvh(include=()):
+    """BVH of the dressed body (every non-kit mesh, evaluated in the rest pose) for fitting kit to it;
+    `include` adds kit pieces by name prefix (a cape hangs over the gown)."""
     from mathutils.bvhtree import BVHTree
     dg = bpy.context.evaluated_depsgraph_get()
     verts, polys = [], []
     for o in bpy.context.scene.objects:
-        if o.type != "MESH" or o.name.startswith("Kit_"): continue
+        if o.type != "MESH" or (o.name.startswith("Kit_") and not (include and o.name.startswith(tuple(include)))) or o.name.startswith("Icosphere"): continue
         me = o.evaluated_get(dg).to_mesh(); mw = o.matrix_world; base = len(verts)
         verts += [mw @ v.co for v in me.vertices]; polys += [[base + i for i in p.vertices] for p in me.polygons]
         o.evaluated_get(dg).to_mesh_clear()
     return BVHTree.FromPolygons(verts, polys)
 
-def make_cape(arm, mat, clasp_mat, long_=True):
+def make_cape(arm, mat, clasp_mat, long_=True, train=False):
     """A cape fitted to this body: the top drapes OVER the shoulders and fastens with two clasps at the
     collarbones; the sheet follows the back's curve (ray-cast onto the dressed body), keeps clear of
     the shoulder blades, hips and calves, and flares toward an open front. Weights: the top row follows
     the clavicles and upper chest, blending to the pelvis and thighs toward the hem, so it moves with the
     shoulders instead of hanging like a board."""
-    bvh = body_bvh()
+    bvh = body_bvh(include=("Kit_Robe", "Kit_Belt"))   # over the gown, never through it
     cl, _ = rest_bone(arm, "clavicle_l"); cr, _ = rest_bone(arm, "clavicle_r")
     ul, _ = rest_bone(arm, "upperarm_l"); ur, _ = rest_bone(arm, "upperarm_r")
     nh, _ = rest_bone(arm, "neck_01"); ph, _ = rest_bone(arm, "pelvis"); kl, _ = rest_bone(arm, "calf_l")
     back = 1.0 if (rest_bone(arm, "spine_03")[0].y < 0.5) else 1.0   # +y is the back on this rig (the face looks to -y)
     top_z = nh.z - 0.03
-    hem_z = (kl.z - 0.12) if long_ else (ph.z + 0.02)
+    hem_z = 0.05 if train else (kl.z - 0.12) if long_ else (ph.z + 0.02)
     half_top = abs(ul.x - ur.x) * 0.5 * 0.92
     rows, cols = 22, 17
     gap = 0.035
@@ -292,6 +294,7 @@ def make_cape(arm, mat, clasp_mat, long_=True):
             if t > 0.4: y = max(y, max_back + gap * (1 + 2.5 * (t - 0.4)))  # hang free below the shoulder blades / seat
             # wrap the sides forward a little (the cape curves around the body) and let the edges fall open
             y -= (abs(u) ** 2) * (0.10 + 0.06 * t)
+            if sy is not None and t > 0.3: y = max(y, sy + gap)   # the wrapped edges stay outside the body/gown
             row.append(Vector((x, y, z)))
         verts.append(row)
     # Yoke: the top row rolls forward over the shoulders to the collarbones (where the clasps sit).
@@ -333,8 +336,11 @@ def make_cape(arm, mat, clasp_mat, long_=True):
         w["thigh_l"] = low * 0.3 * side; w["thigh_r"] = low * 0.3 * (1 - side)
         tot = sum(w.values()); return {k: v / tot for k, v in w.items() if v > 1e-4}
     out = [bind(o, arm, cape_w)]
-    for sx, c_ in ((1, cl), (-1, cr)):   # clasps at the collarbones
-        bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=0.028, depth=0.012, location=(nh.x + 0.09 * sx, nh.y - 0.1, top_z - 0.03), rotation=(math.radians(90), 0, 0))
+    for sx, c_ in ((1, cl), (-1, cr)):   # small clasps on the collarbones, on the body's surface
+        cz = top_z + 0.005; cx = nh.x + 0.075 * sx
+        hit = bvh.ray_cast(Vector((cx, nh.y - 0.6, cz)), Vector((0, 1, 0)), 1.0)[0]
+        cy = (hit.y - 0.006) if hit is not None else nh.y - 0.1
+        bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=0.017, depth=0.01, location=(cx, cy, cz), rotation=(math.radians(90), 0, 0))
         k = bpy.context.object; k.data.materials.append(clasp_mat); k.name = "Kit_Clasp"
         out.append(bind(k, arm, {"clavicle_l" if sx > 0 else "clavicle_r": 1.0}))
     return out
@@ -344,7 +350,14 @@ def kit(c, arm):
     mats = {"metal": P.flat("K_Metal", P.hexc(pal.get("metal", "#aab0b8")), metal=0.9, rough=0.3),
             "acc": P.flat("K_Accent", P.hexc(pal.get("accent")), metal=0.3, rough=0.4),
             "main": P.flat("K_Main", P.hexc(pal.get("main")), rough=0.6),
-            "glow": P.flat("K_Glow", el, emit=4)}
+            "glow": P.flat("K_Glow", el, emit=4),
+            "second": P.flat("K_Second", P.hexc(pal.get("secondary", pal.get("main"))), rough=0.6),
+            "white": P.flat("K_White", P.hexc("#eeeae2"), rough=0.6),
+            "leather": P.flat("K_Leather", P.hexc("#5a3b26"), rough=0.75),
+            "frost": P.flat("K_Frost", P.hexc("#cfeaff"), emit=0.6, rough=0.3)}
+    # sash cloth: the accent dyed halfway toward the gown, so the waist doesn't read as a glowing ring
+    _a, _m = P.hexc(pal.get("accent")), P.hexc(pal.get("main"))
+    mats["sash"] = P.flat("K_Sash", tuple(_a[i] * 0.55 + _m[i] * 0.45 for i in range(3)) + (1,), rough=0.55)
     text = " ".join([str(c.get("weapon", ""))] + [str(k) for k in c.get("kit", [])] + [str(x) for x in (c.get("outfit", {}).get("acc") or [])]
                     + [str(c.get("outfit", {}).get("head", ""))]).lower()
     out = weapon(c, arm, mats)
@@ -398,20 +411,14 @@ def kit(c, arm):
                      location=(hb["cx"] + hb["hw"] * (0.95 if big else 0.7) * sx, hb["cy"] + 0.02, hb["top"] - 0.02), rotation=(math.radians(-25 if big else -15), math.radians((48 if big else 28) * sx), 0))
             o.name = "Kit_Horn"; out.append(bind(o, arm, {"Head": 1.0}))
     nh, _ = rest_bone(arm, "neck_01")
+    # Gowns and robes first (cloth-simulated, kit_cloth.py), so a cape is fitted over them. Heroes whose
+    # outfit pack robe is on the body (Male_Wizard_Legs) need none.
+    if KC.needs_gown(c, text) and not KC.pack_robe_present():
+        out += KC.make_gown(c, arm, mats, bind)
     if has(text, "cape", "cloak", "mantle"):
-        out += make_cape(arm, mats["main"], mats["acc"], long_=not has(text, "short cape", "half cape", "shoulder cape", "mantle"))
-    if has(text, "robe", "skirt", "dress", "gown") or str(c.get("outfit", {}).get("legs", "")).startswith("none"):
-        ph, _ = rest_bone(arm, "pelvis"); tl, _ = rest_bone(arm, "thigh_l"); tr, _ = rest_bone(arm, "thigh_r")
-        kl, _ = rest_bone(arm, "foot_l")
-        topz, hemz = ph.z + 0.07, kl.z + 0.06
-        o = make_robe(ph, topz, hemz, mats["main"], mats["acc"])
-        def robe_w(p):
-            t = max(0.0, min(1.0, 1.8 * (topz - p.z) / (topz - hemz))) * 0.95
-            sl = max(0.0, min(1.0, (p.x - tr.x) / max(1e-6, tl.x - tr.x))); sl = sl * sl * (3 - 2 * sl)
-            return {"pelvis": 1 - t, "thigh_l": t * sl, "thigh_r": t * (1 - sl)}
-        o.name = "Kit_Robe"; out.append(bind(o, arm, robe_w))
-    if has(text, "wing"):
-        out += make_wings(arm, mats["glow"] if c.get("element") in ("Light", "Flame") else mats["main"], mats["acc"])
+        out += make_cape(arm, mats["main"], mats["metal"], long_=not has(text, "short cape", "half cape", "shoulder cape", "mantle", "half-cape", "capelet"),
+                         train=has(text, "train"))
+    out += KC.make_wings(c, arm, mats, bind, hb)
     out += species(c, arm, mats)
     return out
 

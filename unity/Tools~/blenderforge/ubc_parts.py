@@ -111,6 +111,8 @@ def build(c, pose=True):
             for a, b in FEMALE_ALT.items():
                 if a in o[slot]: f = part_file(o[slot].replace(a, b), sex, slot)
         robe_legs = slot == "legs" and str(o.get(slot, "")).startswith("none")
+        # The pack's own full-length wizard robe (the Wizard "legs" piece) under a Wizard top (men only).
+        if robe_legs and sex == "male" and "Wizard" in str(o.get("body", "")) and "Male_Wizard_Legs" in FILES: f = "Male_Wizard_Legs"
         if f is None and not robe_legs: f = DEFAULT[sex][slot]
         if f: parts.append((slot, f))
     hp = part_file(o.get("head"), sex, "head")
@@ -144,7 +146,9 @@ def build(c, pose=True):
                 else:
                     col = {"body": pal.get("main"), "arms": pal.get("main"), "legs": pal.get("secondary"), "feet": pal.get("secondary"),
                            "headgear": pal.get("metal"), "acc": pal.get("accent")}.get(slot, pal.get("main"))
-                    tint_material(mat, hexc(col), 0.7)
+                    # Under a gown the fallback top is the gown's bodice: dyed to the gown's colour.
+                    gown = str(o.get("body", "")).startswith("custom") and any(k in str(o.get("body", "")).lower() for k in ("robe", "gown", "dress", "habit"))
+                    tint_material(mat, hexc(col), 0.93 if gown and slot in ("body", "arms") else 0.7)
             if master is not None and arm is not None:
                 for md in m.modifiers:
                     if md.type == "ARMATURE": md.object = master

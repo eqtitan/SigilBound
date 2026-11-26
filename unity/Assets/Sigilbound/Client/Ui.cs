@@ -144,6 +144,7 @@ namespace Sigilbound.Client
             return t;
         }
 
+        public static void ClearStyles() => _styles.Clear(); // after the skin is switched on or off
         public static GUIStyle Style(string key, System.Func<GUIStyle> make)
         {
             if (!_styles.TryGetValue(key, out var s) || s == null) { s = make(); _styles[key] = s; }
@@ -185,12 +186,19 @@ namespace Sigilbound.Client
             return ok;
         }
 
-        public static void Panel(Rect r, Color? fill = null, Color? border = null, int radius = 14) =>
+        public static void Panel(Rect r, Color? fill = null, Color? border = null, int radius = 14)
+        {
+            // Painted skin (Skin.cs) for the plain panel; tinted or recoloured panels keep the drawn look.
+            var sk = fill == null && border == null ? Skin.Tex("panel") : null;
+            if (sk != null) { GUI.Box(r, GUIContent.none, Style("box-skin", () => new GUIStyle { normal = { background = sk }, border = Skin.Border("panel", 24) })); return; }
             GUI.Box(r, GUIContent.none, Style($"box{fill}{border}{radius}", () => BoxStyle(fill ?? Palette.Panel, border ?? Palette.Line, radius)));
+        }
 
         // The web's framed ".card": dark violet gradient, bronze edge, gold corner studs.
         public static void Card(Rect r, bool highlight = false)
         {
+            var sk = Skin.Tex(highlight ? "card_highlight" : "card");
+            if (sk != null) { GUI.Box(r, GUIContent.none, Style($"card-skin{highlight}", () => new GUIStyle { normal = { background = sk }, border = Skin.Border(highlight ? "card_highlight" : "card", 24) })); return; }
             var s = Style($"card{highlight}", () => new GUIStyle
             {
                 normal = { background = GradientTex(Palette.Hex("#221b2e"), Palette.Hex("#1a1523"), highlight ? Palette.Gold : Palette.Hex("#5c4a30"), 12) },
@@ -235,6 +243,14 @@ namespace Sigilbound.Client
                     border = new RectOffset(rad + 2, rad + 2, rad + 2, rad + 2),
                 };
                 if (k != Kind.Ghost) s.active.background = GradientTex(Color.Lerp(top, Color.black, 0.2f), Color.Lerp(bottom, Color.black, 0.2f), border, rad, Color.Lerp(midA, Color.black, 0.2f), 0.45f, Color.Lerp(midB, Color.black, 0.2f));
+                // Painted skin (Skin.cs): button_<kind> and button_<kind>_pressed replace the gradient plates.
+                string skn = "button_" + k.ToString().ToLowerInvariant();
+                var skt = k == Kind.Ghost ? null : Skin.Tex(skn);
+                if (skt != null)
+                {
+                    s.normal.background = skt; s.active.background = Skin.Tex(skn + "_pressed") ?? skt;
+                    s.border = Skin.Border(skn, rad + 2);
+                }
                 bool display = serif && k != Kind.Ghost;
                 s.fontSize = size; s.fontStyle = display ? FontStyle.Normal : FontStyle.Bold; s.alignment = TextAnchor.MiddleCenter; s.wordWrap = true; s.richText = true;
                 s.normal.textColor = s.active.textColor = s.hover.textColor = text; s.hover.background = s.normal.background;
