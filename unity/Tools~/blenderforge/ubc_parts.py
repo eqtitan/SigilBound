@@ -70,7 +70,7 @@ def flat(name, color, emit=0.0, metal=0.0, rough=0.5):
         b.inputs["Emission Color"].default_value = color; b.inputs["Emission Strength"].default_value = emit
     return m
 
-def cull_covered_skin(gap=0.035):
+def cull_covered_skin(gap=0.06):
     """Delete the skin body's faces that clothing covers (a ray from the face along its normal hits an
     outfit piece within `gap`), so the underbody costs only the visible skin: hands, neck, gaps."""
     import bmesh
@@ -92,7 +92,8 @@ def cull_covered_skin(gap=0.035):
             if mat is None or "Regular" not in mat.name: continue      # keep eyes, brows
             c = mw @ f.calc_center_median(); n = (n3 @ f.normal).normalized()
             hit = bvh.ray_cast(c + n * 0.002, n, gap)
-            if hit[0] is not None:
+            inside = bvh.ray_cast(c, -n, 0.015)            # clothing that dips just inside the skin
+            if hit[0] is not None or inside[0] is not None:
                 dead.append(f)
         bmesh.ops.delete(bm, geom=dead, context="FACES")
         bm.to_mesh(o.data); bm.free()
