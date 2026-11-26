@@ -743,7 +743,11 @@ namespace Sigilbound.Client
                 Ui.Bar(new Rect(x - w / 2, y - 13, w, 7), u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
                 var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(x - w / 2, y - 13, w * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 3), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
                 Ui.Bar(new Rect(x - w / 2, y - 4, w, 3), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
-                if (u.Effects.Count > 0) Ui.Text(new Rect(x - 60, y + 1, 120, 14), string.Join(" ", u.Effects.Select(e => Ui.ColorTag(SkillText.EffectShort(e.Type), FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff")))), 9, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
+                if (u.Effects.Count > 0)
+                {
+                    var ir = StatusIcons.Row(x, y + 2, u.Effects, 16, true);
+                    if (!manual && !App.ModalOpen && Ui.Button(ir, "", Ui.Kind.Ghost)) StatusIcons.ShowLegend(App); // tap the icons: the legend
+                }
                 if (manual && targets.Contains(u))
                 {
                     Vector3 feet = cam.WorldToScreenPoint(v.transform.position);
@@ -886,7 +890,11 @@ namespace Sigilbound.Client
                 Ui.Bar(bar, u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
                 var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 2), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
                 Ui.Bar(new Rect(bar.x, bar.yMax + 2, bar.width, 3), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
-                if (u.Effects.Count > 0) Ui.Text(new Rect(r.x, r.yMax, r.width + 30, 12), string.Join(" ", u.Effects.Select(e => Ui.ColorTag(SkillText.EffectShort(e.Type), FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff")))), 8, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
+                if (u.Effects.Count > 0)
+                {
+                    var ir = StatusIcons.Row(r.x, r.yMax + 1, u.Effects, 15, false);
+                    if (!manual && !App.ModalOpen && Ui.Button(ir, "", Ui.Kind.Ghost)) StatusIcons.ShowLegend(App); // tap the icons: the legend
+                }
                 if (manual && targets.Contains(u))
                 {
                     Vector3 feet = cam.WorldToScreenPoint(v.transform.position);
