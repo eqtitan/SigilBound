@@ -2,6 +2,10 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Heroes move again
+fix: High-detail heroes no longer stand frozen with their arms out; they breathe, run, strike and react again (the Titan too).
+fix: The Titan's name tag no longer covers the skill name at the top of the screen.
+
 ## 2026-11-26 | Combat stances
 new: Heroes take their combat stance when their turn starts: archers draw, brawlers raise their fists, casters gather power.
 new: Stuns from heavy weapons, the Titan or ultimates knock the target to the ground before they stagger back up.

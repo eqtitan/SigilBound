@@ -674,7 +674,7 @@ namespace Sigilbound.Client
             bool manual = _awaiting && _actor != null && _actor.Ally && !Auto && !_paused;
             var targets = manual ? _b.AffectedBy(_actor, _sel) : new List<Unit>();
             var tags = new List<(Unit u, CharacterView v, Rect r)>();
-            float minY = top + 96;
+            float minY = top + 136; // name tags stay below the skill banner (top + 76..104), even the Titan's
             foreach (var kv in _views)
             {
                 var u = kv.Key; var v = kv.Value;

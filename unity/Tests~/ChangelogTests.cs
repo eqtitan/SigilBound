@@ -107,5 +107,18 @@ static class HdClipFileTests
         var missing = Sigilbound.Core.AnimStyle.HdClips.Where(c => !names.Contains(c)).ToList();
         check(names.Count > 0 && missing.Count == 0 && !names.Any(x => x.Contains("TPose")),
             $"hd clip file: {names.Count} clips with plain names, no T-pose clip" + (missing.Count > 0 ? " — missing: " + string.Join(", ", missing.Take(5)) : ""));
+
+        // HeroModels.BuildHd puts the Animation on the holder because the clips and every hero file have a
+        // single root node named Armature (glTFast then makes no Scene object). Guard that layout.
+        string RootOf(string f)
+        {
+            var bb = System.IO.File.ReadAllBytes(f); int nn = System.BitConverter.ToInt32(bb, 12);
+            using var d = System.Text.Json.JsonDocument.Parse(System.Text.Encoding.UTF8.GetString(bb, 20, nn));
+            var roots = d.RootElement.GetProperty("scenes")[0].GetProperty("nodes").EnumerateArray().Select(x => x.GetInt32()).ToList();
+            return roots.Count == 1 ? d.RootElement.GetProperty("nodes")[roots[0]].GetProperty("name").GetString() : $"{roots.Count} roots";
+        }
+        var hdDir = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path), "heroes_hd");
+        var odd = new[] { path }.Concat(System.IO.Directory.GetFiles(hdDir, "SB_Hero_*_HD*.glb")).Where(f => RootOf(f) != "Armature").Select(System.IO.Path.GetFileName).ToList();
+        check(odd.Count == 0, "hd files: one root node, Armature (clip paths resolve from the holder)" + (odd.Count > 0 ? " — not: " + string.Join(", ", odd.Take(5)) : ""));
     }
 }
