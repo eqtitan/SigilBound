@@ -26,10 +26,10 @@ THEMES = {
                        leaves=["#2a4a4a"], tuft="#4a7a6a", water="#123040", cloth="#2a3a5a", sil="#122838", mote="#80e8ff", style="hills",
                        props=["mushrooms0", "reeds1", "oak1", "mushrooms1", "rock2", "dead1", "reeds0"]),
     "storm coast": dict(top="#0a1018", bot="#3a4a5e", grass="#4a5052", grass2="#565c5c", worn="#6a6a66", hill="#3e4446", rock="#3a3e46", bark="#3a3432",
-                        tuft="#5a6456", water="#0e2234", cloth="#8a9aa8", sil="#0e1622", mote="#b8d0ff", style="peaks", storm=True, boss=True,
+                        tuft="#5a6456", water="#0e2234", cloth="#8a9aa8", sil="#0e1622", mote="#b8d0ff", style="peaks", storm=True, boss=True, debris=True,
                         props=["stone0", "rock3", "stone1", "banner_pole", "rock0", "tuft2", "mound"]),
     "titan caldera": dict(top="#1a0a0a", bot="#c0401a", grass="#3a3436", grass2="#463e3e", worn="#6a625e", hill="#332e30", rock="#2e2a2e", bark="#2a2222",
-                          tuft="#3a3030", cloth="#5a1a10", sil="#1e0c0a", mote="#ff7a2a", style="volcano", lava=True, boss=True,
+                          tuft="#3a3030", cloth="#5a1a10", sil="#1e0c0a", mote="#ff7a2a", style="volcano", lava=True, boss=True, debris=True,
                           props=["rock3", "brazier", "column1", "rock0", "dead0", "crystal1", "banner_pole", "rock2"]),
 }
 
@@ -224,10 +224,11 @@ def setup(theme, t, meshes, lineup):
     rng = random.Random(seed)
     names = t["props"]
     placed = 0
-    while placed < 46:
+    while placed < t.get("scatter", 46):
         a, r = rng.uniform(0, math.tau), rng.uniform(6.8, 20.5)
         x, z = math.cos(a) * r, math.sin(a) * r * 0.9 + 4
         if (x / 6.4) ** 2 + ((z - 0.6) / 5.8) ** 2 < 1 or z < -7: continue
+        if any((x - kx) ** 2 + (z - kz) ** 2 < kr * kr for kx, kz, kr in t.get("keepout", ())): continue  # a story landmark stands here
         if water_z is not None and z > water_z - 0.5: continue
         name = names[rng.randrange(len(names))]
         v, s = meshes[name]
@@ -247,7 +248,7 @@ def setup(theme, t, meshes, lineup):
             v, s_ = meshes["brazier"]; ob = kit_object("brazier", v, s_, mat, lit_mat("fire", color=P.hexc("#3a1a08"), emit=P.hexc("#ffb050"))); ob.location = (sx * 6.7, 4.4, 0); ob.scale = (1.1,) * 3
             v, s_ = meshes["banner_pole"]; ob = kit_object("pole", v, s_, mat, glow); ob.location = (sx * (4.8 if titan else 4.0), 9 if titan else 7.8, 0); ob.scale = (1.15,) * 3
             v2, s2 = meshes["banner_cloth"]; c = kit_object("cloth", v2, s2, mat, glow); c.parent = ob; c.location = (0, 0, 2.85); c.rotation_euler = (math.radians(-28 * sx), 0, 0)
-        for k in range(3):  # debris mid-fall
+        for k in range(3 if t.get("debris") else 0):  # debris mid-fall
             v, s_ = meshes["debris%d" % (k % 2)]; ob = kit_object("debris", v, s_, mat, glow)
             ob.location = (rng.uniform(-7, 7), rng.uniform(8, 11), rng.uniform(2.5, 6)); ob.rotation_euler = (rng.uniform(0, 6), rng.uniform(0, 6), 0); ob.scale = (1.5,) * 3
     # stand-ins for the heroes on the rim
