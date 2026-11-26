@@ -53,17 +53,29 @@ Everything here needs your Google account; the repository side is ready except t
    Testers open it on their phone, accept, then install from the Play Store link it shows.
 7. Each new upload needs a higher **version code**. CI already sets it from the build number.
 
-## Proposed CI change (not made yet: needs your secrets and the decisions above)
+## Store build (ready; needs your upload key)
 
-- `BuildScript.AndroidStore()`: like `Android()`, plus
-  - `EditorUserBuildSettings.buildAppBundle = true`;
-  - the scripting define `SB_STORE`, under which `Updater.Boot` returns at once and
-    `AndroidUpdatePermission` adds neither the permission nor the APK provider;
-  - signing with the upload key read from environment variables `ANDROID_UPLOAD_*` (decoded from the
-    secrets into a temp file in the workflow);
-  - optionally the store package name.
-- A new workflow job `android-store` (manual `workflow_dispatch`, or on tags `store-*`) that runs that build
-  with game-ci (`androidExportType: androidAppBundle`) and uploads the `.aab` as an artifact. It stays out of
-  the per-commit pipeline so normal pushes don't build twice.
-- Later, optionally: upload to the internal track automatically with a Play service account
-  (`r0adkll/upload-google-play`), once the first manual upload is done.
+The build is in place: `BuildScript.AndroidStore()` makes a Play **app bundle (.aab)** signed only with your
+private upload key, and leaves the in-app updater out (define `SB_STORE`). The GitHub APK is unchanged.
+
+1. **Make your upload key** once, on your own computer (keep the file and passwords safe and private;
+   never commit them):
+
+       keytool -genkeypair -v -keystore sigilbound-upload.keystore -alias upload -keyalg RSA -keysize 2048 -validity 10000
+
+2. **Add four repository secrets** (GitHub > the repo > Settings > Secrets and variables > Actions):
+   - `ANDROID_UPLOAD_KEYSTORE_BASE64`: the keystore file as base64 (`base64 -w0 sigilbound-upload.keystore`
+     on Linux, `base64 -i sigilbound-upload.keystore` on macOS, `certutil -encode` on Windows, then paste
+     the text without the header lines);
+   - `ANDROID_UPLOAD_KEYSTORE_PASS`: the keystore password;
+   - `ANDROID_UPLOAD_KEY_ALIAS`: `upload` (or the alias you chose);
+   - `ANDROID_UPLOAD_KEY_PASS`: the key password (often the same as the keystore password).
+3. **Build it**: Actions > Sigilbound Unity > Run workflow > task **build-store-aab**. When it finishes, download
+   the `sigilbound-store-aab` artifact from the run page; that `.aab` is what you upload to the Play Console.
+4. In the Play Console, turn on **Play App Signing** (the default) so Google holds the app signing key and your
+   upload key can be reset if it is ever lost.
+5. Package name: the bundle uses `com.sigilbound.unity` unless you choose another before the first upload
+   (it can never change afterwards); tell me and I'll set it.
+
+Later, optionally: upload to the internal track automatically with a Play service account, once the first
+manual upload is done.

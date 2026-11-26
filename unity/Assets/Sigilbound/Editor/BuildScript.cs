@@ -51,10 +51,14 @@ namespace Sigilbound.EditorTools
         public static bool IsStoreBuild;
         public static void AndroidStore()
         {
-            string Env(string k) => Environment.GetEnvironmentVariable(k);
-            var ks = Env("ANDROID_UPLOAD_KEYSTORE");
-            if (string.IsNullOrEmpty(ks) || !File.Exists(ks) || string.IsNullOrEmpty(Env("ANDROID_UPLOAD_KEYSTORE_PASS")) || string.IsNullOrEmpty(Env("ANDROID_UPLOAD_KEY_ALIAS")))
-            { Debug.LogError("Sigilbound: store build needs the upload key (ANDROID_UPLOAD_KEYSTORE, _PASS, ANDROID_UPLOAD_KEY_ALIAS, ANDROID_UPLOAD_KEY_PASS)"); EditorApplication.Exit(1); return; }
+            // Our names first, then game-ci's (its androidKeystore* inputs decode the keystore into the project).
+            string Env(params string[] ks) { foreach (var k in ks) { var v = Environment.GetEnvironmentVariable(k); if (!string.IsNullOrEmpty(v)) return v; } return null; }
+            var ks = Env("ANDROID_UPLOAD_KEYSTORE", "ANDROID_KEYSTORE_NAME");
+            if (!string.IsNullOrEmpty(ks) && !File.Exists(ks) && File.Exists(Path.GetFullPath(ks))) ks = Path.GetFullPath(ks);
+            var ksPass = Env("ANDROID_UPLOAD_KEYSTORE_PASS", "ANDROID_KEYSTORE_PASS"); var alias = Env("ANDROID_UPLOAD_KEY_ALIAS", "ANDROID_KEYALIAS_NAME");
+            var aliasPass = Env("ANDROID_UPLOAD_KEY_PASS", "ANDROID_KEYALIAS_PASS") ?? ksPass;
+            if (string.IsNullOrEmpty(ks) || !File.Exists(ks) || string.IsNullOrEmpty(ksPass) || string.IsNullOrEmpty(alias))
+            { Debug.LogError("Sigilbound: store build needs the upload key (ANDROID_UPLOAD_KEYSTORE/_PASS, ANDROID_UPLOAD_KEY_ALIAS/_PASS, or game-ci's ANDROID_KEYSTORE_*)"); EditorApplication.Exit(1); return; }
             ProjectSetup.Apply();
             IsStoreBuild = true;
             var target = UnityEditor.Build.NamedBuildTarget.Android;
@@ -68,9 +72,9 @@ namespace Sigilbound.EditorTools
             WriteBuildInfo(code);
             PlayerSettings.Android.useCustomKeystore = true;
             PlayerSettings.Android.keystoreName = Path.GetFullPath(ks);
-            PlayerSettings.Android.keystorePass = Env("ANDROID_UPLOAD_KEYSTORE_PASS");
-            PlayerSettings.Android.keyaliasName = Env("ANDROID_UPLOAD_KEY_ALIAS");
-            PlayerSettings.Android.keyaliasPass = Env("ANDROID_UPLOAD_KEY_PASS") ?? Env("ANDROID_UPLOAD_KEYSTORE_PASS");
+            PlayerSettings.Android.keystorePass = ksPass;
+            PlayerSettings.Android.keyaliasName = alias;
+            PlayerSettings.Android.keyaliasPass = aliasPass;
             var output = Environment.GetEnvironmentVariable("SB_OUTPUT");
             if (string.IsNullOrEmpty(output)) output = Arg("-customBuildPath");
             try { Build(BuildTarget.Android, string.IsNullOrEmpty(output) ? "Builds/Android/Sigilbound.aab" : output); }

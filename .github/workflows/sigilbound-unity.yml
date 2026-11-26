@@ -22,6 +22,9 @@ name: Sigilbound Unity
 #   UNITY_EMAIL, UNITY_PASSWORD   (required to build; a dedicated free Unity account)
 #   UNITY_LICENSE                 (optional; a .ulf from the get-license-file task)
 #   GH_SECRETS_TOKEN              (optional; lets get-license-file save UNITY_LICENSE for you)
+#   ANDROID_UPLOAD_KEYSTORE_BASE64, ANDROID_UPLOAD_KEYSTORE_PASS, ANDROID_UPLOAD_KEY_ALIAS,
+#   ANDROID_UPLOAD_KEY_PASS       (only for the manual "build-store-aab" task: the private Play upload key,
+#                                  see docs/sigilbound/store/PLAY_CONSOLE.md; never the committed test key)
 
 on:
   push:
@@ -35,7 +38,7 @@ on:
       task:
         description: "What to run"
         type: choice
-        options: ["build-apk", "get-license-file"]
+        options: ["build-apk", "build-store-aab", "get-license-file"]
         default: "build-apk"
 
 permissions:
@@ -400,6 +403,84 @@ jobs:
   # Fallback: headless web activation to get a .ulf license file (needs the Unity account's
   # two-step verification OFF, or UNITY_TOTP_KEY). Unity has been restricting manual activation
   # for Personal licenses, so this may stop working; account activation above is preferred.
+  # Manual only (Run workflow > task "build-store-aab"): the Google Play app bundle (BuildScript.AndroidStore:
+  # signed with the private upload key from the secrets above, in-app updater left out). Uploaded as a
+  # workflow artifact for the Play Console; it is never published to the public releases.
+  android-store:
+    if: github.event_name == 'workflow_dispatch' && inputs.task == 'build-store-aab'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      group: sigilbound-unity-release
+      cancel-in-progress: false
+    steps:
+      - name: Check the store secrets
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          KS: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          KSP: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASS }}
+          KA: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+        run: |
+          missing=""
+          [ -n "$UNITY_EMAIL" ] || missing="$missing UNITY_EMAIL"
+          [ -n "$KS" ] || missing="$missing ANDROID_UPLOAD_KEYSTORE_BASE64"
+          [ -n "$KSP" ] || missing="$missing ANDROID_UPLOAD_KEYSTORE_PASS"
+          [ -n "$KA" ] || missing="$missing ANDROID_UPLOAD_KEY_ALIAS"
+          if [ -n "$missing" ]; then echo "::error::Store build needs these repository secrets:$missing (see docs/sigilbound/store/PLAY_CONSOLE.md)"; exit 1; fi
+      - name: Free disk space (the Unity Android image is large)
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Prepare hero models and build number
+        run: |
+          (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)
+          echo "${{ github.run_number }}" > unity/build-number.txt
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: unity/Library
+          key: unity-library-android-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}-${{ hashFiles('unity/Assets/**') }}
+          restore-keys: |
+            unity-library-android-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}-
+            unity-library-android-
+      - name: Build the app bundle (game-ci)
+        uses: game-ci/unity-builder@eb1b9fba120c6e62c9fb7a7a81d6c107ce004c45 # v6.0.0
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          cliVersion: v0.1.77
+          projectPath: unity
+          targetPlatform: Android
+          buildMethod: Sigilbound.EditorTools.BuildScript.AndroidStore
+          versioning: None
+          androidVersionCode: ${{ github.run_number }}
+          androidExportType: androidAppBundle
+          androidKeystoreName: upload.keystore
+          androidKeystoreBase64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          androidKeystorePass: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASS }}
+          androidKeyaliasName: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          androidKeyaliasPass: ${{ secrets.ANDROID_UPLOAD_KEY_PASS }}
+          allowDirtyBuild: true
+      - name: Find the bundle
+        run: |
+          AAB=$(find build unity/build unity/Builds -name '*.aab' 2>/dev/null | head -n 1)
+          if [ -z "$AAB" ]; then echo "::error::No app bundle was produced"; exit 1; fi
+          cp "$AAB" "Sigilbound-store-build${{ github.run_number }}.aab"; ls -la Sigilbound-store-*.aab
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sigilbound-store-aab
+          path: Sigilbound-store-*.aab
+
   get-license-file:
     if: github.event_name == 'workflow_dispatch' && inputs.task == 'get-license-file'
     runs-on: ubuntu-latest
