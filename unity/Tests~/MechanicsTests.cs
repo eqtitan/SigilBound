@@ -94,6 +94,11 @@ static class MechanicsTests
             var ev = Fight(a, t).Act(a, 0, t);
             int dealt = Dmg(ev, t), back = Dmg(ev, a);
             check(dealt > 0 && Math.Abs(back - dealt * 0.5) <= 1 && ev.Any(e => e.Text == "Counter!"), $"Counter: hit for {dealt}, struck back for {back} (half)");
+            // The client's Counter animation finds the struck-back target from the first Damage after
+            // "Counter!" whose Source is the counterer (BattleController.ShowEvents).
+            int ci = ev.FindIndex(e => e.Text == "Counter!");
+            var after = ci >= 0 ? ev.Skip(ci + 1).FirstOrDefault(e => e.Type == EvType.Damage && e.Source == t) : null;
+            check(after != null && after.Unit == a, "Counter: the struck-back damage follows the Counter! event, from the counterer to the attacker");
             var aoe = U(true, Def("aoe", new SkillDef { Name = "Wave", Target = Target.AllEnemies, Mult = 1.0 })); var t2 = U(false, dummy);
             t2.Effects.Add(new Effect { Type = FxType.Counter, Turns = 2 });
             var ev2 = Fight(aoe, t2).Act(aoe, 0, t2);

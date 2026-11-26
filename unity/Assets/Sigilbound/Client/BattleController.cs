@@ -272,8 +272,16 @@ namespace Sigilbound.Client
                         else if (e.Fx == FxType.Shield) SkillFx.I.Shield(v.transform.position);
                         else SkillFx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
                         if (e.Fx == FxType.Stun) { if (KnocksDown(e)) v.KnockDown(); else v.Stun(); }
+                        else v.StatusPulse(FxDef.IsBuff(e.Fx));
                         Vfx.I.Number(c + Vector3.up * 0.6f, SkillText.EffectName(e.Fx), FxDef.IsBuff(e.Fx) ? new Color(1f, 0.85f, 0.4f) : new Color(0.8f, 0.55f, 1f), 0.7f); break;
-                    case EvType.Text: Vfx.I.Number(c + Vector3.up * 0.6f, e.Text, new Color(0.8f, 0.9f, 1f), 0.7f); if (e.Text == "Revived!") v.Revived(); break;
+                    case EvType.Text: Vfx.I.Number(c + Vector3.up * 0.6f, e.Text, new Color(0.8f, 0.9f, 1f), 0.7f); if (e.Text == "Revived!") v.Revived();
+                        if (e.Text == "Counter!")
+                        {
+                            // The counter's own hit follows: face whoever it lands on.
+                            var hitEv = events.Skip(events.IndexOf(e) + 1).FirstOrDefault(x => x.Type == EvType.Damage && x.Source == e.Unit);
+                            if (hitEv?.Unit != null && _views.TryGetValue(hitEv.Unit, out var av) && av != null) v.Counter(av.transform.position);
+                        }
+                        break;
                     case EvType.Death: Sound.I?.Play(e.Unit.Ally ? "downed" : "kill", 0.9f); v.Die(); if (SkillFx.I != null) SkillFx.I.DeathFade(v.transform.position, e.Unit.El); else Vfx.I.Dissolve(v.transform.position + Vector3.up * 0.8f); break;
                 }
             }

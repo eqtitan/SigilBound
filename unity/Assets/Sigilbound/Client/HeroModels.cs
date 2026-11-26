@@ -170,11 +170,11 @@ namespace Sigilbound.Client
         public bool Block() => Style.Block != null && Has(Style.Block) && Play(Style.Block, false, 0.06f, 1.4f);
         // The losing side's survivors (held pose or slow loop).
         public void Defeat() { if (Style.Defeat != null && Has(Style.Defeat)) Play(Style.Defeat, Style.Defeat.EndsWith("_Loop"), 0.3f, Style.DefeatSpeed, !Style.Defeat.EndsWith("_Loop")); else Idle(0.3f); }
-        public float Strike()
+        public float Strike(float speed = 1f)
         {
             var list = Style.Strike.Where(Has).ToArray();
             var n = list.Length > 0 ? list[_strikeN++ % list.Length] : "Sword_Slash";
-            Play(n, false, 0.1f); return Length(n);
+            Play(n, false, 0.1f, speed); return Length(n) / Mathf.Max(0.1f, speed);
         }
         // ult: the third skill or an all-enemies skill; plays the hero's ultimate cast if it has one.
         public float Cast(bool support, bool ult = false)
