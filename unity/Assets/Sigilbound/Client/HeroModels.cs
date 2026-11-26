@@ -476,6 +476,25 @@ namespace Sigilbound.Client
         static HashSet<string> _hd;
         static readonly Dictionary<string, (GLTFast.GltfImport gltf, Material mat)> _hdLibs = new Dictionary<string, (GLTFast.GltfImport, Material)>();
         static IEnumerator EnsureHdIndex() => Shared("hd-index", LoadHdIndex);
+        static Dictionary<string, (float h, float b)> _hdBody;
+        static IEnumerator EnsureHdBodies() => Shared("hd-body", LoadHdBodies);
+        static IEnumerator LoadHdBodies()
+        {
+            var d = new Dictionary<string, (float, float)>();
+            byte[] bytes = null;
+            yield return ReadBytes(Path.Combine("heroes_hd", "body.json"), b => bytes = b);
+            if (bytes != null)
+            {
+                try
+                {
+                    // {"id":[height,bulk],...}
+                    foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(System.Text.Encoding.UTF8.GetString(bytes), @"""([a-z]+)"":\[([0-9.]+),([0-9.]+)\]"))
+                        d[m.Groups[1].Value] = (float.Parse(m.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture), float.Parse(m.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture));
+                }
+                catch (Exception e) { Debug.LogWarning("Sigilbound: heroes_hd/body.json unreadable: " + e.Message); }
+            }
+            _hdBody = d;
+        }
         static IEnumerator LoadHdIndex()
         {
             var set = new HashSet<string>();
@@ -556,8 +575,13 @@ namespace Sigilbound.Client
             float headY = 1.6f;
             var head = BodyShaper.Find(holder, "Head");
             if (head != null) headY = Mathf.Max(0.5f, holder.InverseTransformPoint(head.position).y);
-            holder.localScale = Vector3.one * (1.85f / headY * (float)body.H);
-            done(new HeroModel(holder.gameObject, anim, 2.3f * (float)body.H, AnimStyle.Hd(id), AnimStyle.HdAliases));
+            // Height and build from the approved design (heroes_hd/body.json): gnomes stand short, golems tall and broad.
+            yield return EnsureHdBodies();
+            float hgt = (float)body.H, bulk = 1f;
+            if (_hdBody != null && _hdBody.TryGetValue(id, out var hb)) { hgt = hb.h; bulk = hb.b; }
+            float k = 1.85f / headY * hgt;
+            holder.localScale = new Vector3(k * bulk, k, k * bulk);
+            done(new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliases));
         }
 
         // ---------- baked free-path heroes ----------
