@@ -128,6 +128,7 @@ namespace Sigilbound.Client
             yield return Shot("battle-start");
             yield return new WaitForSecondsRealtime(4f);
             yield return Shot("battle-mid");
+            LogBudget("battle-mid");
             float until = Time.realtimeSinceStartup + 90f;
             while (Battle.InProgress && Time.realtimeSinceStartup < until) yield return null;
             yield return new WaitForSecondsRealtime(2f);
@@ -141,10 +142,30 @@ namespace Sigilbound.Client
             yield return new WaitForSecondsRealtime(1.6f);
             yield return Shot("titan-intro");
             yield return new WaitForSecondsRealtime(4f);
-            for (int i = 1; i <= 6 && Battle.InProgress; i++) { yield return Shot($"titan-{i}"); yield return new WaitForSecondsRealtime(3.2f); }
+            for (int i = 1; i <= 6 && Battle.InProgress; i++) { yield return Shot($"titan-{i}"); LogBudget($"titan-{i}"); yield return new WaitForSecondsRealtime(3.2f); }
 
             ShotLog($"DONE {_shotCount}");
             Application.Quit(0);
+        }
+
+        // Scene budget probe (PLAN step 81): what the current frame asks of a phone. Logged as
+        // "SBBUDGET <shot> tier=.. renderers=.. tris=.. skinned=.. particles=.. systems=.. lights=.. audio=..".
+        void LogBudget(string name)
+        {
+            int renderers = 0, skinned = 0, particles = 0, systems = 0, lights = 0, audio = 0; long tris = 0;
+            foreach (var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (!r.enabled || !r.gameObject.activeInHierarchy || !r.isVisible) continue;
+                renderers++;
+                Mesh m = null;
+                if (r is SkinnedMeshRenderer smr) { skinned++; m = smr.sharedMesh; }
+                else if (r is MeshRenderer) { var f = r.GetComponent<MeshFilter>(); if (f != null) m = f.sharedMesh; }
+                if (m != null) for (int i = 0; i < m.subMeshCount; i++) tris += m.GetIndexCount(i) / 3; // works on non-readable meshes too
+            }
+            foreach (var ps in FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None)) if (ps.particleCount > 0) { systems++; particles += ps.particleCount; }
+            foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.enabled && l.gameObject.activeInHierarchy) lights++;
+            foreach (var a in FindObjectsByType<AudioSource>(FindObjectsSortMode.None)) if (a.isPlaying) audio++;
+            ShotLog($"SBBUDGET {name} tier={QualitySettings.names[QualitySettings.GetQualityLevel()]} renderers={renderers} tris={tris} skinned={skinned} particles={particles} systems={systems} lights={lights} audio={audio}");
         }
 
         IEnumerator Shot(string name)
