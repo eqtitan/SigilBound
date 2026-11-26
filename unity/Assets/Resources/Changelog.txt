@@ -2,6 +2,9 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | High-detail heroes move again
+fix: High-detail heroes no longer stand frozen with their arms out: their animations play again.
+
 ## 2026-11-26 | All 100 original heroes in high detail
 new: Perrin, Loam, Merrit, Sienna, Calder, Dorian, Ivo, Saoirse, Gideon, Liora, Bastian, Elowen, Faelan, Saint, Azura, Pyrrhus, Kaelith, Aurex, Gale and Vex complete the high-detail roster: every original hero now uses their new model.
 
