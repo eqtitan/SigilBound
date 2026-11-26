@@ -368,6 +368,152 @@ def _sleeves(arm, mat, trim_mat):
     return out
 
 
+def neckline_of(c):
+    """high | off | v | square | scoop, from the design text (else picked by the hero id)."""
+    o = c.get("outfit", {}) or {}
+    t = " ".join([str(o.get("body", ""))] + [str(k) for k in c.get("kit", [])] + [str(x) for x in (o.get("acc") or [])]).lower()
+    if _has(t, "high collar", "high-necked", "stand collar", "collar", "wimple", "habit"): return "high"
+    if _has(t, "off-shoulder", "bare shoulders", "strapless", "bare-shouldered"): return "off"
+    if _has(t, "v-neck", "plunging", "wrap", "dancer"): return "v"
+    if _has(t, "square", "armour", "scale", "plate"): return "square"
+    return ("square", "scoop", "high")[_hash(c.get("id", "")) % 3]
+
+
+def _torso_target(arm):
+    """A temporary copy of the dressed body with the arms cut away (beyond the shoulder joints), so the
+    bodice wraps the torso and neck only and never webs across to the upper arms."""
+    cx = _rest(arm, "pelvis")[0].x
+    ux = min(abs(_rest(arm, "upperarm_l")[0].x - cx), abs(_rest(arm, "upperarm_r")[0].x - cx))
+    dg = bpy.context.evaluated_depsgraph_get()
+    bm = bmesh.new()
+    for o in _body_meshes():
+        me = o.evaluated_get(dg).to_mesh(); tmp = bmesh.new(); tmp.from_mesh(me); tmp.transform(o.matrix_world)
+        mm = bpy.data.meshes.new("SBTorsoTmp"); tmp.to_mesh(mm); tmp.free(); bm.from_mesh(mm); bpy.data.meshes.remove(mm)
+        o.evaluated_get(dg).to_mesh_clear()
+    nz = _rest(arm, "neck_01")[0].z
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if abs(v.co.x - cx) > ux - 0.015 or v.co.z > nz + 0.06], context="VERTS")  # no arms, no head
+    me = bpy.data.meshes.new("SBTorso"); bm.to_mesh(me); bm.free()
+    t = bpy.data.objects.new("SBTorso", me); bpy.context.scene.collection.objects.link(t)
+    return t, cx, ux
+
+
+def make_bodice(c, arm, mats, topz):
+    """A fitted bodice over the torso (owner polish pass): a cylinder projected onto the dressed torso (so it
+    sits over the fallback top, 9 mm out), cut to the design's neckline and armholes, with the cut edges in
+    the trim colour. Top and skirt then read as one garment. Returns the mesh (not skinned)."""
+    neck = neckline_of(c)
+    tgt, cx, ux = _torso_target(arm)
+    cy = _rest(arm, "spine_03")[0].y
+    nz = _rest(arm, "neck_01")[0].z; chest = (_rest(arm, "spine_03")[0].z + 2 * nz) / 3        # upper chest
+    uz = (_rest(arm, "upperarm_l")[0].z + _rest(arm, "upperarm_r")[0].z) / 2
+    z0, z1 = topz - 0.035, nz + (0.07 if neck == "high" else 0.0)
+    cols, rows = 56, 26
+    verts, faces = [], []
+    for r in range(rows + 1):
+        z = z0 + (z1 - z0) * r / rows
+        for i in range(cols):
+            a = i / cols * 2 * math.pi
+            verts.append(Vector((cx + math.cos(a) * 0.34, cy + math.sin(a) * 0.3, z)))
+    for r in range(rows):
+        for i in range(cols):
+            a_, b_ = r * cols + i, r * cols + (i + 1) % cols
+            faces.append((a_, a_ + cols, b_ + cols, b_))
+    me = bpy.data.meshes.new("Kit_Bodice"); me.from_pydata(verts, [], faces); me.update()
+    o = bpy.data.objects.new("Kit_Bodice", me); bpy.context.scene.collection.objects.link(o)
+    o.data.materials.append(mats["main"]); o.data.materials.append(mats["acc"])
+    sw = o.modifiers.new("SW", "SHRINKWRAP"); sw.target = tgt; sw.wrap_method = "NEAREST_SURFACEPOINT"; sw.offset = 0.009
+    _select(o); bpy.ops.object.modifier_apply(modifier="SW")
+    bpy.data.objects.remove(tgt, do_unlink=True)
+    bm = bmesh.new(); bm.from_mesh(o.data)
+    dead = set()
+    for f in bm.faces:
+        cc = f.calc_center_median(); x = abs(cc.x - cx); front = cc.y < cy
+        if x > ux - 0.004 and cc.z > uz - 0.075: dead.add(f)                     # armholes (above the armpit; the shoulders stay covered)
+        if neck == "high":
+            if cc.z > nz + 0.055: dead.add(f)
+            continue
+        cyn = _rest(arm, "neck_01")[0].y
+        if cc.z > nz + 0.035 or (cc.z > nz - 0.03 and math.hypot(cc.x - cx, cc.y - cyn) < 0.078): dead.add(f)   # the neck stays bare (shoulders kept)
+        if neck == "off" and cc.z > uz - 0.055: dead.add(f)
+        if neck == "square" and front and cc.z > chest and x < 0.058: dead.add(f)
+        if neck == "scoop" and front and cc.z > chest and x < 0.062 * math.sqrt(max(0.0, min(1.0, (cc.z - chest) / max(1e-6, nz - chest)))) + 0.015: dead.add(f)
+        if neck == "v" and front and cc.z > chest - 0.06 + 1.4 * x: dead.add(f)
+    bmesh.ops.delete(bm, geom=list(dead), context="FACES")
+    # drop small islands left by the cuts
+    bm.faces.ensure_lookup_table()
+    seen, islands = set(), []
+    for f in bm.faces:
+        if f in seen: continue
+        stack, isl = [f], []
+        seen.add(f)
+        while stack:
+            g = stack.pop(); isl.append(g)
+            for e in g.edges:
+                for h in e.link_faces:
+                    if h not in seen: seen.add(h); stack.append(h)
+        islands.append(isl)
+    if islands:
+        keep = max(islands, key=len)
+        bmesh.ops.delete(bm, geom=[f for isl in islands if isl is not keep for f in isl], context="FACES")
+    for _ in range(3): bmesh.ops.smooth_vert(bm, verts=bm.verts[:], factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    for f in bm.faces:                                                            # trim: faces on a cut edge (not the waist)
+        if any(e.is_boundary for e in f.edges) and f.calc_center_median().z > topz + 0.02: f.material_index = 1
+    bm.to_mesh(o.data); bm.free()
+    _thicken(o, 0.004)
+    o["neckline"] = neck
+    return o
+
+
+def _cloth_sleeves(arm, mat, trim_mat, bw):
+    """Flowing sleeves (owner polish pass): a flared tube from above the elbow to past the wrist, pinned at
+    the top and draped by the cloth simulation in the rest pose so it hangs below the arm, then skinned
+    from the nearest arm surface (upper arm / forearm / hand) so it bends at the elbow."""
+    out = []
+    colliders = _body_meshes()
+    for b in colliders:
+        if not any(m.type == "COLLISION" for m in b.modifiers): b.modifiers.new("SBCollisionS", "COLLISION")
+        b.collision.thickness_outer = 0.006; b.collision.cloth_friction = 6
+    for side in ("l", "r"):
+        e, _ = _rest(arm, "lowerarm_" + side); hnd, _ = _rest(arm, "hand_" + side)
+        axis = (hnd - e).normalized(); L = (hnd - e).length
+        q = Vector((0, 0, -1)).rotation_difference(axis)
+        cols, rows = 22, 12
+        verts, faces = [], []
+        for r in range(rows + 1):
+            t = r / rows; d = -0.05 + (L + 0.13) * t; rad = 0.05 + 0.075 * t ** 1.3
+            for i in range(cols):
+                a = i / cols * 2 * math.pi
+                verts.append(e + q @ Vector((math.cos(a) * rad, math.sin(a) * rad, -d)))
+        for r in range(rows):
+            for i in range(cols):
+                a_, b_ = r * cols + i, r * cols + (i + 1) % cols
+                faces.append((a_, b_, b_ + cols, a_ + cols))
+        me = bpy.data.meshes.new("Kit_Sleeve"); me.from_pydata(verts, [], faces); me.update()
+        o = bpy.data.objects.new("Kit_Sleeve", me); bpy.context.scene.collection.objects.link(o)
+        o.data.materials.append(mat); o.data.materials.append(trim_mat)
+        for p_ in o.data.polygons:
+            if p_.index // cols >= rows - 1: p_.material_index = 1               # trim band at the cuff
+        pin = o.vertex_groups.new(name="pin"); pin.add(list(range(cols * 2)), 1.0, "REPLACE")
+        cl = o.modifiers.new("Cloth", "CLOTH"); st = cl.settings
+        st.quality = 5; st.mass = 0.12; st.air_damping = 2.0; st.tension_stiffness = st.compression_stiffness = 12
+        st.shear_stiffness = 5; st.bending_stiffness = 0.25; st.vertex_group_mass = "pin"; st.pin_stiffness = 1.0
+        cl.collision_settings.distance_min = 0.005; cl.collision_settings.collision_quality = 3
+        sc = bpy.context.scene; frames = 30
+        cl.point_cache.frame_start = 1; cl.point_cache.frame_end = frames
+        for f in range(1, frames + 1): sc.frame_set(f)
+        _select(o); bpy.ops.object.modifier_apply(modifier="Cloth"); sc.frame_set(1)
+        o.vertex_groups.remove(o.vertex_groups["pin"])
+        _thicken(o, 0.003); o.name = "Kit_Sleeve"
+        def w(p, side=side):
+            near = {k: v for k, v in bw.near(p).items() if k.startswith(("upperarm_" + side, "lowerarm_" + side, "hand_" + side)) or k.endswith("_" + side) and ("arm" in k or "hand" in k)}
+            if not near: return {"lowerarm_" + side: 1.0}
+            tot = sum(near.values()); return {k: v / tot for k, v in near.items()}
+        out.append((o, w))
+    for b in colliders:
+        for m in [m for m in b.modifiers if m.name == "SBCollisionS"]: b.modifiers.remove(m)
+    return out
+
+
 def trim_fallback_skirt(topz):
     """The Female_Peasant top is a dress with a knee skirt; under a gown that skirt poked out through
     the cloth. Cut it off below the waist (the sash covers the seam). Knight cloth tabards likewise."""
@@ -437,8 +583,12 @@ def make_gown(c, arm, mats, bind):
     belt_mat = mats.get("sash", mats["acc"]) if spec["belt"] != "leather" else mats.get("leather", mats["acc"])
     for b in _belt(arm, gown_info, belt_mat, spec["belt"], spec["tails"], mats.get("metal")):
         b.name = "Kit_Belt"; out.append(bind(b, arm, skirt_weights(bw, topz, kl.z, 0.3, arm=arm)))
+    o_ = c.get("outfit", {}) or {}
+    if spec["open"] is None and (str(o_.get("body", "")).startswith("custom") or not o_.get("body")):
+        bod = make_bodice(c, arm, mats, topz)
+        out.append(bind(bod, arm, lambda p: bw.near(p)))
     if spec["sleeves"]:
-        for s_, w in _sleeves(arm, mats["main"], mats["acc"]): out.append(bind(s_, arm, w))
+        for s_, w in _cloth_sleeves(arm, mats["main"], mats["acc"], bw): out.append(bind(s_, arm, w))
     return out
 
 

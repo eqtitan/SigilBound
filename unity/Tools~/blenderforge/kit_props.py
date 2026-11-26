@@ -1414,7 +1414,14 @@ def build_weapon(c, mats, typ=None, opts=None):
     m = mats_for(mats)
     if typ is None: typ, opts = classify(c)
     objs = BUILDERS[typ](m, _resolve(m, opts or {}))
-    return join(objs, "Kit_Weapon") if objs else None
+    if not objs: return None
+    o = join(objs, "Kit_Weapon")
+    # Polish pass: small props read thin at battle size; enlarge them about the grip.
+    k = {"cards": 1.7, "shuttle": 1.6, "fist": 1.3}.get(typ, 1.0)
+    if typ == "focus" and (opts or {}).get("kind") == "conch": k = 1.5
+    if k != 1.0:
+        for v in o.data.vertices: v.co *= k
+    return o
 
 def offhand(c):
     """(type, opts) for a mirrored off-hand weapon, or None: twin/dual/pair weapons and 'X and Y' pairs."""
