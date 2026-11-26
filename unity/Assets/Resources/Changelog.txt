@@ -6,6 +6,9 @@
 new: Heroes with Counter now turn and strike back at their attacker.
 new: Heroes stand taller when buffed, sag their shoulders when weakened, and tremble while poisoned or burning.
 
+## 2026-11-26 | A much smaller download
+change: The game download is a lot smaller: hero models are now packed tighter, with no change in how they look.
+
 ## 2026-11-26 | Heroes move again
 fix: High-detail heroes no longer stand frozen with their arms out; they breathe, run, strike and react again (the Titan too).
 fix: The Titan's name tag no longer covers the skill name at the top of the screen.

@@ -231,7 +231,33 @@ namespace Sigilbound.Client
         // of the load says what it got.
         static void Trace(string msg) => Debug.Log("SBMODEL " + msg);
 
+        // GLBs ship gzipped (prepare-models.mjs writes NAME.glb.gz): Unity stores every StreamingAssets
+        // file uncompressed in the APK, so this halves the models' share of the download, losslessly.
+        // A .glb read tries the .gz first and unzips it, then falls back to a plain .glb.
         static IEnumerator ReadBytes(string file, Action<byte[]> done)
+        {
+            if (file.EndsWith(".glb", StringComparison.OrdinalIgnoreCase))
+            {
+                byte[] gz = null;
+                yield return ReadRaw(file + ".gz", b => gz = b, false);
+                if (gz != null)
+                {
+                    byte[] plain = null;
+                    try
+                    {
+                        using (var src = new MemoryStream(gz))
+                        using (var unzip = new System.IO.Compression.GZipStream(src, System.IO.Compression.CompressionMode.Decompress))
+                        using (var dst = new MemoryStream(gz.Length * 3))
+                        { unzip.CopyTo(dst); plain = dst.ToArray(); }
+                    }
+                    catch (Exception e) { Debug.LogWarning($"Sigilbound: couldn't unzip {file}.gz: {e.Message}"); }
+                    if (plain != null) { Trace($"read {file}.gz: {gz.Length} -> {plain.Length} bytes"); done(plain); yield break; }
+                }
+            }
+            yield return ReadRaw(file, done, true);
+        }
+
+        static IEnumerator ReadRaw(string file, Action<byte[]> done, bool trace)
         {
             var path = Path.Combine(Application.streamingAssetsPath, "Models", file);
             byte[] data = null;
@@ -244,7 +270,7 @@ namespace Sigilbound.Client
                 }
             }
             else if (File.Exists(path)) data = File.ReadAllBytes(path);
-            Trace($"read {file}: {(data == null ? "MISSING at " + path : data.Length + " bytes")}");
+            if (trace) Trace($"read {file}: {(data == null ? "MISSING at " + path : data.Length + " bytes")}");
             done(data);
         }
 
