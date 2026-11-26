@@ -618,7 +618,11 @@ namespace Sigilbound.Client
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
                 if (r is SkinnedMeshRenderer smr) smr.updateWhenOffscreen = true;
             }
-            var root = holder.GetChild(0).gameObject;
+            // The clips' curve paths start at the glTF root node ("Armature/pelvis/..."), so the Animation must
+            // sit on the object ABOVE that node. glTFast only makes a "Scene" object for files with several
+            // root nodes; the high-detail files have one (Armature), which lands straight under the holder.
+            // With the Animation on Armature itself no path matched and every hero stood in its bind pose.
+            var root = holder.Find("Armature") != null ? holder.gameObject : holder.GetChild(0).gameObject;
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
             foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose")) anim.AddClip(c, c.name);
             anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
