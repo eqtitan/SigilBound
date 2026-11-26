@@ -148,7 +148,21 @@ namespace Sigilbound.Client
 
         // ---------- team prep ----------
         public void EditTeam(int stage, bool hard = false) => OpenPrep(stage, false, ScreenId.Campaign, hard); // from the results screen
-        void OpenPrep(int stage, bool titan, ScreenId back, bool hard = false, bool practice = false) { _prepStage = stage; _prepTitan = titan; _prepPractice = titan && practice; _prepHard = hard && !titan; _prepBack = back; Go(ScreenId.Prep); }
+        // While the player picks a team, start loading this fight's enemy models (their Hollow copies, the
+        // same for Hard) and the Titan, so they arrive as themselves when the battle starts.
+        void PreloadStage(int stage, bool titan)
+        {
+            try
+            {
+                var want = new System.Collections.Generic.List<(string, Element, bool, bool)>();
+                if (titan) want.Add(("titan", GameData.TitanElement(G.Now()), true, false));
+                else if (stage >= 0)
+                    foreach (var w in Game.StageWaves(stage)) foreach (var e in w) want.Add((e.Template.Id, e.El, false, true));
+                HeroModels.Preload(want);
+            }
+            catch (System.Exception e) { Debug.LogWarning("Sigilbound: preload failed: " + e.Message); }
+        }
+        void OpenPrep(int stage, bool titan, ScreenId back, bool hard = false, bool practice = false) { PreloadStage(stage, titan); _prepStage = stage; _prepTitan = titan; _prepPractice = titan && practice; _prepHard = hard && !titan; _prepBack = back; Go(ScreenId.Prep); }
 
         void DrawPrep(Rect area)
         {
