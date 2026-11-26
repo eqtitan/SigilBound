@@ -2,6 +2,13 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | New sounds and music
+new: Every weapon now sounds like itself: blades ring, hammers thud, spears stab, daggers flick, bows twang, shields clang.
+new: Spells sound like their element, and buffs, debuffs, stuns and poison have their own sounds.
+new: The Titan roars, slams and cracks the ground; the Meteor Leap whooshes.
+new: A menu theme, a Titan battle theme and a victory fanfare; music now crossfades between screens.
+new: Summon reveals have their own sting for Rare, Epic and Legendary.
+
 ## 2026-11-26 | Titan framing
 change: Worm's-eye now frames the Titan with its name and health bars above it.
 change: Meteor Leap: slow motion as the Titan leaps while the view widens to follow it to the top; then full speed and a tight view as it crashes down.

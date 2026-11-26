@@ -388,7 +388,7 @@ namespace Sigilbound.Client
         {
             if (_dead || _busy) return;
             bool caster = Looks.IsCaster(Unit.Template.Id);
-            Sound.I?.Play(caster ? "cast" : "swing", 0.5f);
+            if (caster) Sound.I?.Cast(Unit.El, 0.5f); else Sound.I?.Swing(Impact.FamilyOf(Unit.Template.Id), 0.5f);
             if (_model != null) { if (caster) _model.Cast(false); else _model.Strike(); return; }
             StartCoroutine(PlaceholderShowcase(!caster));
         }

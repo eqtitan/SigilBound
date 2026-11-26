@@ -403,7 +403,7 @@ namespace Sigilbound.Client
             var best = res.Max(h => Hero(h.id).Rarity);
             // audio.js / ui.js: a low cast, then a fanfare by the best rarity.
             Sound.I?.Play("cast", 0.5f, 0.6f, 0);
-            Sound.I?.Play(best >= Rarity.Legendary ? "legendary" : best >= Rarity.Epic ? "victory" : "confirm", 1, 1, 0);
+            Sound.I?.Play(best >= Rarity.Legendary ? "legendary" : best >= Rarity.Epic ? "epic" : best >= Rarity.Rare ? "rare" : "confirm", 1, 1, 0);
             Vfx.I.Burst(new Vector3(0, 1.2f, 0.6f), Palette.Rarity(best), true);
             if (best >= Rarity.Epic) Vfx.I.Shake(0.15f);
             // A single pull with a painted portrait gets the card reveal above its line.

@@ -15,3 +15,11 @@ All audio here is **CC0 1.0** (public domain). Credit isn't required; we give it
 
 Taken from the CC0 npm package `@netforge/asset-library-files` 0.2.0, whose NOTICE lists
 the sources above.
+
+## Procedural sounds and music (made for Sigilbound)
+
+`sfx_*.ogg` and `music_*.ogg` are synthesized from scratch by `unity/Tools~/audio/make_sfx.py` and
+`make_music.py` (numpy, encoded with ffmpeg/libvorbis): weapon swings and hits, element spells,
+statuses, the Titan's roar, slam, ground crack and leap, interface sounds, summon stings, the menu
+theme, the Titan battle loop and the victory sting. No samples, no third-party material; they belong
+to the project. Re-run the scripts to regenerate them.
