@@ -51,9 +51,11 @@ namespace Sigilbound.Client
             Cam.transform.position = pos; Cam.transform.rotation = _poseRot; Cam.fieldOfView = fov;
         }
         // A cinematic camera, blended in with weight w (0 = the battle view).
-        public void Override(Vector3 pos, Vector3 lookAt, float fov, float w)
+        // roll: a tilted (Dutch) angle in degrees, for the Titan's cinematics.
+        public void Override(Vector3 pos, Vector3 lookAt, float fov, float w, float roll = 0f)
         {
-            _ovPos = pos; if ((lookAt - pos).sqrMagnitude > 1e-4f) _ovRot = Quaternion.LookRotation(lookAt - pos); _ovFov = fov; _ovW = Mathf.Clamp01(w);
+            var d = lookAt - pos;
+            _ovPos = pos; if (d.sqrMagnitude > 1e-4f) _ovRot = Quaternion.LookRotation(d, Quaternion.AngleAxis(roll, d.normalized) * Vector3.up); _ovFov = fov; _ovW = Mathf.Clamp01(w);
         }
         public void ClearOverride() => _ovW = 0;
         public Vector3 PosePosition => _posePos;

@@ -505,6 +505,26 @@ namespace Sigilbound.Client
             }
         }
 
+        // Cinder Breath: a stream of embers from the Titan's mouth toward a point that sweeps from `a` to
+        // `b` over `dur` seconds, with smoke; each spot it crosses glows on the ground.
+        public IEnumerator Breath(Vector3 mouth, Vector3 a, Vector3 b, Element el, float dur)
+        {
+            var P = Of(el); var F = Of(Element.Flame);
+            for (float t = 0; t < dur; t += Time.deltaTime)
+            {
+                var tgt = Vector3.Lerp(a, b, t / dur);
+                for (int i = 0; i < N(7); i++)
+                {
+                    var to = tgt + Random.insideUnitSphere * 0.9f; to.y = Mathf.Max(0.2f, to.y);
+                    var v = (to - mouth); float spd = Random.Range(11f, 16f);
+                    Spark(_over, mouth + Random.insideUnitSphere * 0.25f, v.normalized * spd + Random.insideUnitSphere * 1.2f, Hdr(i % 3 == 0 ? P.Core : (i % 3 == 1 ? F.Main : F.Core), 1.1f), Random.Range(0.18f, 0.34f), v.magnitude / spd * Random.Range(0.9f, 1.1f));
+                }
+                if (Random.value < 0.35f) Smoke(tgt, N(2), new Color(0.22f, 0.15f, 0.12f), 0.6f, 0.9f, 1.0f, 0.4f);
+                if (Random.value < 0.2f) GroundFx(_dot, new Vector3(tgt.x, 0.04f, tgt.z), 1.2f, 2.2f, F.Main, 0.7f, 0.6f);
+                yield return null;
+            }
+        }
+
         // Burning cracks spreading across the ground from pos (Titan finishers), with a dust ring.
         public void Cracks(Vector3 pos, Element el, float radius = 4)
         {

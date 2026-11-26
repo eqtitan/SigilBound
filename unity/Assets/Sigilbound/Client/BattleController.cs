@@ -244,9 +244,104 @@ namespace Sigilbound.Client
             Vfx.I.ShakeLong(0.6f, 0.8f); Sound.I?.Play("titanSlam", 1f, 1, 0);
             foreach (var kv in _views) if (kv.Key.Ally && kv.Value != null) kv.Value.Shove(team, 1.4f);
             var look = team + Vector3.up * H * 0.45f;
+            // Quake: three aftershock rings roll out while the camera rocks on a tilt.
+            for (int i = 0; i < 3; i++) { int n = i; StartCoroutine(Later(0.25f * (n + 1), () => { SkillFx.I?.Shockwave(team, u.El, 5f + n * 2f); Vfx.I.Shake(0.18f); })); }
+            for (float t = 0; t < 1.0f; t += Time.deltaTime) { arena.Override(eye, look, fov, 1f, 6f * Mathf.Sin(t * 18f) * (1f - t)); yield return null; }
             for (float t = 0; t < 0.5f; t += Time.deltaTime) { arena.Override(eye, look, fov, 1f - Ease(t / 0.5f)); yield return null; }
             arena.ClearOverride(); _cinema = false;
         }
+        // Crushing Palm (owner-approved design, 2026-11-26): the Titan strides up to its target, a side-on
+        // camera tracking it; then a low camera beside the victim looks up as the palm (its weapon) rises in
+        // slow motion, and the slam lands with cracks and a shockwave under the target. It walks home after.
+        IEnumerator CrushingPalm(Unit u, CharacterView v, CharacterView target)
+        {
+            var m = v.Hero; var arena = App.Arena; _cinema = true; float speed = Time.timeScale;
+            var T0 = v.transform.position; var tp = target != null ? target.transform.position : Arena.ToUnity(BattleLayout.TeamCentre);
+            float H = TitanHeight(v); var eye0 = arena.PosePosition; float fov0 = arena.Cam.fieldOfView;
+            var to = T0 - tp; to.y = 0; var dir = to.normalized; var dest = tp + dir * 3.6f;
+            var side = Vector3.Cross(Vector3.up, dir).normalized;
+            arena.BreathTarget = 0;
+            // 1. The stride in, side-on.
+            if (m.Has("Walk_Loop")) m.Play("Walk_Loop", true, 0.15f, 0.8f);
+            for (float t = 0; t < 1.1f; t += Time.deltaTime)
+            {
+                float k = Ease(t / 1.1f); v.transform.position = Vector3.Lerp(T0, dest, k);
+                if (Mathf.Repeat(t, 0.45f) < Time.deltaTime) { Vfx.I.Shake(0.12f); SkillFx.I?.Dust(v.transform.position, 1.6f, u.El); }
+                var mid = Vector3.Lerp(v.transform.position, tp, 0.5f);
+                float e = Ease(t / 0.35f);
+                arena.Override(Vector3.Lerp(eye0, mid + side * 9f - dir * 2f + Vector3.up * 2.4f, e), Vector3.Lerp(eye0 + arena.PoseRotation * Vector3.forward * 10f, mid + Vector3.up * 2.6f, e), Mathf.Lerp(fov0, 46f, e), Ease(t / 0.3f));
+                yield return null;
+            }
+            // 2. The palm rises in slow motion; the camera is low beside the victim, looking up.
+            var eye = tp + side * 1.7f + dir * 0.4f + Vector3.up * 0.3f;
+            var look = Vector3.Lerp(v.transform.position, tp, 0.25f) + Vector3.up * H * 0.72f;
+            string clip = m.Has("Ult_Overhead") ? "Ult_Overhead" : m.Has("Sword_Attack") ? "Sword_Attack" : "Punch_Cross";
+            m.PlayFrom(clip, 0f, 0.9f);
+            for (float t = 0; t < 2.5f && m.CurrentNormalized < 0.55f; t += Time.unscaledDeltaTime)
+            {
+                if (!_paused) Time.timeScale = m.CurrentNormalized > 0.28f ? speed * 0.45f : speed;
+                arena.Override(eye, look, 72f, 1f, 7f); yield return null;
+            }
+            if (!_paused) Time.timeScale = speed;
+            // 3. The slam.
+            var fx = SkillFx.I;
+            if (fx != null) { fx.Cracks(tp, u.El, 2.6f); fx.Shockwave(tp, u.El, 4f); fx.TitanSlam(tp, u.El); }
+            Vfx.I.ShakeLong(0.45f, 0.6f); Sound.I?.Play("titanSlam", 0.9f, 1, 0);
+            if (target != null) target.Shove(tp + dir, 0.8f);
+            for (float t = 0; t < 0.35f; t += Time.deltaTime) { arena.Override(eye, look, 72f, 1f, 7f); yield return null; }
+            for (float t = 0; t < 0.45f; t += Time.deltaTime) { arena.Override(eye, look, 72f, 1f - Ease(t / 0.45f), 7f * (1f - t / 0.45f)); yield return null; }
+            arena.ClearOverride(); _cinema = false;
+        }
+        IEnumerator TitanWalkHome(Unit u, CharacterView v)
+        {
+            var m = v.Hero; var from = v.transform.position; var to = v.Home;
+            if (m.Has("Walk_Loop")) m.Play("Walk_Loop", true, 0.15f, 0.9f);
+            for (float t = 0; t < 0.9f; t += Time.deltaTime) { v.transform.position = Vector3.Lerp(from, to, Ease(t / 0.9f)); yield return null; }
+            v.transform.position = to; m.Idle(0.25f);
+        }
+
+        // Cinder Breath (owner-approved design): the Titan rears and gathers fire at its chest, seen over its
+        // shoulder looking down at the team; it sweeps a cone of embers across them; then the camera cuts low
+        // behind the heroes and pushes in as the fire pours down.
+        IEnumerator CinderBreath(Unit u, CharacterView v)
+        {
+            var m = v.Hero; var arena = App.Arena; _cinema = true;
+            var T = v.transform.position; var team = Arena.ToUnity(BattleLayout.TeamCentre); team.y = T.y;
+            float H = TitanHeight(v); var fx = SkillFx.I;
+            var back = T - team; back.y = 0; back.Normalize(); var right = Vector3.Cross(Vector3.up, -back).normalized;
+            var ots = T + right * 1.9f + back * 2.6f + Vector3.up * H * 1.12f;
+            arena.BreathTarget = 0;
+            string clip = m.Has("Ult_Channel") ? "Ult_Channel" : "Interact";
+            m.PlayFrom(clip, 0f, 0.8f);
+            Sound.I?.Play("titanRoar", 0.8f, 1, 0);
+            // 1. Gather.
+            for (float t = 0; t < 1.0f; t += Time.deltaTime)
+            {
+                arena.Override(ots, team + Vector3.up * 0.8f, 50f, Ease(t / 0.3f));
+                if (fx != null && Mathf.Repeat(t, 0.2f) < Time.deltaTime) fx.Charge(v.transform, u.El, 0.2f);
+                yield return null;
+            }
+            // 2. The breath sweeps across the team (left to right as the camera sees it).
+            var allies = _views.Where(kv => kv.Key.Ally && kv.Key.Alive && kv.Value != null).Select(kv => kv.Value.transform.position).ToList();
+            if (allies.Count == 0) allies.Add(team);
+            float camSide(Vector3 p) => Vector3.Dot(p - team, right);
+            var a = allies.OrderBy(camSide).First() - right * 0.6f; var b = allies.OrderBy(camSide).Last() + right * 0.6f;
+            var mouth = T - back * 0.6f + Vector3.up * H * 1.02f;
+            if (fx != null) StartCoroutine(fx.Breath(mouth, a + Vector3.up * 0.6f, b + Vector3.up * 0.6f, u.El, 1.2f));
+            Sound.I?.Cast(Element.Flame);
+            for (float t = 0; t < 0.7f; t += Time.deltaTime) { arena.Override(ots, Vector3.Lerp(a, b, t / 1.2f) * 0.5f + team * 0.5f + Vector3.up * 0.8f, 50f, 1f); yield return null; }
+            // 3. Cut low behind the team, pushing in as the fire pours down at them.
+            for (float t = 0; t < 1.1f; t += Time.deltaTime)
+            {
+                var eye = team - back * Mathf.Lerp(3.2f, 1.9f, Ease(t / 1.1f)) + Vector3.up * 0.6f;
+                arena.Override(eye, T + Vector3.up * H * 0.8f, 58f, 1f, -6f);
+                if (fx != null && Mathf.Repeat(t, 0.25f) < Time.deltaTime) foreach (var p in allies) fx.Signature(p + Vector3.up * 1.2f, Element.Flame, Motif.Embers, 0.7f);
+                yield return null;
+            }
+            for (float t = 0; t < 0.5f; t += Time.deltaTime) { arena.Override(team - back * 1.9f + Vector3.up * 0.6f, T + Vector3.up * H * 0.8f, 58f, 1f - Ease(t / 0.5f), -6f * (1f - t / 0.5f)); yield return null; }
+            arena.ClearOverride(); _cinema = false;
+        }
+
         // After the Meteor leap: a heavy hop back to its place.
         IEnumerator TitanHopHome(Unit u, CharacterView v)
         {
@@ -307,7 +402,7 @@ namespace Sigilbound.Client
         IEnumerator DoAct(Unit u, int skillIdx, Unit target)
         {
             var sk = u.Template.Skills[skillIdx];
-            _banner = sk.Name; bool meteor = false;
+            _banner = sk.Name; bool meteor = false, palm = false, breath = false;
             yield return new WaitForSeconds(0.2f);
             var events = _b.Act(u, skillIdx, target);
             var color = Palette.Element(u.El);
@@ -343,10 +438,16 @@ namespace Sigilbound.Client
                 // fight-ending blow is the Earthsplitter and its ultimate the Meteor leap.
                 bool hdTitan = u.Titan && IsHdTitan(view);
                 bool finale = hdTitan && (_b.Allies.All(a => !a.Alive) || _b.BossTurns + 1 >= _b.TurnLimit);
-                meteor = hdTitan && !finale && ult;
+                // The Titan's three moves (owner-approved designs): Crushing Palm (skill 1), Quake = the Meteor
+                // leap with aftershocks (skill 2), Cinder Breath (skill 3); any fight-ending blow is the Earthsplitter.
+                meteor = hdTitan && !finale && skillIdx == 1;
+                palm = hdTitan && !finale && skillIdx == 0;
+                breath = hdTitan && !finale && skillIdx == 2;
                 if (u.Titan) { App.Arena.BreathFocus = view.HeadTop ? view.HeadTop.position : view.transform.position + Vector3.up * 5f; App.Arena.BreathTarget = 1; }
                 if (finale) yield return Earthsplitter(u, view);
                 else if (meteor) yield return MeteorLeap(u, view);
+                else if (palm) yield return CrushingPalm(u, view, tgtView);
+                else if (breath) yield return CinderBreath(u, view);
                 else yield return view.Attack(aim, melee, support, ult, () => { Vfx.I.Shake(0.35f); fx?.TitanSlam(view.transform.position, u.El); }, skillIdx);
                 if (support && fx == null) Vfx.I.Cast(view.transform.position + Vector3.up * 0.1f, color);
                 // Ultimates show the hero's signature big, on the caster and on every target or ally reached.
@@ -357,7 +458,7 @@ namespace Sigilbound.Client
                     foreach (var t in events.Where(e => e.Unit != null && e.Unit != u && (e.Type == EvType.Damage || e.Type == EvType.Heal || e.Type == EvType.Status)).Select(e => e.Unit).Distinct())
                         if (_views.TryGetValue(t, out var tv) && tv != null) fx.Signature(tv.Center, u.El, motif, 1.0f);
                 }
-                if (!melee && hit.Count > 0 && !finale && !meteor)
+                if (!melee && hit.Count > 0 && !finale && !meteor && !palm && !breath)
                 {
                     var from = view.Center + view.transform.forward * 0.4f;
                     string prop = u.Titan ? "" : Looks.Of(u.Template.Id).Prop;
@@ -384,6 +485,7 @@ namespace Sigilbound.Client
             yield return ShowEvents(events, color, sk.Hits > 1);
             _ultBy = null;
             if (meteor && view != null) yield return TitanHopHome(u, view);
+            if (palm && view != null) yield return TitanWalkHome(u, view);
             if (u.Titan) App.Arena.BreathTarget = 0;
             if (view != null) { yield return view.Recover(); view.FaceHome(); }
             yield return new WaitForSeconds(0.25f);
