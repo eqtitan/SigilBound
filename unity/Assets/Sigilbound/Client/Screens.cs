@@ -224,8 +224,9 @@ namespace Sigilbound.Client
                 var r = Row(ref y, 54, 8);
                 Ui.Panel(r, Palette.Panel, Palette.Rarity(t.Rarity), 12);
                 GUI.DrawTexture(new Rect(r.x + 8, r.y + 10, 6, 34), Ui.RoundTex(Palette.Element(t.Element), null, 3));
-                Ui.Text(new Rect(r.x + 22, r.y + 4, r.width - 120, 24), HeroLine(h), 14, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + 22, r.y + 28, r.width - 120, 20), Tag(t), 12, Palette.Dim);
+                float tx = Portraits.Thumb(new Rect(r.x + 20, r.y + 6, 42, 42), t.Id, Palette.Rarity(t.Rarity)) ? 70 : 22; // painted portrait, when there is one
+                Ui.Text(new Rect(r.x + tx, r.y + 4, r.width - 98 - tx, 24), HeroLine(h), 14, Palette.Text, FontStyle.Bold);
+                Ui.Text(new Rect(r.x + tx, r.y + 28, r.width - 98 - tx, 20), Tag(t), 12, Palette.Dim);
                 int ti = G.S.team.IndexOf(h.uid);
                 Ui.Text(new Rect(r.xMax - 100, r.y, 90, 54), $"{(ti >= 0 ? Ui.ColorTag($"Team {ti + 1}  ", Palette.Gold) : "")}{Ui.Fmt(G.Power(h))}", 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
                 if (Ui.Button(r, "", Ui.Kind.Ghost)) { _heroUid = h.uid; Go(ScreenId.Hero); }
@@ -405,12 +406,16 @@ namespace Sigilbound.Client
             Sound.I?.Play(best >= Rarity.Legendary ? "legendary" : best >= Rarity.Epic ? "victory" : "confirm", 1, 1, 0);
             Vfx.I.Burst(new Vector3(0, 1.2f, 0.6f), Palette.Rarity(best), true);
             if (best >= Rarity.Epic) Vfx.I.Shake(0.15f);
-            Modal(best == Rarity.Legendary ? "LEGENDARY!" : "Summoned!", 120 + res.Count * 26 + 60, b =>
+            // A single pull with a painted portrait gets the card reveal above its line.
+            bool card = res.Count == 1 && Portraits.Get(res[0].id) != null;
+            Modal(best == Rarity.Legendary ? "LEGENDARY!" : "Summoned!", 120 + res.Count * 26 + 60 + (card ? 250 : 0), b =>
             {
+                float top = 0;
+                if (card) { float cw = 180, ch = 240; Portraits.Card(new Rect(b.center.x - cw / 2, b.y, cw, ch), res[0].id, Palette.Rarity(Hero(res[0].id).Rarity)); top = ch + 10; }
                 for (int i = 0; i < res.Count; i++)
                 {
                     var t = Hero(res[i].id);
-                    Ui.Text(new Rect(b.x, b.y + i * 26, b.width, 24), $"{Ui.ColorTag(Ui.Stars(res[i].stars), Palette.Gold)}  {Ui.ColorTag(t.Name, Palette.Rarity(t.Rarity))}  {Ui.ColorTag(t.Element.ToString(), Palette.Element(t.Element))}", 14, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
+                    Ui.Text(new Rect(b.x, b.y + top + i * 26, b.width, 24), $"{Ui.ColorTag(Ui.Stars(res[i].stars), Palette.Gold)}  {Ui.ColorTag(t.Name, Palette.Rarity(t.Rarity))}  {Ui.ColorTag(t.Element.ToString(), Palette.Element(t.Element))}", 14, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
                 bool again = G.ShardCount(s) >= n;
                 if (Ui.Button(new Rect(b.x, b.yMax - 46, again ? b.width / 2 - 5 : b.width, 44), "OK", Ui.Kind.Secondary)) CloseModal();

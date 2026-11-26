@@ -2,6 +2,9 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Ready for hero portraits
+new: Heroes can now show painted portraits on the hero list and in the summon reveal (they arrive as the art is made).
+
 ## 2026-11-26 | Titan practice
 new: Practice against the Titan as often as you like from the Titan screen: no rewards and no daily try used.
 
