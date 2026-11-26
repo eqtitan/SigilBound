@@ -200,32 +200,42 @@ namespace Sigilbound.Client
             arena.ClearOverride(); _cinema = false; Time.timeScale = _paused ? 0 : speed;
         }
 
-        // The Titan's ultimate (owner direction 2026-11-26): it crouches and leaps. The camera stays put and
-        // zooms out (a wider lens, no camera move) to take in the jump, the fall and the slam with its effects,
-        // tilting a little to follow, then zooms back in to the battle view.
+        // The Titan's ultimate (owner direction 2026-11-26). The camera never moves; only the lens and the aim:
+        // it crouches; the leap goes into slow motion while the lens zooms out and follows it up to the peak;
+        // at the peak the battle's normal speed returns and the lens zooms back in as it falls and slams down
+        // in front of the team with its effects.
         IEnumerator MeteorLeap(Unit u, CharacterView v)
         {
             var m = v.Hero; var arena = App.Arena; _cinema = true;
             var T0 = v.transform.position; var team = Arena.ToUnity(BattleLayout.TeamCentre); team.y = T0.y;
             float H = TitanHeight(v); var eye = arena.PosePosition; float fov = arena.Cam.fieldOfView;
-            var far = eye; float wide = Mathf.Min(fov + 34f, 78f); // lens only: the camera position never changes
+            float wide = Mathf.Min(fov + 34f, 78f), speed = Time.timeScale;
+            const float apex = 12f;
+            Vector3 Arc(float k) => Vector3.Lerp(T0, team, k) + Vector3.up * (4f * apex * k * (1f - k));
             arena.BreathTarget = 0;
             if (m.Has("Crouch_Idle_Loop")) m.Play("Crouch_Idle_Loop", true, 0.15f, 1f);
-            for (float t = 0; t < 0.35f; t += Time.deltaTime)
-            {   // the pull-back starts with the crouch
-                float e = Ease(t / 0.35f) * 0.4f;
-                arena.Override(Vector3.Lerp(eye, far, e), T0 + Vector3.up * H * 0.5f, Mathf.Lerp(fov, wide, e), Ease(t / 0.2f)); yield return null;
-            }
+            for (float t = 0; t < 0.35f; t += Time.deltaTime) { arena.Override(eye, T0 + Vector3.up * H * 0.55f, fov, Ease(t / 0.2f)); yield return null; }
+            // Rise, in slow motion: the lens zooms out and the aim follows the Titan up to the top of its leap.
+            if (!_paused) Time.timeScale = speed * 0.4f;
             m.Play("Jump", false, 0.08f, 1.4f, true);
             SkillFx.I?.Dust(T0, H * 0.5f, u.El); Vfx.I.Shake(0.2f);
-            const float dur = 1.15f, apex = 12f; bool landing = false;
-            for (float t = 0; t < dur; t += Time.deltaTime)
+            const float rise = 0.6f;
+            for (float t = 0; t < rise; t += Time.deltaTime)
             {
-                float k = t / dur, e = 0.4f + 0.6f * Ease(Mathf.Clamp01(t / 0.4f));
-                var p = Vector3.Lerp(T0, team, k) + Vector3.up * (4f * apex * k * (1f - k));
-                v.transform.position = p;
-                if (!landing && k > 0.8f && m.Has("Jump_Land")) { landing = true; m.Play("Jump_Land", false, 0.05f, 1.2f, true); }
-                arena.Override(eye, Vector3.Lerp(team + Vector3.up * H * 0.6f, p + Vector3.up * H * 0.45f, 0.6f), Mathf.Lerp(fov, wide, e), 1f);
+                float k = 0.5f * (1f - (1f - t / rise) * (1f - t / rise));   // eases into the peak
+                var p = Arc(k); v.transform.position = p;
+                arena.Override(eye, p + Vector3.up * H * 0.5f, Mathf.Lerp(fov, wide, Ease(t / rise)), 1f);
+                yield return null;
+            }
+            // Peak: normal speed again; the lens zooms back in as it falls onto the team.
+            if (!_paused) Time.timeScale = speed;
+            const float fall = 0.5f; bool landing = false;
+            for (float t = 0; t < fall; t += Time.deltaTime)
+            {
+                float f = t / fall, k = 0.5f + 0.5f * f * f;                  // gravity: faster and faster
+                var p = Arc(k); v.transform.position = p;
+                if (!landing && f > 0.6f && m.Has("Jump_Land")) { landing = true; m.Play("Jump_Land", false, 0.05f, 1.2f, true); }
+                arena.Override(eye, Vector3.Lerp(p + Vector3.up * H * 0.5f, team + Vector3.up * H * 0.45f, Ease(f)), Mathf.Lerp(wide, fov, Ease(f)), 1f);
                 yield return null;
             }
             v.transform.position = team;
@@ -234,12 +244,7 @@ namespace Sigilbound.Client
             Vfx.I.ShakeLong(0.6f, 0.8f); Sound.I?.Play("bigKill", 0.9f);
             foreach (var kv in _views) if (kv.Key.Ally && kv.Value != null) kv.Value.Shove(team, 1.4f);
             var look = team + Vector3.up * H * 0.45f;
-            for (float t = 0; t < 0.3f; t += Time.deltaTime) { arena.Override(far, look, wide, 1f); yield return null; } // hold on the impact
-            for (float t = 0; t < 0.6f; t += Time.deltaTime)
-            {   // ease back to the battle view
-                float e = 1f - Ease(t / 0.6f);
-                arena.Override(Vector3.Lerp(eye, far, e), look, Mathf.Lerp(fov, wide, e), e); yield return null;
-            }
+            for (float t = 0; t < 0.5f; t += Time.deltaTime) { arena.Override(eye, look, fov, 1f - Ease(t / 0.5f)); yield return null; }
             arena.ClearOverride(); _cinema = false;
         }
         // After the Meteor leap: a heavy hop back to its place.
@@ -735,7 +740,8 @@ namespace Sigilbound.Client
                 if (v == null) continue;
                 v.SetHighlight(manual && targets.Contains(u) ? (u.Ally ? new Color(0.36f, 0.82f, 0.48f, 0.8f) : new Color(1f, 0.35f, 0.35f, 0.85f)) : (u == _actor ? new Color(1f, 0.81f, 0.35f, 0.7f) : (Color?)null));
                 if (!u.Alive) continue;
-                Vector3 sp = cam.WorldToScreenPoint(v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
+                Vector3 sp = cam.WorldToScreenPoint(u.Titan ? v.transform.position + Vector3.up * (float)BattleLayout.WormHornTop // the Titan's tag sits above its horns
+                    : v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
                 if (sp.z < 0) continue;
                 float x = Mathf.Clamp(sp.x / Ui.Scale, 46, Ui.W - 46), y = Mathf.Max(safe.y + 114, (Screen.height - sp.y) / Ui.Scale); // tags stay on screen, below the turn bar
                 float w = u.Titan ? 140 : 76;
@@ -863,7 +869,8 @@ namespace Sigilbound.Client
                 if (v == null) continue;
                 v.SetHighlight(manual && targets.Contains(u) ? (u.Ally ? new Color(0.36f, 0.82f, 0.48f, 0.8f) : new Color(1f, 0.35f, 0.35f, 0.85f)) : (u == _actor ? new Color(1f, 0.81f, 0.35f, 0.7f) : (Color?)null));
                 if (!u.Alive) continue;
-                Vector3 sp = cam.WorldToScreenPoint(v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
+                Vector3 sp = cam.WorldToScreenPoint(u.Titan ? v.transform.position + Vector3.up * (float)BattleLayout.WormHornTop // the Titan's tag sits above its horns
+                    : v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
                 if (sp.z < 0) continue;
                 float w = u.Titan ? 150 : 86;
                 float x = Mathf.Clamp(sp.x / Ui.Scale - Ui.Offset, w / 2 + 4, Ui.W - w / 2 - 4);

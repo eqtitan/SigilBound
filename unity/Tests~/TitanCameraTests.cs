@@ -42,7 +42,7 @@ static class TitanCameraTests
                 var v = BattleLayout.View(cam.Key, aspect, true);
                 // Worm's-eye (option C): heads and tags of the team in frame (feet may crop), Titan under the HUD.
                 bool fits = cam.Key == "worm"
-                    ? BattleLayout.WormHeadsIn(v, aspect) && BattleLayout.TitanPoints().All(p => { var q = BattleLayout.ProjectTo(v.Eye, v.Target, v.Fov, aspect, p); return q != null && q.Value.y <= BattleLayout.TitanCeiling + 1e-6; })
+                    ? BattleLayout.WormHeadsIn(v, aspect) && BattleLayout.ProjectTo(v.Eye, v.Target, v.Fov, aspect, BattleLayout.TitanSlot() + new V3(0, BattleLayout.WormHornTop, 0)) is var hq && hq != null && hq.Value.y <= BattleLayout.WormTagTop + 1e-6
                     : BattleLayout.TitanViewFits(v, aspect, cam.Key != "shoulder");
                 double r = Ratio(v, aspect);
                 if (!fits || (cam.Key == "side" && r < 2.0)) tbad.Add($"{cam.Key}@{aspect} (fits {fits}, titan/hero {r:0.0}x)");

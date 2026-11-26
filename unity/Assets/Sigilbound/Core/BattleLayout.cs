@@ -161,34 +161,39 @@ namespace Sigilbound.Core
             return rail(hi);
         }
 
-        // Worm's-eye (owner pick, mock-up option C, 2026-11-26): 5 m behind the team at 0.9 m, a normal lens
-        // (62 degrees across on a 2.17 screen, wider only if a narrower screen would cut off the outer heroes),
-        // aimed as LOW as the HUD allows: the Titan's horns and tag sit just under TitanCeiling, and the team
-        // stands in the foreground cut at the shins, backs to the camera.
+        // Worm's-eye (owner pick, mock-up option C, 2026-11-26): 5 m behind the team at 0.9 m. The lens starts
+        // at 62 degrees across (on a 2.17 screen) and widens only as far as needed so that, with the aim as low
+        // as possible, the Titan's horns sit below WormTagTop (its name, HP and turn bars fit ABOVE the Titan,
+        // under the HUD; owner request) while every hero stays on screen from the chest up with its tag.
         public const double WormBack = 5.0, WormHeight = 0.9, WormHfov = 62;
+        public const double WormTagTop = 0.16;                 // NDC the horns may reach (the tag sits above them)
+        public static double WormHornTop => TitanHead * 1.32 + 0.4;
         public static CamView WormView(double aspect)
         {
             var ts = TitanSlot();
             var eye = new V3(0, WormHeight, Slot(true, 1, 4).Z - WormBack);
-            double hfov = WormHfov;
-            for (int k = 0; k < 40; k++)
+            var horns = new V3(ts.X, WormHornTop, ts.Z);
+            CamView best = new CamView { Eye = eye, Target = new V3(0, TitanHead * 0.6, ts.Z), Fov = 40 };
+            for (double hfov = WormHfov; hfov <= 100; hfov += 1)
             {
                 double vfov = 2 * Math.Atan(Math.Tan(hfov * Math.PI / 360) / Math.Max(0.3, aspect)) * 180 / Math.PI;
-                double lo = 0, hi = 14;
                 CamView V(double ty) => new CamView { Eye = eye, Target = new V3(0, ty, ts.Z), Fov = vfov };
-                bool Under(CamView v) => TitanPoints().All(p => { var q = ProjectTo(v.Eye, v.Target, v.Fov, aspect, p); return q != null && q.Value.y <= TitanCeiling; });
-                for (int i = 0; i < 30; i++) { double m = (lo + hi) / 2; if (Under(V(m))) hi = m; else lo = m; }
-                var view = V(hi);
-                if (WormHeadsIn(view, aspect) || hfov >= 100) return view;
-                hfov += 2;
+                double lo = 0, hi = 20;
+                for (int i = 0; i < 30; i++)
+                {
+                    double m = (lo + hi) / 2; var q = ProjectTo(eye, V(m).Target, vfov, aspect, horns);
+                    if (q != null && q.Value.y <= WormTagTop) hi = m; else lo = m;
+                }
+                best = V(hi);
+                if (WormHeadsIn(best, aspect)) return best;
             }
-            return new CamView { Eye = eye, Target = new V3(0, TitanHead * 0.6, ts.Z), Fov = 40 };
+            return best;
         }
         // Every ally's head (and the space for its tag above) is on screen in the worm's-eye view.
         public static bool WormHeadsIn(CamView v, double aspect)
         {
             for (int i = 0; i < 4; i++)
-                foreach (var h in new[] { 1.6, 2.4 })
+                foreach (var h in new[] { 1.1, 1.6, 2.4 })   // chest, head, tag
                 {
                     var q = ProjectTo(v.Eye, v.Target, v.Fov, aspect, Slot(true, i, 4) + new V3(0, h, 0));
                     if (q == null || Math.Abs(q.Value.x) > 0.95 || q.Value.y > 0.84 || q.Value.y < -0.84) return false;
