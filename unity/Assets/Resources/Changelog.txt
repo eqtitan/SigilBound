@@ -2,6 +2,9 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Heroes move again (for real)
+fix: High-detail heroes play their animations instead of standing frozen with their arms out.
+
 ## 2026-11-26 | Fifty new heroes and sharper models
 new: Forty more new heroes join the summons, for a roster of 150: elves, gnomes, beastfolk, golems, a barrow wraith and more.
 change: Every high-detail hero was rebuilt: weapons sit in the hand, shields are strapped to the forearm, crowns and halos sit on the head, robes flow like cloth.

@@ -36,7 +36,8 @@ namespace Sigilbound.Client
         public HeroModel(GameObject root, Animation anim, float height, AnimStyle style, IDictionary<string, string> aliases = null)
         {
             Root = root; Anim = anim; Height = height; Style = style;
-            if (anim != null) foreach (AnimationState s in anim) { var shortName = s.name.Split('|').Last(); if (!_names.ContainsKey(shortName)) _names[shortName] = s.name; }
+            // Short names: "Armature|Sword_Idle.001" -> "Sword_Idle" (Blender suffixes renamed clips; lookups use plain names).
+            if (anim != null) foreach (AnimationState s in anim) { var shortName = System.Text.RegularExpressions.Regex.Replace(s.name.Split('|').Last(), @"\.\d{3}$", ""); if (!_names.ContainsKey(shortName)) _names[shortName] = s.name; }
             // Canonical battle-state names (Core.HeroClips) pointing at the file's own clip names.
             if (aliases != null) foreach (var kv in aliases) { var clip = kv.Value.Split('|').Last(); if (_names.TryGetValue(clip, out var st)) _names[kv.Key] = st; }
             Idle(0);
@@ -569,7 +570,8 @@ namespace Sigilbound.Client
             }
             var root = holder.GetChild(0).gameObject;
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
-            foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null) anim.AddClip(c, c.name);
+            foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose")) anim.AddClip(c, c.name);
+            anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
             if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
             float headY = 1.6f;
