@@ -75,6 +75,19 @@ namespace Sigilbound.Client
             Arena.Build(Math.Min(GameData.Chapters.Length - 1, G.S.cleared / GameData.StagesPerChapter), false);
             Arena.FrameMenu();
             StartShotsIfAsked(); // -sbShots=DIR: screenshot tour (ShotsMode.cs)
+            PreloadModels();
+        }
+
+        // Starts loading the high-detail models the player will see first (the menu lineup: the team, or
+        // the starters on a new game) and today's Titan, so they appear as themselves instead of the
+        // block stand-ins swapping over (owner report 2026-11-26).
+        void PreloadModels()
+        {
+            var want = new List<(string, Element, bool, bool)>();
+            foreach (var h in G.Team) { var d = GameData.Hero(h.id); if (d != null) want.Add((d.Id, d.Element, false, false)); }
+            if (!G.S.started) foreach (var id in GameData.Starters) { var d = GameData.Hero(id); if (d != null) want.Add((d.Id, d.Element, false, false)); }
+            want.Add(("titan", GameData.TitanElement(G.Now()), true, false));
+            HeroModels.Preload(want);
         }
 
         // ---------- save ----------

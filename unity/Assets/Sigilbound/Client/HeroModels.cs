@@ -646,15 +646,11 @@ namespace Sigilbound.Client
             return mat;
         }
 
-        static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done, string hdId = null, bool hollow = false)
+        // Reads and parses one high-detail model and its textures into the cache (a shared job: it runs
+        // once per model, survives the view that asked for it, and can be started early by Preload).
+        static IEnumerator LoadHd(string id, string cacheKey, Element el, bool hollow)
         {
-            string id = hdId ?? unit.Template.Id;
-            bool titan = id == "titan";
-            string cacheKey = titan ? $"titan|{unit.El}" : hollow ? id + "|hollow" : id; // the Titan's runes take its current element
-            yield return EnsureLibrary("ubc");
-            var lib = Lib("ubc");
-            if (lib == null || lib.Failed || parent == null) { done(null); yield break; }
-            if (!_hdLibs.TryGetValue(cacheKey, out var bk))
+            if (_hdLibs.ContainsKey(cacheKey)) yield break;
             {
                 byte[] glb = null, alb = null, nrm = null, glow = null;
                 bool low = Quality.I != null && Quality.I.Tier == 0;
@@ -666,15 +662,56 @@ namespace Sigilbound.Client
                 yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.jpg"), b => nrm = b);
                 if (nrm == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.png"), b => nrm = b);
                 yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_glow.png"), b => glow = b);
-                if (glb == null || alb == null) { done(null); yield break; }
+                if (glb == null || alb == null) { yield break; }
                 var gltf = new GLTFast.GltfImport(null, null, new SigilMaterialGenerator());
                 var load = gltf.LoadGltfBinary(glb, null, new GLTFast.ImportSettings { AnimationMethod = GLTFast.AnimationMethod.Legacy, GenerateMipMaps = false });
                 while (!load.IsCompleted) yield return null;
-                if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the high-detail {id}"); done(null); yield break; }
+                if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the high-detail {id}"); yield break; }
                 var albTex = LoadPng(alb, false);
                 if (hollow && albTex != null) Hollowed(albTex);
-                bk = (gltf, HdMaterial(id, albTex, LoadPng(nrm, true), LoadPng(glow, false), unit.El, hollow)); _hdLibs[cacheKey] = bk;
+                _hdLibs[cacheKey] = (gltf, HdMaterial(id, albTex, LoadPng(nrm, true), LoadPng(glow, false), el, hollow));
             }
+        }
+
+        // Starts loading these heroes' high-detail models in the background (menu lineup, the player's
+        // team, the Titan before its fight), so their figures are ready when they are first shown.
+        public static void Preload(IEnumerable<(string id, Element el, bool titan, bool hollow)> units)
+        {
+            if (!Available) return;
+            foreach (var u in units)
+            {
+                var (id, el, titan, hollow) = u;
+                string hid = titan ? "titan" : id;
+                string key = titan ? $"titan|{el}" : hollow ? id + "|hollow" : id;
+                Kick("preload:" + key, () => PreloadOne(hid, key, el, hollow));
+            }
+        }
+        static IEnumerator PreloadOne(string id, string key, Element el, bool hollow)
+        {
+            yield return EnsureHdIndex();
+            if (_hd == null || !_hd.Contains(id)) yield break;
+            yield return EnsureLibrary("ubc");
+            yield return Shared("hd:" + key, () => LoadHd(id, key, el, hollow));
+        }
+        // Starts a shared job without waiting for it.
+        static void Kick(string key, Func<IEnumerator> work)
+        {
+            if (_jobs.ContainsKey(key)) return;
+            if (_loader == null) { var go = new GameObject("HeroModelLoader"); UnityEngine.Object.DontDestroyOnLoad(go); _loader = go.AddComponent<Loader>(); }
+            _jobs[key] = false;
+            _loader.StartCoroutine(RunJob(key, work()));
+        }
+
+        static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done, string hdId = null, bool hollow = false)
+        {
+            string id = hdId ?? unit.Template.Id;
+            bool titan = id == "titan";
+            string cacheKey = titan ? $"titan|{unit.El}" : hollow ? id + "|hollow" : id; // the Titan's runes take its current element
+            yield return EnsureLibrary("ubc");
+            var lib = Lib("ubc");
+            if (lib == null || lib.Failed || parent == null) { done(null); yield break; }
+            yield return Shared("hd:" + cacheKey, () => LoadHd(id, cacheKey, unit.El, hollow));
+            if (parent == null || !_hdLibs.TryGetValue(cacheKey, out var bk)) { done(null); yield break; }
             var holder = new GameObject("Model").transform;
             holder.SetParent(parent, false);
             var inst = bk.gltf.InstantiateMainSceneAsync(holder);
@@ -853,6 +890,7 @@ namespace Sigilbound.Client
         }
 #else
         public static IEnumerator Build(Unit unit, GearLook gear, Transform parent, Action<HeroModel> done) { done(null); yield break; }
+        public static void Preload(IEnumerable<(string id, Element el, bool titan, bool hollow)> units) { }
 #endif
     }
 }

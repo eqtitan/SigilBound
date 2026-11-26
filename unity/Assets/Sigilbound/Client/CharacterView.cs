@@ -120,7 +120,7 @@ namespace Sigilbound.Client
             {
                 if (unit.Titan) view.BuildTitan();
                 else view.BuildPlaceholder(!unit.Ally && !unit.Rival);
-                if (HeroModels.Available) view.StartCoroutine(view.LoadModel());
+                if (HeroModels.Available) { view.ShowStandIn(false); view.StartCoroutine(view.LoadModel()); }
                 else Debug.Log("SBMODEL glTFast not compiled in: stand-in for " + unit.Template.Id);
             }
 
@@ -143,10 +143,19 @@ namespace Sigilbound.Client
             var holder = new GameObject("GLB").transform;
             holder.SetParent(Model, false);
             HeroModel built = null;
+            // The block stand-in stays hidden while the real model loads (owner report 2026-11-26: the menu
+            // heroes and the Titan showed the old figures first, then swapped). It only appears if the load
+            // is slow or fails, so a unit is never invisible for long.
+            float giveUp = Time.realtimeSinceStartup + (Unit != null && Unit.Titan ? 8f : 5f);
+            bool finished = false;
+            StartCoroutine(StandInIfSlow(() => finished, giveUp));
             yield return HeroModels.Build(Unit, Gear, holder, m => built = m);
+            finished = true;
             Debug.Log($"SBMODEL view {Unit?.Template?.Id}: {(built != null ? "model shown" : "kept the stand-in")}");
-            if (built == null || this == null) { if (holder) Destroy(holder.gameObject); yield break; }
-            foreach (Transform child in Model) if (child != holder) child.gameObject.SetActive(false);
+            if (this == null) yield break;
+            if (built == null) { if (holder) Destroy(holder.gameObject); ShowStandIn(true); yield break; }
+            foreach (Transform child in Model) if (child != holder && child != HeadTop) child.gameObject.SetActive(false);
+            StartCoroutine(PopIn(holder));
             _model = built;
             ArmL = ArmR = null;
             // Additive buff/debuff posture over the clips (MECHANICS.md 3.1).
@@ -168,6 +177,24 @@ namespace Sigilbound.Client
             HeadTop.gameObject.SetActive(true);
             HeadTop.localPosition = new Vector3(0, built.Height * 0.87f, 0);
             if (_dead) built.Die();
+        }
+
+        // The block stand-in (every child of Model except the HeadTop marker and a loaded model).
+        void ShowStandIn(bool on)
+        {
+            foreach (Transform child in Model) if (child != HeadTop && child.name != "GLB") child.gameObject.SetActive(on);
+        }
+        IEnumerator StandInIfSlow(System.Func<bool> finished, float giveUp)
+        {
+            while (!finished() && Time.realtimeSinceStartup < giveUp) yield return null;
+            if (this != null && !finished()) ShowStandIn(true);
+        }
+        // The real model arrives with a quick settle (95% -> 100%) instead of a hard swap.
+        IEnumerator PopIn(Transform t)
+        {
+            var full = t.localScale;
+            for (float k = 0; k < 1f && t != null; k += Time.unscaledDeltaTime / 0.22f) { t.localScale = full * Mathf.Lerp(0.95f, 1f, Mathf.SmoothStep(0, 1, k)); yield return null; }
+            if (t != null) t.localScale = full;
         }
 
         void BuildPlaceholder(bool hollow)

@@ -149,7 +149,7 @@ namespace Sigilbound.Client
         {
             var tu = _views.Keys.FirstOrDefault(k => k.Titan); if (tu == null) yield break;
             var tv = _views[tu];
-            for (float w = 0; w < 3f && tv != null && tv.Hero == null; w += Time.unscaledDeltaTime) yield return null; // its model is loading
+            for (float w = 0; w < 8f && tv != null && tv.Hero == null; w += Time.unscaledDeltaTime) yield return null; // its model is loading (preloaded at start, so normally instant)
             if (tv == null) yield break;
             var arena = App.Arena; float keepSpeed = Time.timeScale; Time.timeScale = 1;
             _cinema = _skippable = true;
