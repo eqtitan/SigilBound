@@ -160,6 +160,8 @@ namespace Sigilbound.Core
             ["aldric"] = Motif.Stars,
             ["ondessa"] = Motif.Wisps,
         };
+        // Heroes wearing a gown or robe: they idle upright (a wide stance stretches the skirt).
+        public static readonly HashSet<string> Gowned = new HashSet<string> { "aelira", "amber", "auren", "aveline", "azura", "corvan", "ember", "grimsby", "ignis", "juno", "kaelith", "kasimir", "liora", "lyra", "morvoren", "morwenna", "nerys", "ondessa", "oriel", "orla", "pell", "perpetua", "poppy", "sable", "selene", "seraphine", "solenne", "tilly", "umbra", "velka", "wren" };
         public static Motif Of(string id, Element el) => Table.TryGetValue(id ?? "", out var m) ? m : el switch
         {
             Element.Flame => Motif.Embers, Element.Gale => Motif.Wind, Element.Tide => Motif.Water, Element.Light => Motif.Motes, _ => Motif.Wisps,

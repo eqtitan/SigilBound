@@ -12,6 +12,13 @@ static class Program
 
     static int Main(string[] args)
     {
+        // `dotnet run --project Tests~ -- idles`: each hero's in-game idle clip (review renders pose with it).
+        if (args.Length > 0 && args[0] == "idles")
+        {
+            foreach (var hd in Heroes) Console.WriteLine($"{hd.Id} {Sigilbound.Core.AnimStyle.Hd(hd.Id).Idle}");
+            Console.WriteLine("titan " + Sigilbound.Core.AnimStyle.TitanHd.Idle);
+            return 0;
+        }
         // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).
         if (args.Length > 0 && args[0] == "balance")
         {

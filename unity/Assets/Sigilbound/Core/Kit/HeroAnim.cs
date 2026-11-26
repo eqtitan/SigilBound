@@ -55,6 +55,9 @@ namespace Sigilbound.Core
                 case WeaponFamily.Polearm: st.Idle = "Sword_Idle"; st.Strike = new[] { "Spear_Thrust" }; break; // owner review of test T3: a real thrust
                 default: st.Idle = "Sword_Idle"; st.Strike = new[] { "Sword_Attack" }; break; // blade, heavy
             }
+            // A gown or robe (kit_cloth) stretches sideways in a wide fighting stance: those heroes idle upright.
+            if (HeroSignatures.Gowned.Contains(heroId) && (st.Idle == "Sword_Idle" || st.Idle == "Crouch_Idle_Loop"))
+            { st.Idle = "Idle_Loop"; if (st.Ready == "Crouch_Idle_Loop") st.Ready = null; }
             switch (role)
             {
                 case Role.Attack: st.Win = "Sword_Attack"; st.WinSpeed = 0.5f; st.WinHold = true; st.Defeat = "Crouch_Idle_Loop"; st.DefeatSpeed = 0.6f; break;
