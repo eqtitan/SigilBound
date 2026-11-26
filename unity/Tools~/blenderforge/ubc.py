@@ -308,6 +308,48 @@ def kit(c, arm):
             o = prim("primitive_cube_add", mats["glow"] if c.get("element") in ("Light", "Flame") else mats["main"], size=1,
                      location=nh + Vector((0.42 * sx, 0.22, -0.15)), rotation=(0, math.radians(-25 * sx), 0))
             o.scale = (0.8, 0.02, 0.44); apply_xform(o); o.name = "Kit_Wing"; out.append(bind(o, arm, {"spine_03": 1.0}))
+    out += species(c, arm, mats)
+    return out
+
+def species(c, arm, mats):
+    """Non-human heroes (phase H designs): ears, beak, horns or antlers on the head, a tail on the hips,
+    a shell or fin on the back, stone plates for golems, a fading lower body for wraiths. Simple shapes
+    bound rigidly to their bones; steps 70-74 replace them with modelled pieces where needed."""
+    sp = str(c.get("species", "human")).lower()
+    if sp == "human": return []
+    pal = c.get("palette", {}); out = []
+    skin = P.flat("K_Skin", P.hexc(c.get("skin") if str(c.get("skin", "")).startswith("#") else P.SKIN.get(c.get("skin"), "#c8915f")), rough=0.7)
+    fur = P.flat("K_Fur", P.hexc((c.get("hair") or {}).get("colour", pal.get("secondary"))), rough=0.8)
+    hh, ht = rest_bone(arm, "Head"); top = ht + Vector((0, 0, 0.06)); ear_z = hh.z + (ht.z - hh.z) * 0.75
+    def piece(kind, mat, bone, **kw):
+        o = prim(kind, mat, **kw); o.name = "Kit_Species"; apply_xform(o); out.append(bind(o, arm, {bone: 1.0})); return o
+    if any(k in sp for k in ("elf", "sylph", "sprite", "dryad", "gnome", "fae")):
+        for sx in (-1, 1): piece("primitive_cone_add", skin, "Head", vertices=8, radius1=0.022, depth=0.1, location=(hh.x + 0.1 * sx, hh.y + 0.01, ear_z), rotation=(0, math.radians(-70 * sx), 0))
+    if any(k in sp for k in ("fox", "cat", "lion", "wolf", "bear", "hare", "rabbit", "goat")):
+        long_ = "hare" in sp or "rabbit" in sp
+        for sx in (-1, 1): piece("primitive_cone_add", fur, "Head", vertices=8, radius1=0.04, depth=0.17 if long_ else 0.08, location=(hh.x + 0.075 * sx, hh.y + 0.01, top.z + (0.06 if long_ else 0.02)), rotation=(0, math.radians(12 * sx), 0))
+    if "raven" in sp or "owl" in sp:
+        piece("primitive_cone_add", mats["acc"], "Head", vertices=8, radius1=0.028, depth=0.07, location=(hh.x, hh.y - 0.13, ear_z - 0.05), rotation=(math.radians(-90), 0, 0))
+    if any(k in sp for k in ("fox", "cat", "lion", "wolf", "hare", "lizard", "shark")):
+        ph, _ = rest_bone(arm, "pelvis")
+        piece("primitive_cylinder_add", fur if "shark" not in sp and "lizard" not in sp else skin, "pelvis", vertices=10, radius=0.045, depth=0.42, location=(ph.x, ph.y + 0.24, ph.z - 0.12), rotation=(math.radians(55), 0, 0))
+    if "turtle" in sp:
+        s3, _ = rest_bone(arm, "spine_03")
+        o = piece("primitive_uv_sphere_add", fur, "spine_03", segments=16, ring_count=8, radius=0.3, location=(s3.x, s3.y + 0.16, s3.z - 0.08)); 
+    if "shark" in sp:
+        s3, _ = rest_bone(arm, "spine_03")
+        piece("primitive_cone_add", skin, "spine_03", vertices=4, radius1=0.12, depth=0.22, location=(s3.x, s3.y + 0.2, s3.z), rotation=(math.radians(-20), 0, 0))
+    if any(k in sp for k in ("goat", "stag", "dryad")):
+        for sx in (-1, 1): piece("primitive_cone_add", mats["acc"], "Head", vertices=8, radius1=0.028, depth=0.16, location=(hh.x + 0.08 * sx, hh.y + 0.02, top.z), rotation=(0, math.radians(30 * sx), 0))
+    if "golem" in sp:
+        for bone, off in (("spine_02", (0.18, -0.02, 0.05)), ("spine_03", (-0.17, -0.02, 0.08)), ("upperarm_l", (0.04, 0, 0.04)), ("upperarm_r", (-0.04, 0, 0.04))):
+            b0, _ = rest_bone(arm, bone)
+            piece("primitive_ico_sphere_add", fur, bone, subdivisions=1, radius=0.11, location=(b0.x + off[0], b0.y + off[1], b0.z + off[2]))
+    if "wraith" in sp or "spirit" in sp:
+        ph, _ = rest_bone(arm, "pelvis"); tl, _ = rest_bone(arm, "thigh_l"); tr, _ = rest_bone(arm, "thigh_r")
+        bpy.ops.mesh.primitive_cone_add(vertices=20, radius1=0.12, radius2=0.32, depth=0.95, location=(ph.x, ph.y, ph.z - 0.45), end_fill_type="NOTHING")
+        o = bpy.context.object; o.data.materials.append(mats["glow"]); o.name = "Kit_Species"; apply_xform(o)
+        out.append(bind(o, arm, {"pelvis": 0.6, "thigh_l": 0.2, "thigh_r": 0.2}))
     return out
 
 def decimate_to(obj, tris):
