@@ -39,7 +39,13 @@ static class HdClipTests
     public static void Run(System.Action<bool, string> check)
     {
         var have = new System.Collections.Generic.HashSet<string>(Sigilbound.Core.AnimStyle.HdClips);
-        check(have.Count == 48, "hd clips: 45 free UAL clips (no T-pose reference) + 3 hand-made");
+        check(have.Count == 59, "hd clips: 45 free UAL clips (no T-pose reference) + 3 hand-made + 11 signature ultimates");
+        // Signature ultimates (docs/sigilbound/ultfx.py): every assigned clip exists, has an impact time, and only
+        // Legendary and Epic heroes have one.
+        var ultBad = Sigilbound.Core.HeroUlts.Table.Where(kv => !have.Contains(kv.Value) || !Sigilbound.Core.HeroUlts.Impact.ContainsKey(kv.Value)
+            || Sigilbound.Core.GameData.Heroes.FirstOrDefault(h => h.Id == kv.Key) is var hh && (hh == null || hh.Rarity < Sigilbound.Core.Rarity.Epic)).Select(kv => kv.Key).ToList();
+        int ultHeroes = Sigilbound.Core.GameData.Heroes.Count(h => h.Rarity >= Sigilbound.Core.Rarity.Epic);
+        check(ultBad.Count == 0 && Sigilbound.Core.HeroUlts.Table.Count == ultHeroes, $"signature ultimates: all {ultHeroes} Legendary and Epic heroes have a valid ultimate clip" + (ultBad.Count > 0 ? " — bad: " + string.Join(", ", ultBad.Take(5)) : ""));
         var bad = new System.Collections.Generic.List<string>();
         foreach (var h in Sigilbound.Core.GameData.Heroes)
         {
