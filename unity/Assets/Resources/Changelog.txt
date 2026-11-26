@@ -2,6 +2,13 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Spells with more sparkle
+new: Flame spells lick with real fire, embers and smoke; gale spells whip wind ribbons and leaves; tide spells splash with droplets and foam.
+new: Light spells blaze with rays and a halo flare; shadow spells spill inky smoke and curling violet tendrils.
+change: Arrows, bolts, orbs and shards each have their own look in flight, and hits flash, ring and throw sparks. Critical hits hit harder.
+change: Cinder Breath pours rolling flames with heat shimmer and molten splashes; its lava pools crust over and bubble.
+change: Titan slams and cracks hurl rock chunks and roll out clouds of dust.
+
 ## 2026-11-26 | Finer outfits
 change: Heroes in gowns now wear fitted bodices that match their dress, some with flowing sleeves.
 change: Masks fit the face, animal heroes have proper muzzles and beaks, and small held items are easier to see.
