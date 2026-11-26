@@ -2,6 +2,10 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-26 | Ten new heroes
+new: Ten new heroes join the summons: Dace the gnome chimney sweep, Dulcie, Holt the bear-folk, Rhosyn, Ansel, Saskia the ember dryad, Kasimir, Imogen, Ilsabet and Obrecht the hearth golem.
+balance: Each new hero was tested in thousands of simulated battles against the original hero of the same rarity and role.
+
 ## 2026-11-26 | Forty heroes in high detail
 new: Vaelith, Morwenna, Seraphine, Ulfgar, Bram, Nettle, Hobb, Greta, Cole, Tilly, Ronan, Isla, Dunstan, Marisol, Vesper, Brega, Fennick, Orla, Silas and Wynn join the high-detail heroes.
 
