@@ -99,7 +99,7 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(L.x, L.y, 74, 30), "Back", Ui.Kind.Secondary, 12)) Go(_prepBack);
             Ui.Text(new Rect(L.x + 80, L.y, L.width - 80, 30), $"Power {Ui.Fmt(G.TeamPower)}", 13, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight);
             string title = _prepTitan ? "Titan Challenge" : $"{(_prepHard ? "Hard " : "Stage ")}{Game.StageLabel(_prepStage)} · {Chapters[Game.ChapterOf(_prepStage)]}";
-            string sub = _prepTitan ? $"{TitanElement(DateTime.Now)} Titan today · {G.S.daily.titanTries} tries left"
+            string sub = _prepTitan ? (_prepPractice ? $"{TitanElement(DateTime.Now)} Titan · Practice: no rewards, no try used" : $"{TitanElement(DateTime.Now)} Titan today · {G.S.daily.titanTries} tries left")
                 : $"Enemy Lv {Game.StageLevel(_prepStage) + (_prepHard ? Game.HardLvl : 0)} · {waves.Count} waves{(Game.IsBossStage(_prepStage) ? " · Boss" : "")}{(_prepHard ? " · Hard" : "")}";
             Ui.Text(new Rect(L.x, L.y + 34, L.width, 22), title, 15, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
             Ui.Text(new Rect(L.x, L.y + 56, L.width, 16), sub, 11, Palette.Dim);
@@ -123,10 +123,11 @@ namespace Sigilbound.Client
                     Icons.Draw(new Rect(slot.center.x - 10, slot.center.y - 10, 20, 20), Icon.Plus, Palette.Bronze);
                 }
             }
-            bool can = team.Count > 0 && (!_prepTitan || G.S.daily.titanTries > 0);
-            if (Ui.Button(new Rect(L.x, sy + 78, L.width, 44), _prepTitan ? "Challenge the Titan" : _prepHard ? "Battle (Hard)" : "Battle", Ui.Kind.Primary, 17, can))
+            bool can = team.Count > 0 && (!_prepTitan || _prepPractice || G.S.daily.titanTries > 0);
+            if (Ui.Button(new Rect(L.x, sy + 78, L.width, 44), _prepTitan ? (_prepPractice ? "Practice vs the Titan" : "Challenge the Titan") : _prepHard ? "Battle (Hard)" : "Battle", Ui.Kind.Primary, 17, can))
             {
-                if (_prepHard) Battle.Begin(BattleSpec.ForHard(_prepStage));
+                if (_prepTitan && _prepPractice) Battle.Begin(BattleSpec.TitanPractice());
+                else if (_prepHard) Battle.Begin(BattleSpec.ForHard(_prepStage));
                 else Battle.Begin(_prepTitan ? -1 : _prepStage);
             }
             float py = sy + 130;

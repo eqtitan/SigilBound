@@ -14,10 +14,11 @@ namespace Sigilbound.Client
 
     public sealed class BattleSpec
     {
-        public BattleMode Mode; public int Stage; public DungeonKey Dungeon; public int Floor; public Rival Rival;
+        public BattleMode Mode; public int Stage; public DungeonKey Dungeon; public int Floor; public Rival Rival; public bool Practice;
         public static BattleSpec ForStage(int idx) => new BattleSpec { Mode = BattleMode.Stage, Stage = idx };
         public static BattleSpec ForHard(int idx) => new BattleSpec { Mode = BattleMode.Hard, Stage = idx };
         public static BattleSpec Titan() => new BattleSpec { Mode = BattleMode.Titan };
+        public static BattleSpec TitanPractice() => new BattleSpec { Mode = BattleMode.Titan, Practice = true }; // no rewards, no try used
         public static BattleSpec ForDungeon(DungeonKey k, int floor) => new BattleSpec { Mode = BattleMode.Dungeon, Dungeon = k, Floor = floor };
         public static BattleSpec ForArena(Rival rv) => new BattleSpec { Mode = BattleMode.Arena, Rival = rv };
     }
@@ -43,7 +44,7 @@ namespace Sigilbound.Client
             if (G.Team.Count == 0) { App.Toast("Choose at least one hero."); return; }
             if (spec.Mode == BattleMode.Dungeon && !G.CanEnterFloor(spec.Dungeon, spec.Floor)) { App.Toast("No runs left today for this dungeon."); return; }
             if (spec.Mode == BattleMode.Arena && G.S.daily.arenaTries <= 0) { App.Toast("No arena fights left today."); return; }
-            if (spec.Mode == BattleMode.Titan && G.S.daily.titanTries <= 0) { App.Toast("No Titan tries left today."); return; }
+            if (spec.Mode == BattleMode.Titan && !spec.Practice && G.S.daily.titanTries <= 0) { App.Toast("No Titan tries left today."); return; }
             if (spec.Mode == BattleMode.Hard && !G.HardOpen(spec.Stage)) { App.Toast("Clear the previous Hard stage first."); return; }
             _spec = spec;
             App.ClearLineup();
@@ -592,6 +593,19 @@ namespace Sigilbound.Client
         void FinishTitan()
         {
             long dmg = _b.TitanDamage;
+            if (_spec.Practice)
+            {
+                // Practice: nothing is granted or saved; the daily tries and best are untouched.
+                App.Modal("Titan Practice", 300, r =>
+                {
+                    Ui.Text(new Rect(r.x, r.y, r.width, 40), $"{Ui.Fmt(dmg)} damage", 26, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
+                    Ui.Text(new Rect(r.x, r.y + 44, r.width, 40), "Practice: no rewards, no try used", 14, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter, true);
+                    Ui.Text(new Rect(r.x, r.y + 90, r.width, 70), string.Join("\n", _b.Allies.Select(a => $"{a.Template.ShortName}: {Ui.Fmt(a.DmgDealt)}")), 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
+                    if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Again", Ui.Kind.Secondary)) { App.CloseModal(); Begin(BattleSpec.TitanPractice()); }
+                    if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Continue")) End(ScreenId.Titan);
+                });
+                return;
+            }
             var reward = G.CompleteTitan(dmg); App.Save();
             App.Modal("Titan Battle", 300, r =>
             {

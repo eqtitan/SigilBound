@@ -33,7 +33,7 @@ namespace Sigilbound.Client
         public BattleController Battle;
 
         // screen state
-        int _heroUid; GameData.Slot _slot; int _chapterOpen = -1; int _prepStage = -1; bool _prepTitan; ScreenId _prepBack;
+        int _heroUid; GameData.Slot _slot; int _chapterOpen = -1; int _prepStage = -1; bool _prepTitan, _prepPractice; ScreenId _prepBack;
         Vector2 _scroll; string _sort = "power";
         readonly List<CharacterView> _lineup = new List<CharacterView>();
         List<string> _shotLineup; bool _shotNoUi; // screenshot mode: a chosen lineup, menus hidden (ShotsMode gallery)

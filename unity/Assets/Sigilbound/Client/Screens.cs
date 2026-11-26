@@ -148,7 +148,7 @@ namespace Sigilbound.Client
 
         // ---------- team prep ----------
         public void EditTeam(int stage, bool hard = false) => OpenPrep(stage, false, ScreenId.Campaign, hard); // from the results screen
-        void OpenPrep(int stage, bool titan, ScreenId back, bool hard = false) { _prepStage = stage; _prepTitan = titan; _prepHard = hard && !titan; _prepBack = back; Go(ScreenId.Prep); }
+        void OpenPrep(int stage, bool titan, ScreenId back, bool hard = false, bool practice = false) { _prepStage = stage; _prepTitan = titan; _prepPractice = titan && practice; _prepHard = hard && !titan; _prepBack = back; Go(ScreenId.Prep); }
 
         void DrawPrep(Rect area)
         {
@@ -160,16 +160,17 @@ namespace Sigilbound.Client
             Ui.Text(new Rect(Ui.W - 200, y, 184, 34), $"Power {Ui.Fmt(G.TeamPower)}", 13, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
             y += 44;
             string title = _prepTitan ? "Titan Challenge" : $"{(_prepHard ? "Hard " : "Stage ")}{Game.StageLabel(_prepStage)} · {Chapters[Game.ChapterOf(_prepStage)]}";
-            string sub = _prepTitan ? $"{TitanElement(System.DateTime.Now)} Titan today · {G.S.daily.titanTries} tries left"
+            string sub = _prepTitan ? (_prepPractice ? $"{TitanElement(System.DateTime.Now)} Titan · Practice: no rewards, no try used" : $"{TitanElement(System.DateTime.Now)} Titan today · {G.S.daily.titanTries} tries left")
                 : $"Enemy Lv {Game.StageLevel(_prepStage) + (_prepHard ? Game.HardLvl : 0)} · {(Game.IsBossStage(_prepStage) ? "3 waves · Boss" : "2 waves")}{(_prepHard ? " · Hard" : "")}";
             Ui.Text(new Rect(Pad, y, Ui.W - 32, 28), title, 19, Palette.Text, FontStyle.Bold); y += 28;
             Ui.Text(new Rect(Pad, y, Ui.W - 32, 20), sub, 13, Palette.Dim); y += 30;
             var team = G.Team;
             Ui.Text(new Rect(Pad, y, Ui.W - 32, 20), $"Team ({team.Count}/4): " + (team.Count == 0 ? "tap heroes below" : string.Join(", ", team.Select(h => Hero(h.id).ShortName))), 13, Palette.Text); y += 30;
-            bool can = team.Count > 0 && (!_prepTitan || G.S.daily.titanTries > 0);
-            if (Ui.Button(Row(ref y, 50), _prepTitan ? "Challenge the Titan" : _prepHard ? "Battle (Hard)!" : "Battle!", Ui.Kind.Primary, 18, can))
+            bool can = team.Count > 0 && (!_prepTitan || _prepPractice || G.S.daily.titanTries > 0);
+            if (Ui.Button(Row(ref y, 50), _prepTitan ? (_prepPractice ? "Practice vs the Titan" : "Challenge the Titan") : _prepHard ? "Battle (Hard)!" : "Battle!", Ui.Kind.Primary, 18, can))
             {
-                if (_prepHard) Battle.Begin(BattleSpec.ForHard(_prepStage));
+                if (_prepTitan && _prepPractice) Battle.Begin(BattleSpec.TitanPractice());
+                else if (_prepHard) Battle.Begin(BattleSpec.ForHard(_prepStage));
                 else Battle.Begin(_prepTitan ? -1 : _prepStage);
             }
             y += 4;
@@ -433,6 +434,9 @@ namespace Sigilbound.Client
             Ui.Text(new Rect(r.x + 14, r.y + 34, r.width - 28, 60), $"Bring {string.Join(" or ", strong)} heroes. The Titan can't be killed: deal as much damage as you can in {TitanTurns} of its turns. It's immune to stun and turn meter drain.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             Ui.Text(new Rect(r.x + 14, r.y + 94, r.width - 28, 22), $"Tries left today: {Ui.ColorTag($"{G.S.daily.titanTries}/3", Palette.Gold)} · Best today: {Ui.Fmt(G.S.daily.titanBest)}", 13, Palette.Text);
             if (Ui.Button(new Rect(r.x + 14, r.y + 120, r.width - 28, 40), "Prepare Team", Ui.Kind.Primary, 15, G.S.daily.titanTries > 0)) OpenPrep(-1, true, ScreenId.Titan);
+            // Practice: unlimited Titan fights with no rewards and no try used (try out teams, see the Titan).
+            var pr = Row(ref y, 40);
+            if (Ui.Button(pr, "Practice (no rewards, no try used)", Ui.Kind.Secondary, 14)) OpenPrep(-1, true, ScreenId.Titan, false, true);
             r = Row(ref y, 40 + TitanTiers.Length * 30);
             Ui.Card(r);
             Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 28, 22), "Damage rewards (per try)", 15, Palette.Text, FontStyle.Bold);
