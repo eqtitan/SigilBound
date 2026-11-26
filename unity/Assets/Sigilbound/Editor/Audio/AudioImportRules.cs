@@ -1,7 +1,7 @@
 // Import settings for the generated sounds in Assets/Resources/Audio (Tools~/audio/make_real.py):
 //   amb_*.ogg   ambience beds: streamed from disk (never decoded whole into memory), Vorbis 0.35
 //   sfx_*.ogg   one-shots: decompressed on load if short (instant start, no decode cost mid-battle);
-//               the long Titan / cinematic ones stay compressed in memory. Vorbis 0.5.
+//               the long Titan / cinematic / boss-lair ones stay compressed in memory. Vorbis 0.5.
 // Both keep their stereo (forceToMono off): positional panning and the wide beds depend on it.
 using System;
 using UnityEditor;
@@ -12,7 +12,7 @@ namespace Sigilbound.EditorTools
     public sealed class AudioImportRules : AssetPostprocessor
     {
         const string Dir = "Assets/Resources/Audio/";
-        public override uint GetVersion() => 1;   // bump to reimport with new rules
+        public override uint GetVersion() => 2;   // bump to reimport with new rules
 
         void OnPreprocessAudio()
         {
@@ -23,7 +23,8 @@ namespace Sigilbound.EditorTools
             if (!amb && !sfx) return;
             var ai = assetImporter as AudioImporter;
             if (ai == null) return;
-            bool longOne = file.StartsWith("sfx_titan_", StringComparison.Ordinal) || file.StartsWith("sfx_earthsplit", StringComparison.Ordinal) || file.StartsWith("sfx_meteor", StringComparison.Ordinal);
+            bool longOne = file.StartsWith("sfx_titan_", StringComparison.Ordinal) || file.StartsWith("sfx_earthsplit", StringComparison.Ordinal) || file.StartsWith("sfx_meteor", StringComparison.Ordinal)
+                || file.StartsWith("sfx_lair_", StringComparison.Ordinal);   // lair set-pieces: long rings and halls
             ai.forceToMono = false;
             ai.loadInBackground = amb;
             var s = ai.defaultSampleSettings;
