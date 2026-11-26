@@ -434,6 +434,7 @@ namespace Sigilbound.Client
 
         public IEnumerator Recover()
         {
+            if (this == null) yield break;
             _busy = true;
             Vector3 from = transform.position;
             bool far = Vector3.Distance(from, _home) > 0.6f;
@@ -452,6 +453,7 @@ namespace Sigilbound.Client
                     ArmL.localRotation = Quaternion.Slerp(ArmL.localRotation, Quaternion.identity, k);
                 }
                 yield return null;
+                if (this == null) yield break; // view destroyed mid-move (scene change); the caller's coroutine outlives it
             }
             transform.position = _home;
             if (_model != null && far && !Unit.Titan) _model.Idle(0.2f);
