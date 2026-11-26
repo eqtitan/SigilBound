@@ -26,6 +26,12 @@ arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
 for o in [o for o in bpy.data.objects if o.type == "MESH"]: bpy.data.objects.remove(o, do_unlink=True)
 for a in [a for a in bpy.data.actions if a.name.split("|")[-1].split(".")[0] in NEW]: bpy.data.actions.remove(a)
 existing = list(bpy.data.actions)
+# Re-imported clips come back as "Name.001" (Blender renames on import); the game finds clips by name,
+# so restore the plain names, and drop the T-pose reference clip (a default first clip held heroes in T-pose).
+import re as _re
+for a in list(existing):
+    a.name = _re.sub(r"\.\d{3}$", "", a.name.split("|")[-1])
+    if a.name == "A_TPose": existing.remove(a); bpy.data.actions.remove(a)
 arm.animation_data_create(); arm.animation_data.action = None
 mw = arm.matrix_world
 X, Y, Z = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))

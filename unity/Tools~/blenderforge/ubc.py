@@ -391,10 +391,11 @@ def kit(c, arm):
         for x in bpy.context.selected_objects: x.select_set(False)
         for q in parts: q.select_set(True)
         bpy.context.view_layer.objects.active = o; bpy.ops.object.join(); o = bpy.context.object; o.name = "Kit_Crown"; out.append(bind(o, arm, {"Head": 1.0}))
-    if has(text, "horn", "antler") and not helmeted:
+    if has(text, "horn", "antler"):
         for sx in (-1, 1):
-            o = prim("primitive_cone_add", mats["acc"], vertices=8, radius1=0.032, depth=0.18,
-                     location=(hb["cx"] + hb["hw"] * 0.7 * sx, hb["cy"] + 0.01, hb["top"] - 0.01), rotation=(math.radians(-15), math.radians(28 * sx), 0))
+            big = has(text, "great", "curved", "colossal") or "titan" in str(c.get("species", ""))
+            o = prim("primitive_cone_add", mats["acc"], vertices=10, radius1=0.05 if big else 0.032, depth=0.32 if big else 0.18,
+                     location=(hb["cx"] + hb["hw"] * (0.95 if big else 0.7) * sx, hb["cy"] + 0.02, hb["top"] - 0.02), rotation=(math.radians(-25 if big else -15), math.radians((48 if big else 28) * sx), 0))
             o.name = "Kit_Horn"; out.append(bind(o, arm, {"Head": 1.0}))
     nh, _ = rest_bone(arm, "neck_01")
     if has(text, "cape", "cloak", "mantle"):
@@ -446,7 +447,7 @@ def species(c, arm, mats):
         for sx in (-1, 1): piece("primitive_cone_add", mats["acc"], "Head", vertices=8, radius1=0.028, depth=0.16, location=(hb["cx"] + hb["hw"] * 0.65 * sx, hb["cy"] + 0.02, top.z - 0.01), rotation=(0, math.radians(30 * sx), 0))
     if "golem" in sp:
         # stone armour: pauldron plates over each shoulder, a breastplate and a back slab (bevelled blocks)
-        stone = P.flat("K_Stone", P.hexc("#7a746a"), rough=0.95)
+        stone = P.flat("K_Stone", P.hexc("#4e4a44" if "titan" in sp else "#7a746a"), rough=0.95)
         def slab(bone, loc, size, rot=(0, 0, 0)):
             o = prim("primitive_cube_add", stone, size=1, location=loc, rotation=rot); o.scale = size
             bv = o.modifiers.new("B", "BEVEL"); bv.width = 0.02; bv.segments = 2
@@ -462,8 +463,21 @@ def species(c, arm, mats):
         fr = bvh.ray_cast(Vector((s2.x, s2.y - 1.0, cz)), Vector((0, 1, 0)), 2.0)[0]
         bk = bvh.ray_cast(Vector((s2.x, s2.y + 1.0, cz)), Vector((0, -1, 0)), 2.0)[0]
         fy = (fr.y if fr is not None else s2.y - 0.12) - 0.03; by = (bk.y if bk is not None else s2.y + 0.12) + 0.035
-        slab("spine_03", Vector((s2.x, fy, cz)), (0.28, 0.05, 0.24), (math.radians(-6), 0, 0))
+        if "titan" not in sp: slab("spine_03", Vector((s2.x, fy, cz)), (0.28, 0.05, 0.24), (math.radians(-6), 0, 0))
+        else: fy = (fr.y if fr is not None else s2.y - 0.12) + 0.022   # runes go straight onto the armour
         slab("spine_03", Vector((s2.x, by, cz + 0.02)), (0.3, 0.06, 0.28), (math.radians(8), 0, 0))
+        if "titan" in sp:
+            # glowing sigil runes cut into the breastplate, and a burning visor slit (the game tints the
+            # glow with the Titan's current element through the glow mask)
+            glow = mats["glow"]
+            for k, (dx, dz, w_, h_) in enumerate(((0, 0.07, 0.16, 0.018), (0, -0.04, 0.12, 0.018), (-0.05, 0.015, 0.018, 0.1), (0.05, 0.015, 0.018, 0.1))):
+                o = prim("primitive_cube_add", glow, size=1, location=(s2.x + dx, fy - 0.027, cz + dz)); o.scale = (w_, 0.01, h_)
+                o.name = "Kit_Species"; apply_xform(o); out.append(bind(o, arm, {"spine_03": 1.0}))
+            eye = hb["base"] + (hb["top"] - hb["base"]) * 0.47   # the helm raises the head's top
+            vis = bvh.ray_cast(Vector((hb["cx"], hb["front"] - 0.5, eye)), Vector((0, 1, 0)), 1.0)[0]
+            vy = (vis.y if vis is not None else hb["front"]) - 0.004
+            o = prim("primitive_cube_add", glow, size=1, location=(hb["cx"], vy, eye)); o.scale = (hb["hw"] * 1.1, 0.012, 0.016)
+            o.name = "Kit_Species"; apply_xform(o); out.append(bind(o, arm, {"Head": 1.0}))
     if "wraith" in sp or "spirit" in sp:
         ph, _ = rest_bone(arm, "pelvis"); tl, _ = rest_bone(arm, "thigh_l"); tr, _ = rest_bone(arm, "thigh_r")
         bpy.ops.mesh.primitive_cone_add(vertices=20, radius1=0.12, radius2=0.32, depth=0.95, location=(ph.x, ph.y, ph.z - 0.45), end_fill_type="NOTHING")

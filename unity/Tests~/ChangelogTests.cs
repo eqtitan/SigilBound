@@ -39,7 +39,7 @@ static class HdClipTests
     public static void Run(System.Action<bool, string> check)
     {
         var have = new System.Collections.Generic.HashSet<string>(Sigilbound.Core.AnimStyle.HdClips);
-        check(have.Count == 49, "hd clips: 46 free UAL clips + 3 hand-made (Defeat_Slump, Spear_Thrust, Hit_Kneel)");
+        check(have.Count == 48, "hd clips: 45 free UAL clips (no T-pose reference) + 3 hand-made");
         var bad = new System.Collections.Generic.List<string>();
         foreach (var h in Sigilbound.Core.GameData.Heroes)
         {
@@ -81,5 +81,30 @@ static class FlightTests
     {
         check(System.Math.Abs(Sigilbound.Core.Impact.FlightTime("arrow", 4.4) - 0.2) < 1e-9, "projectiles: an arrow flies 4.4 m in 0.2 s (22 m/s)");
         check(Sigilbound.Core.Impact.FlightTime("orb", 0.5) == 0.25 && Sigilbound.Core.Impact.FlightTime("orb", 50) == 0.55, "projectiles: flight time clamped (orb 0.25-0.55 s)");
+    }
+}
+
+// The clip file the high-detail heroes load: every clip a hero plays is in it under its plain name.
+static class HdClipFileTests
+{
+    public static void Run(System.Action<bool, string> check)
+    {
+        string dir = System.AppContext.BaseDirectory, path = null;
+        for (int i = 0; i < 8 && dir != null && path == null; i++, dir = System.IO.Path.GetDirectoryName(dir))
+        {
+            var p = System.IO.Path.Combine(dir, "Tools~", "models", "ubc_anims.glb");
+            if (System.IO.File.Exists(p)) path = p;
+        }
+        if (path == null) { check(true, "hd clip file: not found here (skipped)"); return; }
+        var b = System.IO.File.ReadAllBytes(path);
+        int n = System.BitConverter.ToInt32(b, 12);
+        var json = System.Text.Encoding.UTF8.GetString(b, 20, n);
+        var names = new System.Collections.Generic.HashSet<string>();
+        using (var doc = System.Text.Json.JsonDocument.Parse(json))
+            foreach (var a in doc.RootElement.GetProperty("animations").EnumerateArray())
+                if (a.TryGetProperty("name", out var nm)) names.Add(nm.GetString());
+        var missing = Sigilbound.Core.AnimStyle.HdClips.Where(c => !names.Contains(c)).ToList();
+        check(names.Count > 0 && missing.Count == 0 && !names.Any(x => x.Contains("TPose")),
+            $"hd clip file: {names.Count} clips with plain names, no T-pose clip" + (missing.Count > 0 ? " — missing: " + string.Join(", ", missing.Take(5)) : ""));
     }
 }
