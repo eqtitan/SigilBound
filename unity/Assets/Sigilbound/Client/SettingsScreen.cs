@@ -98,14 +98,19 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(b.x, y, 160, 34), "View notes", Ui.Kind.Secondary, 13)) OpenWhatsNew();
             y += 44;
 
-            int hz = Quality.DisplayHz; string fpsMode = Quality.SavedFpsMode(st.fpsCap);
-            SettingRow(ref y, b, "Frame rate", fpsMode == "auto" ? $"Auto matches your screen ({System.Math.Min(hz, 120)} Hz). Uses more battery." : fpsMode == "60" ? "60 fps: smooth." : "30 fps keeps the phone cooler and saves battery.");
-            string[] modes = { "auto", "60", "30" };
-            Chips(ref y, b, new[] { $"Auto · {System.Math.Min(hz, 120)}", "60 · Smooth", "30 · Battery" }, System.Array.IndexOf(modes, fpsMode) is int mi && mi >= 0 ? mi : 0, i =>
+            // Frame rate (owner decision 2026-11-27): 60 by default; the screen's 90/120 Hz as a choice.
+            int hz = Quality.HighHz; string fpsMode = Quality.SavedFpsMode(st.fpsCap);
+            if (fpsMode == "high" && !Quality.HighAvailable) fpsMode = "60";
+            SettingRow(ref y, b, "Frame rate", fpsMode == "high" ? $"{hz} fps: smoothest, uses more battery and runs warmer." : fpsMode == "60" ? "60 fps: smooth (recommended)." : "30 fps keeps the phone cooler and saves battery.");
+            string[] modes = Quality.HighAvailable ? new[] { "60", "high", "30" } : new[] { "60", "30" };
+            string[] labels = Quality.HighAvailable ? new[] { "60 · Smooth", $"{hz} · Smoothest", "30 · Battery" } : new[] { "60 · Smooth", "30 · Battery" };
+            Chips(ref y, b, labels, System.Array.IndexOf(modes, fpsMode) is int mi && mi >= 0 ? mi : 0, i =>
             {
-                Quality.SaveFpsMode(modes[i]); st.fpsCap = i == 2 ? 30 : 60; Save(); Quality.I?.Set(st.quality, modes[i]);
-                Toast(i == 0 ? $"Matches your screen ({System.Math.Min(hz, 120)} Hz). Uses more battery." : i == 1 ? "60 fps" : "30 fps: cooler and longer battery");
+                Quality.SaveFpsMode(modes[i]); st.fpsCap = modes[i] == "30" ? 30 : 60; Save(); Quality.I?.Set(st.quality, modes[i]);
+                Toast(modes[i] == "high" ? $"{hz} fps: uses more battery" : modes[i] == "60" ? "60 fps" : "30 fps: cooler and longer battery");
             });
+            Ui.Text(new Rect(b.x, y - 6, b.width, 16), "Auto-replay always runs at 30 fps.", 11, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
+            y += 12;
 
             SettingRow(ref y, b, "Screen shake", "How much the camera shakes on big hits.");
             string[] shakes = { "full", "reduced", "off" };

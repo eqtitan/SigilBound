@@ -2,6 +2,12 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-27 | Cooler and longer battery
+change: The game now runs at 60 fps by default. Phones with a 90 or 120 Hz screen can pick it in Settings > Frame rate.
+change: Auto-replay runs at 30 fps to keep the phone cool during long sessions.
+change: The screen can turn off in the menus as usual; it stays on only during battles.
+change: The 3D arena is no longer drawn behind the title screen and the Summon altar, which cover it.
+
 ## 2026-11-27 | Safer updates
 fix: The in-game updater now checks that a downloaded update is complete before installing it, on Android and Windows.
 

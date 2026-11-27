@@ -37,6 +37,8 @@ namespace Sigilbound.Client
         bool IsTitan => _spec.Mode == BattleMode.Titan;
         public BattleMode Mode => _spec?.Mode ?? BattleMode.Stage;
         public bool InProgress => _b != null && !_finished;
+        // Auto-replay is looping campaign battles (Quality caps it at 30 fps).
+        public bool Replaying => _b != null && _spec != null && _spec.Mode == BattleMode.Stage && G.S.settings.autoReplay;
 
         public void Begin(int stage) => Begin(stage < 0 ? BattleSpec.Titan() : BattleSpec.ForStage(stage));
 

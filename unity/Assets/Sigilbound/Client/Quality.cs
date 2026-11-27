@@ -3,6 +3,8 @@
 // render scale, MSAA, shadow distance and resolution, plus the sun's shadows. Auto starts from a
 // device guess and steps down when the frame rate can't hold the cap (and back up when it's easy),
 // up to High; Ultra is manual only, as on the web.
+// Frame rate (owner decision 2026-11-27, PMO D2): 60 fps by default; "high" (the screen's 90 or 120 Hz) is a
+// Settings choice; auto-replay runs at 30 (ReplayCapped); Low and a warm phone force 30.
 // Thermals (Android 10+): PowerManager.getCurrentThermalStatus is polled every 10 s; at MODERATE or
 // worse the game drops to 30 fps and one tier with a toast, and restores after two cool minutes.
 using UnityEngine;
@@ -19,9 +21,9 @@ namespace Sigilbound.Client
         public static Quality I;
         public string Choice = "auto";    // auto | Ultra | High | Medium | Low (saved in settings.quality)
         public int Tier { get; private set; } = 2;
-        public string FpsMode = "auto";   // auto (match the screen) | 60 | 30 (settings.fpsMode)
+        public string FpsMode = "60";     // 60 (default) | high (the screen's rate, 90 or 120) | 30 (PlayerPrefs sb.fpsMode)
         public Light Sun;
-        // Auto's current frame target when it had to come down from the screen rate (0 = the screen rate).
+        // "high" mode's current frame target when it had to come down from the screen rate (0 = the screen rate).
         int _autoHz; float _retryHzAt; float _retryWait = 120f;
         public bool HzLowered => _autoHz > 0;
         // The display's refresh rate (Unity 6), rounded; 60 when unknown.
@@ -34,10 +36,17 @@ namespace Sigilbound.Client
             return r > 1 && !double.IsNaN(r) ? Mathf.Clamp((int)System.Math.Round(r), 30, 240) : 60; } }
 
         // Device-only settings (PlayerPrefs, not the save: the save format stays identical to the web game's).
-        public static string SavedFpsMode(int fpsCap) { var m = PlayerPrefs.GetString("sb.fpsMode", fpsCap == 30 ? "30" : "auto"); return m == "30" || m == "60" ? m : "auto"; }
+        // The old "auto" (match the screen, the default until 2026-11-27) reads as 60, the new default.
+        public static string SavedFpsMode(int fpsCap) => Mode(PlayerPrefs.GetString("sb.fpsMode", fpsCap == 30 ? "30" : "60"));
         public static void SaveFpsMode(string m) { PlayerPrefs.SetString("sb.fpsMode", m); PlayerPrefs.Save(); }
         public static string SavedShake { get { var s = PlayerPrefs.GetString("sb.shake", "full"); return s == "reduced" || s == "off" ? s : "full"; } set { PlayerPrefs.SetString("sb.shake", value); PlayerPrefs.Save(); } }
-        int AutoTarget => _autoHz > 0 ? _autoHz : Mathf.Min(DisplayHz, 120);
+        // The "high" choice: the screen's rate up to 120 (90 on a 90 Hz panel); 60 on a 60 Hz screen.
+        public static int HighHz => Sigilbound.Core.FrameRate.HighHz(DisplayHz);
+        public static bool HighAvailable => HighHz > 60;
+        // True while auto-replay loops battles (App): 30 fps, since nobody watches it closely and it can run
+        // for an hour (performance review #2).
+        public static System.Func<bool> ReplayCapped;
+        bool _replay;
 
         float _acc; int _frames; float _settle; float _noUpUntil;
         public static System.Action<string> Notice; // toasts (App.Toast)
@@ -49,10 +58,10 @@ namespace Sigilbound.Client
         public bool ThermalLimited { get; private set; }
         public int ThermalStatus { get; private set; } = -1; // -1 unknown, 0 none .. 6 shutdown
         float _thermalPoll, _coolSince = -1;
-        // Low tier and a warm phone force 30; otherwise the player's choice (Auto = the screen's rate, up to 120).
-        public int TargetFps => Tier == 0 || ThermalLimited || FpsMode == "30" ? 30 : FpsMode == "60" ? Mathf.Min(60, DisplayHz) : AutoTarget;
+        // Low tier, a warm phone and auto-replay force 30; otherwise the player's choice (60, or the screen's rate).
+        public int TargetFps => Sigilbound.Core.FrameRate.Target(FpsMode, DisplayHz, Tier, ThermalLimited, _replay, _autoHz);
 
-        static string Mode(string m) => m == "30" || m == "60" ? m : "auto";
+        static string Mode(string m) => Sigilbound.Core.FrameRate.Mode(m);
 
         public static Quality Create(GameObject host, string choice, string fpsMode)
         {
@@ -92,7 +101,7 @@ namespace Sigilbound.Client
 #if UNITY_ANDROID || UNITY_IOS
             QualitySettings.vSyncCount = 0; Application.targetFrameRate = fpsT;
 #else
-            if (FpsMode == "auto" && _autoHz == 0 && Tier > 0 && !ThermalLimited) { QualitySettings.vSyncCount = 1; Application.targetFrameRate = -1; }
+            if (FpsMode == "high" && _autoHz == 0 && Tier > 0 && !ThermalLimited && !_replay) { QualitySettings.vSyncCount = 1; Application.targetFrameRate = -1; }
             else
             {
                 int hz = DisplayHz, div = hz % fpsT == 0 ? hz / fpsT : 0;
@@ -129,11 +138,13 @@ namespace Sigilbound.Client
         void Update()
         {
             PollThermals();
+            bool replay = ReplayCapped != null && ReplayCapped();
+            if (replay != _replay) { _replay = replay; Apply(); return; }
             bool busy = Busy != null && Busy();
             // Auto frame rate at a high-refresh screen: lowered to 60 under load, it tries the screen rate
             // again between battles after a wait that doubles on each failed try (up to 8 minutes).
-            if (FpsMode == "auto" && _autoHz > 0 && !busy && Time.unscaledTime > _retryHzAt) { _autoHz = 0; _retryWait = Mathf.Min(480f, _retryWait * 2f); Apply(); return; }
-            if (Choice != "auto" && FpsMode != "auto") { _pending = -1; return; }
+            if (FpsMode == "high" && _autoHz > 0 && !busy && Time.unscaledTime > _retryHzAt) { _autoHz = 0; _retryWait = Mathf.Min(480f, _retryWait * 2f); Apply(); return; }
+            if (Choice != "auto" && FpsMode != "high") { _pending = -1; return; }
             if (_pending >= 0 && !busy) { Tier = _pending; _pending = -1; Apply(); return; }
             if (_settle > 0) { _settle -= Time.unscaledDeltaTime; return; }
             _acc += Time.unscaledDeltaTime; _frames++;
@@ -142,7 +153,7 @@ namespace Sigilbound.Client
             int target = TargetFps;
             // At a high refresh rate, lower the frame target before the graphics (not gated by Busy:
             // the look doesn't change, only smoothness).
-            if (FpsMode == "auto" && target > 60 && fps < target * 0.85f)
+            if (FpsMode == "high" && target > 60 && fps < target * 0.85f)
             {
                 _autoHz = 60; _retryHzAt = Time.unscaledTime + _retryWait; Apply();
                 return;

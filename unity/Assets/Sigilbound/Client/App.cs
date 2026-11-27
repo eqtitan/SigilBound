@@ -51,13 +51,14 @@ namespace Sigilbound.Client
             UnityEngine.Screen.autorotateToLandscapeLeft = true;
             UnityEngine.Screen.autorotateToLandscapeRight = true;
             UnityEngine.Screen.orientation = ScreenOrientation.AutoRotation;
-            UnityEngine.Screen.sleepTimeout = SleepTimeout.NeverSleep;
+            UnityEngine.Screen.sleepTimeout = SleepTimeout.SystemSetting; // kept awake only in battle (UpdatePower)
             G = new Game(Load());
             G.EnsureDaily();
             Arena = Arena.Create();
             // Frame-rate cap (60, or 30 to run cooler) and graphics tier mapped to URP settings.
             Quality.Create(gameObject, G.S.settings.quality, Quality.SavedFpsMode(G.S.settings.fpsCap)).Sun = Arena.Sun;
             Quality.Busy = () => Battle != null && Battle.InProgress; // Auto holds tier changes until the battle ends
+            Quality.ReplayCapped = () => Screen == ScreenId.Battle && Battle != null && Battle.Replaying; // auto-replay runs at 30 fps
             Quality.I.Apply();
             Quality.Notice = Toast; // thermal fallback messages
             Vfx.ShakeSetting = () => Quality.SavedShake; // Settings > Screen shake
@@ -179,6 +180,18 @@ namespace Sigilbound.Client
             if (Screen != ScreenId.Battle) UpdateLineup();
             if (Screen == ScreenId.Hero && !ModalOpen) UpdateHeroViewer();
             CheckTips();
+            UpdatePower();
+        }
+
+        // Battery and heat (owner decision 2026-11-27, performance review #2): the screen may sleep in menus
+        // and stays awake only in battle (auto-replay included); the arena isn't drawn behind a menu that
+        // covers the whole screen with an opaque painting (the title screen, Summon).
+        void UpdatePower()
+        {
+            var sleep = Screen == ScreenId.Battle ? SleepTimeout.NeverSleep : SleepTimeout.SystemSetting;
+            if (UnityEngine.Screen.sleepTimeout != sleep) UnityEngine.Screen.sleepTimeout = sleep;
+            bool covered = !_shotNoUi && ((Screen == ScreenId.Intro && Skin.Tex("bg_title") != null) || (Screen == ScreenId.Summon && Skin.Tex("bg_summon") != null));
+            Arena?.SetCovered(covered);
         }
 
         void Back()
