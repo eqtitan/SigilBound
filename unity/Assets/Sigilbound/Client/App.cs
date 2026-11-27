@@ -26,7 +26,7 @@ namespace Sigilbound.Client
 
     public sealed partial class App : MonoBehaviour
     {
-        public const string SaveKey = "sigilbound.save.v1";
+        public const string SaveKey = SaveStore.MainKey;
         public Game G;
         public Arena Arena;
         public ScreenId Screen = ScreenId.Home;
@@ -51,13 +51,14 @@ namespace Sigilbound.Client
             UnityEngine.Screen.autorotateToLandscapeLeft = true;
             UnityEngine.Screen.autorotateToLandscapeRight = true;
             UnityEngine.Screen.orientation = ScreenOrientation.AutoRotation;
-            UnityEngine.Screen.sleepTimeout = SleepTimeout.NeverSleep;
+            UnityEngine.Screen.sleepTimeout = SleepTimeout.SystemSetting; // kept awake only in battle (UpdatePower)
             G = new Game(Load());
             G.EnsureDaily();
             Arena = Arena.Create();
             // Frame-rate cap (60, or 30 to run cooler) and graphics tier mapped to URP settings.
             Quality.Create(gameObject, G.S.settings.quality, Quality.SavedFpsMode(G.S.settings.fpsCap)).Sun = Arena.Sun;
             Quality.Busy = () => Battle != null && Battle.InProgress; // Auto holds tier changes until the battle ends
+            Quality.ReplayCapped = () => Screen == ScreenId.Battle && Battle != null && Battle.Replaying; // auto-replay runs at 30 fps
             Quality.I.Apply();
             Quality.Notice = Toast; // thermal fallback messages
             Vfx.ShakeSetting = () => Quality.SavedShake; // Settings > Screen shake
@@ -76,6 +77,7 @@ namespace Sigilbound.Client
             Arena.FrameMenu();
             StartShotsIfAsked(); // -sbShots=DIR: screenshot tour (ShotsMode.cs)
             PreloadModels();
+            ShowLoadProblem();
         }
 
         // Starts loading the high-detail models the player will see first (the menu lineup: the team, or
@@ -92,23 +94,54 @@ namespace Sigilbound.Client
 
         // ---------- save ----------
         // Stored in the web game's JSON layout (SaveCodec), so save codes move between the two.
-        static SaveData Load()
+        // SaveStore (Core) owns the safety rules: an unreadable save is kept as a copy and never
+        // overwritten, the previous save is kept as a backup, and nothing is written while a failed
+        // load is unresolved (QA review 2026-11-27, P0-1).
+        sealed class PrefsStorage : ISaveStorage
         {
-            try
-            {
-                var json = PlayerPrefs.GetString(SaveKey, "");
-                if (!string.IsNullOrEmpty(json)) return SaveCodec.FromJson(json) ?? new SaveData();
-            }
-            catch (Exception e) { Debug.LogWarning("Save unreadable, starting fresh: " + e.Message); }
-            return new SaveData();
+            public string Get(string key) => PlayerPrefs.GetString(key, "");
+            public void Set(string key, string value) => PlayerPrefs.SetString(key, value);
+            public void Flush() => PlayerPrefs.Save();
+        }
+        public SaveStore Store;
+        SaveData Load()
+        {
+            Store = new SaveStore(new PrefsStorage());
+            var s = Store.Load(DateTime.Now);
+            if (Store.State == SaveLoadState.FromBackup || Store.State == SaveLoadState.Failed)
+                Debug.LogWarning($"Sigilbound: save unreadable ({Store.Error}), kept as {Store.CorruptKey}; state {Store.State}");
+            return s;
         }
         public void Save()
         {
             if (NoSave) return; // screenshot mode (ShotsMode.cs) never touches the real save
+            if (Store == null || !Store.CanWrite) return; // failed load: never overwrite the real save
             G.S.gameVersion = Application.version;
-            var json = SaveCodec.ToJson(G.S);
-            G.S.sourceJson = json;
-            PlayerPrefs.SetString(SaveKey, json); PlayerPrefs.Save();
+            Store.Write(G.S);
+        }
+
+        // After a failed load: explain, and let the player load a save code or start over on purpose.
+        void ShowLoadProblem()
+        {
+            if (Store == null || NoSave) return;
+            if (Store.State == SaveLoadState.FromBackup)
+            {
+                Modal("Save restored from backup", 230, b =>
+                {
+                    Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), "Your save couldn't be read, so the backup from just before your last save was loaded. A copy of the damaged save is kept on this device.", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
+                    if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "OK")) CloseModal();
+                });
+                return;
+            }
+            if (Store.State != SaveLoadState.Failed) return;
+            Modal("Your save couldn't be read", 330, b =>
+            {
+                Ui.Text(new Rect(b.x, b.y, b.width, 150), "Your progress is kept safe on this device and nothing will be saved over it.\n\nIf you have a save code, load it in Settings. Or copy the damaged save to send with a bug report. Starting a new game keeps the damaged copy too.", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
+                float bw = (b.width - 10) / 2;
+                if (Ui.Button(new Rect(b.x, b.yMax - 96, bw, 44), "Load a save code", Ui.Kind.Secondary)) OpenSettings();
+                if (Ui.Button(new Rect(b.x + bw + 10, b.yMax - 96, bw, 44), "Copy damaged save", Ui.Kind.Secondary)) { GUIUtility.systemCopyBuffer = Store.CorruptText; Toast("Copied"); }
+                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Start a new game", Ui.Kind.Red)) { Store.AcceptFresh(); CloseModal(); }
+            });
         }
 
         // Replace this device's progress with a save code from the web game (or another device).
@@ -116,6 +149,7 @@ namespace Sigilbound.Client
         {
             var s = SaveCodec.FromCode(code);
             if (s == null) return false;
+            Store?.AcceptFresh(); // the player chose this save over the unreadable one
             G = new Game(s);
             G.EnsureDaily();
             Save();
@@ -133,7 +167,11 @@ namespace Sigilbound.Client
         public void CloseModal() { _modalBody = null; _modalTitle = null; }
         public bool ModalOpen => _modalBody != null;
 
-        public void Go(ScreenId s) { Screen = s; _scroll = Vector2.zero; CloseModal(); }
+        public void Go(ScreenId s)
+        {
+            if (s != Screen) HeroModels.TrimSoon(); // let go of hero models the new screen doesn't show
+            Screen = s; _scroll = Vector2.zero; CloseModal();
+        }
 
         void Update()
         {
@@ -142,6 +180,18 @@ namespace Sigilbound.Client
             if (Screen != ScreenId.Battle) UpdateLineup();
             if (Screen == ScreenId.Hero && !ModalOpen) UpdateHeroViewer();
             CheckTips();
+            UpdatePower();
+        }
+
+        // Battery and heat (owner decision 2026-11-27, performance review #2): the screen may sleep in menus
+        // and stays awake only in battle (auto-replay included); the arena isn't drawn behind a menu that
+        // covers the whole screen with an opaque painting (the title screen, Summon).
+        void UpdatePower()
+        {
+            var sleep = Screen == ScreenId.Battle ? SleepTimeout.NeverSleep : SleepTimeout.SystemSetting;
+            if (UnityEngine.Screen.sleepTimeout != sleep) UnityEngine.Screen.sleepTimeout = sleep;
+            bool covered = !_shotNoUi && ((Screen == ScreenId.Intro && Skin.Tex("bg_title") != null) || (Screen == ScreenId.Summon && Skin.Tex("bg_summon") != null));
+            Arena?.SetCovered(covered);
         }
 
         void Back()

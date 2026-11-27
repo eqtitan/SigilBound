@@ -65,10 +65,21 @@ namespace Sigilbound.Core
             var sh = Json.Obj(root, "shards");
             if (sh != null) { s.shardCommon = Json.Int(sh, "common"); s.shardMystic = Json.Int(sh, "mystic"); s.shardRadiant = Json.Int(sh, "radiant"); }
 
+            var keptGearUids = new HashSet<int>();
+            var keptUids = new List<int>();
             foreach (var o in Json.Arr(root, "heroes"))
             {
                 var id = Json.Str(o, "id");
-                if (Hero(id) == null) continue; // unknown hero (newer web version): skip rather than crash
+                if (Hero(id) == null)
+                {
+                    // Unknown hero (a newer or branch build): kept as it is and written back, never dropped.
+                    if (!(o is Dictionary<string, object>)) continue;
+                    s.keptHeroes.Add(Json.Write(o));
+                    keptUids.Add(Json.Int(o, "uid"));
+                    var kg = Json.Obj(o, "gear");
+                    if (kg != null) foreach (var kv in kg) if (kv.Value is double gu && gu != 0) keptGearUids.Add((int)gu);
+                    continue;
+                }
                 var h = new HeroSave { uid = Json.Int(o, "uid"), id = id, level = Json.Int(o, "level", 1), xp = Json.Int(o, "xp"), stars = Json.Int(o, "stars", NaturalStars(Hero(id).Rarity)), locked = Json.Bool(o, "locked") };
                 var g = Json.Obj(o, "gear");
                 if (g != null) foreach (Slot sl in Enum.GetValues(typeof(Slot))) h.SetGear(sl, Json.Int(g, SlotKey(sl)));
@@ -78,6 +89,8 @@ namespace Sigilbound.Core
             }
             foreach (var o in Json.Arr(root, "gear") ?? new List<object>())
             {
+                // Gear worn by a kept (unknown) hero stays with it, out of this build's bag.
+                if (o is Dictionary<string, object> && keptGearUids.Contains(Json.Int(o, "uid"))) { s.keptGear.Add(Json.Write(o)); keptUids.Add(Json.Int(o, "uid")); continue; }
                 int slot = Array.IndexOf(SlotKeys, Json.Str(o, "slot"));
                 if (slot < 0) continue;
                 var g = new GearSave { uid = Json.Int(o, "uid"), slot = slot, rarity = Math.Max(1, Math.Min(5, Json.Int(o, "rarity", 1))), set = SetIndex(Json.Str(o, "set")), level = Json.Int(o, "level"), locked = Json.Bool(o, "locked") };
@@ -90,7 +103,7 @@ namespace Sigilbound.Core
             foreach (var h in s.heroes) foreach (Slot sl in Enum.GetValues(typeof(Slot))) if (h.GetGear(sl) != 0 && !gearUids.Contains(h.GetGear(sl))) h.SetGear(sl, 0);
             var heroUids = new HashSet<int>(s.heroes.Select(h => h.uid));
             s.team = (Json.Arr(root, "team") ?? new List<object>()).OfType<double>().Select(d => (int)d).Where(heroUids.Contains).Distinct().Take(4).ToList();
-            int maxUid = s.heroes.Select(h => h.uid).Concat(s.gear.Select(g => g.uid)).DefaultIfEmpty(0).Max();
+            int maxUid = s.heroes.Select(h => h.uid).Concat(s.gear.Select(g => g.uid)).Concat(keptUids).DefaultIfEmpty(0).Max();
             s.nextUid = Math.Max(s.nextUid, maxUid + 1);
 
             s.cleared = Math.Max(0, Math.Min(TotalStages, Json.Int(root, "cleared")));
@@ -187,7 +200,7 @@ namespace Sigilbound.Core
                 var o = new Dictionary<string, object> { ["uid"] = h.uid, ["id"] = h.id, ["level"] = h.level, ["xp"] = h.xp, ["stars"] = h.stars, ["gear"] = gear, ["locked"] = h.locked };
                 if (h.skillLv.Count > 0) o["skillLv"] = h.skillLv.Select(x => (object)x).ToList();
                 return (object)o;
-            }).ToList();
+            }).Concat(s.keptHeroes.Select(Json.Parse)).ToList();
             root["gear"] = s.gear.Select(g =>
             {
                 var o = new Dictionary<string, object>
@@ -197,11 +210,13 @@ namespace Sigilbound.Core
                 };
                 if (g.locked) o["locked"] = true;
                 return (object)o;
-            }).ToList();
+            }).Concat(s.keptGear.Select(Json.Parse)).ToList();
             root["team"] = s.team.Select(u => (object)u).ToList();
-            root["cleared"] = s.cleared;
+            // A newer build's campaign can be longer: keep its progress past this build's last stage.
+            int srcCleared = Json.Int(root, "cleared"), srcHard = Json.Int(root, "hardCleared");
+            root["cleared"] = s.cleared >= TotalStages && srcCleared > s.cleared ? srcCleared : s.cleared;
             // Fields added in web 0.20/0.21: written once they're used (or were in the source save).
-            if (s.hardCleared > 0 || root.ContainsKey("hardCleared")) root["hardCleared"] = s.hardCleared;
+            if (s.hardCleared > 0 || root.ContainsKey("hardCleared")) root["hardCleared"] = s.hardCleared >= TotalStages && srcHard > s.hardCleared ? srcHard : s.hardCleared;
             if (s.tomes > 0 || root.ContainsKey("tomes")) root["tomes"] = s.tomes;
             if (s.ach.Count > 0 || root.ContainsKey("ach")) { var a = new Dictionary<string, object>(); foreach (var id in s.ach) a[id] = 1; root["ach"] = a; }
             if (s.teams.Count > 0 || root.ContainsKey("teams")) root["teams"] = s.teams.Select(t => (object)t.uids.Select(u => (object)u).ToList()).ToList();

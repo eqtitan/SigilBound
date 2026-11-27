@@ -37,6 +37,8 @@ namespace Sigilbound.Client
         bool IsTitan => _spec.Mode == BattleMode.Titan;
         public BattleMode Mode => _spec?.Mode ?? BattleMode.Stage;
         public bool InProgress => _b != null && !_finished;
+        // Auto-replay is looping campaign battles (Quality caps it at 30 fps).
+        public bool Replaying => _b != null && _spec != null && _spec.Mode == BattleMode.Stage && G.S.settings.autoReplay;
 
         public void Begin(int stage) => Begin(stage < 0 ? BattleSpec.Titan() : BattleSpec.ForStage(stage));
 
@@ -47,8 +49,13 @@ namespace Sigilbound.Client
             if (spec.Mode == BattleMode.Arena && G.S.daily.arenaTries <= 0) { App.Toast("No arena fights left today."); return; }
             if (spec.Mode == BattleMode.Titan && !spec.Practice && G.S.daily.titanTries <= 0) { App.Toast("No Titan tries left today."); return; }
             if (spec.Mode == BattleMode.Hard && !G.HardOpen(spec.Stage)) { App.Toast("Clear the previous Hard stage first."); return; }
+            // Quit rule (owner decision 2026-11-27): a Titan try and an arena fight count from the start, saved
+            // at once, so leaving or closing the game mid-fight is no free retry. Practice and the campaign are free.
+            if (spec.Mode == BattleMode.Titan && !spec.Practice) { G.StartTitan(); App.Save(); }
+            if (spec.Mode == BattleMode.Arena) { G.StartArena(spec.Rival); App.Save(); }
             _spec = spec;
             App.ClearLineup();
+            HeroModels.TrimSoon(); // auto-replay starts battles back to back: free the last one's leftovers
             _b = spec.Mode switch
             {
                 BattleMode.Titan => Core.Battle.ForTitan(G),
@@ -74,7 +81,7 @@ namespace Sigilbound.Client
             Clear();
             Spawn(_b.Allies, true); Spawn(_b.Enemies, false);
             _finished = false; _awaiting = false; _banner = ""; _actor = null;
-            _cinema = _skippable = false; _revealTitle = null; // a cinematic cut short by leaving the last battle
+            ResetCinema(); // a cinematic cut short by leaving the last battle
             _t0 = Time.unscaledTime; _paused = false; _taken.Clear(); _healed.Clear();
             App.Go(ScreenId.Battle);
             // Music: the Titan its own; a campaign boss stage waits in silence for the lair reveal's swell and
@@ -945,7 +952,7 @@ namespace Sigilbound.Client
         public void AskRetreat()
         {
             if (_finished) return;
-            string why = IsTitan ? "Damage so far still counts and uses this try." : _spec.Mode == BattleMode.Arena ? "Retreating counts as a loss." : "You get no rewards for this battle.";
+            string why = IsTitan ? (_spec.Practice ? "Practice: nothing is used." : "Damage so far still counts. The try was used when the fight started.") : _spec.Mode == BattleMode.Arena ? "Retreating counts as a loss." : "You get no rewards for this battle.";
             App.Modal("Retreat?", 200, r =>
             {
                 Ui.Text(new Rect(r.x, r.y, r.width, 50), why, 14, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
@@ -953,10 +960,19 @@ namespace Sigilbound.Client
                 if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Retreat", Ui.Kind.Red))
                 {
                     App.CloseModal();
-                    if (IsTitan || _spec.Mode == BattleMode.Arena) { if (_loop != null) StopCoroutine(_loop); _b.Retreat(); Finish(); }
+                    if (IsTitan || _spec.Mode == BattleMode.Arena) { if (_loop != null) StopCoroutine(_loop); ResetCinema(); _b.Retreat(); Finish(); }
                     else { G.S.settings.autoReplay = false; if (_auto != null) { if (_loop != null) StopCoroutine(_loop); Time.timeScale = 1; _finished = true; _auto.Record(false, null, false, null); ShowAutoSummary("ended by a retreat", _spec.Stage); } else End(BackScreen); }
                 }
             });
+        }
+
+        // Leaving mid-cinematic (Titan moves, intro, lair reveal) stops the coroutine before its own clean-up
+        // runs (code review M4): restore the camera, the HUD, the Titan's place and pose, and drop "Tap to skip".
+        void ResetCinema()
+        {
+            _cinema = _skippable = false; _revealTitle = null;
+            if (App?.Arena != null) { App.Arena.ClearOverride(); App.Arena.BreathTarget = 0; }
+            foreach (var kv in _views) if (kv.Key.Titan && kv.Value != null) kv.Value.ResetToHome();
         }
 
         // ---------- HUD ----------

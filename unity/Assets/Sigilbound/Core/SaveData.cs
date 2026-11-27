@@ -89,5 +89,10 @@ namespace Sigilbound.Core
         // The JSON this save was read from. Fields the Unity app doesn't use (sound volumes,
         // the web's 2D toggle, online profile...) are kept from it when the save is written back.
         public string sourceJson = "";
+        // Hero entries this build doesn't know (written by a newer build or a branch build) and the gear
+        // they wear, as their raw JSON. They are left out of play here and written back unchanged, so an
+        // older APK never deletes them (QA review 2026-11-27, P0-1).
+        public List<string> keptHeroes = new List<string>();
+        public List<string> keptGear = new List<string>();
     }
 }

@@ -4,6 +4,7 @@
 // Resources/Heroes/<heroId> overrides both: one made by the art import tool (with a HeroRig) plays
 // the full battle choreography; a hand-made one with an Animator gets triggers Attack / Cast / Hit / Die.
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Sigilbound.Core;
@@ -37,7 +38,18 @@ namespace Sigilbound.Client
 
         // ---------- materials ----------
         static Material Lit(Color c) => Materials.Lit(c, 0f, 0.35f);
-        public static Material Unlit(Color c) => Materials.Unlit(c);
+        // Unlit materials are new instances (the ring and aura change colour per unit). Those made while a
+        // view is built belong to it and are destroyed with it (code review L10: they used to leak, a few per
+        // unit per battle, which added up over auto-replay).
+        static List<Material> _capture;
+        List<Material> _owned;
+        public static Material Unlit(Color c) { var m = Materials.Unlit(c); _capture?.Add(m); return m; }
+        void OnDestroy()
+        {
+            if (_owned == null) return;
+            foreach (var m in _owned) if (m != null) Destroy(m);
+            _owned = null;
+        }
 
         static Transform Part(PrimitiveType type, Transform parent, Vector3 pos, Vector3 scale, Material mat, Vector3? euler = null)
         {
@@ -70,7 +82,7 @@ namespace Sigilbound.Client
                     px[y * n + x] = new Color32(0, 0, 0, (byte)(255 * Mathf.Pow(1 - d, 1.6f)));
                 }
                 t.SetPixels32(px); t.Apply();
-                _blob = Unlit(new Color(0, 0, 0, 0.55f)); _blob.mainTexture = t; _blob.name = "ContactShadow";
+                _blob = Materials.Unlit(new Color(0, 0, 0, 0.55f)); _blob.mainTexture = t; _blob.name = "ContactShadow"; // shared by all views
                 return _blob;
             }
         }
@@ -81,6 +93,17 @@ namespace Sigilbound.Client
 
         // yaw: degrees around Y, 0 = facing +Z (battle units face the rune circle's centre).
         public static CharacterView Create(Unit unit, Vector3 pos, float yaw, float scale, GearLook gear = null)
+        {
+            var outer = _capture; var owned = new List<Material>(); _capture = owned;
+            try
+            {
+                var v = CreateView(unit, pos, yaw, scale, gear);
+                v._owned = owned;
+                return v;
+            }
+            finally { _capture = outer; }
+        }
+        static CharacterView CreateView(Unit unit, Vector3 pos, float yaw, float scale, GearLook gear)
         {
             var root = new GameObject(unit.Name).transform;
             root.position = pos;
@@ -134,6 +157,13 @@ namespace Sigilbound.Client
             view._home = root.position; view._homeRot = root.rotation;
             view._phase = Random.value * 10f;
             return view;
+        }
+
+        // Back to its spot and idle, unfrozen (a Titan move cut short by a retreat left it mid-leap).
+        public void ResetToHome()
+        {
+            transform.position = _home; transform.rotation = _homeRot;
+            if (_model != null) { _model.SetFrozen(false); _model.Idle(0.1f); }
         }
 
         // Swap the placeholder for the real model once glTFast has built it.

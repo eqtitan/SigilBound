@@ -307,16 +307,23 @@ The timing multipliers apply to anticipation and recovery, on top of the family 
 **Desync:** each unit's idle starts at a random phase (0–1). Breathing-cycle speed varies ±8% per
 hero, set by hero id, so a lineup of five never breathes in sync.
 
-## 6. Frame rate: match the display
+## 6. Frame rate
 
 ### 6.1 Rules
 
-- **Auto (default):** render at the display's refresh rate, up to 120 Hz.
+Owner decision 2026-11-27 (replaces "Auto matches the display" as the default; 120 fps costs roughly
+1.6-2x the power, a heat and battery risk in long auto-replay sessions). Rules in `Core/FrameRate.cs`.
+
+- **60 (default):** the cap is 60 (or the display rate, if lower). The old saved "Auto" reads as 60.
+- **90/120 · Smoothest:** a Settings choice on screens faster than 60 Hz: the display's refresh rate, up to 120 Hz.
   - Read it from `Screen.currentResolution.refreshRateRatio.value` (a double, Unity 6).
   - Round it, and treat 0 or NaN as 60.
-- **60:** the cap is 60 (or the display rate, if lower).
+  - Steps down to 60 when the phone can't hold it, and retries between battles.
 - **30 · Battery:** the cap is 30.
-- **Forced 30:** Low tier and thermal limits still force 30, as today.
+- **Forced 30:** Low tier, thermal limits and **auto-replay** force 30.
+- **Menus:** the screen may sleep (`SleepTimeout.SystemSetting`); it is kept awake only in battle. Behind a
+  menu with an opaque full-screen painting (title screen, Summon) the arena camera draws nothing and skips
+  post-processing.
 - **Mobile (Android/iOS):**
   - `QualitySettings.vSyncCount = 0`, and `Application.targetFrameRate` = the target.
   - Turn on **Optimized Frame Pacing** (Swappy) in Player settings, so 120, 60 and 30 pace evenly
@@ -327,12 +334,12 @@ hero, set by hero id, so a lineup of five never breathes in sync.
     - Game Booster / Game Optimizing Service can cap games at 60. If Auto shows 60 in the
       performance overlay, check Game Booster's frame-rate option.
 - **Desktop (Windows):**
-  - Auto = `vSyncCount = 1` and `targetFrameRate = -1`, which matches any monitor (60, 120,
+  - 90/120 = `vSyncCount = 1` and `targetFrameRate = -1`, which matches any monitor (60, 120,
     144, 165 Hz or VRR).
   - 60 or 30 = `vSyncCount = DisplayHz / cap` when that divides evenly (1–4). Otherwise
     `vSyncCount = 0` with `targetFrameRate = cap`.
 - **Pick targets that divide the display rate** (120 → 120, 60, 40 or 30), so frames never judder.
-  On a 90 Hz panel Auto is 90.
+  On a 90 Hz panel the high choice is 90.
 
 ### 6.2 Time rules for code
 

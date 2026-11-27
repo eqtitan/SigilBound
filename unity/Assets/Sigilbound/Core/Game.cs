@@ -413,12 +413,25 @@ namespace Sigilbound.Core
             return res;
         }
 
+        // Quit rule (owner decision 2026-11-27, PMO D3): a Titan try is used when the fight starts, so leaving
+        // or closing the game mid-fight no longer gives a free retry. Practice never calls this. Save right after.
+        bool _titanStarted;
+        public bool StartTitan()
+        {
+            EnsureDaily();
+            if (S.daily.titanTries <= 0) return false;
+            S.daily.titanTries--;
+            _titanStarted = true;
+            return true;
+        }
+
         public Reward CompleteTitan(long damage)
         {
             EnsureDaily();
             var tier = TitanTiers[0];
             foreach (var t in TitanTiers) if (damage >= t.Dmg) tier = t;
-            S.daily.titanTries = Math.Max(0, S.daily.titanTries - 1);
+            if (_titanStarted) _titanStarted = false; // the try was used at the start
+            else S.daily.titanTries = Math.Max(0, S.daily.titanTries - 1); // no StartTitan (the web game's order)
             S.daily.titanBest = Math.Max(S.daily.titanBest, damage);
             S.titanBestAllTime = Math.Max(S.titanBestAllTime, damage);
             Grant(tier.Reward); BumpQuest("titan");

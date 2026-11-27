@@ -99,7 +99,7 @@ namespace Sigilbound.Client
                     Ui.Text(new Rect(b.x, b.y, b.width, 50), "This deletes your save on this device. It can't be undone.", 14, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
                     if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
                     if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Reset", Ui.Kind.Red))
-                    { G = new Game(new SaveData()); G.EnsureDaily(); Save(); ClearLineup(); CloseModal(); Go(ScreenId.Intro); }
+                    { Store?.AcceptFresh(); G = new Game(new SaveData()); G.EnsureDaily(); Save(); ClearLineup(); CloseModal(); Go(ScreenId.Intro); }
                 });
             Scroller.End();
         }

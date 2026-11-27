@@ -77,8 +77,26 @@ namespace Sigilbound.EditorTools
             PlayerSettings.Android.keyaliasPass = aliasPass;
             var output = Environment.GetEnvironmentVariable("SB_OUTPUT");
             if (string.IsNullOrEmpty(output)) output = Arg("-customBuildPath");
+            var updaterJava = SetUpdaterPlugins(false); // the updater's Java (PackageInstaller, APK provider) stays out too
             try { Build(BuildTarget.Android, string.IsNullOrEmpty(output) ? "Builds/Android/Sigilbound.aab" : output); }
-            finally { SetDefines(target, defines); IsStoreBuild = false; } // local editors keep their own defines
+            finally { SetDefines(target, defines); IsStoreBuild = false; SetUpdaterPlugins(true, updaterJava); } // local editors keep their own defines
+        }
+
+        // The in-app updater's Android plugins (Plugins/Android). Store builds leave them out of the AAB; the
+        // test APK keeps them. Returns the plugins that were changed, so only those are switched back.
+        public static readonly string[] UpdaterPlugins = { "Assets/Plugins/Android/SigilboundUpdateInstaller.java", "Assets/Plugins/Android/SigilboundApkProvider.java" };
+        static string[] SetUpdaterPlugins(bool on, string[] only = null)
+        {
+            var changed = new System.Collections.Generic.List<string>();
+            foreach (var p in only ?? UpdaterPlugins)
+            {
+                if (!(AssetImporter.GetAtPath(p) is PluginImporter pi) || pi.GetCompatibleWithPlatform(BuildTarget.Android) == on) continue;
+                pi.SetCompatibleWithPlatform(BuildTarget.Android, on);
+                pi.SaveAndReimport();
+                changed.Add(p);
+            }
+            if (!on) Debug.Log($"Sigilbound: store build, updater plugins left out ({changed.Count})");
+            return changed.ToArray();
         }
 #if UNITY_2022_2_OR_NEWER
         static string GetDefines(UnityEditor.Build.NamedBuildTarget t) => PlayerSettings.GetScriptingDefineSymbols(t);
