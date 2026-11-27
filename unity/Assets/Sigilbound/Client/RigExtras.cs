@@ -27,7 +27,8 @@ namespace Sigilbound.Client
         // True when the model carries any extension bone (only those heroes get the component).
         public static bool Needed(Transform root) =>
             BodyShaper.Find(root, "tail_01") != null || BodyShaper.Find(root, "jaw") != null ||
-            BodyShaper.Find(root, "wing_l") != null || BodyShaper.Find(root, "neck_02") != null;
+            BodyShaper.Find(root, "wing_l") != null || BodyShaper.Find(root, "neck_02") != null ||
+            BodyShaper.Find(root, "rest_fit") != null; // image-to-3D heroes (blenderforge/i3d_rig.py): joints moved to the mesh
 
         // Call right after the model is instantiated, before any clip plays (the bones are at rest).
         public void Init(Transform model, Transform reference, Animation anim)

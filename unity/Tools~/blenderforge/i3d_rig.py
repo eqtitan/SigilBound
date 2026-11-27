@@ -1,0 +1,265 @@
+"""Rig an image-to-3D hero mesh (TRELLIS / Hunyuan3D output, cleaned by i3d_prep) to the UBC skeleton.
+
+    bpyenv/bin/python i3d_rig.py -- --hero talvo --clean DIR/talvo_clean.blend --texsrc DIR --out OUTDIR
+
+How (so the shared UBC battle clips play on it):
+1. A1 = the UBC armature (T-pose) with its joints moved to the mesh's landmarks (i3d_landmarks.py): limb bones keep
+   their T-pose directions and rolls, only lengths and positions change. RigExtras (Unity) re-expresses the
+   clips' positions for bones that moved, as for the kit creature rigs; the marker bone "rest_fit" turns it on.
+2. A1 is posed into the mesh's pose (limbs aimed at the landmarks); a copy A2 takes that pose as its rest, and
+   the mesh is skinned to A2 with bone-heat weights (fingers, face and leaf bones don't deform; held weapons,
+   shields and other rigid pieces are overridden to one bone).
+3. A2 is posed back to A1's rest and applied: the mesh is now in the UBC T-pose, skinned to A1, and exported in
+   the HD layout (SB_Hero_<id>_HD.glb + _albedo.jpg [+ _glow.png]).
+"""
+import bpy, bmesh, sys, os, math, json, argparse
+from mathutils import Vector, Matrix
+from mathutils.bvhtree import BVHTree
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import ubc_parts as P  # noqa: E402
+from i3d_landmarks import LANDMARKS  # noqa: E402
+
+NODEFORM = ("index", "middle", "ring", "pinky", "thumb", "_leaf", "root", "rest_fit")
+
+
+def ray_mid(bvh, x, z, y_hint=None):
+    """Centre of the first solid layer hit by a ray from the front (-Y) at (x, z)."""
+    if y_hint is not None:
+        return y_hint
+    o = Vector((x, -5.0, z)); d = Vector((0, 1, 0))
+    hit = bvh.ray_cast(o, d)
+    if hit[0] is None:
+        return 0.0
+    y1 = hit[0].y
+    hit2 = bvh.ray_cast(hit[0] + d * 1e-3, d)
+    y2 = hit2[0].y if hit2[0] is not None else y1 + 0.1
+    if y2 - y1 > 0.5:
+        y2 = y1 + 0.12
+    return (y1 + y2) / 2
+
+
+def pt(bvh, spec):
+    if len(spec) == 3:
+        return Vector(spec)
+    x, z = spec
+    return Vector((x, ray_mid(bvh, x, z), z))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--hero", required=True); ap.add_argument("--clean", required=True)
+    ap.add_argument("--out", required=True); ap.add_argument("--blend", default="")
+    a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
+    L = LANDMARKS[a.hero]
+    bpy.ops.wm.open_mainfile(filepath=a.clean)
+    body = bpy.data.objects["Body"]
+    # optional mesh trims (generator guesses to drop)
+    if L.get("trim"):
+        bm = bmesh.new(); bm.from_mesh(body.data)
+        kill = [f for f in bm.faces if any(t(f.calc_center_median()) for t in L["trim"])]
+        bmesh.ops.delete(bm, geom=kill, context="FACES")
+        loose = [v for v in bm.verts if not v.link_faces]
+        bmesh.ops.delete(bm, geom=loose, context="VERTS")
+        bm.to_mesh(body.data); bm.free()
+    # triangle cap (HD budget; the generator's meshes are dense where the texture has detail)
+    cap = L.get("max_tris", 18000)
+    n = sum(len(p.vertices) - 2 for p in body.data.polygons)
+    if n > cap:
+        for o in bpy.context.selected_objects: o.select_set(False)
+        body.select_set(True); bpy.context.view_layer.objects.active = body
+        d = body.modifiers.new("Dec", "DECIMATE"); d.ratio = cap / n
+        bpy.ops.object.modifier_apply(modifier="Dec")
+    dg = bpy.context.evaluated_depsgraph_get()
+    bvh = BVHTree.FromObject(body, dg)
+
+    # --- UBC armature ---
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=P.FILES["Regular_Male_FullBody"])
+    new = [o for o in bpy.data.objects if o not in before]
+    A1 = next(o for o in new if o.type == "ARMATURE")
+    for o in new:
+        if o.type == "MESH": bpy.data.objects.remove(o, do_unlink=True)
+    A1.name = "Armature"; A1.data.name = "Armature"
+    bpy.context.view_layer.update()
+
+    J = {k: pt(bvh, v) for k, v in L["joints"].items()}
+    # T-pose targets in A1 (rest): arms out along +-X from the shoulder, legs straight down from the hip.
+    def seg(a_, b_): return (J[b_] - J[a_]).length
+    rest = {}
+    for s, sg in (("l", 1), ("r", -1)):
+        sh = J["shoulder_" + s]
+        e = sh + Vector((sg * seg("shoulder_" + s, "elbow_" + s), 0, 0))
+        w = e + Vector((sg * seg("elbow_" + s, "wrist_" + s), 0, 0))
+        h = w + Vector((sg * max(0.06, seg("wrist_" + s, "handend_" + s)), 0, 0))
+        rest.update({"upperarm_" + s: sh, "lowerarm_" + s: e, "hand_" + s: w, "handend_" + s: h})
+        hp = J["hip_" + s]
+        k = hp + Vector((0, 0, -seg("hip_" + s, "knee_" + s)))
+        an = k + Vector((0, 0.02, -seg("knee_" + s, "ankle_" + s)))
+        toe = an + Vector((0, -max(0.12, seg("ankle_" + s, "toe_" + s)), -an.z + 0.02))
+        rest.update({"thigh_" + s: hp, "calf_" + s: k, "foot_" + s: an, "ball_" + s: an + (toe - an) * 0.6, "toe_" + s: toe})
+
+    bpy.context.view_layer.objects.active = A1
+    for o in bpy.context.selected_objects: o.select_set(False)
+    A1.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    eb = A1.data.edit_bones
+    orig = {b.name: (b.head.copy(), b.tail.copy(), b.roll) for b in eb}
+
+    def place(name, head, tail):
+        b = eb[name]; roll = b.roll
+        b.head = head; b.tail = tail; b.roll = roll
+
+    # spine chain straight from the landmarks (rest = the mesh's own posture)
+    chain = ["pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "Head"]
+    pts = [J["pelvis"], J["spine_01"], J["spine_02"], J["spine_03"], J["neck"], J["head"], J["head_top"]]
+    for i, n in enumerate(chain):
+        place(n, pts[i], pts[i + 1])
+    for s, sg in (("l", 1), ("r", -1)):
+        place("clavicle_" + s, J["spine_03"].lerp(J["neck"], 0.8) + Vector((sg * 0.03, 0, 0)), rest["upperarm_" + s])
+        place("upperarm_" + s, rest["upperarm_" + s], rest["lowerarm_" + s])
+        place("lowerarm_" + s, rest["lowerarm_" + s], rest["hand_" + s])
+        place("hand_" + s, rest["hand_" + s], rest["handend_" + s])
+        # fingers: keep their offsets from the hand, scaled by the hand length ratio
+        oh = orig["hand_" + s][0]; olen = (orig["hand_" + s][1] - oh).length
+        k = max(0.6, min(2.5, (rest["handend_" + s] - rest["hand_" + s]).length / max(1e-4, olen) * 0.5 + 0.5))
+        for b in eb:
+            if b.name.endswith("_" + s) and any(b.name.startswith(f) for f in ("index", "middle", "ring", "pinky", "thumb")):
+                h0, t0, r0 = orig[b.name]
+                b.head = rest["hand_" + s] + (h0 - oh) * k; b.tail = rest["hand_" + s] + (t0 - oh) * k; b.roll = r0
+        place("thigh_" + s, rest["thigh_" + s], rest["calf_" + s])
+        place("calf_" + s, rest["calf_" + s], rest["foot_" + s])
+        place("foot_" + s, rest["foot_" + s], rest["ball_" + s])
+        place("ball_" + s, rest["ball_" + s], rest["toe_" + s])
+        lf = eb["ball_leaf_" + s]; lf.head = rest["toe_" + s]; lf.tail = rest["toe_" + s] + (rest["toe_" + s] - rest["ball_" + s]) * 0.8
+    # tail chain (RigExtras sways bones named tail_01..)
+    prev = eb["pelvis"]
+    for i, p in enumerate(L.get("tail", [])[:-1]):
+        b = eb.new(f"tail_{i + 1:02d}"); b.head = Vector(p); b.tail = Vector(L["tail"][i + 1]); b.parent = prev
+        b.use_connect = False; prev = b
+    m = eb.new("rest_fit"); m.head = Vector((0, 0, 0)); m.tail = Vector((0, 0.05, 0)); m.parent = eb["root"]
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for b in A1.data.bones:
+        b.use_deform = not any(k in b.name for k in NODEFORM)
+
+    # --- pose A1 into the mesh's pose: aim each limb bone at its landmark ---
+    bpy.ops.object.mode_set(mode="POSE")
+    aims = []
+    for s in ("l", "r"):
+        aims += [("upperarm_" + s, "elbow_" + s), ("lowerarm_" + s, "wrist_" + s), ("hand_" + s, "handend_" + s),
+                 ("thigh_" + s, "knee_" + s), ("calf_" + s, "ankle_" + s), ("foot_" + s, "toe_" + s)]
+    for bone, tgt in aims:
+        pb = A1.pose.bones[bone]
+        bpy.context.view_layer.update()
+        head = A1.matrix_world @ pb.head; tail = A1.matrix_world @ pb.tail
+        v = tail - head; t = J[tgt] - head
+        if bone.startswith("foot_"):
+            t = Vector((t.x, t.y, 0)) if t.length > 0 else v  # feet stay flat
+            v = Vector((v.x, v.y, 0))
+        if v.length < 1e-5 or t.length < 1e-5: continue
+        q = v.rotation_difference(t)
+        pb.matrix = Matrix.Translation(head) @ q.to_matrix().to_4x4() @ Matrix.Translation(-head) @ pb.matrix
+    bpy.context.view_layer.update()
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+    # --- A2: the posed armature as rest; skin the mesh to it ---
+    A2 = A1.copy(); A2.data = A1.data.copy(); A2.name = "A2"; bpy.context.scene.collection.objects.link(A2)
+    for o in bpy.context.selected_objects: o.select_set(False)
+    bpy.context.view_layer.objects.active = A2; A2.select_set(True)
+    bpy.ops.object.mode_set(mode="POSE"); bpy.ops.pose.select_all(action="SELECT"); bpy.ops.pose.armature_apply(selected=False)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for o in bpy.context.selected_objects: o.select_set(False)
+    body.select_set(True); A2.select_set(True); bpy.context.view_layer.objects.active = A2
+    bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+    defb = [b.name for b in A2.data.bones if b.use_deform]
+    # weights: fill anything heat missed (nearest bone segment), then the rigid overrides
+    vg = {n: (body.vertex_groups.get(n) or body.vertex_groups.new(name=n)) for n in defb}
+    segs = {n: (A2.matrix_world @ A2.data.bones[n].head_local, A2.matrix_world @ A2.data.bones[n].tail_local) for n in defb}
+    def nearest(p):
+        best, bd = None, 1e9
+        for n, (h, t) in segs.items():
+            ab = t - h; u = max(0.0, min(1.0, (p - h).dot(ab) / max(ab.length_squared, 1e-9)))
+            d = (p - (h + ab * u)).length
+            if d < bd: best, bd = n, d
+        return best
+    mw = body.matrix_world
+    over = L.get("rigid", [])
+    filled = forced = 0
+    for v in body.data.vertices:
+        p = mw @ v.co
+        tgt = next((bn for bn, test in over if test(p)), None)
+        if tgt is None and sum(g.weight for g in v.groups) < 1e-3:
+            tgt = nearest(p); filled += 1
+        elif tgt is not None:
+            forced += 1
+        if tgt == "nearest_tail":
+            tails = [n for n in defb if n.startswith("tail_")]
+            tgt = min(tails, key=lambda n: min(((p - segs[n][0]).length, (p - segs[n][1]).length))) if tails else nearest(p)
+        if tgt is not None:
+            for gi in [g.group for g in v.groups]: body.vertex_groups[gi].remove([v.index])
+            vg[tgt].add([v.index], 1.0, "REPLACE")
+    print(f"[i3d] {a.hero}: heat-filled {filled}, rigid {forced}")
+
+    # --- pose A2 back to A1's rest and apply: the mesh moves into the T-pose ---
+    for o in bpy.context.selected_objects: o.select_set(False)
+    bpy.context.view_layer.objects.active = A2; A2.select_set(True)
+    bpy.ops.object.mode_set(mode="POSE")
+    def depth(b): return 0 if b.parent is None else 1 + depth(b.parent)
+    for pb in sorted(A2.pose.bones, key=lambda p: depth(p.bone)):
+        pb.matrix = A1.data.bones[pb.name].matrix_local.copy()
+        bpy.context.view_layer.update()
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for o in bpy.context.selected_objects: o.select_set(False)
+    bpy.context.view_layer.objects.active = body; body.select_set(True)
+    md = next(m for m in body.modifiers if m.type == "ARMATURE")
+    bpy.ops.object.modifier_apply(modifier=md.name)
+    body.parent = None
+    bpy.data.objects.remove(A2, do_unlink=True)
+    # A1 back to its rest; bind
+    for pb in A1.pose.bones: pb.matrix_basis = Matrix.Identity(4)
+    body.parent = A1
+    md = body.modifiers.new("Armature", "ARMATURE"); md.object = A1
+    body.name = f"SB_Hero_{a.hero}"
+    bpy.context.view_layer.update()
+
+    # --- export (HD layout) ---
+    os.makedirs(a.out, exist_ok=True)
+    img = next((i for i in bpy.data.images if i.size[0] > 0 and i.name != "Render Result"), None)
+    from PIL import Image
+    alb_png = os.path.join(a.out, f"_tmp_{a.hero}.png")
+    img.filepath_raw = alb_png; img.file_format = "PNG"; img.save()
+    im = Image.open(alb_png).convert("RGB")
+    im.save(os.path.join(a.out, f"SB_Hero_{a.hero}_HD_albedo.jpg"), quality=88, optimize=True)
+    # glow: bright saturated element-coloured pixels (lava, flames, runes), half size
+    g = im.resize((im.width // 2, im.height // 2)).convert("HSV")
+    hue_lo, hue_hi = L.get("glow_hue", (0, 40))
+    gp = Image.new("RGB", g.size); src = g.load(); dst = gp.load()
+    n = 0
+    for y in range(g.height):
+        for x in range(g.width):
+            h, s, v = src[x, y]
+            hd = h * 360 // 255
+            if s > 120 and v > 200 and hue_lo <= hd <= hue_hi:
+                dst[x, y] = (255, 255, 255); n += 1
+    if n > 50:
+        gp.save(os.path.join(a.out, f"SB_Hero_{a.hero}_HD_glow.png"))
+    os.remove(alb_png)
+    # placeholder material (the game applies the textures)
+    mat = bpy.data.materials.new("M_Hero_HD"); body.data.materials.clear(); body.data.materials.append(mat)
+    for o in bpy.context.selected_objects: o.select_set(False)
+    A1.select_set(True); body.select_set(True)
+    path = os.path.join(a.out, f"SB_Hero_{a.hero}_HD.glb")
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_skins=True, export_animations=False,
+                              export_apply=False, export_yup=True, export_materials="PLACEHOLDER")
+    if a.blend:
+        img2 = bpy.data.images.load(os.path.join(a.out, f"SB_Hero_{a.hero}_HD_albedo.jpg"))
+        mat.use_nodes = True; nt = mat.node_tree; t = nt.nodes.new("ShaderNodeTexImage"); t.image = img2
+        nt.links.new(t.outputs[0], nt.nodes["Principled BSDF"].inputs["Base Color"])
+        bpy.ops.wm.save_as_mainfile(filepath=a.blend)
+    tris = sum(len(p.vertices) - 2 for p in body.data.polygons)
+    print(f"[i3d] {a.hero}: {tris} tris, {len(A1.data.bones)} bones, glow px {n}, {os.path.getsize(path) // 1024} KB")
+
+
+if __name__ == "__main__":
+    main()

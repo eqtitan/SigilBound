@@ -1,0 +1,88 @@
+"""Joint landmarks for the image-to-3D heroes (i3d_rig.py), read off orthographic front/side views of the
+cleaned meshes (1.85 m tall, feet at z 0, facing -Y; the character's right is -X).
+A joint is (x, z): y is the centre of the first solid layer from the front, or (x, y, z) to pin it.
+rigid: (bone, test(p)) - vertices passing the test go wholly to that bone (held weapons, a halo), or to the nearest
+tail bone ("nearest_tail"). trim: tests for faces to delete (generator guesses). tail: points for tail_01.. bones.
+glow_hue: hue range (degrees) of bright saturated texels baked into the glow mask."""
+
+
+def _near_line(a, b, r):
+    """Test: within r of the segment a-b (a held staff or spear)."""
+    from mathutils import Vector
+    A, B = Vector(a), Vector(b)
+    def t(p):
+        ab = B - A; u = max(0.0, min(1.0, (p - A).dot(ab) / ab.length_squared))
+        return (p - (A + ab * u)).length < r
+    return t
+
+
+def _legs(hip, knee_l, knee_r, ank_l, ank_r, toe_l, toe_r):
+    return {"hip_l": (hip[0], hip[1]), "hip_r": (-hip[0], hip[1]), "knee_l": knee_l, "knee_r": knee_r,
+            "ankle_l": ank_l, "ankle_r": ank_r, "toe_l": toe_l, "toe_r": toe_r}
+
+
+LANDMARKS = {
+    "vorgrim": {
+        "joints": {
+            "pelvis": (0, 0.92), "spine_01": (0, 1.02), "spine_02": (0, 1.14), "spine_03": (0, 1.27), "neck": (0, 1.47),
+            "head": (0, 1.56), "head_top": (0, 1.74),
+            "shoulder_l": (0.27, 1.36), "elbow_l": (0.42, 1.10), "wrist_l": (0.47, 0.88), "handend_l": (0.49, 0.80),
+            "shoulder_r": (-0.27, 1.36), "elbow_r": (-0.40, 1.10), "wrist_r": (-0.47, -0.10, 0.90), "handend_r": (-0.50, -0.12, 0.82),
+            **_legs((0.13, 0.90), (0.27, 0.46), (-0.24, 0.46), (0.33, 0.10), (-0.30, 0.10), (0.34, -0.20, 0.03), (-0.30, -0.20, 0.03)),
+        },
+        "rigid": [("hand_r", lambda p: p.x < -0.50 and p.z < 1.0), ("hand_r", lambda p: p.y < -0.30 and p.z < 0.85 and p.x < 0.0)],
+        "glow_hue": (8, 45),
+    },
+    "talvo": {
+        "joints": {
+            "pelvis": (0, 0.95), "spine_01": (0, 1.05), "spine_02": (0, 1.17), "spine_03": (0, 1.30), "neck": (0, 1.48),
+            "head": (0, 1.56), "head_top": (0, 1.74),
+            "shoulder_l": (0.22, 1.42), "elbow_l": (0.30, 1.12), "wrist_l": (0.33, 0.86), "handend_l": (0.33, 0.77),
+            "shoulder_r": (-0.22, 1.42), "elbow_r": (-0.40, 1.12), "wrist_r": (-0.48, 0.86), "handend_r": (-0.50, 0.78),
+            **_legs((0.12, 0.92), (0.21, 0.50), (-0.18, 0.50), (0.22, 0.10), (-0.20, 0.10), (0.24, -0.20, 0.03), (-0.22, -0.20, 0.03)),
+        },
+        "tail": [(0.0, 0.15, 0.85), (0.05, 0.30, 0.62), (0.15, 0.45, 0.38), (0.30, 0.55, 0.25), (0.50, 0.62, 0.30), (0.65, 0.68, 0.48), (0.80, 0.75, 0.65)],
+        "trim": [lambda p: p.z < 0.30 and p.x < -0.45, lambda p: p.z < 0.30 and p.y < -0.30, lambda p: p.z < 0.20 and p.y > 0.45],
+        "rigid": [("hand_r", lambda p: p.x < -0.52), ("nearest_tail", lambda p: p.y > 0.22 and p.z < 0.90),
+                  ("nearest_tail", lambda p: p.x > 0.38 and p.z < 0.75)],
+        "glow_hue": (8, 45),
+    },
+    "wystan": {
+        "joints": {
+            "pelvis": (0, 0.85), "spine_01": (0, 0.95), "spine_02": (0, 1.07), "spine_03": (0, 1.20), "neck": (0, 1.44),
+            "head": (0, 1.50), "head_top": (0, 1.78),
+            "shoulder_l": (0.25, 1.33), "elbow_l": (0.38, 1.05), "wrist_l": (0.28, 0.85), "handend_l": (0.24, 0.80),
+            "shoulder_r": (-0.25, 1.33), "elbow_r": (-0.36, 1.08), "wrist_r": (-0.36, -0.15, 0.95), "handend_r": (-0.36, -0.20, 0.88),
+            **_legs((0.12, 0.80), (0.15, 0.42), (-0.15, 0.42), (0.24, 0.10), (-0.22, 0.10), (0.28, -0.15, 0.02), (-0.25, -0.15, 0.02)),
+        },
+        # staff in the right hand; the wide wing-sleeves swing with the forearms (no stretching between arm and robe)
+        "rigid": [("hand_r", lambda p: -0.47 < p.x < -0.27 and p.y < -0.19),
+                  ("hand_r", lambda p: p.z > 0.04 and _near_line((-0.33, -0.16, 0.0), (-0.43, -0.27, 1.05), 0.05)(p)),
+                  ("hand_r", _near_line((-0.43, -0.27, 1.05), (-0.50, -0.45, 1.50), 0.09)),
+                  ("lowerarm_r", lambda p: p.x < -0.36 and 0.45 < p.z < 1.15), ("lowerarm_l", lambda p: p.x > 0.36 and 0.45 < p.z < 1.15)],
+        "glow_hue": (400, 400),
+    },
+    "crusk": {
+        "joints": {
+            "pelvis": (0, 0.62), "spine_01": (0, 0.75), "spine_02": (0, 0.90), "spine_03": (0, 1.05), "neck": (0, 1.35),
+            "head": (0, 1.42), "head_top": (0, 1.70),
+            "shoulder_l": (0.42, 1.20), "elbow_l": (0.55, 0.95), "wrist_l": (0.55, 0.60), "handend_l": (0.60, 0.40),
+            "shoulder_r": (-0.42, 1.20), "elbow_r": (-0.65, 0.95), "wrist_r": (-0.70, 0.65), "handend_r": (-0.65, 0.35),
+            **_legs((0.20, 0.58), (0.28, 0.32), (-0.28, 0.32), (0.30, 0.08), (-0.30, 0.08), (0.35, -0.25, 0.02), (-0.33, -0.25, 0.02)),
+        },
+        "glow_hue": (170, 215),
+    },
+    "hartwin": {
+        "joints": {
+            "pelvis": (0, 0.70), "spine_01": (0, 0.80), "spine_02": (0, 0.92), "spine_03": (0, 1.05), "neck": (0, 1.28),
+            "head": (0, 1.36), "head_top": (0, 1.60),
+            "shoulder_l": (0.25, 1.17), "elbow_l": (0.38, 0.95), "wrist_l": (0.42, 0.70), "handend_l": (0.43, 0.62),
+            "shoulder_r": (-0.25, 1.17), "elbow_r": (-0.33, 0.95), "wrist_r": (-0.37, 0.72), "handend_r": (-0.38, 0.65),
+            **_legs((0.12, 0.66), (0.17, 0.36), (-0.17, 0.36), (0.22, 0.08), (-0.20, 0.08), (0.25, -0.20, 0.02), (-0.22, -0.20, 0.02)),
+        },
+        "trim": [lambda p: p.z > 1.25 and p.y > 0.15],
+        "rigid": [("hand_r", lambda p: p.x < -0.33 and p.z < 0.95), ("hand_r", lambda p: p.x < -0.24 and p.z < 0.95 and p.y < -0.05),
+                  ("Head", lambda p: p.z > 1.33)],
+        "glow_hue": (400, 400),
+    },
+}
