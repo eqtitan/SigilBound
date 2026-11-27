@@ -39,10 +39,10 @@ The designed results are project work built only from CC0 material.
 ### Boss-lair set-pieces (`sfx_lair_*`, `unity/Tools~/audio/make_lairs.py`)
 
 The landmark sounds of the boss lairs (bell, mill wheel, pyre, lighthouse beam, lantern snuff, lightning,
-glass chimes, cavern drip) are made the same way from the same pinned CC0 sources: Kenney Impact Sounds
+glass chimes, cavern drip, the shard pulse and the lair reveal swell) are made the same way from the same pinned CC0 sources: Kenney Impact Sounds
 (impactBell, impactMetal, impactWood, impactGlass), Kenney RPG Audio (creak), Kenney Sci-fi (ThrusterFire)
-and sfx-kit (whooshes, reverse whooshes, cinematic thunder), with modal bell and glass synthesis, fire,
-bubble and wind synthesis and generated stereo halls.
+and sfx-kit (whooshes, reverse whooshes, cinematic thunder, soft booms), with modal bell and glass synthesis, fire,
+bubble and wind synthesis, a formant-filtered choir pad and generated stereo halls.
 
 ## Procedural sounds and music (made for Sigilbound)
 

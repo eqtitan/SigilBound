@@ -36,7 +36,8 @@ namespace Sigilbound.Client
             ["cast_flame"] = "sfx_cast_flame", ["cast_gale"] = "sfx_cast_gale", ["cast_tide"] = "sfx_cast_tide", ["cast_light"] = "sfx_cast_light", ["cast_shadow"] = "sfx_cast_shadow",
             // boss lairs: the landmark set-pieces reacting to the fight (story scenes; Tools~/audio/make_lairs.py)
             ["lairBell"] = "sfx_lair_bell", ["lairWheel"] = "sfx_lair_wheel", ["lairPyre"] = "sfx_lair_pyre", ["lairBeam"] = "sfx_lair_beam",
-            ["lairSnuff"] = "sfx_lair_snuff", ["lairThunder"] = "sfx_lair_thunder", ["lairChime"] = "sfx_lair_chime", ["lairDrip"] = "sfx_lair_drip", ["lairShard"] = "sfx_lair_chime", // shard pulse: the glass chord for now
+            ["lairSnuff"] = "sfx_lair_snuff", ["lairThunder"] = "sfx_lair_thunder", ["lairChime"] = "sfx_lair_chime", ["lairDrip"] = "sfx_lair_drip", ["lairShard"] = "sfx_lair_shard",
+            ["lairReveal"] = "sfx_lair_reveal",   // the boss-lair camera reveal: sub swell, choir/wind pad, a low boom at ~2.2 s
         };
         // Ambience beds (amb_*.ogg, loaded when a battle starts) and the bed each arena theme uses
         // (index = GameData.ThemeOf(chapter), the Scenery theme order); the Titan's caldera has its own.

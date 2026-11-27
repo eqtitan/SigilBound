@@ -165,5 +165,49 @@ def drip():
         out.append(verb(mix(3.0, layers), 4.0, 0.55, 3000, predelay=0.05, seed=1830 + i, lowmult=1.2))
     save("drip", out, -17, 4.0, win=0.4)
 
+# ---- lairReveal: the 2.5 s camera reveal of a lair: sub-bass rising, a distant choir/wind pad, a soft
+# low boom at ~2.2 s as the camera settles, then a wide tail
+def reveal():
+    out = []
+    chords = [[73.4, 110.0, 146.8, 174.6], [69.3, 103.8, 138.6, 164.8], [77.8, 116.5, 155.6, 185.0]]   # low minor triads (D, C#, D#)
+    for i in range(3):
+        L = 3.4; n = N(L); t = tt(n); hit = 2.2
+        rise = np.clip(t / hit, 0, 1) ** 1.6 * np.interp(t, [0, hit, hit + 0.15, L], [1, 1, 0.55, 0])
+        f = 28 + 16 * np.clip(t / hit, 0, 1)
+        sub = (np.sin(2 * np.pi * np.cumsum(f) / SR) + 0.5 * lp(noise(n, 2, 1900 + i), 70)) * rise
+        # choir-like pad: detuned saw voices through "oo"->"ah" formants, each side detuned differently (wide, not phasey)
+        pad = np.zeros((n, 2))
+        for c in range(2):
+            src = np.zeros(n)
+            for j, fr in enumerate(chords[i]):
+                det = 1 + (0.004 if c else -0.004) * (j + 1)
+                ph = 2 * np.pi * np.cumsum(fr * det * (1 + 0.003 * np.sin(2 * np.pi * (4.7 + j) * t + c))) / SR
+                src += sum(np.sin(k * ph) / k for k in range(1, 30) if fr * k < 8000)
+            F1 = lambda u: np.interp(u, [0, 1], [320, 650]); F2 = lambda u: np.interp(u, [0, 1], [800, 1080])
+            pad[:, c] = formant_filter(src, [F1, F2, lambda u: 2500.0], bw=(80, 100, 200))
+        pad = pad / (np.abs(pad).max() + 1e-9) * np.interp(t, [0, 1.2, hit, L], [0, 0.6, 1.0, 0.0])[:, None]
+        wind = np.stack([band(noise(n, 1, 1910 + 2 * i + c), 250, 1800) * (0.6 + 0.4 * smooth_rand(n, 0.8, 1915 + 2 * i + c)) for c in range(2)], 1)
+        wind *= np.interp(t, [0, 1.5, hit, L], [0, 0.8, 1.0, 0.0])[:, None]
+        boom = mix(1.4, [(lp(S(["booms-and-bass/boom-hit-soft", "booms-and-bass/boom-drop-soft", "booms-and-bass/boom-hit-medium"][i]), 400), 0, 0.8),
+                         (thud(38 + 3 * i, 1.2, 0.35), 0, 1.0)])
+        x = mix(L + 0.2, [(st(sub), 0, 0.6), (pad, 0, 0.22), (wind, 0, 0.12), (boom, hit, 1.5)])
+        out.append(verb(x, 3.2, 0.3, 2500, predelay=0.03, seed=1920 + i, lowmult=1.4))
+    save("reveal", out, -15, 3.4, win=0.5)
+
+# ---- lairShard: a Tide/Shadow shard pulsing: a deep crystalline pulse, glassy, with a sub thump
+def shard():
+    out = []
+    for i in range(3):
+        f0 = [220.0, 207.7, 233.1][i]
+        glass = modal([(f0 * r, a, tau) for r, a, tau in [(1, 0.7, 0.9), (2.76, 0.6, 0.7), (5.40, 0.45, 0.5), (8.93, 0.3, 0.35), (13.3, 0.2, 0.25)]], 1.6, beat=1.8, seed=2000 + i)
+        n = N(0.12); pre = np.stack([band(noise(n, 0, 2010 + 2 * i + c), 2500, 9000) * np.linspace(0, 1, n) ** 3 for c in range(2)], 1)   # an inhaled shimmer
+        tick = resample(K("impactGlass_light", i), 0.6)
+        x = mix(1.9, [(pre, 0, 0.25), (st(glass, -0.25), 0.12, 0.6), (st(resample(glass, 1.003), 0.25), 0.12, 0.6), (tick, 0.12, 0.25),
+                      (thud(46 + 3 * i, 0.5, 0.12), 0.12, 0.9)])
+        out.append(verb(x, 1.8, 0.33, 6000, seed=2020 + i))
+    save("shard", out, -16, 2.0, win=0.3)
+
 if __name__ == "__main__":
-    for f in (bell, wheel, pyre, beam, snuff, thunder, chime, drip): f()
+    import sys
+    allf = dict(bell=bell, wheel=wheel, pyre=pyre, beam=beam, snuff=snuff, thunder=thunder, chime=chime, drip=drip, reveal=reveal, shard=shard)
+    for k in (sys.argv[1:] or list(allf)): allf[k]()
