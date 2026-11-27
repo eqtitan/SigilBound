@@ -155,6 +155,8 @@ namespace Sigilbound.Client
             G.S.settings.auto = true;
 
             // The lair reveal (boss stages): a mid-reveal frame, then the battle view it settles into.
+            // The story shots above already visited these lairs; the reveal plays once per lair per session.
+            BattleController.ForgetLairReveals();
             foreach (var (c, label) in new[] { (4, "lair-reveal-1"), (14, "lair-reveal-2") })
             {
                 CloseModal(); Go(ScreenId.Home); yield return new WaitForSecondsRealtime(0.5f);

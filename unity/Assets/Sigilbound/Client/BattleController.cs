@@ -188,6 +188,7 @@ namespace Sigilbound.Client
         string _revealTitle, _revealSub; float _revealT;
         const float RevealLen = 2.5f;
         static readonly HashSet<int> _lairsRevealed = new HashSet<int>();
+        public static void ForgetLairReveals() => _lairsRevealed.Clear(); // the screenshot tour
         IEnumerator LairReveal()
         {
             if ((_spec.Mode != BattleMode.Stage && _spec.Mode != BattleMode.Hard) || !Game.IsBossStage(_spec.Stage)) yield break;
