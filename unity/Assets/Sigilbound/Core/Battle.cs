@@ -35,6 +35,7 @@ namespace Sigilbound.Core
     public sealed class Battle
     {
         public const double TmFull = 1000;
+        public const double ShieldScale = 0.8; // shields were the most applied effect by far (PLAN step 97)
         static int _n;
         public readonly List<Unit> Allies;
         public readonly List<List<Unit>> Waves;
@@ -43,6 +44,16 @@ namespace Sigilbound.Core
         public bool IsTitan; public int TurnLimit;
         public bool Over; public BattleResult Result;
         public int BossTurns; public long TitanDamage;
+        // Enrage (PLAN step 97): from round EnrageFrom of a wave every hit deals +EnragePerRound damage and
+        // healing/shields lose the same share per round, so sustain-heavy fights can't stall. A round is one
+        // turn for each unit that started the wave. Not in the Titan fight (it has its own turn limit).
+        public const int EnrageFrom = 10; public const double EnragePerRound = 0.10;
+        int _waveTurns, _roundLen = 1, _enrageShown;
+        public int Round => _waveTurns / Math.Max(1, _roundLen) + 1;
+        public int EnrageStacks => IsTitan ? 0 : Math.Max(0, Round - EnrageFrom + 1);
+        double DmgEnrage => 1 + EnragePerRound * EnrageStacks;
+        double HealEnrage => Math.Max(0, 1 - EnragePerRound * EnrageStacks);
+        void StartWaveClock() { _waveTurns = 0; _enrageShown = 0; _roundLen = Living(Allies).Count + Living(Enemies).Count; }
         readonly Random _rng;
 
         public Battle(List<Unit> allies, List<List<Unit>> waves, Random rng, bool titan = false, int turnLimit = 0)
@@ -50,6 +61,7 @@ namespace Sigilbound.Core
             Allies = allies; Waves = waves; _rng = rng; IsTitan = titan; TurnLimit = turnLimit;
             foreach (var u in Units) u.Tm = _rng.NextDouble() * 100;
             foreach (var w in waves.Skip(1)) foreach (var u in w) u.Tm = _rng.NextDouble() * 100;
+            StartWaveClock();
         }
 
         // ---------- unit factories ----------
@@ -175,24 +187,36 @@ namespace Sigilbound.Core
         public static double SkillBoost(int lv) => 1 + 0.08 * Math.Min(lv, 3);
         double _boost = 1;
 
+        // Percent-of-max-HP damage over time ignores a boss's extra HP, so on bosses (and the Titan) a tick is
+        // capped at 3x the strongest opponent's attack (PLAN step 97; the Titan always had this cap).
+        double DotCap(Unit u, double d)
+        {
+            if (!u.Boss && !u.Titan) return d;
+            var foes = Living(u.Ally ? Enemies : Allies);
+            return foes.Count == 0 ? d : Math.Min(d, foes.Max(a => a.Atk) * 3);
+        }
+
         public (List<BattleEvent> events, bool skip) BeginTurn(Unit u)
         {
             var ev = new List<BattleEvent>();
             u.Tm = 0;
+            if (EnrageStacks > _enrageShown)
+            {
+                _enrageShown = EnrageStacks;
+                ev.Add(new BattleEvent { Type = EvType.Text, Unit = u, Text = _enrageShown == 1 ? "Enrage! Damage up, healing down" : $"Enrage x{_enrageShown}" });
+            }
             for (int i = 0; i < u.Cds.Length; i++) u.Cds[i] = Math.Max(0, u.Cds[i] - 1);
             foreach (var e in u.Effects.ToList())
             {
                 if (e.Type == FxType.Poison)
                 {
-                    double d = u.MaxHp * 0.04;
-                    if (u.Titan) d = Math.Min(d, Allies.Max(a => a.Atk) * 3);
+                    double d = DotCap(u, u.MaxHp * 0.04);
                     ApplyDamage(u, Js.RoundInt(d), null, ev, false, 1, true);
                 }
                 else if (e.Type == FxType.Burn && u.Alive)
                 {
                     // Burn: 5% max HP a turn, a separate damage-over-time that stacks with Poison.
-                    double d = u.MaxHp * 0.05;
-                    if (u.Titan) d = Math.Min(d, Allies.Max(a => a.Atk) * 3);
+                    double d = DotCap(u, u.MaxHp * 0.05);
                     ApplyDamage(u, Js.RoundInt(d), null, ev, false, 1, true);
                 }
                 else if (e.Type == FxType.Regen) HealUnit(u, u.MaxHp * 0.08, ev);
@@ -208,7 +232,10 @@ namespace Sigilbound.Core
             foreach (var e in u.Effects) { if (e.Fresh) e.Fresh = false; else e.Turns--; }
             u.Effects.RemoveAll(e => e.Turns <= 0 || (e.Type == FxType.Shield && e.Val <= 0));
             if (u.Titan) BossTurns++;
-            return CheckEnd(out newWave);
+            _waveTurns++;
+            var r = CheckEnd(out newWave);
+            if (newWave) StartWaveClock();
+            return r;
         }
 
         BattleResult CheckEnd(out bool newWave)
@@ -231,29 +258,73 @@ namespace Sigilbound.Core
         BattleResult Finish(BattleResult r) { Over = true; Result = r; return r; }
         public void Retreat() { Finish(IsTitan ? BattleResult.Timeout : BattleResult.Defeat); }
 
-        // AI: strongest ready skill, sensible target. Also used for auto battle.
+        // AI: strongest ready skill that would actually do something, and a sensible target. Also used for
+        // auto battle. (PLAN step 97: it used to fire its longest-cooldown skill blindly: cleanses with
+        // nothing to cleanse, shields on shielded teams, re-applied buffs and debuffs.)
         public (int skill, Unit target) AiChoose(Unit u)
         {
-            var own = Living(Side(u, true));
+            var own = Living(Side(u, true)); var foes = Living(Side(u, false));
             int hurt = own.Count(a => a.Hp / (double)a.MaxHp < 0.65);
             int best = 0; double bestScore = double.MinValue;
             foreach (var i in Usable(u))
             {
                 var sk = u.Template.Skills[i];
                 double score = sk.Cooldown * 10 + i;
-                if (sk.Fx.Any(f => f.Type == FxType.Heal || f.Type == FxType.Regen) && hurt == 0) score -= 100;
-                if (sk.Fx.Any(f => f.Type == FxType.Taunt) && u.Has(FxType.Taunt)) score -= 100;
+                if (sk.Fx.Any(f => f.Type == FxType.Heal || f.Type == FxType.Regen) && hurt == 0 && sk.Mult == 0) score -= 100;
+                if (sk.Fx.Any(f => f.Type == FxType.Taunt && f.To == FxTo.Self) && u.Has(FxType.Taunt)) score -= 100;
+                if (sk.Mult == 0 && !Useful(u, sk, own, foes, hurt)) score -= 100; // a pure utility skill with nothing to do
                 if (score > bestScore) { bestScore = score; best = i; }
             }
-            var targets = ValidTargets(u, best);
-            Unit target = null;
-            if (targets.Count > 0)
+            return (best, PickTarget(u, best));
+        }
+
+        // Whether any effect of a utility skill would change something.
+        bool Useful(Unit u, SkillDef sk, List<Unit> own, List<Unit> foes, int hurt)
+        {
+            if (sk.Fx.Length == 0) return true;
+            foreach (var f in sk.Fx)
             {
-                target = u.Template.Skills[best].Target == Target.Enemy
-                    ? targets.OrderByDescending(t => ElementMultiplier(u.El, t.El)).ThenBy(t => t.Hp / (double)t.MaxHp).First()
-                    : targets.OrderBy(t => t.Hp / (double)t.MaxHp).First();
+                List<Unit> who = f.To == FxTo.Self ? new List<Unit> { u } : f.To == FxTo.Allies ? own : f.To == FxTo.Enemies ? foes
+                    : sk.Target == Target.Enemy || sk.Target == Target.AllEnemies ? foes : sk.Target == Target.Self ? new List<Unit> { u } : own;
+                bool any = f.Type switch
+                {
+                    FxType.Heal or FxType.Regen => hurt > 0,
+                    FxType.Cleanse => who.Any(a => a.Effects.Any(e => !FxDef.IsBuff(e.Type))),
+                    FxType.Strip => who.Any(a => a.Effects.Any(e => FxDef.IsBuff(e.Type))),
+                    FxType.Shield => who.Any(a => a.Shield == null || a.Shield.Val < a.MaxHp * 0.05),
+                    FxType.Tm or FxType.TmDrain or FxType.Pull => true,
+                    _ => who.Any(a => !a.Has(f.Type)),
+                };
+                if (any) return true;
             }
-            return (best, target);
+            return false;
+        }
+
+        // Single targets: an enemy we can finish this turn, then the element we beat, then the weakest
+        // (healer-first focus was tried and dropped: it reshuffled hero balance, PLAN step 97). Allies: whoever lacks the buff (or is lowest for heals).
+        Unit PickTarget(Unit u, int skillIdx)
+        {
+            var sk = u.Template.Skills[skillIdx];
+            var targets = ValidTargets(u, skillIdx);
+            if (targets.Count == 0) return null;
+            if (sk.Target == Target.Enemy)
+            {
+                double Est(Unit t) => AtkOf(u) * Math.Max(sk.Mult, 0.0001) * Math.Max(1, sk.Hits) * ElementMultiplier(u.El, t.El) * (650 / (650 + DefOf(t)));
+                bool Killable(Unit t) => sk.Mult > 0 && t.Hp + (t.Shield?.Val ?? 0) <= Est(t) * 0.95;
+                var debuffs = sk.Fx.Where(f => f.To == FxTo.Target && !FxDef.IsBuff(f.Type)).Select(f => f.Type).ToList();
+                return targets
+                    .OrderByDescending(Killable)
+                    .ThenByDescending(t => debuffs.Count > 0 && sk.Mult == 0 ? debuffs.Count(d => !t.Has(d)) : 0)
+                    .ThenByDescending(t => ElementMultiplier(u.El, t.El))
+                    .ThenBy(t => t.Hp / (double)t.MaxHp).First();
+            }
+            var buffs = sk.Fx.Where(f => f.To == FxTo.Target && FxDef.IsBuff(f.Type) && f.Type != FxType.Heal).Select(f => f.Type).ToList();
+            bool heals = sk.Fx.Any(f => f.Type == FxType.Heal || f.Type == FxType.Regen);
+            if (!heals && buffs.Count > 0)
+                return targets.OrderByDescending(t => buffs.Count(b => !t.Has(b)))
+                              .ThenByDescending(t => buffs.Contains(FxType.AtkUp) && t.Template.Role == Role.Attack)
+                              .ThenBy(t => t.Hp / (double)t.MaxHp).First();
+            return targets.OrderBy(t => t.Hp / (double)t.MaxHp).First();
         }
 
         public List<BattleEvent> Act(Unit u, int skillIdx, Unit chosen)
@@ -340,7 +411,7 @@ namespace Sigilbound.Core
         {
             double stat = sk.Scale == Scale.Def ? DefOf(u) : sk.Scale == Scale.Hp ? u.MaxHp : AtkOf(u);
             double em = ElementMultiplier(u.El, t.El);
-            double dmg = stat * sk.Mult * part * _boost * em * (650 / (650 + DefOf(t)));
+            double dmg = stat * sk.Mult * part * _boost * em * (650 / (650 + DefOf(t))) * DmgEnrage;
             if (sk.Rage > 0) dmg *= 1 + sk.Rage * (1 - u.Hp / (double)u.MaxHp); // grows with the attacker's lost HP
             bool crit = _rng.NextDouble() * 100 < u.Crit && em >= 1;
             if (crit) dmg *= 1 + u.Cdmg / 100.0;
@@ -390,6 +461,7 @@ namespace Sigilbound.Core
         void HealUnit(Unit t, double amount, List<BattleEvent> ev)
         {
             if (!t.Alive) return;
+            amount *= HealEnrage;
             int amt = Js.RoundInt(Math.Min(amount, t.MaxHp - t.Hp));
             t.Hp += amt;
             if (amt > 0) ev.Add(new BattleEvent { Type = EvType.Heal, Unit = t, Amount = amt });
@@ -423,7 +495,7 @@ namespace Sigilbound.Core
             var existing = r.Effects.FirstOrDefault(e => e.Type == f.Type);
             if (f.Type == FxType.Shield)
             {
-                int val = Js.RoundInt(u.MaxHp * f.Pct);
+                int val = Js.RoundInt(u.MaxHp * f.Pct * ShieldScale * HealEnrage);
                 if (existing != null) { existing.Val = Math.Max(existing.Val, val); existing.Turns = 2; }
                 else r.Effects.Add(new Effect { Type = FxType.Shield, Val = val, Turns = 2, Fresh = self });
             }

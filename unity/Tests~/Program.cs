@@ -29,6 +29,9 @@ static class Program
             }
             return 0;
         }
+        // `dotnet run --project Tests~ -- combatstats`: 2000 random 4v4 battles (all heroes, lv40 4*) -> length,
+        // stalemates, AI choices and effect use. Used to judge combat rule changes (PLAN step 97).
+        if (args.Length > 0 && args[0] == "combatstats") { CombatStats.Run(); return 0; }
         // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).
         if (args.Length > 0 && args[0] == "balance")
         {
