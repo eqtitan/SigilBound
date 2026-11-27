@@ -34,7 +34,7 @@ namespace Sigilbound.Client
         {
             // A stacked effect (Poison/Burn x2/x3) gets extra room on its right for a readable "x3" (the
             // corner badge was too small to read at battle size).
-            float gap = 2, sw = size * 0.85f;
+            float gap = 2, sw = size * 1.3f;
             float w = -gap; foreach (var e in effects) w += size + gap + (e.Stacks > 1 ? sw : 0);
             float x0 = centre ? x - w / 2 : x, cx = x0;
             int fs = Mathf.Max(10, Mathf.RoundToInt(size * 0.72f));
