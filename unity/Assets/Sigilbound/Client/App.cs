@@ -166,7 +166,11 @@ namespace Sigilbound.Client
         public void CloseModal() { _modalBody = null; _modalTitle = null; }
         public bool ModalOpen => _modalBody != null;
 
-        public void Go(ScreenId s) { Screen = s; _scroll = Vector2.zero; CloseModal(); }
+        public void Go(ScreenId s)
+        {
+            if (s != Screen) HeroModels.TrimSoon(); // let go of hero models the new screen doesn't show
+            Screen = s; _scroll = Vector2.zero; CloseModal();
+        }
 
         void Update()
         {

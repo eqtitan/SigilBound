@@ -297,7 +297,7 @@ namespace Sigilbound.Client
                 }
                 _loader.StartCoroutine(RunJob(key, work()));
             }
-            while (!_jobs[key]) yield return null;
+            while (_jobs.TryGetValue(key, out var finished) && !finished) yield return null;
         }
 
         // Steps the job (and the steps it waits on) by hand, so an exception anywhere ends it with a
@@ -560,8 +560,81 @@ namespace Sigilbound.Client
         }
 
         // ---------- high-detail heroes (phase F) ----------
-        static HashSet<string> _hd;
-        static readonly Dictionary<string, (GLTFast.GltfImport gltf, Material mat)> _hdLibs = new Dictionary<string, (GLTFast.GltfImport, Material)>();
+        static HashSet<string> _hd, _hdLod1;
+
+        // The parsed high-detail models, by cache key (hero id, "|hollow" for enemy copies, "titan|<element>",
+        // and "|lo" on the Low tier, which loads no normal map and the LOD1 mesh where one ships).
+        // Bounded (code review H1, performance review #1): an entry counts the figures built from it (HdRef);
+        // entries no figure uses are kept up to HdIdleCap, least recently used first out, and an evicted entry
+        // frees its glTF meshes, material and textures. Before this every hero ever shown stayed in memory
+        // (about 24 MB each), which could get the game killed on 4-6 GB phones.
+        sealed class HdEntry
+        {
+            public GLTFast.GltfImport Gltf; public Material Mat;
+            public readonly List<Texture2D> Tex = new List<Texture2D>();
+            public int Live; public float Used;
+        }
+        static readonly Dictionary<string, HdEntry> _hdLibs = new Dictionary<string, HdEntry>();
+        public const int HdIdleCap = 8;    // unused models kept for quick reuse (menu lineup, the next battle)
+        const int HdIdleHardCap = 16;      // ...or this many when they were all used or preloaded just now
+        const float HdRecentSeconds = 30f; // a preloaded model waits this long for its battle before it may go
+        public static int HdCached => _hdLibs.Count;
+        static float _lastUnload = -100f;
+
+        // On every high-detail figure: tells the cache when the figure is gone.
+        sealed class HdRef : MonoBehaviour
+        {
+            public string Key;
+            void OnDestroy() => ReleaseHd(Key);
+        }
+        static void ReleaseHd(string key)
+        {
+            if (key != null && _hdLibs.TryGetValue(key, out var e)) { e.Live = Math.Max(0, e.Live - 1); e.Used = Time.unscaledTime; }
+        }
+        static bool LowTier => Quality.I != null && Quality.I.Tier == 0;
+        static string HdKey(string id, Element el, bool titan, bool hollow)
+        {
+            string k = titan ? $"titan|{el}" : hollow ? id + "|hollow" : id; // the Titan's runes take its current element
+            return LowTier ? k + "|lo" : k;
+        }
+
+        // Frees models no figure uses beyond the cap, then (at most every few seconds) unused assets
+        // (leaked materials and textures included). Called after screen changes and when a battle ends or
+        // starts; waits two frames so figures destroyed this frame have let go of their models.
+        public static void TrimSoon()
+        {
+            if (_loader == null) { var go = new GameObject("HeroModelLoader"); UnityEngine.Object.DontDestroyOnLoad(go); _loader = go.AddComponent<Loader>(); }
+            _loader.StartCoroutine(TrimLater());
+        }
+        static IEnumerator TrimLater() { yield return null; yield return null; Trim(true); }
+        public static void Trim(bool unloadAssets)
+        {
+            EvictIdle();
+            if (unloadAssets && Time.unscaledTime - _lastUnload > 3f) { _lastUnload = Time.unscaledTime; Resources.UnloadUnusedAssets(); }
+        }
+        static void EvictIdle()
+        {
+            var entries = _hdLibs.Select(kv => new CachePolicy.Entry(kv.Key, kv.Value.Live, kv.Value.Used)).ToList();
+            foreach (var key in CachePolicy.Evict(entries, Time.unscaledTime, HdIdleCap, HdIdleHardCap, HdRecentSeconds)) EvictHd(key);
+        }
+        static void EvictHd(string key)
+        {
+            if (!_hdLibs.TryGetValue(key, out var e)) return;
+            _hdLibs.Remove(key);
+            ForgetHdJobs(key);
+            try { e.Gltf?.Dispose(); } catch (Exception ex) { Debug.LogWarning($"Sigilbound: disposing {key}: {ex.Message}"); }
+            if (e.Mat != null) UnityEngine.Object.Destroy(e.Mat);
+            foreach (var t in e.Tex) if (t != null) UnityEngine.Object.Destroy(t);
+            Trace($"hd cache: evicted {key} ({_hdLibs.Count} left)");
+        }
+        // Lets the model load again later: after an eviction, or after a failed load (a transient read
+        // error used to leave the hero as a block stand-in for the rest of the session; code review L5).
+        static void ForgetHdJobs(string key)
+        {
+            foreach (var j in new[] { "hd:" + key, "preload:" + key })
+                if (_jobs.TryGetValue(j, out var finished) && finished) _jobs.Remove(j);
+        }
+
         static IEnumerator EnsureHdIndex() => Shared("hd-index", LoadHdIndex);
         static Dictionary<string, (float h, float b)> _hdBody;
         static IEnumerator EnsureHdBodies() => Shared("hd-body", LoadHdBodies);
@@ -591,6 +664,14 @@ namespace Sigilbound.Client
                 foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
                     if (line.Trim().Length > 0) set.Add(line.Trim());
             _hd = set;
+            // Heroes that ship a LOD1 mesh for the Low tier (prepare-models.mjs). None do yet; without the
+            // list every Low-tier load asked for a missing file first (166 misses in one tour).
+            var lod = new HashSet<string>(); bytes = null;
+            yield return ReadRaw(Path.Combine("heroes_hd", "index_lod1.txt"), b => bytes = b, false);
+            if (bytes != null)
+                foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
+                    if (line.Trim().Length > 0) lod.Add(line.Trim());
+            _hdLod1 = lod;
         }
 
         // The painted-character material for the baked atlas: albedo, tangent normal, and a mask whose
@@ -606,7 +687,7 @@ namespace Sigilbound.Client
                 int r = (c.r + g) / 2, gg = (c.g + g) / 2, b = (c.b + g) / 2;
                 px[i] = new Color32((byte)((r + v.r) / 2), (byte)((gg + v.g) / 2), (byte)((b + v.b) / 2), c.a);
             }
-            t.SetPixels32(px); t.Apply(true);
+            t.SetPixels32(px); t.Apply(true, true); // upload, then drop the CPU copy
         }
 
         // Low quality: the high-detail heroes' normal maps off (on again above Low). Applies to every loaded
@@ -615,7 +696,7 @@ namespace Sigilbound.Client
         public static void SetLowDetail(bool low)
         {
             _lowDetail = low;
-            foreach (var kv in _hdLibs) NormalMapOn(kv.Value.mat);
+            foreach (var kv in _hdLibs) NormalMapOn(kv.Value.Mat);
         }
         static void NormalMapOn(Material m)
         {
@@ -623,8 +704,9 @@ namespace Sigilbound.Client
             if (!_lowDetail && m.GetTexture("_BumpMap") != null) m.EnableKeyword("_NORMALMAP"); else m.DisableKeyword("_NORMALMAP");
         }
 
-        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D glow, Element el, bool hollow = false)
+        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D glow, Element el, bool hollow, out Texture2D maskTex)
         {
+            maskTex = null;
             var sh = Shader.Find("Sigilbound/CharacterPainted");
             var tmpl = Resources.Load<Material>("SigilMaterials/HeroPainted");
             Material mat = tmpl != null ? new Material(tmpl) : sh != null ? new Material(sh) : new Material(Materials.Lit(Color.white, 0, 0.3f));
@@ -637,7 +719,7 @@ namespace Sigilbound.Client
                 var g = glow.GetPixels32(); var mask = new Color32[g.Length];
                 for (int i = 0; i < g.Length; i++) { byte lum = (byte)Mathf.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2); mask[i] = new Color32(0, 255, lum, 90); }
                 var mt = new Texture2D(glow.width, glow.height, TextureFormat.RGBA32, true, true); mt.SetPixels32(mask); mt.Apply(true, true);
-                mat.SetTexture("_MaskMap", mt);
+                mat.SetTexture("_MaskMap", mt); maskTex = mt;
                 if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", (hollow ? Palette.Hex("#ff3355") : Palette.Element(el)) * 2.2f);
             }
             if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", hollow ? Palette.Hex("#ff3355") : Palette.Element(el));
@@ -653,23 +735,35 @@ namespace Sigilbound.Client
             if (_hdLibs.ContainsKey(cacheKey)) yield break;
             {
                 byte[] glb = null, alb = null, nrm = null, glow = null;
-                bool low = Quality.I != null && Quality.I.Tier == 0;
-                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD{(low ? "_LOD1" : "")}.glb"), b => glb = b);
-                if (glb == null && low) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD.glb"), b => glb = b);
+                bool low = cacheKey.EndsWith("|lo"), lod1 = low && _hdLod1 != null && _hdLod1.Contains(id);
+                if (lod1) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_LOD1.glb"), b => glb = b);
+                if (glb == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD.glb"), b => glb = b);
                 // Textures ship as JPEG (blenderforge/compress); PNG is still read for older builds.
                 yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.jpg"), b => alb = b);
                 if (alb == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.png"), b => alb = b);
-                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.jpg"), b => nrm = b);
-                if (nrm == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.png"), b => nrm = b);
+                if (!low) // Low draws no normal maps (SetLowDetail), so it doesn't load them
+                {
+                    yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.jpg"), b => nrm = b);
+                    if (nrm == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.png"), b => nrm = b);
+                }
                 yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_glow.png"), b => glow = b);
                 if (glb == null || alb == null) { yield break; }
                 var gltf = new GLTFast.GltfImport(null, null, new SigilMaterialGenerator());
                 var load = gltf.LoadGltfBinary(glb, null, new GLTFast.ImportSettings { AnimationMethod = GLTFast.AnimationMethod.Legacy, GenerateMipMaps = false });
                 while (!load.IsCompleted) yield return null;
-                if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the high-detail {id}"); yield break; }
-                var albTex = LoadPng(alb, false);
+                if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the high-detail {id}"); gltf.Dispose(); yield break; }
+                // GPU copies only: the albedo stays readable just long enough for the Hollow tint, and the glow
+                // map only until the mask is built (it used to stay in memory, unused).
+                var albTex = LoadPng(alb, false, hollow);
                 if (hollow && albTex != null) Hollowed(albTex);
-                _hdLibs[cacheKey] = (gltf, HdMaterial(id, albTex, LoadPng(nrm, true), LoadPng(glow, false), el, hollow));
+                var nrmTex = LoadPng(nrm, true, false);
+                var glowTex = LoadPng(glow, false, true);
+                var e = new HdEntry { Gltf = gltf, Used = Time.unscaledTime };
+                e.Mat = HdMaterial(id, albTex, nrmTex, glowTex, el, hollow, out var maskTex);
+                if (glowTex != null) UnityEngine.Object.Destroy(glowTex);
+                e.Tex.Add(albTex); e.Tex.Add(nrmTex); e.Tex.Add(maskTex);
+                _hdLibs[cacheKey] = e;
+                EvictIdle();
             }
         }
 
@@ -682,7 +776,7 @@ namespace Sigilbound.Client
             {
                 var (id, el, titan, hollow) = u;
                 string hid = titan ? "titan" : id;
-                string key = titan ? $"titan|{el}" : hollow ? id + "|hollow" : id;
+                string key = HdKey(id, el, titan, hollow);
                 Kick("preload:" + key, () => PreloadOne(hid, key, el, hollow));
             }
         }
@@ -692,6 +786,7 @@ namespace Sigilbound.Client
             if (_hd == null || !_hd.Contains(id)) yield break;
             yield return EnsureLibrary("ubc");
             yield return Shared("hd:" + key, () => LoadHd(id, key, el, hollow));
+            if (!_hdLibs.ContainsKey(key) && _jobs.TryGetValue("hd:" + key, out var fin) && fin) _jobs.Remove("hd:" + key); // retry on the next request
         }
         // Starts a shared job without waiting for it.
         static void Kick(string key, Func<IEnumerator> work)
@@ -706,21 +801,24 @@ namespace Sigilbound.Client
         {
             string id = hdId ?? unit.Template.Id;
             bool titan = id == "titan";
-            string cacheKey = titan ? $"titan|{unit.El}" : hollow ? id + "|hollow" : id; // the Titan's runes take its current element
+            string cacheKey = HdKey(id, unit.El, titan, hollow);
             yield return EnsureLibrary("ubc");
             var lib = Lib("ubc");
             if (lib == null || lib.Failed || parent == null) { done(null); yield break; }
             yield return Shared("hd:" + cacheKey, () => LoadHd(id, cacheKey, unit.El, hollow));
-            if (parent == null || !_hdLibs.TryGetValue(cacheKey, out var bk)) { done(null); yield break; }
+            if (!_hdLibs.TryGetValue(cacheKey, out var bk)) { ForgetHdJobs(cacheKey); done(null); yield break; }
+            if (parent == null) { done(null); yield break; }
             var holder = new GameObject("Model").transform;
             holder.SetParent(parent, false);
-            var inst = bk.gltf.InstantiateMainSceneAsync(holder);
+            bk.Live++; bk.Used = Time.unscaledTime;
+            holder.gameObject.AddComponent<HdRef>().Key = cacheKey; // released when the figure is destroyed
+            var inst = bk.Gltf.InstantiateMainSceneAsync(holder);
             while (!inst.IsCompleted) yield return null;
             if (inst.IsFaulted || !inst.Result || holder == null || holder.childCount == 0) { if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
             foreach (var r in holder.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
-                for (int i = 0; i < mats.Length; i++) mats[i] = bk.mat;
+                for (int i = 0; i < mats.Length; i++) mats[i] = bk.Mat;
                 r.sharedMaterials = mats;
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
                 if (r is SkinnedMeshRenderer smr) smr.updateWhenOffscreen = true;
@@ -766,11 +864,15 @@ namespace Sigilbound.Client
             _baked = set;
         }
 
-        static Texture2D LoadPng(byte[] bytes, bool linear)
+        // Decodes a JPEG/PNG into a mip-mapped texture. Unless the caller still needs the pixels, the CPU copy
+        // is dropped after upload (markNonReadable), which halves its memory.
+        static Texture2D LoadPng(byte[] bytes, bool linear, bool readable = false)
         {
             if (bytes == null) return null;
             var t = new Texture2D(2, 2, TextureFormat.RGBA32, true, linear);
-            return t.LoadImage(bytes) ? t : null;
+            if (t.LoadImage(bytes, !readable)) return t;
+            UnityEngine.Object.Destroy(t);
+            return null;
         }
 
         // The baked GLB (same skeleton as its base model, no clips, no material) with the painted

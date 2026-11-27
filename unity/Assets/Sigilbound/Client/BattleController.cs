@@ -49,6 +49,7 @@ namespace Sigilbound.Client
             if (spec.Mode == BattleMode.Hard && !G.HardOpen(spec.Stage)) { App.Toast("Clear the previous Hard stage first."); return; }
             _spec = spec;
             App.ClearLineup();
+            HeroModels.TrimSoon(); // auto-replay starts battles back to back: free the last one's leftovers
             _b = spec.Mode switch
             {
                 BattleMode.Titan => Core.Battle.ForTitan(G),

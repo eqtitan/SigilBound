@@ -59,13 +59,17 @@ const hdSrc = path.resolve(here, "heroes_hd");
 if (fs.existsSync(hdSrc)) {
   const hdOut = path.join(out, "heroes_hd");
   fs.mkdirSync(hdOut, { recursive: true });
-  const ids = [];
+  const ids = [], lod1 = [];
   for (const f of fs.readdirSync(hdSrc)) {
     fs.copyFileSync(path.join(hdSrc, f), path.join(hdOut, f));
     const m = /^SB_Hero_(.+)_HD\.glb$/.exec(f);
     if (m) ids.push(m[1]);
+    const l = /^SB_Hero_(.+)_HD_LOD1\.glb$/.exec(f);
+    if (l) lod1.push(l[1]);
   }
   fs.writeFileSync(path.join(hdOut, "index.txt"), ids.join("\n") + "\n");
+  // Heroes with a Low-tier LOD1 mesh: the game only asks for LOD1 files listed here (HeroModels.LoadHdIndex).
+  fs.writeFileSync(path.join(hdOut, "index_lod1.txt"), lod1.join("\n") + (lod1.length ? "\n" : ""));
   console.log(`High-detail heroes: ${ids.join(", ") || "none"}`);
 }
 if (fs.existsSync(path.resolve(here, "ubc_anims.glb"))) fs.copyFileSync(path.resolve(here, "ubc_anims.glb"), path.join(out, "ubc_anims.glb"));
