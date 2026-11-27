@@ -85,6 +85,12 @@ namespace Sigilbound.Client
             Go(ScreenId.Campaign); _chapterOpen = 0;
             yield return Shot("campaign-stages");
             _chapterOpen = -1;
+            // The Act II map (painted storm coast): opens after stage 60, so pretend act 1 is cleared for one
+            // shot (nothing is saved in this mode) and skip the one-time Act II intro.
+            int keepCleared = G.S.cleared; G.S.cleared = GameData.ClassicStages;
+            PlayerPrefs.SetInt("sb.act2Intro", 1); _act = 2;
+            yield return Shot("campaign-act2");
+            G.S.cleared = keepCleared; _act = 0;
             OpenPrep(0, false, ScreenId.Campaign);
             yield return Shot("prep");
             CloseModal();
