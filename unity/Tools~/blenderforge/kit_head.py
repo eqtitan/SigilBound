@@ -189,7 +189,9 @@ def crown(X, text):
              "flower" if has(text, "flower", "bloom", "lily", "lilies", "night-lily") else "smoke" if has(text, "smoke") else
              "water" if has(text, "water") else "flame" if has(text, "flame", "ember", "fire", "lava") else
              "star" if has(text, "star") else "fleur")
-    floating = has(text, "floating") or style in ("smoke", "water")
+    # a thorn crown is seated on the hair even when the design says it floats: hovering, it read as a dark
+    # disc over the head (owner report 2026-11-27, Morwenna)
+    floating = (has(text, "floating") or style in ("smoke", "water")) and style != "thorn"
     gold = X.metal_of(text, "#d8b04a")
     if style in ("thorn",): gold = X.mat(G.colour_in(text, "#241c24"), "horn")
     if style == "shard": gold = X.mat("#2c2a2a", "stone")
@@ -202,8 +204,17 @@ def crown(X, text):
     radii = X.head_ring(z0) if not floating else [X.hw * 0.88] * 32
     if not floating: radii = [r + 0.004 for r in radii]
     parts = []
-    bh = 0.03 if style not in ("flower", "smoke", "water") else 0.012
-    if style not in ("smoke",):
+    bh = 0.03 if style not in ("flower", "smoke", "water", "thorn") else 0.012
+    if style == "thorn":
+        # two thin twisted briar vines, not a solid band, resting on the hair
+        z0 = X.top - 0.03; radii = [r + 0.003 for r in X.head_ring(z0)]
+        for ph in (0.0, math.pi):
+            vine = []
+            for j in range(65):
+                a = j / 64 * TAU; p, d = G.ring_point(radii, X.cx, X.cy, a, 0.004)
+                vine.append(Vector((p.x, p.y, z0 + 0.006 + 0.005 * math.sin(a * 7 + ph))))
+            parts.append(G.sweep(vine, 0.0035, gold, segs=6, cap=False))
+    elif style not in ("smoke",):
         parts.append(G.band(radii, gold, X.cx, X.cy, z0, bh, 0.006, flare=0.006))
     n = {"rays": 12, "candle": 3, "flower": 7, "thorn": 9, "shard": 7, "ice": 7, "coral": 6, "water": 1, "smoke": 0}.get(style, 7)
     for k in range(n):
@@ -230,7 +241,7 @@ def crown(X, text):
         elif style == "thorn":
             side = t * (1 if k % 2 else -1)
             pts = G.bezier(base, base + up * 0.025 + side * 0.01, base + up * 0.05 + d * 0.012 + side * 0.022, n=8)
-            parts.append(G.sweep(pts, G.taper(9, 0.006, 0.0005), gold, segs=6))
+            parts.append(G.sweep(pts, G.taper(9, 0.004, 0.0004), gold, segs=6))   # thin briar thorns
             if X.glow is not None and "glow" in X.kit_txt + text: parts.append(G.sphere(pts[-1], 0.004, X.glow, segs=6))
             mid = pts[4]; parts.append(G.sweep([mid, mid - side * 0.012 + up * 0.006], [0.0025, 0.0003], gold, segs=5))
         elif style == "candle":
@@ -709,12 +720,27 @@ def helm(X, text):
             a = math.pi * (k + 0.5) / 9; d = Vector((0, -math.cos(a), math.sin(a)))
             parts.append(G.extrude([(-0.01, 0), (0.01, 0), (0, 0.07 if k % 2 == 0 else 0.045)], 0.005, X.metal_of("gold"), Vector((X.cx, X.cy, X.top + 0.0)) + d * 0.03, Vector((1, 0, 0)), d))
         piece += "+sun crest"
-    elif has(text, "crest"):
-        parts.append(G.extrude([(0.1, 0.0), (-0.1, 0.0), (-0.08, 0.04), (0.06, 0.05)], 0.008, X.mat(X.pal.get("accent", "#b0302a")), Vector((X.cx, X.cy, X.top + 0.012)), Vector((0, 1, 0)), Vector((0, 0, 1))))
+    elif has(text, "crest") and not has(text, "halo-ring", "halo ring"):
+        # a shaped ridge over the dome, front to back, tallest over the crown and tapering at both ends
+        # (it was a flat accent-coloured quad that read as a placeholder block)
+        dome_top = zb + H
+        pts = []
+        for i in range(13):
+            t = i / 12; ang = math.pi * (0.12 + 0.76 * t)      # along the dome's centre line, brow to nape
+            y = X.cy + 0.004 - math.cos(ang) * (ry + 0.004); z = zb + math.sin(ang) * (H + 0.006)
+            pts.append(Vector((X.cx, y, z)))
+        prof = [(0.005, 0.004 + 0.03 * math.sin(math.pi * i / 12) ** 0.7) for i in range(13)]
+        parts.append(G.sweep(pts, prof, X.mat(X.pal.get("accent", "#b0302a"), "metal"), segs=8, side=Vector((1, 0, 0))))
     if has(text, "halo-ring", "halo ring"):
-        c = Vector((X.cx, X.back + 0.07, X.top + 0.06))   # behind the helm shell (it cut through it at +0.02)
-        ring = [c + Vector((math.cos(j / 32 * TAU) * 0.1, 0, math.sin(j / 32 * TAU) * 0.1)) for j in range(33)]
-        parts.append(G.sweep(ring, 0.008, X.glow, segs=8, cap=False))
+        # a halo above and just behind the helm, tipped back, kept clear of the shell by clear_hover
+        dome_top = zb + H + 0.008
+        c = Vector((X.cx, X.cy + 0.045, dome_top + 0.04)); Rh = X.hw * 1.12; tilt = math.tan(math.radians(20))
+        def T(v): return v + Vector((0, 0, (v.y - c.y) * tilt))
+        ring = [T(c + Vector((math.cos(j / 48 * TAU) * Rh, math.sin(j / 48 * TAU) * Rh * 0.95, 0))) for j in range(49)]
+        hp = [G.sweep(ring, (0.009, 0.006), X.glow, segs=8, side=Vector((0, 0, 1)), cap=False)]
+        inner = [T(c + Vector((math.cos(j / 48 * TAU) * Rh * 0.86, math.sin(j / 48 * TAU) * Rh * 0.82, 0.002))) for j in range(49)]
+        hp.append(G.sweep(inner, 0.0035, X.metal_of("gold"), segs=6, cap=False))
+        X.hover.append(X.add(G.join(hp), "Head", piece="halo:helm ring"))
     if has(text, "beam", "light"):
         parts.append(G.lathe([(0, 0), (0.02, 0), (0.012, 0.12), (0, 0.13)], X.glow, center=(X.cx, X.cy, X.top + 0.04), segs=10))
     if has(text, "wing"):
@@ -1239,7 +1265,24 @@ def golem_armour(X, mats):
     runes and visor slit (the game tints the glow with its current element)."""
     sp = X.species; arm = X.arm; U = X.U
     titan = "titan" in sp
-    stone = X.mat("#4e4a44" if titan else "#7a746a", "stone"); dark = X.mat("#3a3632" if titan else "#5e5850", "stone")
+    # the design's own stone (a single grey-beige for every golem read as unpainted blocks)
+    o_ = X.c.get("outfit", {}) or {}
+    st = (" ".join(str(o_.get(k, "")) for k in ("arms", "body", "legs")) + " " + X.acc_txt).lower()
+    base_hex = ("#4e4a44" if titan else "#b8956a" if "sandstone" in st else "#6c6862" if "fieldstone" in st else "#3e3a38" if has(st, "basalt", "obsidian") else
+                "#8a5a44" if has(st, "hearthstone", "brick", "clay") else "#7a746a")
+    stone = X.mat(base_hex, "stone")
+    dk = [max(0, int(base_hex[i:i + 2], 16) - 34) for i in (1, 3, 5)]
+    dark = X.mat("#%02x%02x%02x" % tuple(dk), "stone")
+    band = X.metal_of(st, "#a0703a") if has(st, "band", "bronze", "iron") else None
+    def boulders(bone, center, size, M):
+        """A pauldron of three faceted boulders over a darker mortar stone (a flat box read as a placeholder)."""
+        M = M or Matrix.Identity(3); c = Vector(center); parts = []
+        parts.append(G.sphere(c - M @ Vector((0, 0, size[2] * 0.25)), max(size[0], size[1]) * 0.42, dark, segs=7, scale=(1.0, 0.95, 0.55)))
+        for k, (dx, dy, r) in enumerate(((-0.28, -0.18, 0.36), (0.22, -0.1, 0.33), (0.0, 0.26, 0.34))):
+            j = 1.0 + (X.rng.random() - 0.5) * 0.18
+            p = c + M @ Vector((dx * size[0], dy * size[1], size[2] * 0.15))
+            parts.append(G.sphere(p, max(size[0], size[1]) * r * j, stone, segs=6 + k % 2, scale=(1.0, 0.9, 0.62)))
+        X.add(G.join(parts), bone, tag="Kit_Species")
     def slab(bone, center, size, M=None, carve=True):
         o = G.box(center, size, stone, bevel=0.012, M=M)
         X.add(o, bone, tag="Kit_Species")
@@ -1251,11 +1294,18 @@ def golem_armour(X, mats):
     for sx, side in ((1, "l"), (-1, "r")):
         ua, ut = U.rest_bone(arm, "upperarm_" + side)
         Mz = Matrix.Rotation(math.radians(-16 * sx), 3, "Y")
-        slab("upperarm_" + side, ua + Vector((0.05 * sx, 0, 0.11)), (0.22, 0.22, 0.07), Mz, carve=False)
-        slab("upperarm_" + side, ua + Vector((0.09 * sx, 0, 0.065)), (0.16, 0.2, 0.05), Mz, carve=False)
+        if titan:
+            slab("upperarm_" + side, ua + Vector((0.05 * sx, 0, 0.11)), (0.22, 0.22, 0.07), Mz, carve=False)
+            slab("upperarm_" + side, ua + Vector((0.09 * sx, 0, 0.065)), (0.16, 0.2, 0.05), Mz, carve=False)
+        else:
+            boulders("upperarm_" + side, ua + Vector((0.06 * sx, 0, 0.09)), (0.22, 0.22, 0.09), Mz)
         la, lt = U.rest_bone(arm, "lowerarm_" + side)
         mid = (la + lt) / 2
-        slab("lowerarm_" + side, mid + Vector((0, 0, 0.055)), (abs(lt.x - la.x) * 0.7, 0.11, 0.04), carve=False)
+        L = abs(lt.x - la.x) * 0.7
+        slab("lowerarm_" + side, mid + Vector((0, 0, 0.055)), (L, 0.11, 0.04), carve=False)
+        if band is not None and not titan:
+            for f in (-0.3, 0.3):   # bronze / iron bands across the forearm plate
+                X.add(G.box(mid + Vector((f * L, 0, 0.055)), (0.018, 0.122, 0.052), band, bevel=0.003), "lowerarm_" + side, tag="Kit_Species")
         th, tt = U.rest_bone(arm, "thigh_" + side)
         tm = th + (tt - th) * 0.4
         hit = X.fit.surface(Vector((tm.x, tm.y - 0.5, tm.z)), (0, 1, 0))

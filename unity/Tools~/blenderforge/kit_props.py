@@ -38,6 +38,11 @@ def mats_for(mats):
         _EXTRA["iron"] = P.flat("K_Iron", P.hexc("#4a4c52"), metal=0.85, rough=0.45)
         _EXTRA["gold"] = P.flat("K_Gold", P.hexc("#d4a640"), metal=0.95, rough=0.3)
         _EXTRA["paper"] = P.flat("K_Paper", P.hexc("#e8dcc0"), rough=0.8)
+        _EXTRA["glass_dark"] = P.flat("K_GlassDark", P.hexc("#1a1428"), metal=0.3, rough=0.08)
+        _EXTRA["glass_pale"] = P.flat("K_GlassPale", P.hexc("#a8d4e8"), emit=0.35, metal=0.2, rough=0.08)
+        # stained-glass panes: coloured and softly lit (a plain glow face rendered as a white slab)
+        for k, hx in (("pane_blue", "#2a4ab8"), ("pane_red", "#b8262e"), ("pane_gold", "#e0a830"), ("pane_teal", "#1f9a8a")):
+            _EXTRA[k] = P.flat("K_" + k, P.hexc(hx), emit=1.2, metal=0.1, rough=0.15)
     m = dict(_EXTRA); m.update(mats)
     return m
 
@@ -1453,7 +1458,10 @@ def shield_type(c):
                     (("sail", "windmill", "lattice"), "tower"), (("scallop",), "scallop")):
         if _has(clause, *keys) or any(k in clause for k in keys if "-" in k):
             shape = s; break
-    if _has(clause, "glass", "lens", "stained", "rose-window", "mirror"): o["face"] = "glass" if not _has(clause, "mirror") else "mirror"
+    if _has(clause, "glass", "lens", "stained", "rose-window", "mirror"):
+        o["face"] = "glass" if not _has(clause, "mirror") else "mirror"
+        o["stained"] = _has(clause, "stained", "rose-window", "rose")
+        o["dark_glass"] = _has(clause, "black", "smoked", "obsidian", "dark")
     elif _has(clause, "stone", "waystone", "barrow", "milestone", "basalt", "volcanic"): o["face"] = "stone"
     elif _has(clause, "branch", "woven", "wood", "oak", "plank", "door", "oar", "sail", "ember-wood"): o["face"] = "wood"
     elif _has(clause, "iron", "cast-iron", "steel", "plough", "cauldron"): o["face"] = "iron"
@@ -1503,7 +1511,10 @@ def build_shield(c, mats):
     shape, o = t
     m = mats_for(mats)
     W, H = {"buckler": (0.15, 0.15), "round": (0.26, 0.28), "dome": (0.25, 0.25), "scallop": (0.27, 0.27)}.get(shape, (0.25, 0.3))
-    face = {"wood": m["wood"], "stone": m["stone"], "iron": m["iron"], "glass": m["glow"], "mirror": m["metal"], "metal": m["metal"]}[o.get("face", "metal")]
+    # glass: stained glass is a dark iron backing under coloured panes; black glass is smoked glass; other
+    # glass (a lens) is pale and softly lit. The plain glow face rendered every one of them as a white slab.
+    glass = m["iron"] if o.get("stained") else m["glass_dark"] if o.get("dark_glass") else m["glass_pale"]
+    face = {"wood": m["wood"], "stone": m["stone"], "iron": m["iron"], "glass": glass, "mirror": m["metal"], "metal": m["metal"]}[o.get("face", "metal")]
     ol = _outline(shape, W, H)
     out = []
     bulge = 0.09 if shape == "dome" else 0.05 if shape in ("round", "buckler", "scallop", "kite", "heater") else 0.025
@@ -1543,12 +1554,38 @@ def build_shield(c, mats):
         for k in range(9):
             a = math.radians(-80 + 20 * k)
             out.append(tube([(0, -H * 0.7, 0.03 + bulge * 0.3), (math.sin(a) * W * 0.95, math.cos(a) * H * 0.95 - H * 0.05, 0.03)], 0.012, m["acc"], segs=5))
-    if o.get("face") == "glass":
+    if o.get("face") == "glass" and not o.get("stained"):
+        # plain glass: a few iron ribs and a ring, as before, over the tinted face
         for k in range(8):
             a = k / 8 * TAU
-            out.append(tube([(0, 0, 0.03 + bulge), (math.cos(a) * W * 0.95, math.sin(a) * H * 0.95, 0.028)], 0.006, m["iron"], segs=4))
-        out.append(torus(W * 0.45, 0.006, m["iron"], loc=(0, 0, 0.03 + bulge * 0.8), seg=24, mseg=4))
-    e = o.get("emblem"); ez = 0.03 + bulge; n_before = len(out)
+            out.append(tube([(math.cos(a) * W * r, math.sin(a) * H * r, zt(math.cos(a) * W * r, math.sin(a) * H * r) + 0.005) for r in (0.1, 0.4, 0.7, 0.94)], 0.005, m["iron"], segs=4))
+        out.append(tube([(math.cos(j / 32 * TAU) * W * 0.45, math.sin(j / 32 * TAU) * H * 0.45, zt(math.cos(j / 32 * TAU) * W * 0.45, math.sin(j / 32 * TAU) * H * 0.45) + 0.005) for j in range(33)], 0.005, m["iron"], segs=4))
+    if o.get("face") == "glass" and o.get("stained"):
+        # a rose window: an outer ring of 8 panes and an inner ring of 8 petals in four colours, following the
+        # dome, with iron leading that follows it too, and a gold rosette at the heart
+        cols = [m["pane_blue"], m["pane_red"], m["pane_gold"], m["pane_teal"]]
+        def wedge(r0, r1, a0, a1, n=6):
+            return [(math.cos(a0 + (a1 - a0) * i / n) * r1 * W, math.sin(a0 + (a1 - a0) * i / n) * r1 * H) for i in range(n + 1)] + \
+                [(math.cos(a1 - (a1 - a0) * i / n) * r0 * W, math.sin(a1 - (a1 - a0) * i / n) * r0 * H) for i in range(n + 1)]
+        gap = 0.035
+        for k in range(8):
+            a0, a1 = k / 8 * TAU + gap, (k + 1) / 8 * TAU - gap
+            pane = plate(wedge(0.5, 0.9, a0, a1), 0.004, cols[k % 4], bulge=bulge, bevel=0.0, R=Rm)
+            out.append(xform(pane, (0, 0, 0.023)))
+            b0, b1 = (k + 0.5) / 8 * TAU + gap * 1.6, (k + 1.5) / 8 * TAU - gap * 1.6
+            petal = plate(wedge(0.2, 0.44, b0, b1), 0.004, cols[(k + 2) % 4], bulge=bulge, bevel=0.0, R=Rm)
+            out.append(xform(petal, (0, 0, 0.023)))
+        def lead(pts2):
+            return tube([(x, y, zt(x, y) + 0.006) for x, y in pts2], 0.005, m["iron"], segs=4)
+        for k in range(8):
+            a = k / 8 * TAU
+            out.append(lead([(math.cos(a) * W * r, math.sin(a) * H * r) for r in (0.18, 0.35, 0.5, 0.65, 0.8, 0.94)]))
+        for r in (0.47, 0.17):
+            out.append(lead([(math.cos(j / 32 * TAU) * W * r, math.sin(j / 32 * TAU) * H * r) for j in range(33)]))
+        out.append(xform(lathe([(0, 0), (0.035, 0), (0.03, 0.01), (0.012, 0.02), (0, 0.022)], m["gold"], segs=16), (0, 0, zt(0, 0))))
+        out.append(xform(lathe([(0, 0), (0.014, 0), (0, 0.012)], m["glow"], segs=12), (0, 0, zt(0, 0) + 0.018)))
+    e = o.get("emblem") if not o.get("stained") else None   # a rose window is its own emblem (its "rose" read as a sun, gold rays on white glass)
+    ez = 0.03 + bulge; n_before = len(out)
     if e == "sun":
         out.append(xform(lathe([(0, 0), (0.06, 0), (0.0, 0.012)], m["glow"], segs=16), (0, 0, ez + 0.01)))
         for k in range(12):
