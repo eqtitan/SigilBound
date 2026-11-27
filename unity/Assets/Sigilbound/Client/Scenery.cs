@@ -139,7 +139,8 @@ namespace Sigilbound.Client
                     if (_farRamp.HasProperty("_BaseMap")) _farRamp.SetTexture("_BaseMap", farRamp);
                 }
                 var mote = Palette.Hex(th.MoteColor);
-                _glow = Materials.Glow(mote * 0.4f, mote, th.Mushrooms ? 0.9f : 1.2f);
+                // The glass desert's crystals are glass, not lamps: a pale lilac body with a faint glow, so their facets read.
+                _glow = th.Name == "glass desert" ? Materials.Glow(Palette.Hex("#b4a6d6"), Palette.Hex("#d6c8ff"), 0.22f) : Materials.Glow(mote * 0.4f, mote, th.Mushrooms ? 0.9f : 1.2f);
                 _fire = Materials.Glow(Palette.Hex("#3a1a08"), Palette.Hex("#ffb050"), 1.8f);
             }
 
@@ -208,7 +209,7 @@ namespace Sigilbound.Client
                     if (name == "brazier" && react != null && go != null) { go.AddComponent<SceneryMoves>(); react.Braziers.Add(go.transform); }
                 }
                 // grass tufts near the arena edge (they read as texture)
-                for (int i = 0; i < Mathf.RoundToInt(60 * density); i++)
+                for (int i = 0; i < Mathf.RoundToInt(40 * density); i++)
                 {
                     float a = R(0, Mathf.PI * 2), k = R(1.05f, 1.5f); float x = Mathf.Sin(a) * 6.2f * k, z = 0.6f + Mathf.Cos(a) * 5.6f * k;
                     if (z < -6.5f) continue;
@@ -279,7 +280,13 @@ namespace Sigilbound.Client
             string hex = StoryScenes.GlowHex(pc.Glow);
             if (pc.Glow == "fire" || (hex == null && (pc.Mesh == "brazier" || pc.Mesh == "lantern" || pc.Mesh == "torch_post"))) return _fire;
             if (hex == null) return _glow;
-            if (!_glows.TryGetValue(hex, out var m) || m == null) { var c = Palette.Hex(hex); _glows[hex] = m = Materials.Glow(c * 0.4f, c, 1.2f); }
+            if (!_glows.TryGetValue(hex, out var m) || m == null)
+            {
+                var c = Palette.Hex(hex);
+                // Glass spires: a pale cyan glass body lit like the rest (darker facets away from the light) with a faint
+                // inner glow; the singing flash on crits (ArenaReactor Chime) brightens it briefly. Others: lamp-like glows.
+                _glows[hex] = m = pc.Glow == "glass" ? Materials.Glow(Palette.Hex("#8ec6d6"), c, 0.22f) : Materials.Glow(c * 0.4f, c, 1.2f);
+            }
             return m;
         }
 

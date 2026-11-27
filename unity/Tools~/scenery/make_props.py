@@ -149,10 +149,10 @@ def oak(seed):
         a = k / 4 * math.tau + rng.uniform(-.5, .5)
         tip = Vector((math.cos(a) * rng.uniform(.55, .8), h + rng.uniform(.5, .8), math.sin(a) * rng.uniform(.55, .8)))
         pts.append(tip); edges.append((2, len(pts) - 1)); radii.append(0.05); tips.append(tip)
-    bm = skin_tree((pts, edges), radii, decimate=0.55)
+    bm = skin_tree((pts, edges), radii, decimate=0.25)  # budget pass (build 138): ~700 tris an oak
     # Layered canopy: a broad lower tier, a middle tier over the branch tips, a small crown.
     top = h + 0.7
-    layers = [(top - 0.2, 0.85, 1, 4), (top + 0.35, 0.75, 1, 3), (top + 0.9, 0.55, 1, 2)]
+    layers = [(top - 0.2, 0.95, 1, 3), (top + 0.4, 0.85, 1, 2), (top + 0.95, 0.62, 1, 1)]
     for (y, r, sub, count) in layers:
         for k in range(count):
             a = k / max(count, 1) * math.tau + rng.uniform(0, math.tau)
@@ -209,7 +209,7 @@ def dead_tree(seed):
         pts.append(p1); edges.append((base, len(pts) - 1)); radii.append(0.035)
         p2 = p1 + Vector((math.cos(a + .6) * L * .4, L * .45, math.sin(a + .6) * L * .4))
         pts.append(p2); edges.append((len(pts) - 2, len(pts) - 1)); radii.append(0.015)
-    return skin_tree((pts, edges), radii, decimate=0.35)
+    return skin_tree((pts, edges), radii, decimate=0.2)
 
 
 def chiselled(r, seed, planes=11, soften=0.18, subdiv=2, cliff=False):
@@ -309,11 +309,11 @@ def ruin_wall(seed):
         for i in range(start, start + n_here):
             if r == rows - 1 and rng.random() < 0.4: continue
             w = rng.uniform(0.62, 0.72)
-            b = box(w, 0.42, 0.5, STONE, bevel=0.035)
+            b = box(w, 0.42, 0.5, STONE)  # plain blocks: the baked AO draws the joints
             x = (i - W / 2 + 0.5) * 0.72 + (0.36 if r % 2 else 0)
             add_bm(bm, b, T(x, r * 0.44, rng.uniform(-.03, .03)) @ Ry(rng.uniform(-4, 4))); b.free()
     for k in range(2):  # fallen blocks
-        b = box(0.6, 0.4, 0.45, STONE, bevel=0.04)
+        b = box(0.6, 0.4, 0.45, STONE)
         add_bm(bm, b, T(rng.uniform(-1.5, 1.5), 0, rng.uniform(-0.9, -0.6)) @ Ry(rng.uniform(0, 90)) @ Rz(rng.uniform(-10, 10))); b.free()
     moss_tops(bm, seed, cut=0.7)
     return bm
@@ -491,7 +491,7 @@ def mesa(seed):
     rows = (ROCK, EARTH, STONE, ROCK)
     for i in range(4):
         h = rng.uniform(0.55, 0.85); w = 1.55 - i * 0.2
-        s = chiselled(1.0, seed + i, planes=9, soften=0.04, subdiv=2, cliff=True)
+        s = chiselled(1.0, seed + i, planes=9, soften=0.04, subdiv=1, cliff=True)
         for v in s.verts:  # a slab with cliff walls: squash the sphere's caps flat
             yy = max(min(v.co.y * 1.8, 0.5), -0.5)
             v.co = Vector((v.co.x * w, (yy + 0.5) * h, v.co.z * w * 0.8))

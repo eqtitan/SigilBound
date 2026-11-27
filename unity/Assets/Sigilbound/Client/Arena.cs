@@ -185,13 +185,15 @@ namespace Sigilbound.Client
             // Fog per theme: thicker over marsh, fen, barrow and storm, clearer over the badlands (the battle camera sits ~19 m out).
             var (fogNear, fogFar) = Scenery.FogRange(chapter, titan);
             RenderSettings.fogStartDistance = fogNear * fogK; RenderSettings.fogEndDistance = fogFar * fogK;
-            RenderSettings.ambientLight = Color.Lerp(bottom, Color.white, 0.35f) * 0.55f * (night ? 0.8f : 1f - dusk * 0.25f);
+            bool lair = set != null && stage == GameData.StagesPerChapter - 1;
+            // Night lairs keep more ambient (the throne and crag must read in the dark); other night stops dim it.
+            RenderSettings.ambientLight = Color.Lerp(bottom, Color.white, 0.35f) * 0.55f * (night ? (lair ? 1.0f : 0.85f) : 1f - dusk * 0.25f);
             // The sun takes a little of the horizon's colour (warm dusks, cold storms); kept close to white so the
             // heroes' painted look holds. Storms are dimmer.
             if (Sun != null)
             {
                 Sun.color = Color.Lerp(Color.white, Color.Lerp(bottom, Color.white, 0.4f), 0.35f);
-                Sun.intensity = (Scenery.Stormy(chapter, titan) && !titan ? 0.9f : 1.15f) * moodLight;
+                Sun.intensity = (Scenery.Stormy(chapter, titan) && !titan ? 0.9f : 1.15f) * (night && lair ? Mathf.Max(moodLight, 0.78f) : moodLight);
                 if (night) Sun.color = Color.Lerp(Sun.color, new Color(0.7f, 0.8f, 1f), 0.5f); // moonlight
             }
             // The sky (painted clouds) and the distant ridges are painted arcs built with the scenery.
@@ -207,11 +209,27 @@ namespace Sigilbound.Client
             RuneRing(0.82f, 0.03f, new Color(1f, 0.85f, 0.5f, 0.3f));
 
             // Ground, water or lava, scatter, horizon silhouettes and motes (scenery.mjs themes).
-            float density = Quality.I == null ? 1f : new[] { 0.4f, 0.7f, 1f, 1.3f }[Quality.I.Tier];
+            // Scatter density by tier; Ultra stays at High's count (budget pass after build 138: ~25k scenery triangles).
+            float density = Quality.I == null ? 1f : new[] { 0.4f, 0.7f, 1f, 1f }[Quality.I.Tier];
             Scenery.Build(_scenery.transform, chapter, titan, density, bottom, top, interactive, Sun, set, hard);
+            if (lair && night) LairRim(set, Scenery.ShadowColor(chapter, false));
             StaticBatch(_scenery);
             HideOccluders(); // a re-built arena under an already framed camera
             Shafts(titan ? Palette.Hex("#ff9a5a") : Color.Lerp(bottom, new Color(1f, 0.95f, 0.8f), 0.7f));
+        }
+
+        // A night lair's rim light: a cool moonlit point light in front of and above the landmark, so its
+        // silhouette and upper faces read against the dark sky (owner check, build 138). One light, every tier.
+        void LairRim(StageSet set, Color sil)
+        {
+            Piece main = null;
+            foreach (var p in set.Pieces) if (!p.Far && (main == null || p.R * p.Scale > main.R * main.Scale)) main = p;
+            if (main == null) return;
+            var l = new GameObject("LairRim").AddComponent<Light>();
+            l.transform.SetParent(_scenery.transform, false);
+            l.transform.position = new Vector3(main.X * 0.8f, 5.5f * main.Scale + 1.5f, main.Z - main.R - 2.5f);
+            l.type = LightType.Point; l.range = 18f; l.intensity = 1.8f; l.shadows = LightShadows.None;
+            l.color = Color.Lerp(Color.Lerp(sil, Color.white, 0.5f), new Color(0.72f, 0.82f, 1f), 0.6f);
         }
 
         // Ultra: a few soft light shafts slanting down from the sun's side onto the arena

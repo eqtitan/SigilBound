@@ -2,6 +2,12 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-27 | Lighter, clearer lairs
+fix: Arenas draw far fewer triangles: lighter trees, rocks, walls and mesas, and Ultra no longer adds extra scatter.
+fix: The Glass Wastes' spires and crystals are now glassy pale cyan and lilac instead of glowing white shapes; they still flash when they sing.
+fix: Night lairs are lit by a cool moonlight so the Hollow King's throne and the Stormcrown crag stand out of the dark.
+fix: Every lair's landmark now fits in the battle view, tops included.
+
 ## 2026-11-26 | Cleaner menus
 fix: Tapping a stage in an open chapter no longer presses the map button hidden behind the list.
 fix: Stage names are easier to read, and the gear chance no longer runs under the Replay button.

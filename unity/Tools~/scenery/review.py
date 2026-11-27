@@ -259,8 +259,11 @@ def setup(theme, t, meshes, lineup):
     cam.data.sensor_fit = "VERTICAL"; cam.data.angle = math.radians(42); cam.data.clip_end = 150
     cam.location, look = ((0, -9.6, 7.2), (0, 1.1, 0.9)) if os.environ.get("CAM") == "menu" else ((0, -13.5, 7.4), (0, 4.0, 1.2))
     if os.environ.get("CAM") == "low": cam.location, look = (2.5, -6.0, 1.5), (0, 6.0, 4.5)
-    d = np.array(look) - np.array(cam.location)
-    cam.rotation_euler = (math.atan2(math.hypot(d[0], d[1]), -d[2]), 0, 0)
+    if os.environ.get("CAM") == "fight":  # the game's default battle camera (BattleLayout "angle", 16:9): x 5.83, y 6.47, z -6.96
+        cam.location, look = (5.83, -6.96, 6.47), (0.0, 0.5, 1.0); cam.data.angle = math.radians(50)
+    from mathutils import Vector as _V
+    d = _V(look) - _V(cam.location)
+    cam.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
     # fog: a volume would be slow; tint distant things through the mist pass instead
     sc.world.mist_settings.start = 26; sc.world.mist_settings.depth = 38
     bpy.context.view_layer.use_pass_mist = True

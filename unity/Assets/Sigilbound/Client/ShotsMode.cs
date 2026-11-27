@@ -121,17 +121,6 @@ namespace Sigilbound.Client
                 ShotLog($"arena {GameData.Chapters[c]}");
                 yield return Shot($"arena-{c + 1}");
             }
-            // Story stops (PLAN step 85): a route's first stop and lairs, from the battle camera.
-            foreach (var (c, st, label) in new[] { (1, 0, "story-mill-1"), (1, 5, "story-mill-6"), (14, 5, "story-storm-6"), (5, 5, "story-glass-6"), (6, 5, "story-crown-6") })
-            {
-                Arena.Build(c, false, st == GameData.StagesPerChapter - 1, st);
-                Arena.FrameBattle(BattleLayout.DefaultCamera, false);
-                yield return new WaitForSecondsRealtime(1.5f);
-                ShotLog($"story {GameData.Chapters[c]} stage {st + 1}: {StoryScenes.Of(c, st)?.Name}");
-                yield return Shot(label);
-                LogBudget(label);
-            }
-            Arena.FrameMenu();
             Arena.Build(0, false);
             _shotLineup = null; _shotNoUi = false; _lineupKey = "";
             Go(ScreenId.Home);
@@ -149,6 +138,21 @@ namespace Sigilbound.Client
             yield return new WaitForSecondsRealtime(2f);
             yield return Shot("battle-result");
 
+            // Story stops (PLAN step 85) as real fights frame them: a throwaway battle on each stage (auto off,
+            // ended before anyone wins, so nothing is rewarded or saved), shot from the battle camera.
+            foreach (var (c, st, label) in new[] { (1, 0, "story-mill-1"), (1, 5, "story-mill-6"), (14, 5, "story-storm-6"), (5, 5, "story-glass-6"), (6, 5, "story-crown-6"), (4, 5, "story-bell-6"), (10, 5, "story-light-6") })
+            {
+                CloseModal(); Go(ScreenId.Home); yield return new WaitForSecondsRealtime(0.5f);
+                G.S.settings.auto = false;
+                Battle.Begin(BattleSpec.ForStage(c * GameData.StagesPerChapter + st));
+                yield return new WaitForSecondsRealtime(2.5f);
+                ShotLog($"story {GameData.Chapters[c]} stage {st + 1}: {StoryScenes.Of(c, st)?.Name}");
+                yield return Shot(label);
+                LogBudget(label);
+                Battle.End(ScreenId.Home);
+            }
+            G.S.settings.auto = true;
+
             // A Titan practice fight (no rewards, nothing saved): the arrival intro, then the worm's-eye view
             // every few seconds, so Titan framing and cinematics can be checked without a phone.
             CloseModal(); Go(ScreenId.Home); yield return new WaitForSecondsRealtime(1f);
@@ -165,9 +169,24 @@ namespace Sigilbound.Client
 
         // Scene budget probe (PLAN step 81): what the current frame asks of a phone. Logged as
         // "SBBUDGET <shot> tier=.. renderers=.. tris=.. skinned=.. particles=.. systems=.. lights=.. audio=..".
+        // The renderer's own triangles. A static-batched renderer's MeshFilter holds the arena's whole combined
+        // mesh; only its submesh range (subMeshStartIndex, one per material) is its own. Counting the whole
+        // combined mesh for every batched prop inflated the build-138 numbers several times over.
+        static long Tris(Renderer r, Mesh m)
+        {
+            if (m == null) return 0;
+            int first = 0, count = m.subMeshCount;
+            if (r is MeshRenderer mr && r.isPartOfStaticBatch) { first = mr.subMeshStartIndex; count = Mathf.Min(r.sharedMaterials.Length, m.subMeshCount - first); }
+            long t = 0;
+            for (int i = first; i < first + count; i++) t += m.GetIndexCount(i) / 3; // works on non-readable meshes too
+            return t;
+        }
+
         void LogBudget(string name)
         {
             int renderers = 0, skinned = 0, particles = 0, systems = 0, lights = 0, audio = 0; long tris = 0;
+            long heroes = 0, scenery = 0, other = 0;
+            var by = new System.Collections.Generic.Dictionary<string, (int n, long t)>();
             foreach (var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
             {
                 if (!r.enabled || !r.gameObject.activeInHierarchy || !r.isVisible) continue;
@@ -175,8 +194,18 @@ namespace Sigilbound.Client
                 Mesh m = null;
                 if (r is SkinnedMeshRenderer smr) { skinned++; m = smr.sharedMesh; }
                 else if (r is MeshRenderer) { var f = r.GetComponent<MeshFilter>(); if (f != null) m = f.sharedMesh; }
-                if (m != null) for (int i = 0; i < m.subMeshCount; i++) tris += m.GetIndexCount(i) / 3; // works on non-readable meshes too
+                long t = Tris(r, m);
+                tris += t;
+                if (t == 0) continue;
+                // Breakdown: heroes (anything under a CharacterView), the arena scenery, everything else;
+                // and the heaviest names (the prop's object name for scenery, else the mesh name).
+                bool hero = r.GetComponentInParent<CharacterView>() != null, scen = !hero && r.transform.root.name == "Scenery";
+                if (hero) heroes += t; else if (scen) scenery += t; else other += t;
+                string key = (hero ? "hero:" : scen ? "" : "other:") + (scen || m == null ? r.gameObject.name : m.name);
+                by[key] = by.TryGetValue(key, out var e) ? (e.n + 1, e.t + t) : (1, t);
             }
+            ShotLog($"SBBUDGET-SPLIT {name} heroes={heroes} scenery={scenery} other={other}");
+            ShotLog($"SBBUDGET-TOP {name} " + string.Join(", ", by.OrderByDescending(kv => kv.Value.t).Take(14).Select(kv => $"{kv.Key} x{kv.Value.n}={kv.Value.t}")));
             foreach (var ps in FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None)) if (ps.particleCount > 0) { systems++; particles += ps.particleCount; }
             foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.enabled && l.gameObject.activeInHierarchy) lights++;
             foreach (var a in FindObjectsByType<AudioSource>(FindObjectsSortMode.None)) if (a.isPlaying) audio++;
