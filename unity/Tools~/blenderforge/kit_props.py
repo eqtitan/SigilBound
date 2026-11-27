@@ -316,7 +316,7 @@ def w_sword(m, o):
         if wavy: hw *= 1 + 0.18 * math.sin(t * 9 * math.pi)
         y = curve * L * t * t
         st.append((z, hw, 0.009 * (1 - 0.5 * t), y))
-    out = [blade(st, o.get("bmat", m["metal"]), single=single)]
+    out = [blade(st, o.get("bmat", m["iron"] if o.get("dark") else m["metal"]), single=single)]
     if o.get("fuller", True) and not single and not wavy:
         out.append(blade([(0.14, 0.006, 0.0095, 0), (0.1 + L * 0.7, 0.005, 0.0095, 0), (0.1 + L * 0.75, 0.001, 0.0095, 0)], m["iron"]))
     hand = o.get("handle", 0.2)
@@ -342,6 +342,10 @@ def w_sword(m, o):
         for k in range(6):
             z = 0.15 + k * L * 0.13; s = 1 if k % 2 else -1
             out.append(xform(lathe([(0.006, 0), (0, 0.03)], m["darkwood"], segs=5, smooth=False), (0, s * W * 0.2, z), rx(-70 * s)))
+    if o.get("flames"):   # a burning blade: flame tongues licking up its edge
+        for k in range(5):
+            t = 0.2 + 0.15 * k; z = 0.1 + L * t
+            out.append(flame(m, (0, curve * L * t * t + W * 0.5, z), h=0.07 - 0.008 * k, r=0.018))
     if o.get("cracks"):
         for k in range(4):
             z = 0.2 + k * L * 0.2
@@ -1325,7 +1329,9 @@ RULES = [
     (("flamberge",), "sword", {"wavy": True, "len": 1.05, "width": 0.045, "glow_edge": True}),
     (("katana",), "sword", {"curve": 0.05, "single": True, "guard": "tsuba", "len": 0.82, "width": 0.03, "handle": 0.26, "fuller": False}),
     (("rapier",), "sword", {"len": 0.95, "width": 0.014, "guard": "cup", "fuller": False}),
+    (("flaming cutlass", "burning cutlass"), "sword", {"curve": 0.08, "single": True, "guard": "knuckle", "len": 0.7, "width": 0.035, "glow_edge": True, "flames": True}),
     (("cutlass", "sabre", "saber"), "sword", {"curve": 0.08, "single": True, "guard": "knuckle", "len": 0.7, "width": 0.035}),
+    (("lava-veined greatsword", "molten greatsword"), "sword", {"len": 1.25, "width": 0.075, "handle": 0.3, "guard_w": 0.18, "cracks": True, "glow_edge": True, "fuller": False, "dark": True}),
     (("greatsword",), "sword", {"len": 1.25, "width": 0.07, "handle": 0.3, "guard_w": 0.16}),
     (("skate-blade",), "sword", {"len": 0.9, "width": 0.03, "single": True, "curve": -0.02, "guard": "cross"}),
     (("longsword",), "sword", {"len": 1.0, "width": 0.042, "handle": 0.24}),

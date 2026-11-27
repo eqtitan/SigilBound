@@ -795,7 +795,7 @@ def make_wings(c, arm, mats, bind, head_box):
     for kind, phrase in kinds:
         glow = _has(phrase, "flame", "fire", "light", "radiant", "gold light")
         main = mats["glow"] if glow else mats["main"]
-        trim = mats["acc"]
+        trim = mats["glow"] if _has(phrase, "glowing violet eye", "glowing eye") else mats["acc"]   # moth eye spots that glow
         if kind == "head":
             hb = head_box
             metal = _has(phrase, "helm", "visor", "armet", "storm")
