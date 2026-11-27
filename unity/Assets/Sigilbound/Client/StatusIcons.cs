@@ -40,11 +40,12 @@ namespace Sigilbound.Client
                 var t = Get(e.Type);
                 if (t != null) GUI.DrawTexture(r, t);
                 else Ui.Text(r, SkillText.EffectShort(e.Type), 7, FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff"), FontStyle.Bold, TextAnchor.MiddleCenter);
-                if (e.Stacks > 1) // Poison/Burn stacks: a small "x2" in the top-left corner
+                if (e.Stacks > 1) // Poison/Burn stacks: a gold pill above the icon's top-right corner, clear of the turn count
                 {
-                    var sr = new Rect(r.x - 1, r.y - 1, size * 0.5f, size * 0.42f);
-                    Ui.Round(sr, new Color(0.07f, 0.05f, 0.09f, 0.95f), Palette.Hex("#a05ae0"), 5);
-                    Ui.Text(sr, "x" + e.Stacks, Mathf.Max(7, Mathf.RoundToInt(size * 0.32f)), Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+                    float bw = Mathf.Max(13, size * 0.82f), bh = Mathf.Max(9, size * 0.56f);
+                    var sr = new Rect(r.xMax - bw * 0.7f, r.y - bh * 0.62f, bw, bh);
+                    Ui.Round(sr, new Color(0.12f, 0.06f, 0.02f, 0.97f), Palette.Gold, Mathf.RoundToInt(bh / 2));
+                    Ui.Text(sr, "\u00d7" + e.Stacks, Mathf.Max(8, Mathf.RoundToInt(size * 0.48f)), new Color(1f, 0.9f, 0.6f), FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
                 if (e.Turns > 0 && e.Type != FxType.Shield)
                 {

@@ -668,6 +668,16 @@ namespace Sigilbound.Client
         }
 
         static readonly Color BreakColor = new Color(1f, 0.6f, 0.22f); // the weakness break meter (PLAN step 98)
+        // The break meter: a dark track with an orange fill and a bright leading edge, so a part-filled meter
+        // reads at battle size (the first 2 px line was invisible in the in-game check).
+        static void BreakBar(Rect r, double brk)
+        {
+            if (brk <= 0) return;
+            GUI.DrawTexture(r, Ui.Solid(new Color(0.08f, 0.05f, 0.03f, 0.85f)));
+            float f = Mathf.Clamp01((float)(brk / 100));
+            GUI.DrawTexture(new Rect(r.x, r.y, r.width * f, r.height), Ui.Solid(f >= 0.66f ? new Color(1f, 0.78f, 0.3f) : BreakColor));
+            GUI.DrawTexture(new Rect(r.x + r.width * f - 1, r.y - 1, 2, r.height + 2), Ui.Solid(new Color(1f, 0.95f, 0.75f)));
+        }
         Element _lastEl;
         // A stun from a heavy-family weapon, the Titan or an ultimate knocks the target down (MECHANICS.md 3.1).
         Unit _ultBy; // the unit whose ultimate's events are being shown
@@ -971,13 +981,13 @@ namespace Sigilbound.Client
                 float x = Mathf.Clamp(sp.x / Ui.Scale, 46, Ui.W - 46), y = Mathf.Max(safe.y + 114, (Screen.height - sp.y) / Ui.Scale); // tags stay on screen, below the turn bar
                 float w = u.Titan ? 140 : 76;
                 Ui.Text(new Rect(x - w / 2 - 10, y - 30, w + 20, 16), $"{Ui.ColorTag("●", Palette.Element(u.El))} {(u.Ally ? u.Template.ShortName : u.Name)}", 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
-                Ui.Bar(new Rect(x - w / 2, y - 13, w, 7), u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
-                var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(x - w / 2, y - 13, w * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 3), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
-                if (u.Break > 0) GUI.DrawTexture(new Rect(x - w / 2, y - 6, w * Mathf.Clamp01((float)(u.Break / 100)), 2), Ui.Solid(BreakColor)); // weakness break meter
-                Ui.Bar(new Rect(x - w / 2, y - 4, w, 3), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
+                Ui.Bar(new Rect(x - w / 2, y - 15, w, 7), u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
+                var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(x - w / 2, y - 15, w * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 3), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
+                BreakBar(new Rect(x - w / 2, y - 7, w, 4), u.Break); // weakness break meter
+                Ui.Bar(new Rect(x - w / 2, y - 2, w, 3), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
                 if (u.Effects.Count > 0)
                 {
-                    var ir = StatusIcons.Row(x, y + 2, u.Effects, 16, true);
+                    var ir = StatusIcons.Row(x, y + 4, u.Effects, 16, true);
                     if (!manual && !App.ModalOpen && Ui.Button(ir, "", Ui.Kind.Ghost)) StatusIcons.ShowLegend(App); // tap the icons: the legend
                 }
                 if (manual && targets.Contains(u))
@@ -1124,11 +1134,11 @@ namespace Sigilbound.Client
                 var bar = new Rect(r.x + 20, r.y + 12, r.width - 20, 6);
                 Ui.Bar(bar, u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
                 var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 2), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
-                if (u.Break > 0) GUI.DrawTexture(new Rect(bar.x, bar.yMax, bar.width * Mathf.Clamp01((float)(u.Break / 100)), 2), Ui.Solid(BreakColor));
-                Ui.Bar(new Rect(bar.x, bar.yMax + 2, bar.width, 3), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
+                BreakBar(new Rect(bar.x, bar.yMax + 1, bar.width, 3), u.Break);
+                Ui.Bar(new Rect(bar.x, bar.yMax + (u.Break > 0 ? 5 : 2), bar.width, 3), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
                 if (u.Effects.Count > 0)
                 {
-                    var ir = StatusIcons.Row(r.x, r.yMax + 1, u.Effects, 15, false);
+                    var ir = StatusIcons.Row(r.x, r.yMax + 3, u.Effects, 15, false);
                     if (!manual && !App.ModalOpen && Ui.Button(ir, "", Ui.Kind.Ghost)) StatusIcons.ShowLegend(App); // tap the icons: the legend
                 }
                 if (manual && targets.Contains(u))
