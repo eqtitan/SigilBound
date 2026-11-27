@@ -197,8 +197,9 @@ namespace Sigilbound.Client
                 var r = new Rect(Pad + (i % 2) * (cw + 8), y + (i / 2) * 58, cw, 50);
                 bool inTeam = G.S.team.Contains(h.uid);
                 Ui.Panel(r, inTeam ? Palette.Hex("#3a2f22") : Palette.Panel2, inTeam ? Palette.Gold : Palette.Rarity(t.Rarity), 10);
-                Ui.Text(new Rect(r.x + 10, r.y + 4, r.width - 20, 22), t.ShortName + (inTeam ? $"  #{G.S.team.IndexOf(h.uid) + 1}" : ""), 14, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + 10, r.y + 26, r.width - 20, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv{h.level} · {Ui.ColorTag(t.Element.ToString(), Palette.Element(t.Element))}", 12, Palette.Dim);
+                float px = Portraits.Thumb(new Rect(r.x + 6, r.y + 6, 38, 38), t.Id, Palette.Rarity(t.Rarity)) ? 46 : 0; // the face, when there is one
+                Ui.Text(new Rect(r.x + px + 10, r.y + 4, r.width - px - 20, 22), t.ShortName + (inTeam ? $"  #{G.S.team.IndexOf(h.uid) + 1}" : ""), 14, Palette.Text, FontStyle.Bold);
+                Ui.Text(new Rect(r.x + px + 10, r.y + 26, r.width - px - 20, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv{h.level} · {Ui.ColorTag(t.Element.ToString(), Palette.Element(t.Element))}", 12, Palette.Dim);
                 if (Ui.Button(r, "", Ui.Kind.Ghost))
                 {
                     if (inTeam) G.S.team.Remove(h.uid);

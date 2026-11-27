@@ -123,6 +123,7 @@ namespace Sigilbound.Client
                     Ui.Text(new Rect(slot.x + 24, slot.y + 4, slot.width - 28, 20), t.ShortName, 12, Palette.Text, FontStyle.Bold);
                     Ui.Text(new Rect(slot.x + 6, slot.y + 24, slot.width - 10, 16), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv{h.level}", 10, Palette.Dim);
                     Ui.Text(new Rect(slot.x + 6, slot.y + 44, slot.width - 10, 18), Ui.Fmt(G.Power(h)), 11, Palette.Text, FontStyle.Bold);
+                    if (slot.width >= 76) Portraits.Thumb(new Rect(slot.xMax - 32, slot.yMax - 32, 26, 26), t.Id, Palette.Rarity(t.Rarity)); // the face, bottom right
                     if (Ui.Button(slot, "", Ui.Kind.Ghost)) { G.S.team.Remove(h.uid); Save(); }
                 }
                 else
@@ -204,9 +205,11 @@ namespace Sigilbound.Client
                 var r = new Rect((i % 2) * (cw + 6), (i / 2) * (ch + 6), cw, ch);
                 bool inTeam = G.S.team.Contains(h.uid);
                 Ui.Panel(r, inTeam ? Palette.Hex("#3a2f22") : Palette.Panel2, inTeam ? Palette.Gold : Palette.Rarity(t.Rarity), 9);
-                Icons.Draw(new Rect(r.x + 6, r.y + 6, 14, 14), Icons.ForElement(t.Element), Palette.Element(t.Element));
-                Ui.Text(new Rect(r.x + 22, r.y + 2, r.width - 26, 20), t.ShortName + (inTeam ? $"  #{G.S.team.IndexOf(h.uid) + 1}" : ""), 12, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + 6, r.y + 24, r.width - 10, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv{h.level} · {Ui.Fmt(G.Power(h))}", 10, Palette.Dim);
+                // Portrait face at the left when there is one; the element icon sits beside the name.
+                float px = Portraits.Thumb(new Rect(r.x + 6, r.y + 6, ch - 12, ch - 12), t.Id, Palette.Rarity(t.Rarity)) ? ch : 0;
+                Icons.Draw(new Rect(r.x + px + 6, r.y + 6, 14, 14), Icons.ForElement(t.Element), Palette.Element(t.Element));
+                Ui.Text(new Rect(r.x + px + 22, r.y + 2, r.width - px - 26, 20), t.ShortName + (inTeam ? $"  #{G.S.team.IndexOf(h.uid) + 1}" : ""), 12, Palette.Text, FontStyle.Bold);
+                Ui.Text(new Rect(r.x + px + 6, r.y + 24, r.width - px - 10, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv{h.level} · {Ui.Fmt(G.Power(h))}", 10, Palette.Dim);
                 if (Ui.Button(r, "", Ui.Kind.Ghost))
                 {
                     if (inTeam) G.S.team.Remove(h.uid);
