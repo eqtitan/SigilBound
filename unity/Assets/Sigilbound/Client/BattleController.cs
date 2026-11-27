@@ -27,6 +27,7 @@ namespace Sigilbound.Client
     {
         public App App;
         Battle _b; BattleSpec _spec;
+        public Battle Engine => _b; // the screenshot tour stages UI states with it
         readonly Dictionary<Unit, CharacterView> _views = new Dictionary<Unit, CharacterView>();
         Unit _actor; int _sel; bool _awaiting; string _banner = ""; bool _finished;
         Coroutine _loop;
