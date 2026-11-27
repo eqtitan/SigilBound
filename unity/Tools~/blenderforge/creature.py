@@ -123,6 +123,12 @@ def spider_rig(arm, M):
         for i, b in enumerate(LEG_BONES):
             specs.append((f"leg_{leg}_{b}", pts[i], pts[i + 1], par, n, True)); par = f"leg_{leg}_{b}"
         specs.append((f"leg_{leg}_tip", pts[4], pts[4] + Vector((0, 0, -0.04)), par, n, False))
+    # the long braid: three bones from the nape to the waist, swayed by the clips
+    hb = ubc.head_box(arm); nape = Vector((0, hb["cy"] + 0.085, hb["eye"] - 0.02)); s3 = arm.data.bones["spine_03"].head_local; s1 = arm.data.bones["spine_01"].head_local
+    bpts = [nape, Vector((0, s3.y + 0.12, s3.z + 0.04)), Vector((0, s3.y + 0.13, (s3.z + s1.z) / 2)), Vector((0, s1.y + 0.13, s1.z - 0.06))]
+    par = "Head"
+    for k in range(3):
+        specs.append((f"braid_0{k + 1}", bpts[k], bpts[k + 1], par, (0, -1, 0), True)); par = f"braid_0{k + 1}"
     drop = [b.name for b in arm.data.bones if any(b.name.startswith(k) for k in ("thigh", "calf", "foot", "ball"))]
     add_bones(arm, specs, reparent=[("pelvis", "spider_body")], remove=drop)
     return drop
@@ -167,24 +173,36 @@ def spider_parts(c, arm, M):
     # legs: long thin chitin segments with knuckles, violet bands at every joint, pointed tips
     for leg in G.LEGS:
         nm = lambda b: f"leg_{leg}_{b}"; j = [B[nm(b)].head_local.copy() for b in LEG_BONES] + [B[nm("tarsus")].tail_local.copy()]
-        out.append(bind_rigid(ellip(f"Coxa_{leg}", j[0].lerp(j[1], 0.5), (0.055 * S,) * 3, chitin2, u=12, v=8), arm, nm("coxa")))
-        for i, (b, r0, r1) in enumerate((("femur", 0.062, 0.05), ("tibia", 0.05, 0.036), ("tarsus", 0.036, 0.008))):
+        out.append(bind_rigid(ellip(f"Coxa_{leg}", j[0].lerp(j[1], 0.5), (0.04 * S,) * 3, chitin2, u=12, v=8), arm, nm("coxa")))
+        for i, (b, r0, r1) in enumerate((("femur", 0.032, 0.026), ("tibia", 0.026, 0.019), ("tarsus", 0.019, 0.003))):
             a, z = j[i + 1], j[i + 2]; pts = []
             for s_ in range(7):
                 u = s_ / 6; r = (r0 + (r1 - r0) * u) * (1 + 0.18 * math.sin(math.pi * u)) * S
                 pts.append((a.lerp(z, u), r))
             out.append(bind_rigid(tube(f"Leg_{leg}_{b}", pts, chitin, 10, tip=(b == "tarsus")), arm, nm(b)))
-            d = (z - a).normalized(); rb = r0 * 1.32 * S
+            d = (z - a).normalized(); rb = r0 * 1.55 * S
             out.append(bind_rigid(tube(f"Band_{leg}_{b}", [(a + d * 0.012 * S, rb), (a + d * 0.05 * S, rb * 0.96)], band, 12), arm, nm(b)))
-    # a long braid down her back from the ponytail: tapering beads, the top on the head, the rest down the spine
-    hb0 = ubc.head_box(arm); top = Vector((hb0["cx"], hb0["cy"] + 0.08, hb0["eye"] + 0.02)); hair = mat("Braid", hexc((c.get("hair") or {}).get("colour", "#0e0c12")), 0.5)
-    s3 = B["spine_03"].head_local; s2 = B["spine_02"].head_local
-    path = [top, top + Vector((0, 0.05, -0.08)), Vector((0, s3.y + 0.13, s3.z + 0.12)), Vector((0, s3.y + 0.14, s3.z - 0.02)), Vector((0, s2.y + 0.13, s2.z + 0.02)), Vector((0, s2.y + 0.12, s2.z - 0.12))]
-    for k in range(len(path) - 1):
-        for j in range(3):
-            u = j / 3; p_ = path[k].lerp(path[k + 1], u); r = 0.034 - 0.0035 * (k * 3 + j) * 0.6
-            bn = "Head" if k < 1 else "neck_01" if k < 2 else "spine_03" if k < 4 else "spine_02"
-            out.append(bind_rigid(ellip(f"Braid_{k}{j}", p_, (r, r * 0.8, r * 1.25), hair, u=10, v=6), arm, bn))
+    # the long thick braid to the waist (on the braid bones, so it sways) and two side braids framing the face
+    hair = mat("Braid", hexc((c.get("hair") or {}).get("colour", "#0e0c12")), 0.45); tie = mat("BraidTie", hexc("#c8cad8"), 0.35, 1.0)
+    hb0 = ubc.head_box(arm)
+    for k in range(3):
+        bn = f"braid_0{k + 1}"; h0, t0 = B[bn].head_local, B[bn].tail_local; n_ = 5
+        for j in range(n_):
+            u = (j + 0.5) / n_; p_ = h0.lerp(t0, u); r = 0.046 - 0.013 * ((k * n_ + j) / (3 * n_))
+            out.append(bind_rigid(ellip(f"Braid_{k}{j}", p_, (r, r * 0.85, r * 0.95), hair, Matrix.Rotation(math.radians(25 * (1 if j % 2 else -1)), 4, "Y"), u=12, v=8), arm, bn))
+    end = B["braid_03"].tail_local
+    out.append(bind_rigid(tube("Braid_Tie", [(end + Vector((0, 0, 0.012)), 0.024), (end - Vector((0, 0, 0.012)), 0.022)], tie, 10), arm, "braid_03"))
+    out.append(bind_rigid(tube("Braid_Tail", [(end - Vector((0, 0, 0.01)), 0.022), (end - Vector((0, 0, 0.07)), 0.012)], hair, 10, tip=True), arm, "braid_03"))
+    for sx in (-1, 1):
+        top = Vector((hb0["cx"] + sx * hb0["hw"] * 0.72, hb0["front"] + 0.045, hb0["eye"] + 0.03)); bot = Vector((hb0["cx"] + sx * hb0["hw"] * 0.95, hb0["front"] + 0.07, hb0["base"] - 0.07))
+        for j in range(9):
+            u = j / 8; p_ = top.lerp(bot, u) + Vector((sx * 0.012 * math.sin(math.pi * u), 0, 0)); r = 0.017 - 0.006 * u
+            out.append(bind_rigid(ellip(f"SideBraid_{sx}{j}", p_, (r, r, r * 1.2), hair, u=10, v=6), arm, "Head"))
+        side = "l" if sx > 0 else "r"; ua = B[f"upperarm_{side}"].head_local
+        for k, (dx, dz, ln) in enumerate(((0.0, 0.0, 0.09), (0.035, -0.01, 0.075), (-0.03, -0.005, 0.07))):
+            base = ua + Vector((sx * (0.02 + dx), 0.0 + 0.015 * k - 0.015, 0.055 + dz))
+            tipp = base + Vector((sx * 0.35, 0.05 * (k - 1), 1.0)).normalized() * ln
+            out.append(bind_rigid(tube(f"Spike_{side}{k}", [(base, 0.016), (base.lerp(tipp, 0.5), 0.010), (tipp, 0.003)], tie, 8, tip=True), arm, f"upperarm_{side}"))
     # four small violet eyes above her own two, and silk at her left hand
     hb = ubc.head_box(arm)
     for sx in (-1, 1):
@@ -288,6 +306,12 @@ def bake_clips(arm, M, src, clips, fps=30):
                         head = Mp @ rel[n] @ Vector((0, 0, 0, 1)) if False else (pose[par] @ rel[n]).translation if par != "spider_body" else (D @ rest[n]).translation
                         o = pts[4] - pts[0]; o.z = 0; o = o.normalized() if o.length > 1e-6 else Vector((1, 0, 0)); nrm = Vector((-o.y, o.x, 0))
                         d = (pts[i + 1] - head).normalized(); Mw = frame_from(head, head + d * B[n].length, nrm)
+                elif n.startswith("braid_"):
+                    k = int(n[-1]); t_ = fi / fps; ph = 2 * math.pi * t_ / max(L, 1e-3)
+                    cyc = max(1, round(L / 1.6)) if name in G.LOOPS else 1.0 / max(L, 1e-3) * 1.6
+                    sway = (3.0 + 1.5 * k) * math.sin(cyc * ph + k * 0.7) + 25 * fr["abd"][0] * k / 3
+                    swing = (2.0 + k) * math.sin(cyc * ph * 0.5 + k) - 6 * pitch * k
+                    Mw = Mp @ rel[n] @ Euler((math.radians(swing), 0, math.radians(sway))).to_matrix().to_4x4()
                 elif n in upper:
                     q = s.get(n, Quaternion())
                     if n == "pelvis": q = Quaternion().slerp(q, 0.5)
@@ -319,6 +343,59 @@ def export(arm, hero, path):
                               export_materials="PLACEHOLDER")
     return os.path.getsize(path) // 1024
 
+def _m(nt, op, a, b=None, x=0, y=0):
+    n = nt.nodes.new("ShaderNodeMath"); n.operation = op; n.location = (x, y)
+    for i, v in enumerate((a, b)):
+        if v is None: continue
+        if isinstance(v, (int, float)): n.inputs[i].default_value = v
+        else: nt.links.new(v, n.inputs[i])
+    return n.outputs[0]
+
+def paint_details(hero, arm, hb, c):
+    """Painted before the bake (the albedo bake reads base colours): a silver spider-web filigree on the leather
+    bodice and bracers (spokes and rings round the chest, a lattice on the arms), and darker lips. Both are masks
+    in object space (the hero mesh sits at the origin), so no UVs are needed."""
+    silver = (0.62, 0.63, 0.70, 1.0); lips = (0.20, 0.07, 0.17, 1.0); chest = arm.data.bones["spine_03"].head_local
+    def base_in(m):
+        nt = m.node_tree; bsdf = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
+        if bsdf is None: return None, None, None
+        inp = bsdf.inputs["Base Color"]
+        if inp.links: src = inp.links[0].from_socket
+        else:
+            rgb = nt.nodes.new("ShaderNodeRGB"); rgb.outputs[0].default_value = inp.default_value; src = rgb.outputs[0]
+        return nt, inp, src
+    for m in hero.data.materials:
+        if m is None or not m.use_nodes: continue
+        is_leather = m.name.startswith("MI_Ranger"); is_skin = m.name.startswith("MI_Regular")
+        if not (is_leather or is_skin): continue
+        nt, inp, src = base_in(m)
+        if nt is None: continue
+        tc = nt.nodes.new("ShaderNodeTexCoord"); sep = nt.nodes.new("ShaderNodeSeparateXYZ"); nt.links.new(tc.outputs["Object"], sep.inputs[0])
+        X, Y, Z = sep.outputs[0], sep.outputs[1], sep.outputs[2]
+        mix = nt.nodes.new("ShaderNodeMix"); mix.data_type = "RGBA"; nt.links.new(src, mix.inputs[6])
+        if is_leather:
+            dz = _m(nt, "SUBTRACT", Z, chest.z + 0.06); r = _m(nt, "SQRT", _m(nt, "ADD", _m(nt, "MULTIPLY", X, X), _m(nt, "MULTIPLY", dz, dz)))
+            ang = _m(nt, "ARCTAN2", X, dz); N = 14.0
+            f = _m(nt, "FRACT", _m(nt, "MULTIPLY", ang, N / (2 * math.pi))); fd = _m(nt, "MINIMUM", f, _m(nt, "SUBTRACT", 1.0, f))
+            spoke = _m(nt, "LESS_THAN", _m(nt, "MULTIPLY", fd, _m(nt, "MULTIPLY", r, 2 * math.pi / N)), 0.0022)
+            g = _m(nt, "FRACT", _m(nt, "MULTIPLY", r, 1 / 0.032)); gd = _m(nt, "MINIMUM", g, _m(nt, "SUBTRACT", 1.0, g))
+            ring = _m(nt, "LESS_THAN", _m(nt, "MULTIPLY", gd, 0.032), 0.0016)
+            web = _m(nt, "MAXIMUM", spoke, ring)
+            torso = _m(nt, "LESS_THAN", _m(nt, "ABSOLUTE", X), 0.17)
+            # arms: a diagonal lattice along the bracers
+            l1 = _m(nt, "LESS_THAN", _m(nt, "ABSOLUTE", _m(nt, "SINE", _m(nt, "MULTIPLY", _m(nt, "ADD", X, Z), 90.0))), 0.12)
+            l2 = _m(nt, "LESS_THAN", _m(nt, "ABSOLUTE", _m(nt, "SINE", _m(nt, "MULTIPLY", _m(nt, "SUBTRACT", X, Z), 90.0))), 0.12)
+            arms = _m(nt, "MAXIMUM", l1, l2)
+            fac = _m(nt, "ADD", _m(nt, "MULTIPLY", web, torso), _m(nt, "MULTIPLY", arms, _m(nt, "SUBTRACT", 1.0, torso)))
+            mix.inputs[7].default_value = silver
+        else:
+            zm = hb["eye"] - 0.058; front = hb["front"]
+            ex = _m(nt, "DIVIDE", X, 0.017); ez = _m(nt, "DIVIDE", _m(nt, "SUBTRACT", Z, zm), 0.0065)
+            ell = _m(nt, "LESS_THAN", _m(nt, "ADD", _m(nt, "MULTIPLY", ex, ex), _m(nt, "MULTIPLY", ez, ez)), 1.0)
+            fac = _m(nt, "MULTIPLY", ell, _m(nt, "LESS_THAN", Y, front + 0.045))
+            mix.inputs[7].default_value = lips
+        nt.links.new(fac, mix.inputs[0]); nt.links.new(mix.outputs[2], inp)
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--design", required=True); ap.add_argument("--hero", required=True); ap.add_argument("--out", required=True)
@@ -337,6 +414,7 @@ def main():
     bpy.context.view_layer.objects.active = hero; bpy.ops.object.join(); hero = bpy.context.view_layer.objects.active
     for md in [m for m in hero.modifiers if m.type == "ARMATURE"][1:]: hero.modifiers.remove(md)
     hero.parent = arm
+    paint_details(hero, arm, ubc.head_box(arm), c)
     raw = sum(len(p.vertices) - 2 for p in hero.data.polygons)
     tris = ubc.decimate_to(hero, a.tris)
     paths = {} if a.skip_bake else ubc.bake(hero, a.tex, a.out, a.hero)
@@ -349,7 +427,10 @@ def main():
         if k in paths:
             p = paths[k]; img = bpy.data.images.load(p); sc = bpy.context.scene; ims = sc.render.image_settings
             ims.file_format = "JPEG"; ims.quality = q; ims.color_mode = "RGB"
-            img.save_render(p[:-4] + ".jpg", scene=sc); os.remove(p)
+            img.save_render(p[:-4] + ".jpg", scene=sc); ims.file_format = "PNG"
+            for im in bpy.data.images:   # the saved .blend (review renders) then reads the JPEG
+                if im.filepath and os.path.abspath(bpy.path.abspath(im.filepath)) == os.path.abspath(p): im.filepath = p[:-4] + ".jpg"; im.reload()
+            os.remove(p)
     print(f"[creature] {a.hero}: cut {cut} verts, {raw} -> {tris} tris, {len(arm.data.bones)} bones, clips {[(n, v[1]) for n, v in acts.items()]}, {kb} KB", flush=True)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(a.out, f"{a.hero}_creature.blend"))
 

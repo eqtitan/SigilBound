@@ -17,11 +17,15 @@ import math, random
 FPS = 30
 BODY_Z = 0.95
 ATTACH, REST, LEGS = {}, {}, []
+# Leg layout (owner review 2026-11-27): thin legs whose femurs rise steeply so the knees arch near chest height,
+# then drop steeply to the ground; feet REACH from the hips at these angles from forward, front to back.
+ANGLES, REACH = (38, 78, 105, 142), 0.82
 for side, s in (("L", 1.0), ("R", -1.0)):
-    for i, (ay, fx, fy) in enumerate(((-0.18, 0.70, -0.74), (-0.06, 0.92, -0.26), (0.06, 0.92, 0.26), (0.18, 0.70, 0.74)), 1):
-        n = f"{side}{i}"; LEGS.append(n); ATTACH[n] = (s * 0.16, ay, BODY_Z); REST[n] = (s * fx, fy, 0.0)
+    for i, (ay, ang) in enumerate(zip((-0.18, -0.06, 0.06, 0.18), ANGLES), 1):
+        n = f"{side}{i}"; LEGS.append(n); a_ = math.radians(ang); ATTACH[n] = (s * 0.16, ay, BODY_Z)
+        REST[n] = (s * (0.16 + REACH * math.sin(a_)), ay - REACH * math.cos(a_), 0.0)
 GROUP_A = ("L1", "R2", "L3", "R4"); GROUP_B = ("R1", "L2", "R3", "L4")
-SEG = (0.10, 0.56, 0.66, 0.63)          # coxa, femur, tibia, tarsus
+SEG = (0.10, 0.56, 1.03, 0.62)          # coxa, femur, tibia, tarsus
 TARSUS_LEAN = math.radians(9)
 _rng = random.Random(7)
 JITTER = {(l, p): (_rng.uniform(0.0, 0.04), _rng.uniform(0.88, 1.12)) for l in LEGS for p in (0, 1)}

@@ -7,7 +7,7 @@ bpy.ops.wm.open_mainfile(filepath=BLEND); os.makedirs(OUT, exist_ok=True)
 sc = bpy.context.scene; arm = next(o for o in sc.objects if o.type == "ARMATURE" and o.data.bones.get("spider_body"))
 hero = next(o for o in sc.objects if o.type == "MESH" and o.parent == arm)
 sc.render.engine = "CYCLES"; sc.cycles.samples = 16; sc.cycles.use_denoising = True; sc.view_settings.view_transform = "Standard"
-sc.render.film_transparent = False
+sc.render.film_transparent = False; sc.render.image_settings.file_format = "PNG"; sc.render.image_settings.color_mode = "RGB"
 w = bpy.data.worlds.new("W"); sc.world = w; w.use_nodes = True; bg = w.node_tree.nodes["Background"]; bg.inputs[0].default_value = (0.82, 0.82, 0.84, 1); bg.inputs[1].default_value = 0.8
 bpy.ops.object.light_add(type="SUN", rotation=(math.radians(48), 0, math.radians(-30))); bpy.context.object.data.energy = 3.0
 bpy.ops.object.light_add(type="SUN", rotation=(math.radians(70), 0, math.radians(160))); bpy.context.object.data.energy = 1.2
