@@ -97,6 +97,20 @@ namespace Sigilbound.Core
             Hit = new[] { "Hit" }, BigHit = new[] { "Hit_Big", "Hit" }, Death = new[] { "Death" }, Fidget = new[] { "Idle_Fidget" }, Win = "Victory",
         };
         // The high-detail Titan (owner-approved 2026-11-26): the shared UAL clips, played heavy.
+        // Spider-folk (Core/Kit/Creatures.cs): her own clips, made by blenderforge/creature.py on the creature rig.
+        // Battle names the humanoid code asks for (Run, the stunned loop, the LeapSlam ultimate) map to hers.
+        public static readonly AnimStyle Spider = new AnimStyle
+        {
+            Idle = "Idle_Loop", Strike = new[] { "Attack", "Attack2" }, Cast = "Cast", Support = "Cast", Ult = "Ult_Pounce",
+            Hit = new[] { "Hit" }, BigHit = new[] { "Hit" }, Death = new[] { "Death" }, Fidget = new[] { "Idle_Loop" },
+            Win = "Win", Defeat = "Stun_Loop", HitScale = 1f,
+        };
+        public static readonly Dictionary<string, string> SpiderAliases = new Dictionary<string, string>
+        {
+            ["Run"] = "Walk_Loop", ["Run_Back"] = "Walk_Loop", ["Crouch_Idle_Loop"] = "Stun_Loop", ["Ult_LeapSlam"] = "Ult_Pounce",
+            ["Idle"] = "Idle_Loop", ["HitReact"] = "Hit", ["Jump"] = "Ult_Pounce",
+        };
+
         public static readonly AnimStyle TitanHd = new AnimStyle
         {
             Idle = "Idle_Loop", Strike = new[] { "Punch_Cross", "Sword_Attack", "Punch_Jab" }, Cast = "Punch_Cross", Support = "Interact",

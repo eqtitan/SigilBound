@@ -272,3 +272,11 @@ Designs: `docs/sigilbound/concepts/new_heroes.json` and `NEW_HEROES.md`. Brought
 | `crusk` | Crusk Brineclaw | Epic | Tide | Defense | crab-folk | Crusk has guarded the Saltreach breakwater since before the harbour had a name. |
 | `hartwin` | Hartwin Sunhorn | Legendary | Light | Hp | stag-folk | The bells of Bellspire fell silent a century ago, but the white stag still walks the ruins, his antlers hung with the last of them. |
 | `nyssa` | Nyssa Duskwing | Legendary | Shadow | Attack | human | The barrow-folk of Wraithmoor say the moths there carry the dreams of the dead. |
+
+## Creature heroes
+
+Heroes on their own creature rigs (`Core/Kit/Creatures.cs`, built by `unity/Tools~/blenderforge/creature.py` from `docs/sigilbound/concepts/creatures.json`).
+
+| Id | Name | Rarity | Element | Role | Species | Lore |
+|---|---|---|---|---|---|---|
+| `vessa` | Vessa Silkmourne | Legendary | Shadow | Attack | spider-folk (elf upper body, eight legs) | The barrows of Wraithmoor hold more than dead kings. Vessa weaves the silk that binds the Hollow in their graves, and lately she has had to weave faster. |

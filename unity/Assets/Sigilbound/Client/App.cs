@@ -180,6 +180,15 @@ namespace Sigilbound.Client
         }
 
         // ---------- 3D lineup behind the menus ----------
+        // Menu lineup x: spread over 4.2 m, each gap weighted by its neighbours' widths (creatures take more room).
+        static float LineupX(List<string> ids, int i)
+        {
+            if (ids.Count <= 1) return 0;
+            var w = ids.Select(Creatures.SlotWidth).ToList(); double total = 0, at = 0;
+            for (int k = 1; k < ids.Count; k++) { double g = (w[k - 1] + w[k]) / 2; total += g; if (k <= i) at += g; }
+            return (float)(-2.1 + 4.2 * at / total);
+        }
+
         void UpdateLineup()
         {
             List<(HeroDef def, Element el)> want;
@@ -218,7 +227,7 @@ namespace Sigilbound.Client
             for (int i = 0; i < want.Count; i++)
             {
                 var u = new Unit { Template = want[i].def, Name = want[i].def.Name, El = want[i].el, Ally = true, Key = "L" + i };
-                var pos = single ? new Vector3(0, 0, 0.4f) : new Vector3(-2.1f + i * (4.2f / Math.Max(1, want.Count - 1)) * (want.Count > 1 ? 1 : 0), 0, 0.6f + (i % 2) * 0.5f);
+                var pos = single ? new Vector3(0, 0, 0.4f) : new Vector3(LineupX(want.Select(x => x.def.Id).ToList(), i), 0, 0.6f + (i % 2) * 0.5f);
                 if (want.Count == 1 && !single) pos = new Vector3(0, 0, 0.6f);
                 var toCam = Arena.Cam.transform.position - pos; toCam.y = 0;
                 var v = CharacterView.Create(u, pos, Quaternion.LookRotation(toCam, Vector3.up).eulerAngles.y, scale, GearAt(i));
