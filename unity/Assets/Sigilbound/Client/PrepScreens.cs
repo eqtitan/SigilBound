@@ -31,7 +31,7 @@ namespace Sigilbound.Client
         static Rect StageListRect(Rect map, int c)
         {
             float w = Mathf.Min(map.width * 0.62f, 640), h = map.height - 16;
-            var pt = c < ClassicChapters ? Act1Points[c] : MapPoints2[c - ClassicChapters]; // act 2 chapters have their own map points
+            var pt = c < ClassicChapters ? Act1Points[c] : Act2Points[c - ClassicChapters]; // act 2 chapters have their own map points
             bool right = pt.x < 0.5f;
             return new Rect(right ? map.xMax - w - 8 : map.x + 8, map.y + 8, w, h);
         }

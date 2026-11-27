@@ -33,6 +33,15 @@ namespace Sigilbound.Client
         };
         static bool PaintedMap => Skin.Tex("bg_campaign") != null;
         static Vector2[] Act1Points => PaintedMap ? PaintedPoints : MapPoints;
+        // Act II on the owner's painted storm-coast map (skin "bg_campaign2"), each chapter on its landmark:
+        // the Saltreach harbour below the lighthouse, the drowned shrine in the fens, the barrow stones,
+        // the burning great tree, and the Hollow King's spire on the far cliff.
+        static readonly Vector2[] PaintedPoints2 =
+        {
+            new Vector2(0.11f, 0.47f), new Vector2(0.37f, 0.50f), new Vector2(0.53f, 0.52f), new Vector2(0.67f, 0.36f), new Vector2(0.87f, 0.26f),
+        };
+        static bool PaintedMap2 => Skin.Tex("bg_campaign2") != null;
+        static Vector2[] Act2Points => PaintedMap2 ? PaintedPoints2 : MapPoints2;
         static readonly Texture2D[] _mapTex = new Texture2D[2];
         int _act; // 0 = follow progress, else 1 or 2 (the Act I / Act II switch)
 
@@ -54,11 +63,12 @@ namespace Sigilbound.Client
             }
             int act = _act != 0 ? _act : (act2Open && progressAll >= ClassicStages ? 2 : 1);
             if (act == 2 && !act2Open) act = 1;
-            var pts = act == 1 ? Act1Points : MapPoints2;
+            var pts = act == 1 ? Act1Points : Act2Points;
             int c0 = act == 1 ? 0 : ClassicChapters, cn = act == 1 ? ClassicChapters : Chapters.Length - ClassicChapters;
             float trackH = hard ? 0 : 58;
             var map = new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16 - trackH);
             if (act == 1 && PaintedMap) GUI.DrawTexture(map, Skin.Tex("bg_campaign"), ScaleMode.StretchToFill); // the painting has its own ornate border
+            else if (act == 2 && PaintedMap2) GUI.DrawTexture(map, Skin.Tex("bg_campaign2"), ScaleMode.StretchToFill);
             else { GUI.DrawTexture(map, MapTexture(act), ScaleMode.StretchToFill); Ui.Round(map, Color.clear, Palette.Trim, 12); } // gilded frame
 
             // Road: dashes between consecutive medallions.
