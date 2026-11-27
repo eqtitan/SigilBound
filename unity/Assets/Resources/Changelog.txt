@@ -2,6 +2,22 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-27 | Fairer chapters and clearer battles
+balance: Light and Shadow chapters are easier: Flame, Gale and Tide heroes have no edge there, so those enemies are 8% weaker.
+balance: Stage 10-1 no longer jumps in difficulty, and Act II climbs more gently to a beatable final boss.
+balance: Act II stages now give more gold and XP the further you go.
+balance: Role speeds rebalanced: attackers stay quick, supports lose their double speed bonus, and tanks and bruisers are less slow.
+balance: Titan reward tiers are now 15k, 40k, 80k, 140k and 220k damage, so the top rewards (and the Radiant shard) can be earned.
+balance: 38 heroes retuned for the new speeds.
+new: A round counter in battle turns red when the fight Enrages (from round 10), with a one-time tip explaining it.
+new: Broken heroes and enemies have their own icon and look, so a Break no longer looks like a Stun.
+fix: A Break caused by a counter-attack now really costs the next turn.
+fix: Stuns no longer wear off the Break protection, so Stun and Break can't chain.
+fix: Auto battle judges which enemy it can finish off correctly.
+fix: The Healing column on the results screen now counts healing.
+fix: Late in a long fight, auto battle stops casting heals and shields that Enrage has made useless.
+fix: The dodge roll only plays when a hit does no damage; the Break tip says your heroes can be Broken too.
+
 ## 2026-11-27 | Faster, deeper battles
 change: Battles are about a third shorter: every hit, heal, shield and damage-over-time is stronger, so a typical fight lasts around 8 rounds.
 new: Weakness Break: hit a foe three times with the element that beats it and it is Broken, losing its next turn. Bosses take twice as long to break; the Titan can't be broken.
