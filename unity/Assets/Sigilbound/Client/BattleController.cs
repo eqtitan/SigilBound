@@ -187,12 +187,15 @@ namespace Sigilbound.Client
         // skips it; the fight starts after it. Landmark and height: Core.StoryScenes.RevealOf.
         string _revealTitle, _revealSub; float _revealT;
         const float RevealLen = 2.5f;
+        static readonly HashSet<int> _lairsRevealed = new HashSet<int>();
         IEnumerator LairReveal()
         {
             if ((_spec.Mode != BattleMode.Stage && _spec.Mode != BattleMode.Hard) || !Game.IsBossStage(_spec.Stage)) yield break;
             int chapter = Game.ChapterOf(_spec.Stage);
             var rv = StoryScenes.RevealOf(chapter);
             if (rv == null) yield break;
+            // Once per lair per session: the arrival is the point; replays of the same boss skip it.
+            if (!_lairsRevealed.Add(chapter)) yield break;
             var (pc, top) = rv.Value;
             var arena = App.Arena; float keepSpeed = Time.timeScale; Time.timeScale = 1;
             _cinema = _skippable = true;
