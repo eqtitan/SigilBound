@@ -326,6 +326,9 @@ static class ParityTests
         tg.StartWith("hask");
         var t1 = Tips.Next(tg, true, false); var t2 = Tips.Next(tg, true, false); var t3 = Tips.Next(tg, false, true);
         Check(t1?.Id == "welcome" && t2 == null && t3?.Id == "battle" && tg.S.modes.tips.SequenceEqual(new[] { "welcome", "battle" }), "first-time tips show once each, in order, when their condition holds");
+        // Unity-only: the Weakness Break tip waits for a watched Break, then shows once (PLAN step 98).
+        Tips.SawBreak = false; var tb0 = Tips.Next(tg, false, true); Tips.SawBreak = true; var tb1 = Tips.Next(tg, false, true); var tb2 = Tips.Next(tg, false, true); Tips.SawBreak = false;
+        Check(tb0 == null && tb1?.Id == "break" && tb1.Body.StartsWith("Break! Hits from the element that beats a foe") && tb2 == null, "the Weakness Break tip shows once, after the first Break the player sees");
         var vet = new Game(seed: 3) { Now = () => now }; vet.StartWith("hask"); vet.S.wins = 4; vet.S.summons = 2; Tips.Seed(vet);
         Check(vet.S.modes.tips.Contains("welcome") && vet.S.modes.tips.Contains("battle") && vet.S.modes.tips.Contains("gear") && vet.S.modes.tips.Contains("summon"), "existing players skip beginner tips (seedTips)");
         var run = new AutoRun(); run.Record(true, new Reward { Gold = 500, Xp = 100, Common = 1 }, true, new[] { "Hask Lv 6" }); run.Record(false, null, false, null);

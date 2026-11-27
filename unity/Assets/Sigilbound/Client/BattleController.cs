@@ -649,7 +649,7 @@ namespace Sigilbound.Client
                         else if (e.Fx == FxType.Shield) SkillFx.I.Shield(v.transform.position);
                         else SkillFx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
                         if (e.Fx == FxType.Stun) { if (KnocksDown(e)) v.KnockDown(); else v.Stun(); }
-                        else if (e.Fx == FxType.Broken) v.Stun();
+                        else if (e.Fx == FxType.Broken) { v.Stun(); Tips.SawBreak = true; } // the one-time Weakness Break tip
                         else v.StatusPulse(FxDef.IsBuff(e.Fx));
                         Vfx.I.Number(c + Vector3.up * 0.6f, SkillText.EffectName(e.Fx), FxDef.IsBuff(e.Fx) ? new Color(1f, 0.85f, 0.4f) : new Color(0.8f, 0.55f, 1f), 0.7f); break;
                     case EvType.Text: Vfx.I.Number(c + Vector3.up * 0.6f, e.Text, new Color(0.8f, 0.9f, 1f), 0.7f); if (e.Text == "Revived!") v.Revived();

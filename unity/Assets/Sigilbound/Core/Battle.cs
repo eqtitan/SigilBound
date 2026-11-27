@@ -385,6 +385,7 @@ namespace Sigilbound.Core
                     foreach (var d in dots[t])
                     {
                         var have = next.Effects.FirstOrDefault(e => e.Type == d.Type);
+                        if (next.Titan) d.Stacks = 1;
                         if (have != null) { have.Turns = Math.Max(have.Turns, d.Turns); have.Stacks = Math.Min(MaxDotStacks, Math.Max(have.Stacks, d.Stacks)); } else next.Effects.Add(d);
                     }
                     ev.Add(new BattleEvent { Type = EvType.Text, Unit = next, Text = "Spread!" });
@@ -425,7 +426,7 @@ namespace Sigilbound.Core
             double em = ElementMultiplier(u.El, t.El);
             double dmg = stat * sk.Mult * part * _boost * em * (650 / (650 + DefOf(t))) * DmgEnrage * PaceHere;
             if (sk.Rage > 0) dmg *= 1 + sk.Rage * (1 - u.Hp / (double)u.MaxHp); // grows with the attacker's lost HP
-            bool crit = _rng.NextDouble() * 100 < (em >= 1 ? u.Crit : u.Crit * 0.5); // half the crit rate on element disadvantage
+            bool crit = _rng.NextDouble() * 100 < (em >= 1 ? u.Crit : IsTitan ? 0 : u.Crit * 0.5); // half the crit rate on element disadvantage (not in the Titan fight: its damage rewards stay as they were)
             if (crit) dmg *= 1 + u.Cdmg / 100.0;
             dmg *= 0.95 + _rng.NextDouble() * 0.1;
             ApplyDamage(t, Math.Max(1, Js.RoundInt(dmg)), u, ev, crit, em, false);
@@ -523,7 +524,7 @@ namespace Sigilbound.Core
                 if (existing != null) { existing.Val = Math.Max(existing.Val, val); existing.Turns = 2; }
                 else r.Effects.Add(new Effect { Type = FxType.Shield, Val = val, Turns = 2, Fresh = self });
             }
-            else if (existing != null) { existing.Turns = Math.Max(existing.Turns, f.Turns); if (self) existing.Fresh = true; if (f.Type == FxType.Poison || f.Type == FxType.Burn) existing.Stacks = Math.Min(MaxDotStacks, existing.Stacks + 1); if (f.Type == FxType.Revive) existing.Val = Math.Max(existing.Val, Js.RoundInt(f.Pct * 100)); }
+            else if (existing != null) { existing.Turns = Math.Max(existing.Turns, f.Turns); if (self) existing.Fresh = true; if ((f.Type == FxType.Poison || f.Type == FxType.Burn) && !r.Titan) existing.Stacks = Math.Min(MaxDotStacks, existing.Stacks + 1); /* the Titan never stacks: a re-apply only refreshes */ if (f.Type == FxType.Revive) existing.Val = Math.Max(existing.Val, Js.RoundInt(f.Pct * 100)); }
             else r.Effects.Add(new Effect { Type = f.Type, Turns = Math.Max(1, f.Turns), Fresh = self, Val = f.Type == FxType.Revive ? Js.RoundInt(f.Pct * 100) : 0 });
             ev.Add(new BattleEvent { Type = EvType.Status, Unit = r, Source = u, Fx = f.Type });
         }

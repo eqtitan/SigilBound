@@ -379,6 +379,9 @@ namespace Sigilbound.Core
             public const double Start = 1.0, End = 1.75, Shape = 1.3, SpdPerStage = 0.3, BossStat = 1.1, BossHp = 2.2;
             // Act 2: level-50, 5-star enemies whose multiplier keeps rising from End, by this much per stage.
             public const double Act2Ramp = 0.02;
+            // Per-stage enemy multiplier fixes (stage index -> factor). 14-4 (index 81) spiked after the combat
+            // rules of PLAN step 98: its Hollow lineup became much stronger than its neighbours.
+            public static readonly System.Collections.Generic.Dictionary<int, double> StageEase = new System.Collections.Generic.Dictionary<int, double> { [81] = 0.926 };
             public static readonly double[] Chapter = { 1, 1.14, 0.97, 1, 1.08, 0.94, 1, 0.98, 0.95, 1.04 };
         }
 

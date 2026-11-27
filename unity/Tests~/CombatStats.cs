@@ -67,3 +67,49 @@ static class CombatStats
         Console.WriteLine("STAT effects: " + string.Join(", ", effectCounts.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {kv.Value}")));
     }
 }
+
+// Quick probes for combat tuning (Program.cs "stagerate idx [runs]" and "titandmg").
+static class CombatProbes
+{
+    // Win rate of the suite's two fixed lineups on one stage (same set-up as the full suite's stage table).
+    public static void StageRate(int idx, int runs)
+    {
+        string[][] lineups = { new[] { "ysolde", "corvan", "hask", "kaito" }, new[] { "maelis", "oriel", "aurelia", "vaelith" } };
+        int lvl = Game.StageLevel(idx);
+        var row = lineups.Select(ids =>
+        {
+            int wins = 0;
+            for (int k = 0; k < runs; k++)
+            {
+                var gg = new Game(seed: idx * 100 + k);
+                gg.S.team = ids.Select(id =>
+                {
+                    var hh = gg.AddHero(id);
+                    hh.stars = idx >= ClassicStages ? MaxStars : Math.Max(hh.stars, Math.Min(5, (int)Math.Ceiling(lvl / 10.0)));
+                    hh.level = idx >= ClassicStages ? MaxLevelFor(MaxStars) : Math.Min(MaxLevelFor(hh.stars), lvl);
+                    foreach (Slot s in Enum.GetValues(typeof(Slot))) { var gr = gg.MakeGear(Math.Min(5, 1 + idx / 12), s); gr.level = Math.Min(10, idx / 6 + 2); gg.Equip(hh, gr); }
+                    return hh.uid;
+                }).ToList();
+                if (Battle.ForStage(gg, idx).RunAuto() == BattleResult.Victory) wins++;
+            }
+            return $"{wins * 100.0 / runs:0}%";
+        });
+        Console.WriteLine($"STAGE {idx / StagesPerChapter + 1}-{idx % StagesPerChapter + 1}: {string.Join("  ", row)}");
+    }
+
+    // Average Titan damage over many seeds and teams (Battle.ForTitan, all five Titan elements).
+    public static void TitanDamage()
+    {
+        var rng = new Random(11); long total = 0; int n = 0;
+        foreach (var lv in new[] { 20, 40, 60 })
+            for (int k = 0; k < 120; k++)
+            {
+                var g = new Game(seed: 5000 + k + lv * 1000);
+                var pick = Heroes.OrderBy(_ => rng.Next()).Take(4).ToList();
+                g.S.team = pick.Select(t => { var h = g.AddHero(t.Id); h.stars = Math.Min(MaxStars, Math.Max(h.stars, lv / 10)); h.level = Math.Min(MaxLevelFor(h.stars), lv); return h.uid; }).ToList();
+                var b = Battle.ForTitan(g); b.RunAuto();
+                total += b.TitanDamage; n++;
+            }
+        Console.WriteLine($"TITAN avg damage {total / n:N0} over {n} fights");
+    }
+}

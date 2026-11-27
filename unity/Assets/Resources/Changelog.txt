@@ -5,10 +5,12 @@
 ## 2026-11-27 | Faster, deeper battles
 change: Battles are about a third shorter: every hit, heal, shield and damage-over-time is stronger, so a typical fight lasts around 8 rounds.
 new: Weakness Break: hit a foe three times with the element that beats it and it is Broken, losing its next turn. Bosses take twice as long to break; the Titan can't be broken.
-new: Poison and Burn stack up to 3 times; each stack ticks.
+new: A one-time tip explains Weakness Break the first time you see a foe Broken.
+new: Poison and Burn stack up to 3 times; each stack ticks. The Titan doesn't stack them, so Titan damage and rewards stay the same.
 change: Speed matters more: attackers and supports are faster, tanks and bruisers slower, and the fastest unit usually acts first.
-change: Critical hits can now land on an element disadvantage, at half the usual chance.
+change: Critical hits can now land on an element disadvantage, at half the usual chance (not against the Titan).
 change: Auto battle opens with team-wide heal and shield skills when they help, not only when someone is hurt.
+balance: Stage 14-4 eased so it fits between its neighbours again.
 balance: 39 heroes retuned for the new pace; Vex's King's Command and Crown of Ruin cooldowns swapped; Obrecht, Ondessa, Morvoren and Solenne's taunt skills trimmed.
 
 ## 2026-11-27 | Sharper battles

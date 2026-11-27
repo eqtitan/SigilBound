@@ -126,6 +126,21 @@ static class MechanicsTests
                 "Revive: a lethal hit leaves the holder at 30% HP once, then it falls; given by skills (Pct); a buff");
         }
 
+        // Stacking (PLAN step 98): Poison/Burn stack to 3 on normal units; the Titan never stacks (a re-apply
+        // only refreshes its turns), so its damage-based rewards stay as they were.
+        {
+            var poisoner = Def("poisoner", new SkillDef { Name = "Venom", Target = Target.Enemy, Mult = 0.0001, Fx = new[] { new FxDef { Type = FxType.Poison, Turns = 2 } } });
+            var a = U(true, poisoner); var t = U(false, dummy, 1000000); var b = Fight(a, t);
+            for (int k = 0; k < 4; k++) b.Act(a, 0, t);
+            var titan = U(false, dummy, 1000000); titan.Titan = true; titan.Boss = true;
+            var a2 = U(true, poisoner); var bt = new Battle(new List<Unit> { a2 }, new List<List<Unit>> { new List<Unit> { titan } }, new Fixed(), true, 20);
+            bt.Act(a2, 0, titan); titan.Effects.First(e => e.Type == FxType.Poison).Turns = 1; bt.Act(a2, 0, titan);
+            var tp = titan.Effects.First(e => e.Type == FxType.Poison);
+            var (tev, _) = bt.BeginTurn(titan);
+            check(t.Effects.First(e => e.Type == FxType.Poison).Stacks == Battle.MaxDotStacks && tp.Stacks == 1 && tp.Turns == 2 && tev.Count(e => e.Type == EvType.Damage && e.Dot) == 1,
+                "Stacking: Poison stacks to 3 on a normal unit; on the Titan a re-apply only refreshes its turns (one tick a turn)");
+        }
+
         // Rage (phase 3): damage grows with the attacker's missing HP.
         {
             var rager = Def("rager", new SkillDef { Name = "Fury", Target = Target.Enemy, Mult = 1.0, Rage = 1.0 });

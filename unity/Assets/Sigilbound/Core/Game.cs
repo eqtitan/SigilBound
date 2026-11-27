@@ -323,6 +323,7 @@ namespace Sigilbound.Core
             {
                 // Act 2: past the end of the act 1 curve, harder every stage.
                 double mul2 = Curve.End * (1 + Curve.Act2Ramp * (idx - ClassicStages + 1));
+                if (Curve.StageEase.TryGetValue(idx, out var ease)) mul2 *= ease; // single-stage difficulty fixes
                 return new EnemySpec { Level = 50, Stars = 5, Mul = mul2, Spd = Js.RoundInt(idx * Curve.SpdPerStage), ShownLevel = StageLevel(idx) };
             }
             int level = Math.Min(50, StageLevel(idx));
