@@ -503,8 +503,9 @@ namespace Sigilbound.Client
             _busy = false;
         }
 
-        // big: a crit or more than 14% of max HP (heavier reaction); glancing blows may be rolled away.
-        public void Hit(bool big = false, bool glancing = false)
+        // big: a crit or more than 14% of max HP (heavier reaction). noHpLost: the blow was fully absorbed, so it
+        // may be rolled away or blocked; a hit that costs HP never plays the dodge (MECHANICS.md 9.6).
+        public void Hit(bool big = false, bool noHpLost = false)
         {
             if (_dead) return;
             if (_animator != null) _animator.SetTrigger("Hit");
@@ -512,7 +513,7 @@ namespace Sigilbound.Client
             {
                 bool guard = !big && !Unit.Titan && (Unit.Template.Role == Role.Defense || Impact.FamilyOf(Unit.Template.Id) == WeaponFamily.Shield) && Random.value < 0.5f;
                 if (guard && _model.Block()) { }
-                else if (!big && glancing && !Unit.Titan && Unit.Template.Role != Role.Defense && Random.value < 0.35f && _model.Roll()) { } // Defense never dodges
+                else if (!big && noHpLost && !Unit.Titan && Unit.Template.Role != Role.Defense && Random.value < 0.35f && _model.Roll()) { } // Defense never dodges
                 else _model.Hit(big);
             }
             if (!Unit.Titan) _hitCo = StartCoroutine(HitRoutine(big));
@@ -590,6 +591,23 @@ namespace Sigilbound.Client
         }
 
         public void Stun() { if (!_dead && _model != null && !Unit.Titan && !_busy && _model.Stunned()) StartCoroutine(StunRoutine()); }
+
+        // Broken (MECHANICS.md 3.1 and 9.4): a weakness break, told apart from Stun's dazed crouch. A heavy recoil,
+        // a 0.22 s hit-stop hold, then the shoulders-down posture pulse back into the stance (the lost turn itself
+        // shows "Broken!"). The cracked ground and the BREAK! banner come from BattleController.
+        public void Broken() { if (!_dead && _model != null && !Unit.Titan && !_busy) StartCoroutine(BrokenRoutine()); }
+        IEnumerator BrokenRoutine()
+        {
+            _busy = true;
+            _model.Hit(true);
+            yield return new WaitForSeconds(0.16f);
+            if (_dead) { _busy = false; yield break; }
+            _model.SetFrozen(true); yield return new WaitForSeconds(0.22f); _model.SetFrozen(false);
+            if (_posture != null) _posture.Pulse(false);
+            yield return new WaitForSeconds(0.35f);
+            if (!_dead) _model.Idle(0.25f);
+            _busy = false;
+        }
         IEnumerator StunRoutine() { yield return new WaitForSeconds(2.4f); if (!_dead && !_busy) _model.Idle(0.3f); }
 
         public void Lose() { if (!_dead && _model != null) { _busy = true; _model.Defeat(); } }

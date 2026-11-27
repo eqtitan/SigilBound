@@ -333,7 +333,9 @@ static class ParityTests
         Check(t1?.Id == "welcome" && t2 == null && t3?.Id == "battle" && tg.S.modes.tips.SequenceEqual(new[] { "welcome", "battle" }), "first-time tips show once each, in order, when their condition holds");
         // Unity-only: the Weakness Break tip waits for a watched Break, then shows once (PLAN step 98).
         Tips.SawBreak = false; var tb0 = Tips.Next(tg, false, true); Tips.SawBreak = true; var tb1 = Tips.Next(tg, false, true); var tb2 = Tips.Next(tg, false, true); Tips.SawBreak = false;
-        Check(tb0 == null && tb1?.Id == "break" && tb1.Body.StartsWith("Break! Hits from the element that beats a foe") && tb2 == null, "the Weakness Break tip shows once, after the first Break the player sees");
+        Check(tb0 == null && tb1?.Id == "break" && tb1.Body.StartsWith("Break! Hits from the element that beats a unit") && tb1.Body.Contains("your heroes") && tb2 == null, "the Weakness Break tip shows once, after the first Break the player sees (heroes can be Broken too)");
+        Tips.SawEnrage = false; var te0 = Tips.Next(tg, false, true); Tips.SawEnrage = true; var te1 = Tips.Next(tg, false, true); var te2 = Tips.Next(tg, false, true); Tips.SawEnrage = false;
+        Check(te0 == null && te1?.Id == "enrage" && te1.Body.Contains("round 10") && te2 == null, "the Enrage tip shows once, after the first Enrage in a battle");
         var vet = new Game(seed: 3) { Now = () => now }; vet.StartWith("hask"); vet.S.wins = 4; vet.S.summons = 2; Tips.Seed(vet);
         Check(vet.S.modes.tips.Contains("welcome") && vet.S.modes.tips.Contains("battle") && vet.S.modes.tips.Contains("gear") && vet.S.modes.tips.Contains("summon"), "existing players skip beginner tips (seedTips)");
         var run = new AutoRun(); run.Record(true, new Reward { Gold = 500, Xp = 100, Common = 1 }, true, new[] { "Hask Lv 6" }); run.Record(false, null, false, null);

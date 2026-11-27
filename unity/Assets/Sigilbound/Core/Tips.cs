@@ -13,7 +13,8 @@ namespace Sigilbound.Core
         {
             new Tip { Id = "welcome", Title = "Welcome to Sigilbound", Body = "Press Continue Campaign to fight. Clearing stages earns gold, XP, gear and summon shards.\n\nClaim your Daily Login and finish Daily Quests on this screen every day. Everything is free — there is no shop." },
             new Tip { Id = "battle", Title = "How battles work", Body = "On your hero's turn, tap a skill, then tap a target. Skills that say \"ready in\" need a few turns to recharge.\n\nElements matter: Flame beats Gale, Gale beats Tide, Tide beats Flame, and Light and Shadow beat each other.\n\nTap Auto to let the heroes fight on their own, and the speed button to go up to 3x." },
-            new Tip { Id = "break", Title = "Weakness Break", Body = "Break! Hits from the element that beats a foe fill its orange bar. When full, the foe loses a turn." },
+            new Tip { Id = "break", Title = "Weakness Break", Body = "Break! Hits from the element that beats a unit fill its orange bar (your heroes have one too). When it's full, that unit is Broken and loses its next turn." },
+            new Tip { Id = "enrage", Title = "Enrage", Body = "Long fights Enrage from round 10 of a wave: each round after that, every hit (both sides) deals 10% more damage and healing and shields get 10% weaker. The round counter turns red.\n\nBy round 19 healing and shields stop working, so bring enough damage to finish the fight." },
             new Tip { Id = "gear", Title = "You found gear!", Body = "Open Heroes, pick a hero and tap a gear slot to equip it — or tap Auto-equip. Two pieces of the same set give a bonus.\n\nGear shows on the hero's 3D model, and better gear looks fancier." },
             new Tip { Id = "summon", Title = "Summon new heroes", Body = "You have summon shards. Open Summon to call new heroes — every shard is earned by playing." },
             new Tip { Id = "trials", Title = "Dungeons unlocked", Body = "Open Trials for daily Dungeons: gold, a big hero-XP boost, or gear of the set you choose. You get 3 winning runs per dungeon each day." },
@@ -23,6 +24,8 @@ namespace Sigilbound.Core
         // Set by the battle view the first time it shows a unit being Broken (PLAN step 98): the "break" tip
         // then explains Weakness Break once, in the battle the player is watching.
         public static bool SawBreak;
+        // Set by the battle view when a wave first Enrages (PLAN step 99): the "enrage" tip explains it once.
+        public static bool SawEnrage;
 
         static bool When(Tip t, Game g, bool onHome, bool inBattle)
         {
@@ -32,6 +35,7 @@ namespace Sigilbound.Core
                 case "welcome": return S.started && onHome;
                 case "battle": return inBattle;
                 case "break": return inBattle && SawBreak;
+                case "enrage": return inBattle && SawEnrage;
                 case "gear": return !inBattle && S.wins > 0 && S.gear.Count > 0;
                 case "summon": return !inBattle && S.cleared >= 3 && S.shardCommon + S.shardMystic + S.shardRadiant > 0;
                 case "trials": return !inBattle && g.DungeonsOpen;

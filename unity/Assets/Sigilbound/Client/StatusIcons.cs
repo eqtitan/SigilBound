@@ -25,7 +25,7 @@ namespace Sigilbound.Client
             (FxType.AtkDown, "Attack down", "Deals less damage."), (FxType.DefDown, "Defense down", "Takes more damage."),
             (FxType.Slow, "Slow", "Acts later."), (FxType.Poison, "Poison", "Loses health each turn (stacks up to 3)."),
             (FxType.Burn, "Burn", "Takes fire damage each turn (stacks up to 3)."), (FxType.Stun, "Stun", "Skips its next turn."),
-            (FxType.Broken, "Broken", "Weakness break: hit 3 times by the element that beats it, it skips a turn."),
+            (FxType.Broken, "Broken", "Weakness break: its orange bar filled (hits from the element that beats it), so it loses its next turn."),
         };
 
         // Draws the icons left to right from (x, y) (or centred on x when centre), each `size` square with its

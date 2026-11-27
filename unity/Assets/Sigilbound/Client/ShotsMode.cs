@@ -139,8 +139,9 @@ namespace Sigilbound.Client
             yield return new WaitForSecondsRealtime(4f);
             yield return Shot("battle-mid");
             LogBudget("battle-mid");
-            // Stage the new combat UI for one shot: a part-filled Break bar on each enemy and a x3 Poison
-            // stack (badge) on the first one (nothing is saved in this mode).
+            // Stage the new combat UI for one shot: a part-filled Break bar on each enemy, a x3 Poison stack
+            // (badge) on the first one, a Broken icon on the second and an enraged round counter (round 12,
+            // Enrage x3) (nothing is saved in this mode).
             var core = Battle.Engine;
             if (core != null)
             {
@@ -151,6 +152,8 @@ namespace Sigilbound.Client
                     var p = foes[0].Effects.Find(e => e.Type == FxType.Poison);
                     if (p != null) p.Stacks = 3; else foes[0].Effects.Add(new Effect { Type = FxType.Poison, Turns = 3, Stacks = 3 });
                 }
+                if (foes.Count > 1 && !foes[1].Has(FxType.Broken)) { foes[1].Break = 0; foes[1].Effects.Add(new Effect { Type = FxType.Broken, Turns = 1 }); }
+                core.SkipToRound(Sigilbound.Core.Battle.EnrageFrom + 2);
                 yield return Shot("combat-ui");
             }
             G.S.settings.speed = 3; // finish the fight quickly so the results screen is photographed
