@@ -15,8 +15,9 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <!-- Unity-style code: fields assigned by the engine, obsolete-but-working APIs. -->
     <NoWarn>CS0649;CS0414;CS0618;CS0169;CS1998;CS0436</NoWarn>
-    <!-- Same symbols the asmdef versionDefines set when the packages are installed. -->
-    <DefineConstants>$(DefineConstants);UNITY_ANDROID;SB_URP;SB_GLTFAST;SB_COMPILE_CHECK</DefineConstants>
+    <!-- Same symbols the asmdef versionDefines set when the packages are installed. -p:ExtraDefines=SB_STORE
+         compiles the Play Store variant (no in-app updater). -->
+    <DefineConstants>$(DefineConstants);UNITY_ANDROID;SB_URP;SB_GLTFAST;SB_COMPILE_CHECK;$(ExtraDefines)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" PrivateAssets="all" Condition="'$(UnityManaged)' == ''" />

@@ -83,7 +83,7 @@ namespace Sigilbound.Client
             SettingRow(ref y, b, "Camera angle", "Also switchable during battle with Cam.");
             Chips(ref y, b, System.Array.ConvertAll(cams, c => c.Name), System.Array.FindIndex(cams, c => c.Key == BattleLayout.Camera(st.cam).Key), i => { st.cam = cams[i].Key; Save(); Toast("Camera: " + cams[i].Name); });
 
-            if (Application.platform == RuntimePlatform.Android || Application.isEditor)
+            if (Updater.Included && (Application.platform == RuntimePlatform.Android || Application.isEditor))
             {
                 // In-app updates (PLAN step 34): Auto downloads new builds on Wi-Fi and installs them on the home screen.
                 SettingRow(ref y, b, "Updates", Updater.AutoUpdate ? "New builds download on Wi-Fi and install on the home screen." : "An Update now button appears when a new build is out.");

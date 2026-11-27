@@ -64,6 +64,8 @@ jobs:
         run: python3 "unity/Tools~/blenderforge/audit.py" --check
       - name: Compile check (Client + Editor scripts against Unity reference assemblies)
         run: dotnet build unity/Tests~/CompileCheck/Editor.csproj
+      - name: Compile check of the Play Store variant (SB_STORE, no in-app updater)
+        run: dotnet build unity/Tests~/CompileCheck/Client.csproj -p:ExtraDefines=SB_STORE -o "$RUNNER_TEMP/store-out"
       - name: Fetch the real Unity 6 assemblies (from the game-ci editor image; no Docker, no license)
         id: unityrefs
         # Streams the editor layer from Docker Hub and keeps only Editor/Data/Managed/*.dll. If Docker
