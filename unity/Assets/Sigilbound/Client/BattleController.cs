@@ -76,7 +76,10 @@ namespace Sigilbound.Client
             _cinema = _skippable = false; _revealTitle = null; // a cinematic cut short by leaving the last battle
             _t0 = Time.unscaledTime; _paused = false; _taken.Clear(); _healed.Clear();
             App.Go(ScreenId.Battle);
-            Sound.I?.StartMusic(IsTitan);
+            // Music: the Titan its own; a campaign boss stage waits in silence for the lair reveal's swell and
+            // the boss theme starts as the fight does (Loop); act 2 stages have their own battle theme.
+            _bossMusic = campaign && Game.IsBossStage(spec.Stage);
+            Sound.I?.StartMusic(IsTitan ? "titan" : _bossMusic ? null : campaign && chapter >= ClassicChapters ? "act2" : "battle");
             Sound.I?.Ambience(GameData.ThemeOf(Mathf.Min(chapter, Chapters.Length - 1)), IsTitan);   // a quiet bed of the arena's weather
             Time.timeScale = Mathf.Clamp(G.S.settings.speed, 1, 3);
             _loop = StartCoroutine(Loop());
@@ -188,6 +191,7 @@ namespace Sigilbound.Client
         string _revealTitle, _revealSub; float _revealT;
         const float RevealLen = 2.5f;
         static readonly HashSet<int> _lairsRevealed = new HashSet<int>();
+        bool _bossMusic;   // this battle plays the boss theme once its lair reveal ends
         public static void ForgetLairReveals() => _lairsRevealed.Clear(); // the screenshot tour
         IEnumerator LairReveal()
         {
@@ -456,6 +460,7 @@ namespace Sigilbound.Client
         {
             if (IsTitan) yield return TitanIntro();
             else yield return LairReveal();
+            if (_bossMusic) Sound.I?.Music("boss");   // MUSIC: the boss theme takes over from the lair reveal (or at once if it was skipped)
             yield return new WaitForSeconds(0.5f);
             while (!_b.Over)
             {
