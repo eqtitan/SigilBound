@@ -38,6 +38,7 @@ class Ctx:
         self.species = str(c.get("species", "human")).lower()
         self.pal = c.get("palette", {})
         self._m = {}
+        self.hover = []   # halos and floating crowns: kept clear of hats, hoods and helms (clear_hover)
 
     @property
     def face(self):
@@ -195,7 +196,9 @@ def crown(X, text):
     if style == "ice": gold = X.mat("#cfeaff", "glass")
     if style == "coral": gold = X.mat(G.colour_in(text, "#e2725e"), "horn")
     if style == "flower": gold = X.mat("#3f6a2a", "cloth")
-    z0 = X.top - 0.04 if not floating else X.top + 0.035
+    # A floating crown hovers just clear of the head (owner report 2026-11-27: at 3.5 cm, seen from the
+    # low battle and portrait cameras, it read as a crown or hair knocked off the head).
+    z0 = X.top - 0.04 if not floating else X.top + 0.012
     radii = X.head_ring(z0) if not floating else [X.hw * 0.88] * 32
     if not floating: radii = [r + 0.004 for r in radii]
     parts = []
@@ -257,10 +260,14 @@ def crown(X, text):
         elif style == "water":
             parts.append(G.extrude(star_outline(0.04, 0.017), 0.01, X.glow, Vector((X.cx, X.cy, z0 + 0.05)), Vector((1, 0, 0)), Vector((0, 0, 1))))
     if style == "smoke":
-        sm = X.mat("#6a6670", "cloth")
-        for i, (zz, rr) in enumerate(((0.0, 1.0), (0.025, 0.85), (0.05, 0.7))):
-            ring = [(X.cx + math.cos(j / 24 * TAU) * X.hw * 0.9 * rr, X.cy + math.sin(j / 24 * TAU) * X.hw * 0.9 * rr, z0 + zz + 0.01 * math.sin(j / 24 * TAU * 3)) for j in range(25)]
-            parts.append(G.sweep(ring, 0.008, sm, segs=8, cap=False))
+        # pale violet smoke (a grey ring read as a lock of hair), thinner, with glowing wisps
+        sm = X.mat(G.colour_in(text, "#b9aed0"), "cloth")
+        for i, (zz, rr) in enumerate(((0.0, 1.0), (0.016, 0.86), (0.032, 0.72))):
+            ring = [(X.cx + math.cos(j / 24 * TAU) * X.hw * 0.9 * rr, X.cy + math.sin(j / 24 * TAU) * X.hw * 0.9 * rr, z0 + zz + 0.008 * math.sin(j / 24 * TAU * 3 + i)) for j in range(25)]
+            parts.append(G.sweep(ring, 0.006, sm, segs=8, cap=False))
+        for k in range(5):
+            a = FRONT + k / 5 * TAU
+            parts.append(G.sphere(Vector((X.cx + math.cos(a) * X.hw * 0.8, X.cy + math.sin(a) * X.hw * 0.8, z0 + 0.02 + 0.012 * (k % 2))), 0.006, X.glow, segs=8))
     if style == "water" or has(text, "ring of water"):
         ring = [(X.cx + math.cos(j / 32 * TAU) * X.hw * 1.15, X.cy + math.sin(j / 32 * TAU) * X.hw * 1.15, z0 + 0.01) for j in range(33)]
         parts.append(G.sweep(ring, 0.009, X.mat("#5ab8e8", "glass"), segs=8, cap=False))
@@ -271,7 +278,14 @@ def crown(X, text):
         parts.append(G.sphere(Vector((p.x, p.y, z0 + bh * 0.5)), 0.009, X.glow, segs=10))
     if has(text, "broken"):
         pass
-    return X.add(G.join(parts), "Head", piece="crown:" + style + (" floating" if floating else ""))
+    if floating and style != "smoke":
+        # motes of light under the ring say "magic", not "misplaced"
+        for k in range(4):
+            a = FRONT + math.pi / 4 + k / 4 * TAU
+            parts.append(G.sphere(Vector((X.cx + math.cos(a) * X.hw * 0.7, X.cy + math.sin(a) * X.hw * 0.7, z0 - 0.004)), 0.005, X.glow, segs=8))
+    o = X.add(G.join(parts), "Head", piece="crown:" + style + (" floating" if floating else ""))
+    if floating: X.hover.append(o)
+    return o
 
 
 def circlet(X, text):
@@ -367,17 +381,23 @@ def halo(X, text):
     else:
         flame = has(text, "flame")
         R = X.hw * (1.05 if has(text, "small") else 1.22)
-        c = Vector((X.cx, X.cy + 0.03, X.top + 0.07))
-        ring = [c + Vector((math.cos(j / 48 * TAU) * R, math.sin(j / 48 * TAU) * R * 0.95, 0)) for j in range(49)]
+        # 5 cm over the head, the back edge raised 14 degrees: reads as a halo, not a crown off its seat
+        c = Vector((X.cx, X.cy + 0.03, X.top + 0.05)); tilt = math.tan(math.radians(14))
+        def T(v): return v + Vector((0, 0, (v.y - c.y) * tilt))
+        ring = [T(c + Vector((math.cos(j / 48 * TAU) * R, math.sin(j / 48 * TAU) * R * 0.95, 0))) for j in range(49)]
         parts.append(G.sweep(ring, (0.009, 0.006), g, segs=8, side=Vector((0, 0, 1)), cap=False))
-        inner = [c + Vector((math.cos(j / 48 * TAU) * R * 0.86, math.sin(j / 48 * TAU) * R * 0.82, 0.002)) for j in range(49)]
+        inner = [T(c + Vector((math.cos(j / 48 * TAU) * R * 0.86, math.sin(j / 48 * TAU) * R * 0.82, 0.002))) for j in range(49)]
         parts.append(G.sweep(inner, 0.0035, X.metal_of(text, "#f2d77a"), segs=6, cap=False))
         piece = "halo:ring"
         if flame:
-            for k in range(10):
-                a = k / 10 * TAU; d = Vector((math.cos(a), math.sin(a), 0)); p = c + d * R
-                ol = [(-0.012, 0), (0.012, 0), (0.008, 0.02), (0.002, 0.04), (-0.006, 0.022)]
-                parts.append(G.extrude(ol, 0.004, g, p, Vector((-math.sin(a), math.cos(a), 0)), Vector((0, 0, 1))))
+            # small licking flames that lean outward and back (upright gold points read as a crown)
+            fl = X.mat(G.colour_in(text, "#ff8a2a"), "glow")
+            for k in range(14):
+                a = k / 14 * TAU; d = Vector((math.cos(a), math.sin(a) * 0.95, 0)); p = T(c + d * R)
+                h = 0.022 if k % 2 else 0.032
+                ol = [(-0.008, 0), (0.008, 0), (0.005, h * 0.5), (0.001, h), (-0.004, h * 0.55)]
+                up = (Vector((0, 0, 1)) + d * 0.55 + Vector((0, 0.35, 0))).normalized()
+                parts.append(G.extrude(ol, 0.003, fl, p, Vector((-math.sin(a), math.cos(a), 0)), up))
             piece = "halo:flame"
         if has(text, "bell"):
             bm_ = X.metal_of("gold")
@@ -388,7 +408,9 @@ def halo(X, text):
                 parts.append(G.lathe([(0, 0.024), (0.006, 0.022), (0.009, 0.012), (0.012, 0.002), (0.013, 0.0), (0.011, 0.0), (0.0, 0.004)], bm_, center=bp, segs=12))
                 parts.append(G.sphere(bp + Vector((0, 0, 0.001)), 0.0035, bm_, segs=6))
             piece = "halo:bells"
-    return X.add(G.join(parts), "Head", piece=piece)
+    o = X.add(G.join(parts), "Head", piece=piece)
+    if piece.startswith(("halo:ring", "halo:flame", "halo:bells")): X.hover.append(o)
+    return o
 
 
 # ---------- horns and antlers ----------
@@ -690,7 +712,7 @@ def helm(X, text):
     elif has(text, "crest"):
         parts.append(G.extrude([(0.1, 0.0), (-0.1, 0.0), (-0.08, 0.04), (0.06, 0.05)], 0.008, X.mat(X.pal.get("accent", "#b0302a")), Vector((X.cx, X.cy, X.top + 0.012)), Vector((0, 1, 0)), Vector((0, 0, 1))))
     if has(text, "halo-ring", "halo ring"):
-        c = Vector((X.cx, X.back + 0.02, X.top + 0.04))
+        c = Vector((X.cx, X.back + 0.07, X.top + 0.06))   # behind the helm shell (it cut through it at +0.02)
         ring = [c + Vector((math.cos(j / 32 * TAU) * 0.1, 0, math.sin(j / 32 * TAU) * 0.1)) for j in range(33)]
         parts.append(G.sweep(ring, 0.008, X.glow, segs=8, cap=False))
     if has(text, "beam", "light"):
@@ -1332,7 +1354,7 @@ def head(c, arm, mats, U):
         txt = h if has(h, "circlet", "diadem") else next((str(k).lower() for k in c.get("kit", []) if "circlet" in str(k).lower()), allt)
         circlet(X, txt)
     if has(h, "headband") and once("headband"): headband(X, h)
-    if (has(allt, "halo", "sun-disc", "eclipse") or (c.get("rarity") == "Legendary" and not has(allt, "crown", "helm", "hood"))) and once("halo"):
+    if (has(allt, "halo", "sun-disc", "eclipse") or (c.get("rarity") == "Legendary" and not has(allt, "crown", "helm", "hood"))) and not (has(h, "halo-ring", "halo ring") and has(h, "helm", "helmet")) and once("halo"):  # a helm's halo crest is the halo
         txt = h if has(h, "halo", "sun-disc", "eclipse") else next((str(k).lower() for k in c.get("kit", []) if any(w in str(k).lower() for w in ("halo", "sun-disc", "eclipse"))), allt)
         halo(X, txt)
     if has(allt, "horn", "antler") and not has(allt, "war horn", "horn slung", "hornbill") and once("horns"):
@@ -1355,7 +1377,29 @@ def head(c, arm, mats, U):
         X.add(animal_ears(X, "hare", X.mat((c.get("hair") or {}).get("colour", "#d8c8b0")), X.mat("#e8c0c0")), "Head", piece="hare ears")
     if has(h, "fin-ear", "fin ear") and once("finears"): X.add(fin_ears(X, X.mat("#5ac8c0", "glass")), "Head", piece="fin ears")
     if has(h, "gnomon"): X.add(fin(X, "head", X.metal_of("bronze")), "Head", piece="gnomon fin")
+    clear_hover(X)
     return X.out
+
+
+def clear_hover(X, gap=0.015):
+    """Lift each halo / floating crown so it sits `gap` above every other head piece under it (a hat,
+    hood or helm built on the same hero); the head box only knows the bare head and hair."""
+    if not X.hover: return
+    R = X.hw * 1.5
+    def under(o):
+        mw = o.matrix_world
+        return [mw @ v.co for v in o.data.vertices if math.hypot((mw @ v.co).x - X.cx, (mw @ v.co).y - X.cy) < R]
+    others = [o for o in X.out if o not in X.hover and o.type == "MESH"]
+    top = max((p.z for o in others for p in under(o)), default=None)
+    if top is None: return
+    for o in X.hover:
+        pts = [o.matrix_world @ v.co for v in o.data.vertices]
+        if not pts: continue
+        low = min(p.z for p in pts)
+        if low < top + gap:
+            d = o.matrix_world.inverted().to_3x3() @ Vector((0, 0, top + gap - low))
+            for v in o.data.vertices: v.co += d
+            REPORT.append((X.c["id"], f"lifted {o.name} {top + gap - low:.3f} m clear of the headwear"))
 
 
 def species(c, arm, mats, U):
