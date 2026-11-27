@@ -32,20 +32,24 @@ namespace Sigilbound.Client
         // turns in the corner. Effects without art fall back to their text tag. Returns the area covered.
         public static Rect Row(float x, float y, IList<Effect> effects, float size, bool centre)
         {
-            float gap = 2, w = effects.Count * (size + gap) - gap;
-            float x0 = centre ? x - w / 2 : x;
+            // A stacked effect (Poison/Burn x2/x3) gets extra room on its right for a readable "x3" (the
+            // corner badge was too small to read at battle size).
+            float gap = 2, sw = size * 0.85f;
+            float w = -gap; foreach (var e in effects) w += size + gap + (e.Stacks > 1 ? sw : 0);
+            float x0 = centre ? x - w / 2 : x, cx = x0;
+            int fs = Mathf.Max(10, Mathf.RoundToInt(size * 0.72f));
             for (int i = 0; i < effects.Count; i++)
             {
-                var e = effects[i]; var r = new Rect(x0 + i * (size + gap), y, size, size);
+                var e = effects[i]; var r = new Rect(cx, y, size, size);
+                cx += size + gap + (e.Stacks > 1 ? sw : 0);
                 var t = Get(e.Type);
                 if (t != null) GUI.DrawTexture(r, t);
                 else Ui.Text(r, SkillText.EffectShort(e.Type), 7, FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff"), FontStyle.Bold, TextAnchor.MiddleCenter);
-                if (e.Stacks > 1) // Poison/Burn stacks: a gold pill above the icon's top-right corner, clear of the turn count
+                if (e.Stacks > 1)
                 {
-                    float bw = Mathf.Max(13, size * 0.82f), bh = Mathf.Max(9, size * 0.56f);
-                    var sr = new Rect(r.xMax - bw * 0.7f, r.y - bh * 0.62f, bw, bh);
-                    Ui.Round(sr, new Color(0.12f, 0.06f, 0.02f, 0.97f), Palette.Gold, Mathf.RoundToInt(bh / 2));
-                    Ui.Text(sr, "\u00d7" + e.Stacks, Mathf.Max(8, Mathf.RoundToInt(size * 0.48f)), new Color(1f, 0.9f, 0.6f), FontStyle.Bold, TextAnchor.MiddleCenter);
+                    var sr = new Rect(r.xMax + 1, r.y, sw, size);
+                    Ui.Text(new Rect(sr.x + 1, sr.y + 1, sr.width, sr.height), "\u00d7" + e.Stacks, fs, new Color(0, 0, 0, 0.85f), FontStyle.Bold, TextAnchor.MiddleLeft);
+                    Ui.Text(sr, "\u00d7" + e.Stacks, fs, new Color(1f, 0.85f, 0.45f), FontStyle.Bold, TextAnchor.MiddleLeft);
                 }
                 if (e.Turns > 0 && e.Type != FxType.Shield)
                 {
