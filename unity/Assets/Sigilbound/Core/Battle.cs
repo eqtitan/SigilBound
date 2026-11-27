@@ -7,7 +7,7 @@ using static Sigilbound.Core.GameData;
 
 namespace Sigilbound.Core
 {
-    public sealed class Effect { public FxType Type; public int Turns; public int Val; public bool Fresh; }
+    public sealed class Effect { public FxType Type; public int Turns; public int Val; public bool Fresh; public int Stacks = 1; }
 
     public sealed class Unit
     {
@@ -20,6 +20,8 @@ namespace Sigilbound.Core
         public int[] SkillLv = new int[0]; // Skill Tome upgrades per skill (allies)
         public int SkillLevel(int i) => i < SkillLv.Length ? SkillLv[i] : 0;
         public bool Has(FxType t) => Effects.Any(e => e.Type == t);
+        // Weakness break (PLAN step 98): hits from the element that beats this unit fill the meter; full = Broken.
+        public double Break; public int BreakGuard;
         public Effect Shield => Effects.FirstOrDefault(e => e.Type == FxType.Shield);
     }
 
@@ -59,10 +61,22 @@ namespace Sigilbound.Core
         public Battle(List<Unit> allies, List<List<Unit>> waves, Random rng, bool titan = false, int turnLimit = 0)
         {
             Allies = allies; Waves = waves; _rng = rng; IsTitan = titan; TurnLimit = turnLimit;
-            foreach (var u in Units) u.Tm = _rng.NextDouble() * 100;
-            foreach (var w in waves.Skip(1)) foreach (var u in w) u.Tm = _rng.NextDouble() * 100;
+            foreach (var u in Units) u.Tm = StartTm(u);
+            foreach (var w in waves.Skip(1)) foreach (var u in w) u.Tm = StartTm(u);
             StartWaveClock();
         }
+
+        // Speed-based head start (PLAN step 98): the fastest unit usually acts first, with a little luck.
+        double StartTm(Unit u) => u.Spd * StartTmPerSpd + _rng.NextDouble() * StartTmRandom;
+        public const double StartTmPerSpd = 3, StartTmRandom = 40;
+        // Poison and Burn stack (each stack ticks); Break meter per advantaged hit; Titan immune.
+        public const int MaxDotStacks = 3;
+        // Global battle pace (PLAN step 98): skill hits, heals, regen and shields are all multiplied by this (HP
+        // isn't), except in the Titan fight (its damage-based rewards stay as they were). Tuned so a typical
+        // fight lasts 6-8 rounds; scaling healing too keeps every role's share of the fight.
+        public const double Pace = 1.6;
+        double PaceHere => IsTitan ? 1 : Pace; // Poison and Burn ticks scale with it too
+        public const double BreakPerHit = 34, BreakBossShare = 0.5; public const int BreakGuardTurns = 2;
 
         // ---------- unit factories ----------
         public static Unit MakeUnit(bool ally, HeroDef t, Stats s) => Make(ally, t, s);
@@ -193,7 +207,7 @@ namespace Sigilbound.Core
         {
             if (!u.Boss && !u.Titan) return d;
             var foes = Living(u.Ally ? Enemies : Allies);
-            return foes.Count == 0 ? d : Math.Min(d, foes.Max(a => a.Atk) * 3);
+            return foes.Count == 0 ? d : Math.Min(d, foes.Max(a => a.Atk) * 3 * PaceHere);
         }
 
         public (List<BattleEvent> events, bool skip) BeginTurn(Unit u)
@@ -208,21 +222,17 @@ namespace Sigilbound.Core
             for (int i = 0; i < u.Cds.Length; i++) u.Cds[i] = Math.Max(0, u.Cds[i] - 1);
             foreach (var e in u.Effects.ToList())
             {
-                if (e.Type == FxType.Poison)
+                if (e.Type == FxType.Poison || e.Type == FxType.Burn)
                 {
-                    double d = DotCap(u, u.MaxHp * 0.04);
-                    ApplyDamage(u, Js.RoundInt(d), null, ev, false, 1, true);
-                }
-                else if (e.Type == FxType.Burn && u.Alive)
-                {
-                    // Burn: 5% max HP a turn, a separate damage-over-time that stacks with Poison.
-                    double d = DotCap(u, u.MaxHp * 0.05);
-                    ApplyDamage(u, Js.RoundInt(d), null, ev, false, 1, true);
+                    // Poison 4% / Burn 5% of max HP a turn, once per stack (up to MaxDotStacks; capped per stack on bosses).
+                    double d = DotCap(u, u.MaxHp * (e.Type == FxType.Poison ? 0.04 : 0.05) * PaceHere);
+                    for (int k = 0; k < Math.Max(1, e.Stacks) && u.Alive; k++) ApplyDamage(u, Js.RoundInt(d), null, ev, false, 1, true);
                 }
                 else if (e.Type == FxType.Regen) HealUnit(u, u.MaxHp * 0.08, ev);
             }
-            bool stunned = u.Alive && u.Has(FxType.Stun);
-            if (stunned) ev.Add(new BattleEvent { Type = EvType.Text, Unit = u, Text = "Stunned!" });
+            bool broken = u.Alive && u.Has(FxType.Broken);
+            bool stunned = u.Alive && (u.Has(FxType.Stun) || broken);
+            if (stunned) ev.Add(new BattleEvent { Type = EvType.Text, Unit = u, Text = broken ? "Broken!" : "Stunned!" });
             return (ev, stunned || !u.Alive);
         }
 
@@ -230,6 +240,7 @@ namespace Sigilbound.Core
         {
             newWave = false;
             foreach (var e in u.Effects) { if (e.Fresh) e.Fresh = false; else e.Turns--; }
+            if (u.BreakGuard > 0 && !u.Has(FxType.Broken)) u.BreakGuard--;
             u.Effects.RemoveAll(e => e.Turns <= 0 || (e.Type == FxType.Shield && e.Val <= 0));
             if (u.Titan) BossTurns++;
             _waveTurns++;
@@ -270,7 +281,7 @@ namespace Sigilbound.Core
             {
                 var sk = u.Template.Skills[i];
                 double score = sk.Cooldown * 10 + i;
-                if (sk.Fx.Any(f => f.Type == FxType.Heal || f.Type == FxType.Regen) && hurt == 0 && sk.Mult == 0) score -= 100;
+                // (A heal with no one hurt only counts as useless when nothing else in the skill helps: Useful below.)
                 if (sk.Fx.Any(f => f.Type == FxType.Taunt && f.To == FxTo.Self) && u.Has(FxType.Taunt)) score -= 100;
                 if (sk.Mult == 0 && !Useful(u, sk, own, foes, hurt)) score -= 100; // a pure utility skill with nothing to do
                 if (score > bestScore) { bestScore = score; best = i; }
@@ -293,6 +304,7 @@ namespace Sigilbound.Core
                     FxType.Strip => who.Any(a => a.Effects.Any(e => FxDef.IsBuff(e.Type))),
                     FxType.Shield => who.Any(a => a.Shield == null || a.Shield.Val < a.MaxHp * 0.05),
                     FxType.Tm or FxType.TmDrain or FxType.Pull => true,
+                    FxType.Poison or FxType.Burn => who.Any(a => (a.Effects.FirstOrDefault(e => e.Type == f.Type)?.Stacks ?? 0) < MaxDotStacks),
                     _ => who.Any(a => !a.Has(f.Type)),
                 };
                 if (any) return true;
@@ -350,7 +362,7 @@ namespace Sigilbound.Core
             }
             targets = targets.Where(t => t != null).ToList();
             // Spread: remember the target's damage-over-time before it can die (death clears effects).
-            var dots = sk.Spread ? targets.ToDictionary(t => t, t => t.Effects.Where(e => e.Type == FxType.Poison || e.Type == FxType.Burn).Select(e => new Effect { Type = e.Type, Turns = Math.Max(1, e.Turns) }).ToList()) : null;
+            var dots = sk.Spread ? targets.ToDictionary(t => t, t => t.Effects.Where(e => e.Type == FxType.Poison || e.Type == FxType.Burn).Select(e => new Effect { Type = e.Type, Turns = Math.Max(1, e.Turns), Stacks = e.Stacks }).ToList()) : null;
             if (sk.Mult > 0)
                 foreach (var t in targets)
                     for (int h = 0; h < sk.Hits && t.Alive; h++)
@@ -373,7 +385,7 @@ namespace Sigilbound.Core
                     foreach (var d in dots[t])
                     {
                         var have = next.Effects.FirstOrDefault(e => e.Type == d.Type);
-                        if (have != null) have.Turns = Math.Max(have.Turns, d.Turns); else next.Effects.Add(d);
+                        if (have != null) { have.Turns = Math.Max(have.Turns, d.Turns); have.Stacks = Math.Min(MaxDotStacks, Math.Max(have.Stacks, d.Stacks)); } else next.Effects.Add(d);
                     }
                     ev.Add(new BattleEvent { Type = EvType.Text, Unit = next, Text = "Spread!" });
                 }
@@ -411,12 +423,24 @@ namespace Sigilbound.Core
         {
             double stat = sk.Scale == Scale.Def ? DefOf(u) : sk.Scale == Scale.Hp ? u.MaxHp : AtkOf(u);
             double em = ElementMultiplier(u.El, t.El);
-            double dmg = stat * sk.Mult * part * _boost * em * (650 / (650 + DefOf(t))) * DmgEnrage;
+            double dmg = stat * sk.Mult * part * _boost * em * (650 / (650 + DefOf(t))) * DmgEnrage * PaceHere;
             if (sk.Rage > 0) dmg *= 1 + sk.Rage * (1 - u.Hp / (double)u.MaxHp); // grows with the attacker's lost HP
-            bool crit = _rng.NextDouble() * 100 < u.Crit && em >= 1;
+            bool crit = _rng.NextDouble() * 100 < (em >= 1 ? u.Crit : u.Crit * 0.5); // half the crit rate on element disadvantage
             if (crit) dmg *= 1 + u.Cdmg / 100.0;
             dmg *= 0.95 + _rng.NextDouble() * 0.1;
             ApplyDamage(t, Math.Max(1, Js.RoundInt(dmg)), u, ev, crit, em, false);
+            if (em > 1 && t.Alive) AddBreak(t, ev);
+        }
+
+        void AddBreak(Unit t, List<BattleEvent> ev)
+        {
+            if (t.Titan || t.BreakGuard > 0 || t.Has(FxType.Broken)) return;
+            t.Break += BreakPerHit * (t.Boss ? BreakBossShare : 1);
+            if (t.Break < 100) return;
+            t.Break = 0; t.BreakGuard = BreakGuardTurns; // counts down on its own turns after the lost one
+            t.Effects.Add(new Effect { Type = FxType.Broken, Turns = 1 });
+            ev.Add(new BattleEvent { Type = EvType.Text, Unit = t, Text = "Break!" });
+            ev.Add(new BattleEvent { Type = EvType.Status, Unit = t, Fx = FxType.Broken });
         }
 
         void ApplyDamage(Unit t, int dmg, Unit src, List<BattleEvent> ev, bool crit, double em, bool dot)
@@ -446,7 +470,7 @@ namespace Sigilbound.Core
                     ev.Add(new BattleEvent { Type = EvType.Heal, Unit = t, Amount = t.Hp });
                     return;
                 }
-                t.Hp = 0; t.Alive = false; t.Effects.Clear();
+                t.Hp = 0; t.Alive = false; t.Effects.Clear(); t.Break = 0;
                 ev.Add(new BattleEvent { Type = EvType.Death, Unit = t });
                 // Last Light (HeroDef.FallHeal): living allies of the fallen unit with the passive heal their side.
                 var side = Allies.Contains(t) ? Allies : Enemies;
@@ -461,7 +485,7 @@ namespace Sigilbound.Core
         void HealUnit(Unit t, double amount, List<BattleEvent> ev)
         {
             if (!t.Alive) return;
-            amount *= HealEnrage;
+            amount *= HealEnrage * PaceHere; // healing keeps pace with damage, so sustain kits keep their share
             int amt = Js.RoundInt(Math.Min(amount, t.MaxHp - t.Hp));
             t.Hp += amt;
             if (amt > 0) ev.Add(new BattleEvent { Type = EvType.Heal, Unit = t, Amount = amt });
@@ -495,11 +519,11 @@ namespace Sigilbound.Core
             var existing = r.Effects.FirstOrDefault(e => e.Type == f.Type);
             if (f.Type == FxType.Shield)
             {
-                int val = Js.RoundInt(u.MaxHp * f.Pct * ShieldScale * HealEnrage);
+                int val = Js.RoundInt(u.MaxHp * f.Pct * ShieldScale * HealEnrage * PaceHere);
                 if (existing != null) { existing.Val = Math.Max(existing.Val, val); existing.Turns = 2; }
                 else r.Effects.Add(new Effect { Type = FxType.Shield, Val = val, Turns = 2, Fresh = self });
             }
-            else if (existing != null) { existing.Turns = Math.Max(existing.Turns, f.Turns); if (self) existing.Fresh = true; if (f.Type == FxType.Revive) existing.Val = Math.Max(existing.Val, Js.RoundInt(f.Pct * 100)); }
+            else if (existing != null) { existing.Turns = Math.Max(existing.Turns, f.Turns); if (self) existing.Fresh = true; if (f.Type == FxType.Poison || f.Type == FxType.Burn) existing.Stacks = Math.Min(MaxDotStacks, existing.Stacks + 1); if (f.Type == FxType.Revive) existing.Val = Math.Max(existing.Val, Js.RoundInt(f.Pct * 100)); }
             else r.Effects.Add(new Effect { Type = f.Type, Turns = Math.Max(1, f.Turns), Fresh = self, Val = f.Type == FxType.Revive ? Js.RoundInt(f.Pct * 100) : 0 });
             ev.Add(new BattleEvent { Type = EvType.Status, Unit = r, Source = u, Fx = f.Type });
         }

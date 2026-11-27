@@ -2,6 +2,15 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-27 | Faster, deeper battles
+change: Battles are about a third shorter: every hit, heal, shield and damage-over-time is stronger, so a typical fight lasts around 8 rounds.
+new: Weakness Break: hit a foe three times with the element that beats it and it is Broken, losing its next turn. Bosses take twice as long to break; the Titan can't be broken.
+new: Poison and Burn stack up to 3 times; each stack ticks.
+change: Speed matters more: attackers and supports are faster, tanks and bruisers slower, and the fastest unit usually acts first.
+change: Critical hits can now land on an element disadvantage, at half the usual chance.
+change: Auto battle opens with team-wide heal and shield skills when they help, not only when someone is hurt.
+balance: 39 heroes retuned for the new pace; Vex's King's Command and Crown of Ruin cooldowns swapped; Obrecht, Ondessa, Morvoren and Solenne's taunt skills trimmed.
+
 ## 2026-11-27 | Sharper battles
 change: Long fights now Enrage from round 10: damage rises and healing and shields shrink each round, so no battle can stall forever.
 change: Shields are 20% smaller.

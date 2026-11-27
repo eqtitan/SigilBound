@@ -23,8 +23,9 @@ namespace Sigilbound.Client
             (FxType.Shield, "Shield", "Absorbs damage."), (FxType.Taunt, "Taunt", "Enemies must attack it."),
             (FxType.Counter, "Counter", "Strikes back when hit."), (FxType.Revive, "Revive", "Saved once from falling."),
             (FxType.AtkDown, "Attack down", "Deals less damage."), (FxType.DefDown, "Defense down", "Takes more damage."),
-            (FxType.Slow, "Slow", "Acts later."), (FxType.Poison, "Poison", "Loses health each turn."),
-            (FxType.Burn, "Burn", "Takes fire damage each turn."), (FxType.Stun, "Stun", "Skips its next turn."),
+            (FxType.Slow, "Slow", "Acts later."), (FxType.Poison, "Poison", "Loses health each turn (stacks up to 3)."),
+            (FxType.Burn, "Burn", "Takes fire damage each turn (stacks up to 3)."), (FxType.Stun, "Stun", "Skips its next turn."),
+            (FxType.Broken, "Broken", "Weakness break: hit 3 times by the element that beats it, it skips a turn."),
         };
 
         // Draws the icons left to right from (x, y) (or centred on x when centre), each `size` square with its
@@ -39,6 +40,12 @@ namespace Sigilbound.Client
                 var t = Get(e.Type);
                 if (t != null) GUI.DrawTexture(r, t);
                 else Ui.Text(r, SkillText.EffectShort(e.Type), 7, FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff"), FontStyle.Bold, TextAnchor.MiddleCenter);
+                if (e.Stacks > 1) // Poison/Burn stacks: a small "x2" in the top-left corner
+                {
+                    var sr = new Rect(r.x - 1, r.y - 1, size * 0.5f, size * 0.42f);
+                    Ui.Round(sr, new Color(0.07f, 0.05f, 0.09f, 0.95f), Palette.Hex("#a05ae0"), 5);
+                    Ui.Text(sr, "x" + e.Stacks, Mathf.Max(7, Mathf.RoundToInt(size * 0.32f)), Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+                }
                 if (e.Turns > 0 && e.Type != FxType.Shield)
                 {
                     var n = new Rect(r.xMax - size * 0.42f, r.yMax - size * 0.42f, size * 0.46f, size * 0.46f);

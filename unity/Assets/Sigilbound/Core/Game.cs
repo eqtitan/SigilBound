@@ -113,7 +113,7 @@ namespace Sigilbound.Core
             return new RawStats
             {
                 El = el, Hp = 1000 * role.Hp * grow, Atk = 100 * role.Atk * grow, Def = 90 * role.Def * grow,
-                Spd = 95 + tier * 2 + role.Spd + (stars - 1), Crit = 15, Cdmg = 50,
+                Spd = 95 + tier * 2 + role.Spd + RoleSpdShift(t.Role) + (stars - 1), Crit = 15, Cdmg = 50,
             };
         }
 
@@ -123,7 +123,7 @@ namespace Sigilbound.Core
             var role = Mods(t.Role);
             double grow = (1 + (h.level - 1) * 0.05) * (1 + (h.stars - 1) * 0.15) * RarityMult(t.Rarity);
             double hp = 1000 * role.Hp * grow, atk = 100 * role.Atk * grow, def = 90 * role.Def * grow;
-            double spd = 95 + (int)t.Rarity * 2 + role.Spd + (h.stars - 1);
+            double spd = 95 + (int)t.Rarity * 2 + role.Spd + RoleSpdShift(t.Role) + (h.stars - 1);
             double fAtk = 0, fHp = 0, fDef = 0, fSpd = 0, crit = 15, cdmg = 50, pAtk = 0, pHp = 0, pDef = 0, pSpd = 0;
             var setCount = new Dictionary<GearSet, int>();
             void Add(Stat s, double v)

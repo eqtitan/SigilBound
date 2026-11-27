@@ -126,7 +126,7 @@ namespace Sigilbound.Core
             {
                 var t = Hero(id);
                 var s = Game.BaseStats(t, rv.Level, rv.Stars, t.Element);
-                double core = s.Hp / 10 + s.Atk * 2 + s.Def * 1.5, rest = s.Power - core;
+                double core = s.Hp / 10 + s.Atk * 2 + s.Def * 1.5, rest = s.Power - core - 4 * RoleSpdShift(t.Role); // the role speed spread doesn't take from the rival's other stats
                 double k = Math.Max(0.5, Math.Min(3, (perUnit - rest) / core));
                 var u = Battle.MakeUnit(false, t, new Stats { El = s.El, Hp = Js.RoundInt(s.Hp * k), Atk = Js.RoundInt(s.Atk * k), Def = Js.RoundInt(s.Def * k), Crit = (int)s.Crit, Cdmg = (int)s.Cdmg });
                 u.Spd = s.Spd; u.Level = rv.Level; u.Stars = rv.Stars; u.Rival = true; u.Name = t.ShortName;

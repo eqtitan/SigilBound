@@ -649,6 +649,7 @@ namespace Sigilbound.Client
                         else if (e.Fx == FxType.Shield) SkillFx.I.Shield(v.transform.position);
                         else SkillFx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
                         if (e.Fx == FxType.Stun) { if (KnocksDown(e)) v.KnockDown(); else v.Stun(); }
+                        else if (e.Fx == FxType.Broken) v.Stun();
                         else v.StatusPulse(FxDef.IsBuff(e.Fx));
                         Vfx.I.Number(c + Vector3.up * 0.6f, SkillText.EffectName(e.Fx), FxDef.IsBuff(e.Fx) ? new Color(1f, 0.85f, 0.4f) : new Color(0.8f, 0.55f, 1f), 0.7f); break;
                     case EvType.Text: Vfx.I.Number(c + Vector3.up * 0.6f, e.Text, new Color(0.8f, 0.9f, 1f), 0.7f); if (e.Text == "Revived!") v.Revived();
@@ -665,6 +666,7 @@ namespace Sigilbound.Client
             yield return new WaitForSeconds(0.2f);
         }
 
+        static readonly Color BreakColor = new Color(1f, 0.6f, 0.22f); // the weakness break meter (PLAN step 98)
         Element _lastEl;
         // A stun from a heavy-family weapon, the Titan or an ultimate knocks the target down (MECHANICS.md 3.1).
         Unit _ultBy; // the unit whose ultimate's events are being shown
@@ -970,6 +972,7 @@ namespace Sigilbound.Client
                 Ui.Text(new Rect(x - w / 2 - 10, y - 30, w + 20, 16), $"{Ui.ColorTag("●", Palette.Element(u.El))} {(u.Ally ? u.Template.ShortName : u.Name)}", 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
                 Ui.Bar(new Rect(x - w / 2, y - 13, w, 7), u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
                 var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(x - w / 2, y - 13, w * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 3), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
+                if (u.Break > 0) GUI.DrawTexture(new Rect(x - w / 2, y - 6, w * Mathf.Clamp01((float)(u.Break / 100)), 2), Ui.Solid(BreakColor)); // weakness break meter
                 Ui.Bar(new Rect(x - w / 2, y - 4, w, 3), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
                 if (u.Effects.Count > 0)
                 {
@@ -1120,6 +1123,7 @@ namespace Sigilbound.Client
                 var bar = new Rect(r.x + 20, r.y + 12, r.width - 20, 6);
                 Ui.Bar(bar, u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
                 var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 2), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
+                if (u.Break > 0) GUI.DrawTexture(new Rect(bar.x, bar.yMax, bar.width * Mathf.Clamp01((float)(u.Break / 100)), 2), Ui.Solid(BreakColor));
                 Ui.Bar(new Rect(bar.x, bar.yMax + 2, bar.width, 3), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
                 if (u.Effects.Count > 0)
                 {

@@ -37,7 +37,7 @@ static class ExtrasTests
                 for (int i = 0; i < waves[w].Count; i++)
                 {
                     var e = waves[w][i]; var o = ((List<object>)tw[w])[i]; var u = Battle.FromEnemy(e);
-                    if (e.Template.Id != Json.Str(o, "id") || e.El != El(Json.Str(o, "el")) || e.Boss != Json.Bool(o, "boss") || e.ShownLevel != N(o, "shownLevel") || u.MaxHp != N(o, "hp") || u.Atk != N(o, "atk") || u.Def != N(o, "def") || Math.Abs(u.Spd - N(o, "spd")) > 1e-9)
+                    if (e.Template.Id != Json.Str(o, "id") || e.El != El(Json.Str(o, "el")) || e.Boss != Json.Bool(o, "boss") || e.ShownLevel != N(o, "shownLevel") || u.MaxHp != N(o, "hp") || u.Atk != N(o, "atk") || u.Def != N(o, "def") || Math.Abs(u.Spd - (N(o, "spd") + RoleSpdShift(e.Template.Role))) > 1e-9)
                     { hardBad++; Console.WriteLine($"   hard {idx} w{w} #{i}: {u.MaxHp}/{u.Atk}/{u.Def} vs {N(o, "hp")}/{N(o, "atk")}/{N(o, "def")}"); }
                 }
             if (!SameReward(Game.HardRewards(idx, true), Json.Obj(h, "rewardsFirst")) || !SameReward(Game.HardRewards(idx, false), Json.Obj(h, "rewards"))) { hardBad++; Console.WriteLine($"   hard {idx} rewards differ"); }
@@ -100,11 +100,11 @@ static class ExtrasTests
                 var sk = ally.Template.Skills[i];
                 var ev = b.Act(ally, i, sk.Target == Target.Ally ? ally : foe).Where(e => e.Type == EvType.Damage || e.Type == EvType.Heal).ToList();
                 var wev = Json.Arr(act, "ev");
-                bool ok = ally.Cds[i] == N(act, "cd") && ev.Count == wev.Count && ev.Select((e, k) => (e.Type == EvType.Damage ? "dmg" : "heal") == Json.Str(wev[k], "type") && e.Unit.Ally == Json.Bool(wev[k], "ally") && e.Amount == N(wev[k], "amount")).All(x => x);
+                bool ok = ally.Cds[i] == N(act, "cd") && ev.Count == wev.Count && ev.Select((e, k) => (e.Type == EvType.Damage ? "dmg" : "heal") == Json.Str(wev[k], "type") && e.Unit.Ally == Json.Bool(wev[k], "ally") && Math.Abs(e.Amount - N(wev[k], "amount") * Battle.Pace) <= Battle.Pace + 0.5).All(x => x); // damage and healing x Battle.Pace (Unity battle pace, PLAN step 98)
                 if (!ok) { sBad++; Console.WriteLine($"   {hs.id} [{string.Join(",", hs.skillLv)}] A{i + 1}: cd {ally.Cds[i]} {string.Join(",", ev.Select(e => e.Type + ":" + e.Amount))} vs cd {N(act, "cd")} {Json.Write(wev)}"); }
             }
         }
-        Check(sBad == 0, $"Skill Tome levels: damage and healing +8%/level to 3, level 4 cooldown -1 — {sN - sBad}/{sN} skill uses match the web exactly");
+        Check(sBad == 0, $"Skill Tome levels: damage and healing +8%/level to 3, level 4 cooldown -1 — {sN - sBad}/{sN} skill uses match the web (damage and healing x the Unity battle pace)");
         Check(Battle.SkillCooldown(new SkillDef { Cooldown = 1 }, 4) == 1 && Battle.SkillCooldown(new SkillDef { Cooldown = 3 }, 4) == 2 && Battle.SkillCooldown(new SkillDef { Cooldown = 3 }, 3) == 3, "level 4 only shortens cooldowns above 1");
 
         var up = new Game(new SaveData(), 1); var uh = up.AddHero("pell"); up.S.tomes = 10;
@@ -124,13 +124,15 @@ static class ExtrasTests
             all[1].Effects.Add(new Effect { Type = FxType.SpdUp, Turns = 2 });
             all[all.Count - 1].Effects.Add(new Effect { Type = FxType.Slow, Turns = 2 });
             var mine = b.PredictTurns().Select(u => all.IndexOf(u)).ToList();
-            var theirs = Json.Arr(tc, "order").Select(x => (int)(double)x).ToList();
-            if (!mine.SequenceEqual(theirs)) { tBad++; Console.WriteLine($"   turns stage {idx}: {string.Join(",", mine)} vs {string.Join(",", theirs)}"); }
-            // Predicting must not move the real meters, and the first prediction is the real next actor.
-            double tm0 = all[0].Tm; var next = b.NextActor();
-            if (all[0].Tm < tm0 || all.IndexOf(next) != theirs[0]) { tBad++; Console.WriteLine($"   turns stage {idx}: next actor {all.IndexOf(next)} vs predicted {theirs[0]}"); }
+            // The web's own order no longer applies (Unity's role speed spread, PLAN step 98): the bar must match
+            // what really happens. Predicting must not move the real meters; then the next 7 real actors (each
+            // resetting its meter as a turn does) are the predicted ones.
+            if (Math.Abs(all[0].Tm - (double)tms[0]) > 1e-9) { tBad++; Console.WriteLine($"   turns stage {idx}: predicting moved a meter"); }
+            var real = new List<int>();
+            for (int k = 0; k < 7; k++) { var nx = b.NextActor(); real.Add(all.IndexOf(nx)); nx.Tm = 0; }
+            if (!mine.SequenceEqual(real)) { tBad++; Console.WriteLine($"   turns stage {idx}: predicted {string.Join(",", mine)} vs real {string.Join(",", real)}"); }
         }
-        Check(tBad == 0, "turn-order bar: the next 7 actors match predictTurns() (with speed buffs, slows and a fallen unit), and the first is the real next actor");
+        Check(tBad == 0, "turn-order bar: predictTurns() matches the next 7 real actors (with speed buffs, slows and a fallen unit)");
 
         // ---------- teams, best team, auto-equip, gear lock ----------
         var tgm = new Game(SaveCodec.FromCode(Json.Str(fx, "saveCode")), 3);
