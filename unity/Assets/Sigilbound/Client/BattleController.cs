@@ -1069,9 +1069,11 @@ namespace Sigilbound.Client
                     var u = _turns[i]; var r = new Rect(tx + 36 + i * (cw + cg), ty, cw, 22);
                     bool now = i == 0 && u == _actor;
                     Ui.Panel(r, u.Ally ? Palette.Hex("#1f3326") : Palette.Hex("#3a1c1c"), now ? Palette.Gold : u.Ally ? Palette.Good : Palette.Bad, 7);
-                    Icons.Draw(new Rect(r.x + 4, r.y + 5, 12, 12), Icons.ForElement(u.El), Palette.Element(u.El));
+                    // A tiny face in an element-coloured frame (the element icon where there is no portrait: the Titan).
+                    if (u.Titan || !Portraits.Thumb(new Rect(r.x + 3, r.y + 3, 16, 16), u.Template.Id, Palette.Element(u.El)))
+                        Icons.Draw(new Rect(r.x + 4, r.y + 5, 12, 12), Icons.ForElement(u.El), Palette.Element(u.El));
                     string nm = u.Titan ? "Titan" : u.Template.ShortName;
-                    Ui.Text(new Rect(r.x + 17, r.y, r.width - 19, r.height), nm.Length > 7 ? nm.Substring(0, 7) : nm, 10, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
+                    Ui.Text(new Rect(r.x + 21, r.y, r.width - 23, r.height), nm.Length > 7 ? nm.Substring(0, 7) : nm, 10, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
                 }
             }
 
