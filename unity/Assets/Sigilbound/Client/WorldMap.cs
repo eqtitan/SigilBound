@@ -23,6 +23,16 @@ namespace Sigilbound.Client
         {
             new Vector2(0.12f, 0.62f), new Vector2(0.31f, 0.36f), new Vector2(0.5f, 0.64f), new Vector2(0.69f, 0.36f), new Vector2(0.88f, 0.6f),
         };
+        // Act I on the owner's painted world map (skin "bg_campaign"): each chapter on painted land, from the
+        // western forests over the northern passes and the heartland to the corrupted east, the Last Pyre
+        // deep in it. Fractions of the painting (its ornate border takes ~8% at the sides, ~7% top and bottom).
+        static readonly Vector2[] PaintedPoints =
+        {
+            new Vector2(0.245f, 0.585f), new Vector2(0.36f, 0.47f), new Vector2(0.32f, 0.27f), new Vector2(0.44f, 0.32f), new Vector2(0.56f, 0.27f),
+            new Vector2(0.53f, 0.60f), new Vector2(0.62f, 0.78f), new Vector2(0.68f, 0.45f), new Vector2(0.71f, 0.64f), new Vector2(0.80f, 0.48f),
+        };
+        static bool PaintedMap => Skin.Tex("bg_campaign") != null;
+        static Vector2[] Act1Points => PaintedMap ? PaintedPoints : MapPoints;
         static readonly Texture2D[] _mapTex = new Texture2D[2];
         int _act; // 0 = follow progress, else 1 or 2 (the Act I / Act II switch)
 
@@ -44,12 +54,12 @@ namespace Sigilbound.Client
             }
             int act = _act != 0 ? _act : (act2Open && progressAll >= ClassicStages ? 2 : 1);
             if (act == 2 && !act2Open) act = 1;
-            var pts = act == 1 ? MapPoints : MapPoints2;
+            var pts = act == 1 ? Act1Points : MapPoints2;
             int c0 = act == 1 ? 0 : ClassicChapters, cn = act == 1 ? ClassicChapters : Chapters.Length - ClassicChapters;
             float trackH = hard ? 0 : 58;
             var map = new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16 - trackH);
-            GUI.DrawTexture(map, MapTexture(act), ScaleMode.StretchToFill);
-            Ui.Round(map, Color.clear, Palette.Trim, 12); // gilded frame
+            if (act == 1 && PaintedMap) GUI.DrawTexture(map, Skin.Tex("bg_campaign"), ScaleMode.StretchToFill); // the painting has its own ornate border
+            else { GUI.DrawTexture(map, MapTexture(act), ScaleMode.StretchToFill); Ui.Round(map, Color.clear, Palette.Trim, 12); } // gilded frame
 
             // Road: dashes between consecutive medallions.
             for (int k = 0; k + 1 < cn; k++)
@@ -93,7 +103,7 @@ namespace Sigilbound.Client
             }
 
             // Title and Normal/Hard switch.
-            Ui.Heading(new Rect(map.center.x - 150, map.y + 6, 300, 30), (hard ? "Hard · " : "") + (act == 1 ? "Act I" : "Act II · The Sigil Bearers"), 22, TextAnchor.MiddleCenter);
+            Ui.Banner(new Rect(map.center.x - 170, map.y + 8, 340, 30), (hard ? "Hard · " : "") + (act == 1 ? "Act I" : "Act II · The Sigil Bearers"), 18);
             // Act switch (Act II opens once act I is cleared).
             if (Ui.Button(new Rect(map.x + 10, map.y + 46, 80, 30), "Act I", act == 1 ? Ui.Kind.ChipOn : Ui.Kind.Chip, 12)) { _act = 1; _chapterOpen = -1; }
             if (Ui.Button(new Rect(map.x + 96, map.y + 46, 80, 30), "Act II", act == 2 ? Ui.Kind.ChipOn : Ui.Kind.Chip, 12, act2Open)) { _act = 2; _chapterOpen = -1; }

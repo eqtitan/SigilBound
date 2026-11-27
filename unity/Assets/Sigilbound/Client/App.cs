@@ -304,19 +304,21 @@ namespace Sigilbound.Client
             Ui.GoldRule(new Rect(Ui.Left, r.yMax - 1, Ui.FullW, 1));
             float x = 8;
             // Currency chips: a drawn icon (Icons.cs) plus the amount.
-            void Chip(Icon icon, string text, Color c)
+            void Chip(Icon icon, string text, Color c, string painted = null)
             {
                 var w = Mathf.Max(48, text.Length * 7.4f + 30);
                 Ui.Panel(new Rect(x, r.y + 8, w, 28), Palette.Hex("#0d0a12"), Palette.Bronze, 13);
-                Icons.Draw(new Rect(x + 8, r.y + 15, 14, 14), icon, c);
+                // The owner's painted coin / shard / essence when the skin is on; shards keep a tint ring for their kind.
+                if (painted == null || !Icons.Painted(new Rect(x + 3, r.y + 10, 24, 24), painted)) Icons.Draw(new Rect(x + 8, r.y + 15, 14, 14), icon, c);
+                else if (icon == Icon.Shard) Ui.Round(new Rect(x + 21, r.y + 26, 8, 8), c, Palette.Hex("#0d0a12"), 4);
                 Ui.Text(new Rect(x + 24, r.y + 8, w - 30, 28), text, 12, c, FontStyle.Bold, TextAnchor.MiddleCenter);
                 x += w + 5;
             }
-            Chip(Icon.Coin, Ui.Fmt(G.S.gold), Palette.Gold);
-            Chip(Icon.Shard, G.S.shardCommon.ToString(), Palette.Hex("#c9a37b"));
-            Chip(Icon.Shard, G.S.shardMystic.ToString(), Palette.Blue);
-            Chip(Icon.Shard, G.S.shardRadiant.ToString(), Palette.Hex("#ffb02e"));
-            Chip(Icon.Essence, G.S.essence.ToString(), Palette.Hex("#8fd8ff"));
+            Chip(Icon.Coin, Ui.Fmt(G.S.gold), Palette.Gold, "coin");
+            Chip(Icon.Shard, G.S.shardCommon.ToString(), Palette.Hex("#c9a37b"), "shard");
+            Chip(Icon.Shard, G.S.shardMystic.ToString(), Palette.Blue, "shard");
+            Chip(Icon.Shard, G.S.shardRadiant.ToString(), Palette.Hex("#ffb02e"), "shard");
+            Chip(Icon.Essence, G.S.essence.ToString(), Palette.Hex("#8fd8ff"), "essence");
             var menu = new Rect(Ui.W - 46, r.y + 6, 38, 32);
             if (Ui.Button(menu, "", Ui.Kind.Secondary, 16)) OpenSettings();
             Icons.Draw(new Rect(menu.x + 10, menu.y + 7, 18, 18), Icon.Menu, Palette.Hex("#f3e3c3"));
@@ -339,7 +341,9 @@ namespace Sigilbound.Client
                 if (Ui.Button(cell, "", Ui.Kind.Ghost)) { if (it.id == ScreenId.Friends) OpenFriends(); else Go(it.id); }
                 if (on) { Ui.Round(new Rect(cell.x + 6, r.y + 4, w - 12, 56), new Color(0.95f, 0.77f, 0.36f, 0.12f), null, 12); Ui.GoldRule(new Rect(cell.x + w * 0.22f, r.y + 1, w * 0.56f, 2)); }
                 var tint = on ? Palette.Gold : Palette.Hex("#9b8f7a");
-                Icons.Draw(new Rect(cell.x + w / 2 - 12, r.y + 8, 24, 24), it.icon, tint);
+                // Painted nav icons (dimmed when not selected) with the skin on; drawn ones without.
+                string pn = it.id == ScreenId.Home ? "home" : it.id == ScreenId.Modes ? "sword" : it.id == ScreenId.Heroes ? "helm" : it.id == ScreenId.Summon ? "portal" : it.id == ScreenId.Trials ? "tower" : "heart";
+                if (!Icons.Painted(new Rect(cell.x + w / 2 - 15, r.y + 4, 30, 30), pn, on ? 1f : 0.55f)) Icons.Draw(new Rect(cell.x + w / 2 - 12, r.y + 8, 24, 24), it.icon, tint);
                 Ui.Text(new Rect(cell.x, r.y + 34, w, 22), it.label, 11, tint, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
                 int badge = it.id == ScreenId.Home ? HomeBadge() : it.id == ScreenId.Trials ? G.TrialsBadge()
                     : it.id == ScreenId.Friends && Online.SignedIn ? Online.Unread.messages + Online.Unread.requests : 0;

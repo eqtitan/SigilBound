@@ -52,7 +52,11 @@ namespace Sigilbound.Client
 
         // A painted frame (panel, card): borders at texture size, shrunk on small rects so the ornate
         // corners never overlap (a 60 px card would otherwise fold its 76 px corners over each other).
-        public static bool DrawFrame(Rect r, string name)
+        public static bool DrawFrame(Rect r, string name) => DrawFrame(r, name, 0.5f, true);
+        // maxK: largest scale of the painted borders; around: grow the rect so the frame sits around the
+        // content (big panels). Small stacked rows pass around = false and a smaller maxK, so their frames
+        // stay inside their own rect and never overlap the next row.
+        public static bool DrawFrame(Rect r, string name, float maxK, bool around)
         {
             var t = Tex(name); if (t == null) return false;
             if (Event.current.type != EventType.Repaint) return true;
@@ -60,8 +64,8 @@ namespace Sigilbound.Client
             // Half the painted size at most (owner check 2026-11-27: at full size the gilded edges covered
             // titles and the first letters of labels), and the frame sits around the content, not on it:
             // the rect grows by most of the band so the inner edge of the gold lines up with the content edge.
-            float k = Mathf.Min(0.5f, Mathf.Min(r.width / (b.left + b.right), r.height / (b.top + b.bottom)) * 0.85f);
-            float pad = Mathf.Min(b.left, b.top) * k * 0.55f;
+            float k = Mathf.Min(maxK, Mathf.Min(r.width / (b.left + b.right), r.height / (b.top + b.bottom)) * 0.85f);
+            float pad = around ? Mathf.Min(b.left, b.top) * k * 0.55f : 0f;
             r = new Rect(r.x - pad, r.y - pad, r.width + 2 * pad, r.height + 2 * pad);
             float W = t.width, H = t.height;
             float l = b.left * k, rr = b.right * k, tp = b.top * k, bt = b.bottom * k;

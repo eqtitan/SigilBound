@@ -21,6 +21,8 @@ namespace Sigilbound.Client
         // ---------- intro ----------
         void DrawIntro(Rect area)
         {
+            // Title screen: the owner's citadel painting behind everything (skin "bg_title").
+            Ui.Backdrop(new Rect(Ui.Left, 0, Ui.FullW, Ui.H), "bg_title", 0.25f);
             float y = area.y + 20;
             Ui.Heading(new Rect(0, y, Ui.W, 44), "SIGILBOUND", 34, TextAnchor.MiddleCenter); y += 48;
             Ui.Text(new Rect(30, y, Ui.W - 60, 40), "The Sigil has shattered. Choose the first champion to answer your call.", 14, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter, true);
@@ -67,7 +69,7 @@ namespace Sigilbound.Client
             float qh = 40 + DailyQuests.Length * 44;
             r = Row(ref y, qh);
             Ui.Card(r);
-            Ui.Text(new Rect(r.x + 14, r.y + 8, 200, 24), "Daily Quests", 17, Palette.TrimHi, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+            Ui.Banner(new Rect(r.center.x - 110, r.y + 6, 220, 26), "Daily Quests", 15);
             float qy = r.y + 38;
             foreach (var q in DailyQuests)
             {
@@ -117,7 +119,7 @@ namespace Sigilbound.Client
             float content = 92 + Chapters.Length * 70 + 70;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = CampaignTabs(8);
-            Ui.Heading(new Rect(Pad, y, 300, 32), "Campaign"); y += 40;
+            Ui.Banner(new Rect(Ui.W / 2 - 130, y + 2, 260, 30), "Campaign", 19); y += 42;
             for (int c = 0; c < Chapters.Length; c++)
             {
                 int first = c * StagesPerChapter;
@@ -196,7 +198,7 @@ namespace Sigilbound.Client
                 var h = heroes[i]; var t = Hero(h.id);
                 var r = new Rect(Pad + (i % 2) * (cw + 8), y + (i / 2) * 58, cw, 50);
                 bool inTeam = G.S.team.Contains(h.uid);
-                Ui.Panel(r, inTeam ? Palette.Hex("#3a2f22") : Palette.Panel2, inTeam ? Palette.Gold : Palette.Rarity(t.Rarity), 10);
+                if (inTeam) Ui.Panel(r, Palette.Hex("#3a2f22"), Palette.Gold, 10); else Ui.SmallCard(r, Palette.Panel2, Palette.Rarity(t.Rarity), 10);
                 float px = Portraits.Thumb(new Rect(r.x + 6, r.y + 6, 38, 38), t.Id, Palette.Rarity(t.Rarity)) ? 46 : 0; // the face, when there is one
                 Ui.Text(new Rect(r.x + px + 10, r.y + 4, r.width - px - 20, 22), t.ShortName + (inTeam ? $"  #{G.S.team.IndexOf(h.uid) + 1}" : ""), 14, Palette.Text, FontStyle.Bold);
                 Ui.Text(new Rect(r.x + px + 10, r.y + 26, r.width - px - 20, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv{h.level} · {Ui.ColorTag(t.Element.ToString(), Palette.Element(t.Element))}", 12, Palette.Dim);
@@ -237,7 +239,7 @@ namespace Sigilbound.Client
             {
                 var t = Hero(h.id);
                 var r = Row(ref y, 54, 8);
-                Ui.Panel(r, Palette.Panel, Palette.Rarity(t.Rarity), 12);
+                Ui.SmallCard(r, Palette.Panel, Palette.Rarity(t.Rarity), 12);
                 Ui.Round(new Rect(r.x + 8, r.y + 10, 6, 34), Palette.Element(t.Element), null, 3);
                 float tx = Portraits.Thumb(new Rect(r.x + 20, r.y + 6, 42, 42), t.Id, Palette.Rarity(t.Rarity)) ? 70 : 22; // painted portrait, when there is one
                 int ti = G.S.team.IndexOf(h.uid);
@@ -379,10 +381,11 @@ namespace Sigilbound.Client
         // ---------- summon ----------
         void DrawSummon(Rect area)
         {
-            float content = 60 + 3 * 160 + 130;
+            float content = 64 + 3 * 160 + 130;
+            Ui.Backdrop(new Rect(Ui.Left, area.y, Ui.FullW, area.height), "bg_summon", 0.32f); // the owner's altar painting behind the shards
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;
-            Ui.Text(new Rect(Pad, y, 300, 32), "Summon", 22, Palette.Text, FontStyle.Bold); y += 34;
+            Ui.Banner(new Rect(Ui.W / 2 - 130, y + 2, 260, 30), "Summon", 19); y += 38;
             Ui.Text(Row(ref y, 34), "Shards drop from the campaign, quests, the Titan and daily logins.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             foreach (Shard s in System.Enum.GetValues(typeof(Shard)))
             {

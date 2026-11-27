@@ -28,7 +28,7 @@ namespace Sigilbound.Client
             float content = 140 + Chapters.Length * 70 + 70;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = CampaignTabs(8);
-            Ui.Heading(new Rect(Pad, y, 300, 32), "Hard Campaign"); y += 36;
+            Ui.Banner(new Rect(Ui.W / 2 - 140, y + 2, 280, 30), "Hard Campaign", 19); y += 40;
             Ui.Text(new Rect(Pad, y, Ui.W - Pad * 2, 48), "Replay stages you've cleared on Normal. Enemies are about 60% stronger and 10 levels higher, but pay double gold, extra XP and better gear.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             y += 54;
             for (int c = 0; c < Chapters.Length; c++)
@@ -118,7 +118,7 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(Pad, y, 90, 34), "‹ Home", Ui.Kind.Secondary, 13)) Go(ScreenId.Home);
             Ui.Text(new Rect(Ui.W - 200, y, 184, 34), $"{list.Count(G.AchClaimed)}/{list.Length} claimed", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
             y += 44;
-            Ui.Heading(new Rect(Pad, y, 300, 32), "Achievements"); y += 40;
+            Ui.Banner(new Rect(Ui.W / 2 - 140, y + 2, 280, 30), "Achievements", 19); y += 42;
             foreach (var a in list)
             {
                 var r = Row(ref y, 58, 6);

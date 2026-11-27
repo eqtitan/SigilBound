@@ -31,7 +31,7 @@ namespace Sigilbound.Client
             var M = G.EnsureModes(); var A = M.arena; var tier = Trials.TierFor(A.points);
             _scroll = Scroller.Begin(area, _scroll, 420);
             float y = 8;
-            Ui.Heading(new Rect(Pad, y, 300, 32), "Trials"); y += 42;
+            Ui.Banner(new Rect(Ui.W / 2 - 130, y + 2, 260, 30), "Trials", 19); y += 44;
             var tel = TitanElement(DateTime.Now); var today = G.TodayElement;
             TrialCard(ref y, Titan.Name, $"Daily boss · {ElName(tel)} today · {G.S.daily.titanTries}/3 tries", true, "", G.S.daily.titanTries > 0 ? $"{G.S.daily.titanTries} left" : "", () => Go(ScreenId.Titan));
             int runs = Enum.GetValues(typeof(DungeonKey)).Cast<DungeonKey>().Sum(k => G.DungeonRunsLeft(k));

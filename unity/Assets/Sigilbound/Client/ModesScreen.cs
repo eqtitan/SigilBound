@@ -69,7 +69,7 @@ namespace Sigilbound.Client
             var dim = c.Open ? 1f : 0.45f;
             Color deep = Color.Lerp(Palette.Hex("#120e19"), c.Tint, 0.28f * dim), mid = Color.Lerp(Palette.Hex("#1d1726"), c.Tint, 0.5f * dim);
             // Card body: tinted gradient plate with the gilded frame.
-            GUI.DrawTexture(r, Ui.GradientTex(mid, deep, c.Open ? Palette.Gold : Palette.Bronze, 14));
+            Ui.GradientBox(r, mid, deep, c.Open ? Palette.Gold : Palette.Bronze, 14);
             // Title band.
             var band = new Rect(r.x + 6, r.y + 6, r.width - 12, 38);
             Ui.Round(band, new Color(0, 0, 0, 0.35f), null, 10);
@@ -80,7 +80,10 @@ namespace Sigilbound.Client
             Ui.Round(new Rect(em.x - s * 0.15f, em.y - s * 0.15f, s * 1.3f, s * 1.3f), new Color(c.Tint.r, c.Tint.g, c.Tint.b, 0.16f * dim), null, Mathf.RoundToInt(s * 0.6f));
             Icons.Draw(em, Icon.Portal, new Color(c.Tint.r, c.Tint.g, c.Tint.b, 0.35f * dim));
             var ic = new Rect(em.center.x - s * 0.3f, em.center.y - s * 0.3f, s * 0.6f, s * 0.6f);
-            Icons.Draw(ic, c.Icon, c.Open ? Color.Lerp(c.Tint, Color.white, 0.35f) : Palette.Dim);
+            // The owner's painted emblem (map, skull, portal, sword, crown) when the skin is on.
+            string pn = c.Icon == Icon.Map ? "map" : c.Icon == Icon.Skull ? "skull" : c.Icon == Icon.Portal ? "portal" : c.Icon == Icon.Sword ? "sword" : c.Icon == Icon.Crown ? "crown" : null;
+            var big = new Rect(em.center.x - s * 0.42f, em.center.y - s * 0.42f, s * 0.84f, s * 0.84f);
+            if (pn == null || !Icons.Painted(big, pn, c.Open ? 1f : 0.45f)) Icons.Draw(ic, c.Icon, c.Open ? Color.Lerp(c.Tint, Color.white, 0.35f) : Palette.Dim);
             if (!c.Open) Icons.Draw(new Rect(em.xMax - s * 0.28f, em.yMax - s * 0.3f, s * 0.26f, s * 0.26f), Icon.Lock, Palette.Dim);
             // Status footer.
             var foot = new Rect(r.x + 8, r.yMax - 74, r.width - 16, 66);
