@@ -159,6 +159,13 @@ namespace Sigilbound.Client
             return view;
         }
 
+        // Back to its spot and idle, unfrozen (a Titan move cut short by a retreat left it mid-leap).
+        public void ResetToHome()
+        {
+            transform.position = _home; transform.rotation = _homeRot;
+            if (_model != null) { _model.SetFrozen(false); _model.Idle(0.1f); }
+        }
+
         // Swap the placeholder for the real model once glTFast has built it.
         IEnumerator LoadModel()
         {

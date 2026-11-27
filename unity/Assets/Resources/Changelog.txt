@@ -2,6 +2,10 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-27 | Fair tries
+change: A Titan try and an arena fight now count as soon as the fight starts. Leaving or closing the game mid-fight no longer gives a free retry (an arena fight left this way counts as a loss). Titan practice and the campaign stay free.
+fix: Leaving a Titan fight during one of its big moves no longer leaves the camera stuck, the Titan in mid-air or "Tap to skip" on screen.
+
 ## 2026-11-27 | Cooler and longer battery
 change: The game now runs at 60 fps by default. Phones with a 90 or 120 Hz screen can pick it in Settings > Frame rate.
 change: Auto-replay runs at 30 fps to keep the phone cool during long sessions.

@@ -109,6 +109,7 @@ static class Program
         ModelPackTests.Run(Check);
         UpdaterTests.Run(Check);
         FrameRateTests.Run(Check);
+        QuitRuleTests.Run(Check);
 
         // Win-rate sweep like the web sim's fixed-team check (geared team at stage level).
         Console.WriteLine("\nStage win rates (fixed teams at stage level, 30 runs):");

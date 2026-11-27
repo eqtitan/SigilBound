@@ -99,6 +99,7 @@ namespace Sigilbound.Client
         public void FrameBattle(string camKey, bool titan)
         {
             _camKey = camKey; _framedBattle = true; _framedTitan = titan;
+            _ovW = 0; BreathTarget = 0; // no cinematic override left over from the last fight (code review M4)
             _framedAspect = Cam.aspect;
             double aspect = Mathf.Max(0.2f, Cam.aspect);
             var v = BattleLayout.View(camKey, aspect, titan); // the usual presets, or a Titan-only view
