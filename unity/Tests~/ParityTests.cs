@@ -76,7 +76,7 @@ static class ParityTests
         {
             int idx = Json.Int(st, "idx");
             var waves = Game.StageWaves(idx);
-            stageBad += CompareWaves(waves, Json.Arr(st, "waves"), $"stage {Game.StageLabel(idx)}");
+            stageBad += CompareWaves(waves, Json.Arr(st, "waves"), $"stage {Game.StageLabel(idx)}", Game.CampaignEase(idx)); // Unity-only easing divided out
             var r = Game.StageRewards(idx, true); var wr = Json.Obj(st, "rewardsFirst");
             if (r.Gold != N(wr, "gold") || r.Xp != N(wr, "xp") || r.Mystic != N(wr, "mystic") || r.Radiant != N(wr, "radiant")) { stageBad++; Console.WriteLine($"   stage {idx} rewards differ"); }
         }
@@ -174,8 +174,11 @@ static class ParityTests
         for (int i = 0; i < tiers.Count; i++)
         {
             var t = TitanTiers[i]; var o = tiers[i];
-            Same(t.Dmg == N(o, "dmg") && t.Reward.Gold == N(o, "gold") && t.Reward.Common == N(o, "common") && t.Reward.Mystic == N(o, "mystic") && t.Reward.Radiant == N(o, "radiant"), "titan tier " + i);
+            Same(t.Reward.Gold == N(o, "gold") && t.Reward.Common == N(o, "common") && t.Reward.Mystic == N(o, "mystic") && t.Reward.Radiant == N(o, "radiant"), "titan tier " + i);
         }
+        // Tier thresholds are Unity-only since PLAN step 99 (the web game's 400k and 1M tiers were out of reach).
+        Check(TitanTiers.Select(t => t.Dmg).SequenceEqual(new long[] { 0, 15000, 40000, 80000, 140000, 220000 }) && tiers.Count == TitanTiers.Length,
+            "Titan tiers: Unity thresholds 0/15k/40k/80k/140k/220k, the web game's rewards");
         var login = Json.Arr(data, "login");
         for (int i = 0; i < login.Count; i++)
         {
@@ -230,7 +233,8 @@ static class ParityTests
         Check(bad.Count == 0, $"data matches data.js: 24 heroes and every skill, Titan, tiers, login, quests, sets, substats, shards, curve" + (bad.Count > 0 ? " — differs: " + string.Join(", ", bad.Take(8)) : ""));
     }
 
-    static int CompareWaves(List<List<EnemySpec>> mine, List<object> theirs, string label)
+    // ease: Unity-only campaign easing (Game.CampaignEase, PLAN step 99), divided out to compare with the web stats.
+    public static int CompareWaves(List<List<EnemySpec>> mine, List<object> theirs, string label, double ease = 1)
     {
         int bad = 0;
         if (mine.Count != theirs.Count) { Console.WriteLine($"   {label}: {mine.Count} waves vs {theirs.Count}"); return 1; }
@@ -240,7 +244,8 @@ static class ParityTests
             if (mine[w].Count != tw.Count) { bad++; continue; }
             for (int i = 0; i < tw.Count; i++)
             {
-                var e = mine[w][i]; var o = tw[i]; var u = Battle.FromEnemy(e);
+                var e = mine[w][i]; var o = tw[i];
+                var u = Battle.FromEnemy(ease == 1 ? e : new EnemySpec { Template = e.Template, Level = e.Level, Stars = e.Stars, Mul = e.Mul / ease, Spd = e.Spd, ShownLevel = e.ShownLevel, El = e.El, Boss = e.Boss });
                 if (e.Template.Id != Json.Str(o, "id") || e.El != El(Json.Str(o, "el")) || e.Boss != Json.Bool(o, "boss") || e.ShownLevel != N(o, "shownLevel")
                     || u.MaxHp != N(o, "hp") || u.Atk != N(o, "atk") || u.Def != N(o, "def") || Math.Abs(u.Spd - (N(o, "spd") + RoleSpdShift(e.Template.Role))) > 1e-9)
                 { bad++; Console.WriteLine($"   {label} w{w} #{i}: {e.Template.Id}/{e.El}/{u.MaxHp}/{u.Atk}/{u.Def}/{u.Spd} vs {Json.Str(o, "id")}/{Json.Str(o, "el")}/{N(o, "hp")}/{N(o, "atk")}/{N(o, "def")}/{N(o, "spd")}"); }

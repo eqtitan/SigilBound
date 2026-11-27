@@ -63,9 +63,11 @@ namespace Sigilbound.Core
         public static int EssenceValue(Rarity r) => r switch { Rarity.Common => 5, Rarity.Rare => 20, Rarity.Epic => 80, _ => 300 };
 
         public struct RoleMods { public double Hp, Atk, Def; public int Spd; }
-        // Unity-only speed spread by role (PLAN step 98): attackers and supports act sooner, tanks later.
-        // Kept apart from Mods (which mirrors the web game) so the web parity checks can add it back.
-        public static int RoleSpdShift(Role r) => r == Role.Attack || r == Role.Support ? 8 : -8;
+        // Unity-only speed spread by role (PLAN steps 98 and 99): attackers act sooner, tanks and bruisers later.
+        // Support gets no shift: Mods already gives it +6 (the old +8 counted it twice and made Support the best
+        // role and Defense the worst). Kept apart from Mods (which mirrors the web game) so the web parity
+        // checks can add it back.
+        public static int RoleSpdShift(Role r) => r switch { Role.Attack => 8, Role.Defense => -2, Role.Hp => -4, _ => 0 };
         public static RoleMods Mods(Role r) => r switch
         {
             Role.Attack => new RoleMods { Hp = 0.9, Atk = 1.25, Def = 0.9 },
@@ -284,11 +286,13 @@ namespace Sigilbound.Core
         public static readonly TitanTier[] TitanTiers =
         {
             new TitanTier { Dmg = 0, Reward = new Reward { Gold = 500, Common = 1 } },
-            new TitanTier { Dmg = 20000, Reward = new Reward { Gold = 1500, Common = 2, Mystic = 1 } },
-            new TitanTier { Dmg = 60000, Reward = new Reward { Gold = 3000, Common = 3, Mystic = 1 } },
-            new TitanTier { Dmg = 150000, Reward = new Reward { Gold = 6000, Common = 3, Mystic = 2 } },
-            new TitanTier { Dmg = 400000, Reward = new Reward { Gold = 10000, Common = 4, Mystic = 3, Radiant = 1 } },
-            new TitanTier { Dmg = 1000000, Reward = new Reward { Gold = 20000, Common = 5, Mystic = 4, Radiant = 1 } },
+            // Unity-only thresholds (PLAN step 99): the web game's 20k/60k/150k/400k/1M left the top two tiers out of
+            // reach (a maxed team's p90 is about 200k). Rewards are the web game's.
+            new TitanTier { Dmg = 15000, Reward = new Reward { Gold = 1500, Common = 2, Mystic = 1 } },
+            new TitanTier { Dmg = 40000, Reward = new Reward { Gold = 3000, Common = 3, Mystic = 1 } },
+            new TitanTier { Dmg = 80000, Reward = new Reward { Gold = 6000, Common = 3, Mystic = 2 } },
+            new TitanTier { Dmg = 140000, Reward = new Reward { Gold = 10000, Common = 4, Mystic = 3, Radiant = 1 } },
+            new TitanTier { Dmg = 220000, Reward = new Reward { Gold = 20000, Common = 5, Mystic = 4, Radiant = 1 } },
         };
         public static Element TitanElement(DateTime date) => Elements[(int)date.DayOfWeek % Elements.Length];
 
@@ -377,12 +381,24 @@ namespace Sigilbound.Core
         public static class Curve
         {
             public const double Start = 1.0, End = 1.75, Shape = 1.3, SpdPerStage = 0.3, BossStat = 1.1, BossHp = 2.2;
-            // Act 2: level-50, 5-star enemies whose multiplier keeps rising from End, by this much per stage.
-            public const double Act2Ramp = 0.02;
-            // Per-stage enemy multiplier fixes (stage index -> factor). 14-4 (index 81) spiked after the combat
-            // rules of PLAN step 98: its Hollow lineup became much stronger than its neighbours.
-            public static readonly System.Collections.Generic.Dictionary<int, double> StageEase = new System.Collections.Generic.Dictionary<int, double> { [81] = 0.926 };
+            // Act 2: level-50, 5-star enemies whose multiplier keeps rising from End, by this much per stage
+            // (0.02 until PLAN step 99: it ended in a 2% wall at 15-6 even for a maxed team).
+            public const double Act2Ramp = 0.015;
+            // Act 1 chapter factors (web parity: the web game's ENEMY_CURVE.chapter).
             public static readonly double[] Chapter = { 1, 1.14, 0.97, 1, 1.08, 0.94, 1, 0.98, 0.95, 1.04 };
+            // ---- Unity-only campaign easing on top of the web curve (Game.CampaignEase; PLAN step 99) ----
+            // Light and Shadow are neutral to Flame/Gale/Tide, so a triangle-only team never has an edge in a
+            // Light or Shadow chapter: its enemies are made this much weaker.
+            public const double LSEase = 0.92;
+            // Chapter factors that replace the web ones: chapter 10 (The Last Pyre) jumped 1.04 after 0.95, so
+            // 10-1 was a 5% wall for a mid team between two 90% stages.
+            public static readonly System.Collections.Generic.IReadOnlyDictionary<int, double> ChapterFix = new System.Collections.Generic.Dictionary<int, double> { [9] = 0.98 };
+            // Per-stage enemy multiplier fixes (stage index -> factor), both acts. 14-4 (index 81) spiked after the
+            // combat rules of PLAN step 98; 15-6 (index 89), the finale, is eased so a strong team can finish it.
+            public static readonly System.Collections.Generic.IReadOnlyDictionary<int, double> StageEase = new System.Collections.Generic.Dictionary<int, double> { [81] = 0.926, [89] = 0.90 };
+            // Act 2 gold and XP per clear: the stage level caps at 60 at stage index 61, so past that rewards grow
+            // by this share per stage instead (in step with the enemy ramp).
+            public const double Act2RewardPerStage = 0.02; public const int RewardCapIdx = 61;
         }
 
         // ---- progression ----

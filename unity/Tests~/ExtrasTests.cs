@@ -36,7 +36,9 @@ static class ExtrasTests
             for (int w = 0; w < waves.Count; w++)
                 for (int i = 0; i < waves[w].Count; i++)
                 {
-                    var e = waves[w][i]; var o = ((List<object>)tw[w])[i]; var u = Battle.FromEnemy(e);
+                    var e = waves[w][i]; var o = ((List<object>)tw[w])[i];
+                    double ease = Game.CampaignEase(idx); // Unity-only campaign easing (PLAN step 99), divided out for the web stats
+                    var u = Battle.FromEnemy(new EnemySpec { Template = e.Template, Level = e.Level, Stars = e.Stars, Mul = e.Mul / ease, Spd = e.Spd, ShownLevel = e.ShownLevel, El = e.El, Boss = e.Boss });
                     if (e.Template.Id != Json.Str(o, "id") || e.El != El(Json.Str(o, "el")) || e.Boss != Json.Bool(o, "boss") || e.ShownLevel != N(o, "shownLevel") || u.MaxHp != N(o, "hp") || u.Atk != N(o, "atk") || u.Def != N(o, "def") || Math.Abs(u.Spd - (N(o, "spd") + RoleSpdShift(e.Template.Role))) > 1e-9)
                     { hardBad++; Console.WriteLine($"   hard {idx} w{w} #{i}: {u.MaxHp}/{u.Atk}/{u.Def} vs {N(o, "hp")}/{N(o, "atk")}/{N(o, "def")}"); }
                 }
