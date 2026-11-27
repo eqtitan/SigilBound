@@ -38,6 +38,7 @@ def mats_for(mats):
         _EXTRA["iron"] = P.flat("K_Iron", P.hexc("#4a4c52"), metal=0.85, rough=0.45)
         _EXTRA["gold"] = P.flat("K_Gold", P.hexc("#d4a640"), metal=0.95, rough=0.3)
         _EXTRA["paper"] = P.flat("K_Paper", P.hexc("#e8dcc0"), rough=0.8)
+        _EXTRA["marble"] = P.flat("K_Marble", P.hexc("#ece8e0"), rough=0.4)
         _EXTRA["glass_dark"] = P.flat("K_GlassDark", P.hexc("#1a1428"), metal=0.3, rough=0.08)
         _EXTRA["glass_pale"] = P.flat("K_GlassPale", P.hexc("#a8d4e8"), emit=0.35, metal=0.2, rough=0.08)
         # stained-glass panes: coloured and softly lit (a plain glow face rendered as a white slab)
@@ -431,6 +432,18 @@ def w_hammer(m, o):
         out.append(box((0.07, 0.16, 0.07), (0, -0.01, zc), m["metal"], bevel=0.01))
         out.append(xform(lathe([(0.035, 0), (0.02, 0.06), (0.012, 0.075)], m["metal"], segs=8, smooth=False), (0, 0.07, zc), rx(-90)))
         if o.get("glow"): out.append(box((0.072, 0.03, 0.072), (0, -0.09, zc), m["glow"], bevel=0.006))
+    elif head == "marble_sun":
+        # a white marble block with gold-capped ends and a glowing sun set into each broad face
+        out.append(box((0.15 * s, 0.32 * s, 0.17 * s), (0, 0, zc), m["marble"], bevel=0.014 * s))
+        for y in (-0.165, 0.165):
+            out.append(box((0.165 * s, 0.025 * s, 0.185 * s), (0, y * s, zc), m["gold"], bevel=0.006))
+            out.append(xform(lathe([(0.02 * s, 0), (0, 0.04 * s)], m["gold"], segs=8, smooth=False), (0, y * s * 1.18, zc), rx(90 if y < 0 else -90)))
+        for x in (-1, 1):
+            out.append(xform(lathe([(0, -0.006), (0.04 * s, -0.004), (0.045 * s, 0), (0.04 * s, 0.004), (0, 0.006)], m["glow"], segs=16), (x * 0.077 * s, 0, zc), ry(90)))
+            for k in range(10):
+                a = k / 10 * TAU
+                out.append(box((0.006, 0.012 * s, 0.03 * s), (x * 0.077 * s, math.cos(a) * 0.058 * s, zc + math.sin(a) * 0.058 * s), m["glow"], bevel=0, rot=rx(math.degrees(-a))))
+        out.append(box((0.17 * s, 0.03 * s, 0.03 * s), (0, 0, zc + 0.1 * s), m["gold"], bevel=0.004))
     elif head == "sun":
         out.append(xform(lathe([(0, -0.08), (0.08, -0.07), (0.09, 0), (0.08, 0.07), (0, 0.08)], m["gold"], segs=16), (0, 0, zc), rx(90)))
         for k in range(12):
@@ -722,6 +735,15 @@ def w_staff(m, o):
         out += bell(m, (0, -0.24, z1 - 0.06), s=0.6, glow=True)
     elif head == "perch":
         out.append(tube([(0, 0, z1), (0, 0, z1 + 0.1)], 0.015, m["wood"], segs=6))
+    if o.get("chimes"):   # wind chimes: a crossbar hung with glass tubes, crystal drops and feathers
+        zb = z1 - 0.04
+        out.append(tube([(0, -0.12, zb), (0, 0.04, zb)], 0.006, m["wood"], segs=6))
+        for q, y in enumerate((-0.11, -0.08, -0.05, -0.02, 0.01, 0.035)):
+            L = 0.07 + 0.035 * ((q * 3) % 4)
+            out.append(tube([(0, y, zb), (0, y, zb - 0.03)], 0.0012, m["string"], segs=3))
+            out.append(tube([(0, y, zb - 0.03), (0, y, zb - 0.03 - L)], 0.006, m["glass_pale"], segs=6))
+            if q % 2 == 0: out.append(crystal(m, (0, y, zb - 0.06 - L), h=0.03, r=0.009, mat=m["glass_pale"]))
+        out.append(leaf_head(m, zb - 0.02, L=0.1, W=0.02, mat=m["string"]))
     return out
 
 def prongs(m, z, n, R, mat=None):
@@ -1272,6 +1294,7 @@ RULES = [
     (("lens staff", "lighthouse-lens"), "staff", {"head": "lens"}),
     (("quill-pen", "quill"), "staff", {"head": "quill"}),
     (("fuse staff", "rocket"), "staff", {"head": "rocket"}),
+    (("wind chime", "wind chimes", "chime staff"), "staff", {"head": "crook", "gnarl": 0.04, "chimes": True}),
     (("bone-chime", "bone staff"), "staff", {"head": "bone"}),
     (("ice-crystal", "crystal staff"), "staff", {"head": "crystal", "smat": "metal"}),
     (("water globe", "driftwood"), "staff", {"head": "fork", "gnarl": 0.012}),
@@ -1313,6 +1336,7 @@ RULES = [
     (("mace",), "mace", {"kind": "flanged"}),
     (("mallet",), "hammer", {"head": "sack", "haft": 0.55}),
     (("smith",), "hammer", {"head": "smith", "glow": True}),
+    (("marble sun hammer", "marble sun-hammer"), "hammer", {"head": "marble_sun", "big": 1.1, "haft": 0.75}),
     (("sun-headed",), "hammer", {"head": "sun"}),
     (("maul",), "maul", {}),
     (("hammer",), "hammer", {}),

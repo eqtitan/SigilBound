@@ -27,6 +27,7 @@
    "head": "custom:red dragon head with swept-back horns",
    "acc": [
     "custom:dragon-head pauldrons with glowing eyes",
+    "custom:glowing molten veins in the armour",
     "custom:torn crimson tabard",
     "custom:long ragged black cape with burning ember edges",
     "custom:scaled dragon tail with ember glow"
@@ -134,7 +135,7 @@
    "feet": "Male_Ranger_Feet_Boots",
    "head": "custom:orange dragon head with small swept horns and a brass monocle",
    "acc": [
-    "custom:knee-length dark coat-tails tabard with brass trim",
+    "custom:long dark greatcoat with brass trim and coat tails",
     "custom:brass-buckled bandolier",
     "custom:scaled dragon tail with ember glow"
    ]
@@ -233,10 +234,10 @@
   },
   "facial": "custom:round owl face disc with a small hooked beak and round brass spectacles",
   "outfit": {
-   "arms": "custom:feathered forearms",
+   "arms": "custom:feathered wing-sleeves",
    "body": "custom:long moss-green hooded robe trimmed with leaves over a cream inner robe",
    "legs": "Male_Wizard_Legs",
-   "feet": "custom:taloned foot covers",
+   "feet": "custom:taloned bird feet",
    "head": "custom:owl head with ear tufts and round brass spectacles",
    "acc": [
     "custom:long moss-green robe with leaf-trimmed hem and flowing sleeves and a sash",
@@ -254,7 +255,7 @@
   "kit": [
    "custom:driftwood staff hung with crystal wind chimes and feathers"
   ],
-  "weapon": "driftwood staff",
+  "weapon": "driftwood wind chime staff",
   "silhouette": "a round owl in long green robes with a tall crooked staff of chimes",
   "signature": "a staff of crystal wind chimes that rings the wind into a healing breeze",
   "pose": "staff held out, chimes swinging",
@@ -325,8 +326,8 @@
   "sex": "male",
   "species": "crab-folk",
   "body": {
-   "height": 1.0,
-   "bulk": 1.35,
+   "height": 0.92,
+   "bulk": 1.45,
    "head": 0.95
   },
   "skin": "#b8502a",
@@ -442,7 +443,7 @@
    "arms": "Male_Knight_Arms",
    "body": "Male_Knight_Body_Armor",
    "legs": "Male_Knight_Legs",
-   "feet": "Male_Knight_Feet_Armor",
+   "feet": "custom:cloven hooves",
    "head": "custom:stag head with great golden antlers hung with little bells",
    "acc": [
     "Male_Knight_Acc_Pauldron_Round (gold)",
@@ -451,7 +452,7 @@
    ]
   },
   "palette": {
-   "main": "#ece6da",
+   "main": "#f0ece2",
    "secondary": "#e8d8a0",
    "accent": "#d8a83a",
    "metal": "#e8e2d4",
