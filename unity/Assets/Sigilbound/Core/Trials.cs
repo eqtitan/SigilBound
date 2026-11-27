@@ -207,10 +207,34 @@ namespace Sigilbound.Core
 
         public sealed class ArenaResult { public bool Win; public int Delta; public int Points; public ArenaTier Before, After; public Reward Reward = new Reward(); }
 
+        // Quit rule (owner decision 2026-11-27, PMO D3): an arena fight counts when it starts. StartArena uses
+        // the try and books the fight as a loss (points, the weekly record, new rivals); CompleteArena then
+        // replaces that with the real result. If the game is closed mid-fight, the loss stands. Save right after.
+        sealed class ArenaStart { public int PointsBefore; public string Week; }
+        ArenaStart _arenaStart;
+        public bool StartArena(Rival rv)
+        {
+            var A = EnsureModes().arena;
+            if (S.daily.arenaTries <= 0) return false;
+            S.daily.arenaTries--;
+            _arenaStart = new ArenaStart { PointsBefore = A.points, Week = A.week };
+            A.points = Math.Max(0, A.points + Trials.ArenaLoss);
+            A.losses++;
+            A.seed++;
+            return true;
+        }
+
         public ArenaResult CompleteArena(Rival rv, bool win)
         {
             var A = EnsureModes().arena;
-            S.daily.arenaTries = Math.Max(0, S.daily.arenaTries - 1);
+            if (_arenaStart != null && _arenaStart.Week != A.week) _arenaStart = null; // a weekly reset came in between: it already cleared the booked loss
+            if (_arenaStart != null)
+            {
+                // Undo the loss booked at the start; the try and the new rivals stay.
+                A.points = _arenaStart.PointsBefore; A.losses = Math.Max(0, A.losses - 1); A.seed--;
+                _arenaStart = null;
+            }
+            else S.daily.arenaTries = Math.Max(0, S.daily.arenaTries - 1); // no StartArena (the web game's order)
             var res = new ArenaResult { Win = win, Before = Trials.TierFor(A.points), Delta = win ? rv.Gain : Trials.ArenaLoss };
             A.points = Math.Max(0, A.points + res.Delta); A.best = Math.Max(A.best, A.points);
             if (win) A.wins++; else A.losses++;

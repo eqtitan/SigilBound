@@ -53,8 +53,12 @@ namespace Sigilbound.Core
         int _waveTurns, _roundLen = 1, _enrageShown;
         public int Round => _waveTurns / Math.Max(1, _roundLen) + 1;
         public int EnrageStacks => IsTitan ? 0 : Math.Max(0, Round - EnrageFrom + 1);
-        double DmgEnrage => 1 + EnragePerRound * EnrageStacks;
-        double HealEnrage => Math.Max(0, 1 - EnragePerRound * EnrageStacks);
+        public double DmgEnrage => 1 + EnragePerRound * EnrageStacks;
+        public double HealEnrage => Math.Max(0, 1 - EnragePerRound * EnrageStacks);
+        // At or below this share of healing and shields left, the AI stops casting pure heal/shield skills (PLAN step 99).
+        public const double SustainFloor = 0.15;
+        // The screenshot tour stages an enraged round with this (nothing is saved in that mode).
+        public void SkipToRound(int round) { _waveTurns = Math.Max(0, round - 1) * Math.Max(1, _roundLen); }
         void StartWaveClock() { _waveTurns = 0; _enrageShown = 0; _roundLen = Living(Allies).Count + Living(Enemies).Count; }
         readonly Random _rng;
 
@@ -72,8 +76,8 @@ namespace Sigilbound.Core
         // Poison and Burn stack (each stack ticks); Break meter per advantaged hit; Titan immune.
         public const int MaxDotStacks = 3;
         // Global battle pace (PLAN step 98): skill hits, heals, regen and shields are all multiplied by this (HP
-        // isn't), except in the Titan fight (its damage-based rewards stay as they were). Tuned so a typical
-        // fight lasts 6-8 rounds; scaling healing too keeps every role's share of the fight.
+        // isn't), except in the Titan fight (its damage-based rewards stay as they were). Measured median fight:
+        // about 8-9 rounds, p90 about 16 (combatstats); scaling healing too keeps every role's share of the fight.
         public const double Pace = 1.6;
         double PaceHere => IsTitan ? 1 : Pace; // Poison and Burn ticks scale with it too
         public const double BreakPerHit = 34, BreakBossShare = 0.5; public const int BreakGuardTurns = 2;
@@ -210,10 +214,14 @@ namespace Sigilbound.Core
             return foes.Count == 0 ? d : Math.Min(d, foes.Max(a => a.Atk) * 3 * PaceHere);
         }
 
+        // The unit whose turn it is, and whether that turn is lost (Stun or Broken): a Break during the unit's own
+        // turn (a Counter hit) must still cost it the next one, and BreakGuard only counts turns it really acts.
+        Unit _current; bool _currentSkips;
+
         public (List<BattleEvent> events, bool skip) BeginTurn(Unit u)
         {
             var ev = new List<BattleEvent>();
-            u.Tm = 0;
+            u.Tm = 0; _current = u; _currentSkips = false;
             if (EnrageStacks > _enrageShown)
             {
                 _enrageShown = EnrageStacks;
@@ -228,11 +236,12 @@ namespace Sigilbound.Core
                     double d = DotCap(u, u.MaxHp * (e.Type == FxType.Poison ? 0.04 : 0.05) * PaceHere);
                     for (int k = 0; k < Math.Max(1, e.Stacks) && u.Alive; k++) ApplyDamage(u, Js.RoundInt(d), null, ev, false, 1, true);
                 }
-                else if (e.Type == FxType.Regen) HealUnit(u, u.MaxHp * 0.08, ev);
+                else if (e.Type == FxType.Regen) HealUnit(u, u.MaxHp * 0.08, ev, u);
             }
             bool broken = u.Alive && u.Has(FxType.Broken);
             bool stunned = u.Alive && (u.Has(FxType.Stun) || broken);
             if (stunned) ev.Add(new BattleEvent { Type = EvType.Text, Unit = u, Text = broken ? "Broken!" : "Stunned!" });
+            _currentSkips = stunned;
             return (ev, stunned || !u.Alive);
         }
 
@@ -240,7 +249,10 @@ namespace Sigilbound.Core
         {
             newWave = false;
             foreach (var e in u.Effects) { if (e.Fresh) e.Fresh = false; else e.Turns--; }
-            if (u.BreakGuard > 0 && !u.Has(FxType.Broken)) u.BreakGuard--;
+            // Break immunity counts down only on turns the unit acted (not a turn lost to Stun: Stun -> Break -> Stun chains).
+            bool skipped = u == _current && _currentSkips;
+            if (u.BreakGuard > 0 && !skipped && !u.Has(FxType.Broken)) u.BreakGuard--;
+            if (u == _current) _current = null;
             u.Effects.RemoveAll(e => e.Turns <= 0 || (e.Type == FxType.Shield && e.Val <= 0));
             if (u.Titan) BossTurns++;
             _waveTurns++;
@@ -299,7 +311,8 @@ namespace Sigilbound.Core
                     : sk.Target == Target.Enemy || sk.Target == Target.AllEnemies ? foes : sk.Target == Target.Self ? new List<Unit> { u } : own;
                 bool any = f.Type switch
                 {
-                    FxType.Heal or FxType.Regen => hurt > 0,
+                    FxType.Heal or FxType.Regen => hurt > 0 && HealEnrage > SustainFloor, // late enrage leaves almost nothing to heal with
+                    FxType.Shield when HealEnrage <= SustainFloor => false,
                     FxType.Cleanse => who.Any(a => a.Effects.Any(e => !FxDef.IsBuff(e.Type))),
                     FxType.Strip => who.Any(a => a.Effects.Any(e => FxDef.IsBuff(e.Type))),
                     FxType.Shield => who.Any(a => a.Shield == null || a.Shield.Val < a.MaxHp * 0.05),
@@ -321,7 +334,8 @@ namespace Sigilbound.Core
             if (targets.Count == 0) return null;
             if (sk.Target == Target.Enemy)
             {
-                double Est(Unit t) => AtkOf(u) * Math.Max(sk.Mult, 0.0001) * Math.Max(1, sk.Hits) * ElementMultiplier(u.El, t.El) * (650 / (650 + DefOf(t)));
+                double boost = SkillBoost(u.SkillLevel(skillIdx));
+                double Est(Unit t) => HitBase(u, t, sk, 1, boost) * Math.Max(1, sk.Hits); // the same maths as Hit, without crits and spread
                 bool Killable(Unit t) => sk.Mult > 0 && t.Hp + (t.Shield?.Val ?? 0) <= Est(t) * 0.95;
                 var debuffs = sk.Fx.Where(f => f.To == FxTo.Target && !FxDef.IsBuff(f.Type)).Select(f => f.Type).ToList();
                 return targets
@@ -420,12 +434,19 @@ namespace Sigilbound.Core
             return null;
         }
 
-        void Hit(Unit u, Unit t, SkillDef sk, List<BattleEvent> ev, double part = 1)
+        // A hit's damage before crits and the ±5% spread (Hit, and the AI's kill estimate in PickTarget).
+        double HitBase(Unit u, Unit t, SkillDef sk, double part, double boost)
         {
             double stat = sk.Scale == Scale.Def ? DefOf(u) : sk.Scale == Scale.Hp ? u.MaxHp : AtkOf(u);
-            double em = ElementMultiplier(u.El, t.El);
-            double dmg = stat * sk.Mult * part * _boost * em * (650 / (650 + DefOf(t))) * DmgEnrage * PaceHere;
+            double dmg = stat * sk.Mult * part * boost * ElementMultiplier(u.El, t.El) * (650 / (650 + DefOf(t))) * DmgEnrage * PaceHere;
             if (sk.Rage > 0) dmg *= 1 + sk.Rage * (1 - u.Hp / (double)u.MaxHp); // grows with the attacker's lost HP
+            return dmg;
+        }
+
+        void Hit(Unit u, Unit t, SkillDef sk, List<BattleEvent> ev, double part = 1)
+        {
+            double em = ElementMultiplier(u.El, t.El);
+            double dmg = HitBase(u, t, sk, part, _boost);
             bool crit = _rng.NextDouble() * 100 < (em >= 1 ? u.Crit : IsTitan ? 0 : u.Crit * 0.5); // half the crit rate on element disadvantage (not in the Titan fight: its damage rewards stay as they were)
             if (crit) dmg *= 1 + u.Cdmg / 100.0;
             dmg *= 0.95 + _rng.NextDouble() * 0.1;
@@ -438,8 +459,9 @@ namespace Sigilbound.Core
             if (t.Titan || t.BreakGuard > 0 || t.Has(FxType.Broken)) return;
             t.Break += BreakPerHit * (t.Boss ? BreakBossShare : 1);
             if (t.Break < 100) return;
-            t.Break = 0; t.BreakGuard = BreakGuardTurns; // counts down on its own turns after the lost one
-            t.Effects.Add(new Effect { Type = FxType.Broken, Turns = 1 });
+            t.Break = 0; t.BreakGuard = BreakGuardTurns; // counts down on its own acted turns after the lost one
+            // Broken on its own turn (by a Counter hit): Fresh, so this turn's EndTurn doesn't use it up.
+            t.Effects.Add(new Effect { Type = FxType.Broken, Turns = 1, Fresh = t == _current });
             ev.Add(new BattleEvent { Type = EvType.Text, Unit = t, Text = "Break!" });
             ev.Add(new BattleEvent { Type = EvType.Status, Unit = t, Fx = FxType.Broken });
         }
@@ -478,18 +500,19 @@ namespace Sigilbound.Core
                 foreach (var healer in side.Where(s => s.Alive && s.Template.FallHeal > 0).ToList())
                 {
                     ev.Add(new BattleEvent { Type = EvType.Text, Unit = healer, Text = "Last Light" });
-                    foreach (var a in side.Where(s => s.Alive)) HealUnit(a, a.MaxHp * healer.Template.FallHeal, ev);
+                    foreach (var a in side.Where(s => s.Alive)) HealUnit(a, a.MaxHp * healer.Template.FallHeal, ev, healer);
                 }
             }
         }
 
-        void HealUnit(Unit t, double amount, List<BattleEvent> ev)
+        // src: who healed (the results screen's Healing column); Regen counts for the unit itself.
+        void HealUnit(Unit t, double amount, List<BattleEvent> ev, Unit src)
         {
             if (!t.Alive) return;
             amount *= HealEnrage * PaceHere; // healing keeps pace with damage, so sustain kits keep their share
             int amt = Js.RoundInt(Math.Min(amount, t.MaxHp - t.Hp));
             t.Hp += amt;
-            if (amt > 0) ev.Add(new BattleEvent { Type = EvType.Heal, Unit = t, Amount = amt });
+            if (amt > 0) ev.Add(new BattleEvent { Type = EvType.Heal, Unit = t, Source = src, Amount = amt });
         }
 
         void ApplyFx(Unit u, Unit r, FxDef f, List<BattleEvent> ev)
@@ -498,7 +521,7 @@ namespace Sigilbound.Core
             if (r.Titan && (f.Type == FxType.Stun || f.Type == FxType.TmDrain)) { ev.Add(new BattleEvent { Type = EvType.Text, Unit = r, Text = "Immune" }); return; }
             switch (f.Type)
             {
-                case FxType.Heal: HealUnit(r, r.MaxHp * f.Pct * _boost, ev); return;
+                case FxType.Heal: HealUnit(r, r.MaxHp * f.Pct * _boost, ev, u); return;
                 case FxType.Tm: r.Tm += TmFull * f.Val; ev.Add(new BattleEvent { Type = EvType.Text, Unit = r, Text = "Turn Meter +" }); return;
                 case FxType.TmDrain: r.Tm = Math.Max(0, r.Tm - TmFull * f.Val); ev.Add(new BattleEvent { Type = EvType.Text, Unit = r, Text = "Turn Meter -" }); return;
                 case FxType.Pull:
@@ -521,6 +544,7 @@ namespace Sigilbound.Core
             if (f.Type == FxType.Shield)
             {
                 int val = Js.RoundInt(u.MaxHp * f.Pct * ShieldScale * HealEnrage * PaceHere);
+                if (val <= 0) return; // late enrage: nothing left to shield with (no empty Shield icon)
                 if (existing != null) { existing.Val = Math.Max(existing.Val, val); existing.Turns = 2; }
                 else r.Effects.Add(new Effect { Type = FxType.Shield, Val = val, Turns = 2, Fresh = self });
             }

@@ -4,7 +4,7 @@ Owned by the **character-mechanics** agent (`.claude/agents/character-mechanics.
 spec for how heroes move and react in battle: beats, states, clips, timing, hit-stop, frame
 rate and the animation tests the owner approves. PLAN.md phase G implements it.
 
-_Last updated: 2026-11-25 (first version, written from genre knowledge; the web was not reachable)._
+_Last updated: 2026-11-27 (combat rules section 9 added and the step 97-99 rules brought into sections 1, 3.1 and 4.5; first version 2026-11-25, written from genre knowledge)._
 
 **Ground rules (apply to everything below):**
 - **Time, not frames.** All times are in seconds at **1x battle speed**, and all event times are
@@ -18,7 +18,9 @@ _Last updated: 2026-11-25 (first version, written from genre knowledge; the web 
 ## 1. The battle loop today (read from `Client/BattleController.cs`)
 
 - **Turn order.** `Battle.NextActor()` picks the unit whose turn meter fills first.
-  `BeginTurn` runs start-of-turn effects (DoTs, regen, stun skip). The actor then picks a skill
+  `BeginTurn` runs start-of-turn effects: the enrage text when a new enrage stack starts, one tick per
+  Poison/Burn stack (up to 3 tick numbers per DoT, each a 0.12 s damage beat), Regen, then the Stun or
+  Broken skip ("Stunned!" / "Broken!"). The rules are in section 9. The actor then picks a skill
   (the player in manual, `AiChoose` in auto), `DoAct` presents it and `EndTurn` closes it. A new
   wave spawns after 0.6 s plus 0.5 s.
 - **Battle speed.** 1x, 2x or 3x is applied as `Time.timeScale` (clamped 1–3). Pause sets it to 0.
@@ -117,20 +119,21 @@ Fallbacks are the current base-rig clips (`Idle_Sword`, `Sword_Slash`, `Punch_Ri
 | Cast_Support | no | 0.12 | no-damage skill | `Spell_Simple_Enter` + `Spell_Simple_Exit` | `Interact`, `Yes` | `release` 0.60 |
 | Channel **new** | yes | 0.10 | multi-turn or long casts (ultimates over 0.6 s) | `Spell_Simple_Idle_Loop` | Idle plus a hand-glow effect | |
 | Hit | no | 0.06 | damage under 14% max HP | `Hit_Chest` | `HitRecieve` | |
-| Hit_Big | no | 0.05 | crit, or damage of 14% max HP or more | `Hit_Head` | `HitRecieve_2` | pushes back 0.34 m |
+| Hit_Big | no | 0.05 | crit, or damage of 14% max HP or more. The 14% predates `Battle.Pace` 1.6: it now fires on about 34% of hits instead of 22% (a 0.14 × Pace threshold would restore it; not changed yet) | `Hit_Head` | `HitRecieve_2` | pushes back 0.34 m |
 | Block **new** | no | 0.05 | Defense role or shield prop and the hit is fully or mostly absorbed (`EvType.Absorb` ≥ 60% of the hit), or the unit has DefUp | `Sword_Block` *(not in the free tier: use the procedural block)* | procedural: shield arm forward, 0.12 m slide back, crouch 6° | |
-| Dodge | no | 0.06 | glancing blow (existing rule: weak element or under 4% HP, 35% chance); never for Defense | `Roll` (short) *(verify)* | `Roll` at 1.5x | sidestep 0.45 m sideways, back home by 0.9 |
-| Stunned **new** | yes | 0.20 | Stun applied; holds until the skipped turn ends | `Idle_Loop` at 0.6x plus a procedural head sway | Idle at 0.6x, slumped 8°, stars effect | |
+| Dodge | no | 0.06 | a hit that costs **no HP** (fully absorbed by a shield), 35% chance; never for Defense. A hit that lowers HP never dodges (PLAN step 99: the old glancing-blow rule rolled away about 10% of all hits while HP dropped) | `Roll` (short) *(verify)* | `Roll` at 1.5x | sidestep 0.45 m sideways, back home by 0.9 |
+| Broken **new** | no, then Idle | 0.05 | `EvType.Status` Broken (weakness break, section 9.4) | the Hit_Big clip, then a 0.22 s freeze, then the shoulders-down debuff pulse | same | cracked ground in the breaking element, orange "BREAK!" banner, cracked-sigil status icon; the lost turn shows "Broken!" |
+| Stunned **new** | yes | 0.20 | Stun applied; holds until the skipped turn ends | `Crouch_Idle_Loop` at 0.55x | Idle at 0.6x, slumped 8° | the status icon's orbiting stars |
 | Knocked_Down **new** | clamp, then get up | 0.05 | a heavy-family or ultimate hit that also applies Stun, or Pull | `Hit_Knockback` *(not in the free tier: use the fallback)* → `LayToIdle` *(not in the free tier: use the fallback)* | `Death01` up to 0.55, then reversed to stand | down at 0.35, rise starts after 0.6 s held |
 | Death | clamp | 0.10 | `EvType.Death` | `Death01` | `Death` | sinks after 1.2 s |
-| Revive **new** | no | 0.10 | `Revived!` from Revive (Battle.cs 368). Add `EvType.Revive` | `Death01` to 0.50, then `LayToIdle` *(not in the free tier: use the fallback)* | `Death01` played backwards from 0.6 to 0 at 1.4x, plus a light pillar | stands at 0.85 |
+| Revive **new** | no | 0.10 | `Revived!` from Revive (`Battle.ApplyDamage`). Add `EvType.Revive` | `Death01` to 0.50, then `LayToIdle` *(not in the free tier: use the fallback)* | `Death01` played backwards from 0.6 to 0 at 1.4x, plus a light pillar | stands at 0.85 |
 | Counter **new** | no | 0.05 | `Counter!` text event | the hero's Attack_1 at 1.3x, turning in place in 0.10 s | same | `impact` as Attack_1 |
 | Buffed / Debuffed **new**, additive | no | 0.10 | `EvType.Status` | additive layer: chest-up 4° (buff), shoulders down 4° (debuff), 0.4 s | the effect alone | |
 | Victory | yes | 0.25 | winners after the last wave, staggered 0.10–0.12 s | per role, see section 5 | `Wave`, `Yes` | |
 | Defeat **new** | clamp | 0.30 | the losing side's survivors when the battle is lost | `Defeat_Slump` (owner decisions 2026-11-25/26: Arena (PvP) losses only; fall to the knees, then slump forward onto the stomach pivoting on the planted knees, and hold; hand-authored by `blenderforge/make_clips.py`, 2.0 s) | Idle at 0.5x, slumped 12° | |
 
 **Transition rules:**
-- **Priority order:** Death > Revive > Knocked_Down > Stunned > Hit_Big > Block or Dodge > Hit > Attack or Cast > Ready > Fidget > Idle.
+- **Priority order:** Death > Revive > Knocked_Down > Broken > Stunned > Hit_Big > Block or Dodge > Hit > Attack or Cast > Ready > Fidget > Idle.
 - A hit on a unit that is attacking (counter windows) plays as an additive flinch, not a full state change.
 - Every non-looping state returns to **Ready** while it is the unit's turn, otherwise to **Idle**.
   Today `HeroModel.Play` queues Idle with `CrossFadeQueued`. The new machine must use the Animator
@@ -263,7 +266,12 @@ buzzes twice as fast as at 60.
 | Buff (AtkUp, DefUp, SpdUp, Regen, Shield, Counter) | additive chest-up | rising motes, icon pop | 0.4 s |
 | Debuff (AtkDown, DefDown, Slow, TmDrain) | additive shoulders-down | sinking motes, icon pop | 0.4 s |
 | Poison, Burn tick | small flinch (additive, 0.15 s) | tick number, no hit-stop | 0.15 s |
-| Stun | Stunned loop | orbiting stars | until the turn is skipped |
+| Stun | Stunned loop | Stun icon (orbiting stars) | until the turn is skipped |
+| Break! (meter full) | Broken state | orange "BREAK!" number (1.35x), small cracks in the breaking element, light shake, cracked-sigil Broken icon | 0.75 s |
+| Broken (the lost turn) | none | orange "Broken!" | 0.35 s turn tail |
+| Break meter | none | 4 px orange bar with a bright leading edge under the HP bar, only while above 0 | live |
+| Poison/Burn stacks | none | "×2" / "×3" beside the status icon; one tick number per stack | per tick 0.12 s |
+| Enrage onset | none | "Enrage! Damage up, healing down" (then "Enrage xN") on the actor; the round counter turns red; one-time Enrage tip | 0.7 s |
 | Taunt | Ready plus a chest beat (`Interact`) | red ring on the ground | 0.5 s |
 | Cleanse / Strip | brief upward glance | burst of the icon colour | 0.3 s |
 | Pull (turn meter) | 0.15 m lurch toward the attacker | a tether streak | 0.25 s |
@@ -299,16 +307,23 @@ The timing multipliers apply to anticipation and recovery, on top of the family 
 **Desync:** each unit's idle starts at a random phase (0–1). Breathing-cycle speed varies ±8% per
 hero, set by hero id, so a lineup of five never breathes in sync.
 
-## 6. Frame rate: match the display
+## 6. Frame rate
 
 ### 6.1 Rules
 
-- **Auto (default):** render at the display's refresh rate, up to 120 Hz.
+Owner decision 2026-11-27 (replaces "Auto matches the display" as the default; 120 fps costs roughly
+1.6-2x the power, a heat and battery risk in long auto-replay sessions). Rules in `Core/FrameRate.cs`.
+
+- **60 (default):** the cap is 60 (or the display rate, if lower). The old saved "Auto" reads as 60.
+- **90/120 · Smoothest:** a Settings choice on screens faster than 60 Hz: the display's refresh rate, up to 120 Hz.
   - Read it from `Screen.currentResolution.refreshRateRatio.value` (a double, Unity 6).
   - Round it, and treat 0 or NaN as 60.
-- **60:** the cap is 60 (or the display rate, if lower).
+  - Steps down to 60 when the phone can't hold it, and retries between battles.
 - **30 · Battery:** the cap is 30.
-- **Forced 30:** Low tier and thermal limits still force 30, as today.
+- **Forced 30:** Low tier, thermal limits and **auto-replay** force 30.
+- **Menus:** the screen may sleep (`SleepTimeout.SystemSetting`); it is kept awake only in battle. Behind a
+  menu with an opaque full-screen painting (title screen, Summon) the arena camera draws nothing and skips
+  post-processing.
 - **Mobile (Android/iOS):**
   - `QualitySettings.vSyncCount = 0`, and `Application.targetFrameRate` = the target.
   - Turn on **Optimized Frame Pacing** (Swappy) in Player settings, so 120, 60 and 30 pace evenly
@@ -319,12 +334,12 @@ hero, set by hero id, so a lineup of five never breathes in sync.
     - Game Booster / Game Optimizing Service can cap games at 60. If Auto shows 60 in the
       performance overlay, check Game Booster's frame-rate option.
 - **Desktop (Windows):**
-  - Auto = `vSyncCount = 1` and `targetFrameRate = -1`, which matches any monitor (60, 120,
+  - 90/120 = `vSyncCount = 1` and `targetFrameRate = -1`, which matches any monitor (60, 120,
     144, 165 Hz or VRR).
   - 60 or 30 = `vSyncCount = DisplayHz / cap` when that divides evenly (1–4). Otherwise
     `vSyncCount = 0` with `targetFrameRate = cap`.
 - **Pick targets that divide the display rate** (120 → 120, 60, 40 or 30), so frames never judder.
-  On a 90 Hz panel Auto is 90.
+  On a 90 Hz panel the high choice is 90.
 
 ### 6.2 Time rules for code
 
@@ -443,8 +458,93 @@ Status column: **pending** until the owner approves, rejects or asks for changes
 - **2026-11-25:** First version. Agent created at the owner's request ("set up a character
   mechanics agent… mechanics must adjust the frame to match the device's refresh rate"; "come up
   with some animation tests for approval").
+- **2026-11-27:** Section 9 (combat rules after PLAN steps 97-99). Broken state, honest dodge rule,
+  Hit_Big note, enrage/Break/stack feedback rows, section 1 turn start; the owner review moved to
+  section 10 (it was a second "8.").
 
 
-## 8. Owner review of the animation tests (2026-11-25)
+## 9. Combat rules (2026-11-27)
+
+The rules engine is `Core/Battle.cs` (curves and data in `Core/GameData.cs` and `Core/Game.cs`). It
+mirrors the web game's `battle.js` except where a rule is marked **Unity-only**; the web parity
+tests add those back or divide them out. Measured with `Tests~ -- combatstats` (2,000 random 4v4,
+level 40, 4 stars) after PLAN step 99: median 65 turns (about 8 rounds), p90 119, no stalls; 44%
+of battles reach round 10.
+
+### 9.1 Rules table
+
+| Rule | Value | Where | Presentation |
+|---|---|---|---|
+| Turn meter | full at 1000; each tick adds speed × 0.7; the highest full meter acts, ties to the faster unit | `NextActor`, `PredictTurns` | turn-order bar (next 7) |
+| Starting meter | speed × 3 + random 0-40 (the fastest unit acts first about 70% of the time) | `StartTm` | |
+| New wave | allies' meters are capped at 60% | `CheckEnd` | "Wave N!" banner |
+| Speed | 95 + 2 × rarity tier + role + `RoleSpdShift` + (stars − 1); SpdUp +30%, Slow −30% | `Game.BaseStats`, `Speed` | |
+| Role speed (**Unity-only** shift) | Attack +8, Defense −2, HP −4, Support 0 (Support already has +6 in `Mods`, so its total is +6). Was ±8 until step 99, which gave Support +14 | `GameData.RoleSpdShift` | |
+| Pace | every hit, heal, regen, shield and DoT tick × 1.6; HP is not scaled. 1.0 in the Titan fight | `Battle.Pace` | |
+| Hit damage | stat × skill multiplier × Skill Tome boost (+8%/level to 3) × element × 650 / (650 + target DEF) × enrage × Pace, × (1 + Rage × missing HP share) for Rage skills, × crit, × 0.95-1.05; at least 1. The stat is ATK, DEF or max HP by the skill's `Scale` | `HitBase`, `Hit` | damage number, Hit or Hit_Big |
+| Buffs on stats | AtkUp/AtkDown ±40% ATK, DefUp/DefDown ±50% DEF | `AtkOf`, `DefOf` | status icons |
+| Element | ×1.3 on the element you beat (Flame > Gale > Tide > Flame; Light and Shadow beat each other), ×0.8 against the one that beats you | `ElementMultiplier` | orange number (strong), grey (weak) |
+| Crits | chance = Crit (15 base); **half** on element disadvantage, none on disadvantage in the Titan fight; damage × (1 + Cdmg/100), Cdmg 50 base | `Hit` | "CRIT", flash, shake |
+| Shields | caster's max HP × skill % × 0.8 × heal-enrage × Pace; 2 turns; a re-cast keeps the larger value and resets to 2 turns; absorb hits, not DoTs; a zero shield (late enrage) is not added | `ApplyFx` | "Shield N" number; dodge/block may play when a hit is fully absorbed |
+| Heals | target's max HP × skill % × boost × heal-enrage × Pace; Regen 8% of max HP a turn | `HealUnit` | heal number; the healer is the event's `Source` (results screen's Healing column) |
+| Poison / Burn | 4% / 5% of max HP × Pace a turn, once per stack, up to `MaxDotStacks` 3; ignore shields, DEF and enrage. The Titan never stacks (a re-apply only refreshes) | `BeginTurn` | one tick number per stack; "×2"/"×3" beside the icon |
+| DotCap | on bosses and the Titan a tick (per stack) is capped at 3 × the strongest opponent's ATK × Pace. It never binds in the campaign (raw ticks are a third of the cap or less); it only acts on the Titan | `DotCap` | |
+| Durations | effects lose a turn at the end of the holder's turn; an effect a unit puts on itself (or a Broken it takes on its own turn) is `Fresh` and skips its first countdown | `EndTurn` | turns left on the icon |
+| Stun | the next turn is lost; the Titan is immune to Stun and TmDrain | `BeginTurn` | Stunned state, "Stunned!" |
+| Execute, Pierce, Spread, Counter, Revive, Rage, Last Light | Unity-only roster mechanics (ROSTER.md section 4; `Tests~/MechanicsTests.cs`). Counter: half-power basic back at a single-target attacker; counter hits never counter | `Act`, `ApplyDamage` | see 3.1 |
+
+### 9.2 Enrage
+
+- A **round** is one turn for each unit alive when the wave started (`Round = wave turns / that count + 1`). It restarts with each wave.
+- From round `EnrageFrom` (10) every round adds a stack: hits deal +10% per stack and heals and shields lose 10% per stack. At 10 stacks (round 19) healing and shields are 0. Not in the Titan fight (it has a 20-turn limit).
+- The first time a stack starts, the actor shows "Enrage! Damage up, healing down" (later "Enrage xN").
+- **HUD (step 99):** a round pill under the stage info ("Round N"); from round 10 it turns red with "Enrage xN" (landscape adds "+N0% dmg −N0% heal"). The one-time `Tips` "enrage" tip explains it the first time a wave enrages.
+- **AI:** when healing and shields are down to 15% or less (`Battle.SustainFloor`, from round 18), pure heal, regen and shield skills count as useless.
+
+### 9.3 Weakness Break
+
+- Every hit with element advantage (×1.3) adds `BreakPerHit` 34 to the target's meter (17 on bosses). At 100 the target is **Broken**: it loses its next turn, the meter empties and `BreakGuard` 2 starts.
+- Heroes can be Broken too (about 4% of all turns are lost to Break, on both sides). The Titan can't be.
+- While Broken or guarded, hits add nothing. The guard counts down only on turns the unit **acts** after the lost one (step 99: a turn lost to Stun no longer counts, which removed Stun → Break → Stun chains).
+- A Break that lands during the unit's own turn (a Counter hit on the attacker) is `Fresh`, so it still costs the next turn (step 99: it used to be used up at once).
+- The meter is cleared on death.
+
+### 9.4 Broken presentation
+
+- Status icon `Resources/StatusIcons/Broken.png`: the orange rim with a **cracked diamond sigil** (`Tools~/skin/broken_icon.py`), not Stun's orbiting stars.
+- On "Break!": the Broken state (3.1), an orange "BREAK!" number, small ground cracks in the element that broke it, a light shake. On the lost turn: an orange "Broken!".
+- Tip and legend wording: "Hits from the element that beats a unit fill its orange bar (your heroes have one too). When it's full, that unit is Broken and loses its next turn."
+
+### 9.5 AI (also auto battle)
+
+- **Skill:** the ready skill with the highest `cooldown × 10 + index`, minus 100 for a self-Taunt already up and minus 100 for a damage-free skill that would change nothing (`Useful`): Heal/Regen need someone under 65% HP (and enrage above the sustain floor), Shield someone without a shield of 5% max HP, Cleanse a debuff, Strip a buff, Poison/Burn a target under 3 stacks, other effects someone who lacks them.
+- **Enemy target:** Taunt forces the taunters. Then: a target it can kill (HP + shield ≤ 95% of the expected hit × hits, from the same maths as `Hit` without crits and spread: scaling stat, Skill Tome boost, element, DEF, enrage, Pace, Rage), then for pure debuff skills the target missing most of them, then the best element, then the lowest HP share.
+- **Ally target:** buffs go to whoever lacks most of them (AtkUp prefers the Attack role), then the lowest HP share; heals to the lowest HP share.
+
+### 9.6 Animation rules tied to the combat rules
+
+- **Dodge only when no HP is lost** (a fully absorbed hit); never on a hit that lowers HP.
+- Hit_Big still fires at 14% of max HP (now about a third of hits at Pace 1.6; see 3.1).
+
+### 9.7 Campaign curve and rewards (step 99)
+
+- Enemy multiplier: Act I follows the web curve (`Curve.Start`..`End`, `Shape`, chapter factors `Curve.Chapter`); Act II is `End × (1 + Act2Ramp × (stage − 59))` with `Act2Ramp` 0.015 (was 0.02).
+- **Unity-only `Game.CampaignEase`** on top (campaign and Hard stages, not dungeons): Light/Shadow chapters × `LSEase` 0.92 (a Flame/Gale/Tide team has no advantage there), chapter 10's factor 0.98 in place of 1.04 (`ChapterFix`), and `StageEase` per stage in both acts: 14-4 × 0.926, 15-6 × 0.90.
+- Gold and XP per clear grow 2% per stage past the level cap (stage index 61): 15-6 pays 5,928 gold and 18,065 XP (was 3,800 and 11,580, flat for the last 29 stages).
+- Titan reward tiers (**Unity-only** thresholds): 0 / 15k / 40k / 80k / 140k / 220k (was up to 400k and 1M, never reached). A maxed team (6 stars, level 60, Mythic +10) has median 112k and p90 186k damage: 29% reach 140k, 3% reach 220k.
+
+| Measure (60 runs a stage) | Before step 99 | After |
+|---|---|---|
+| Act I Light/Shadow, mid / strong team | 86.1% / 98.6% | 92.6% / 99.7% |
+| Act II Light/Shadow, mid / strong team | 39.6% / 80.0% | 82.6% / 96.5% |
+| Act II triangle, mid / strong team | 86.8% / 98.4% | 90.0% / 99.2% |
+| 10-1, mid / strong | 5% / 100% | 63% / 100% |
+| 15-6, mid / strong | 0% / 2% | 8% / 78% |
+| Role vs role (3 shared fillers, Epic, 1,500 a pair): Attack / Defense / HP / Support | 49.3 / 42.7 / 46.9 / 61.1 (spread 18.3) | 48.7 / 47.7 / 50.0 / 53.6 (spread 5.9) |
+| Median battle (combatstats) | 67 turns | 65 turns |
+
+Mid team: Ysolde, Corvan, Hask, Kaito. Strong team: Maelis, Oriel, Aurelia, Vaelith (the suite's lineups).
+
+## 10. Owner review of the animation tests (2026-11-25)
 
 Approved: T1 idle, T2 blade attack, T6 spell cast, T9 death, and all 150 concepts. Changes requested and done: T3 spear (now `Spear_Thrust`: guard, draw, lunge, recover), T8 heavy hit (now `Hit_Kneel`: stagger, drop to one knee, rise), T10 defeat (fall pivots on the planted knees; PvP losses only, owner 2026-11-26). Deaths always use the death clip. Hand-made clips are authored in `unity/Tools~/blenderforge/make_clips.py`.

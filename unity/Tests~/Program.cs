@@ -32,6 +32,8 @@ static class Program
         // `dotnet run --project Tests~ -- combatstats`: 2000 random 4v4 battles (all heroes, lv40 4*) -> length,
         // stalemates, AI choices and effect use. Used to judge combat rule changes (PLAN step 97).
         if (args.Length > 1 && args[0] == "stagerate") { CombatProbes.StageRate(int.Parse(args[1]), args.Length > 2 ? int.Parse(args[2]) : 30); return 0; }
+        if (args.Length > 0 && args[0] == "campaign") { CombatProbes.Campaign(args.Length > 1 ? int.Parse(args[1]) : 60); return 0; }
+        if (args.Length > 0 && args[0] == "roles") { CombatProbes.Roles(args.Length > 1 ? int.Parse(args[1]) : 1500); return 0; }
         if (args.Length > 0 && args[0] == "titandmg") { CombatProbes.TitanDamage(); return 0; }
         if (args.Length > 0 && args[0] == "combatstats") { CombatStats.Run(); return 0; }
         // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).
@@ -105,6 +107,12 @@ static class Program
         TitanCameraTests.Run(Check);
         StoryScenesTests.Run(Check);
         LairRevealTests.Run(Check);
+        SaveSafetyTests.Run(Check);
+        CachePolicyTests.Run(Check);
+        ModelPackTests.Run(Check);
+        UpdaterTests.Run(Check);
+        FrameRateTests.Run(Check);
+        QuitRuleTests.Run(Check);
 
         // Win-rate sweep like the web sim's fixed-team check (geared team at stage level).
         Console.WriteLine("\nStage win rates (fixed teams at stage level, 30 runs):");

@@ -102,7 +102,7 @@ static class HdClipFileTests
             var p = System.IO.Path.Combine(dir, "Tools~", "models", "ubc_anims.glb");
             if (System.IO.File.Exists(p)) path = p;
         }
-        if (path == null) { check(true, "hd clip file: not found here (skipped)"); return; }
+        if (path == null) { bool ci = Environment.GetEnvironmentVariable("CI") == "true"; check(!ci, "hd clip file: not found here" + (ci ? "" : " (skipped)")); return; }
         var b = System.IO.File.ReadAllBytes(path);
         int n = System.BitConverter.ToInt32(b, 12);
         var json = System.Text.Encoding.UTF8.GetString(b, 20, n);

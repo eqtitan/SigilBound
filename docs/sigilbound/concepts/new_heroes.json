@@ -1933,7 +1933,7 @@
     "effects": [
      {
       "type": "Tm",
-      "val": 0.3
+      "val": 0.37
      },
      {
       "type": "AtkUp",

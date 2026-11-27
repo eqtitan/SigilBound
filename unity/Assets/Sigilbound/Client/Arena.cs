@@ -35,6 +35,19 @@ namespace Sigilbound.Client
             return a;
         }
 
+        // A full-screen menu (opaque painted backdrop) hides the arena: the camera keeps clearing the screen but
+        // draws nothing and skips post-processing, so the 3D scene costs next to nothing behind it
+        // (performance review #2). The menus are drawn over it as before.
+        int _mask = ~0; bool _covered;
+        public bool Covered => _covered;
+        public void SetCovered(bool covered)
+        {
+            if (_covered == covered || Cam == null) return;
+            _covered = covered;
+            if (covered) { _mask = Cam.cullingMask; Cam.cullingMask = 0; } else Cam.cullingMask = _mask;
+            PostFx.SetCovered(covered);
+        }
+
         // ---------- camera rig ----------
         // The camera's pose = the framed view (_pose*), then the Titan's breathing tilt, then any cinematic
         // override (Titan intro, finishers), then the screen-shake offset (Vfx.ShakeOffset). LateUpdate
@@ -86,6 +99,7 @@ namespace Sigilbound.Client
         public void FrameBattle(string camKey, bool titan)
         {
             _camKey = camKey; _framedBattle = true; _framedTitan = titan;
+            _ovW = 0; BreathTarget = 0; // no cinematic override left over from the last fight (code review M4)
             _framedAspect = Cam.aspect;
             double aspect = Mathf.Max(0.2f, Cam.aspect);
             var v = BattleLayout.View(camKey, aspect, titan); // the usual presets, or a Titan-only view

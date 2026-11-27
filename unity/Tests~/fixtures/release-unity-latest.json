@@ -1,0 +1,89 @@
+{
+  "url": "https://api.github.com/repos/eqtitan/SigilBound/releases/455930387",
+  "html_url": "https://github.com/eqtitan/SigilBound/releases/tag/unity-latest",
+  "id": 455930387,
+  "tag_name": "unity-latest",
+  "target_commitish": "main",
+  "name": "Sigilbound (Unity) for Android v0.21.1 (build 169)",
+  "draft": false,
+  "prerelease": true,
+  "created_at": "2026-11-23T19:44:41Z",
+  "published_at": "2026-11-23T20:03:08Z",
+  "body": "Sigilbound (Unity) v0.21.1, build 169 (3430f88, branch main, 2026-11-27). The native Unity version, in progress alongside the web app. It installs as a separate app, \"Sigilbound (Unity)\", next to the regular Sigilbound app. To bring your progress over: in the regular app open Settings > Save code > Copy, then in the Unity app open Settings, tap Paste and Load code. Windows 10+: download Sigilbound-Windows.zip, unzip it, run Sigilbound.exe (Windows may warn about an unknown publisher: More info > Run anyway).",
+  "author": {
+    "login": "github-actions[bot]",
+    "id": 41898282,
+    "type": "Bot",
+    "site_admin": false
+  },
+  "assets": [
+    {
+      "url": "https://api.github.com/repos/eqtitan/SigilBound/releases/assets/801771130",
+      "id": 801771130,
+      "name": "Sigilbound-Unity-0.21.1-build169.apk",
+      "label": "",
+      "content_type": "application/vnd.android.package-archive",
+      "state": "uploaded",
+      "size": 194697334,
+      "download_count": 1,
+      "created_at": "2026-11-27T19:27:26Z",
+      "updated_at": "2026-11-27T19:27:31Z",
+      "browser_download_url": "https://github.com/eqtitan/SigilBound/releases/download/unity-latest/Sigilbound-Unity-0.21.1-build169.apk",
+      "uploader": {
+        "login": "github-actions[bot]",
+        "type": "Bot"
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/eqtitan/SigilBound/releases/assets/801771140",
+      "id": 801771140,
+      "name": "Sigilbound-Unity.apk",
+      "label": "",
+      "content_type": "application/vnd.android.package-archive",
+      "state": "uploaded",
+      "size": 194697334,
+      "download_count": 1,
+      "created_at": "2026-11-27T19:27:26Z",
+      "updated_at": "2026-11-27T19:27:30Z",
+      "browser_download_url": "https://github.com/eqtitan/SigilBound/releases/download/unity-latest/Sigilbound-Unity.apk",
+      "uploader": {
+        "login": "github-actions[bot]",
+        "type": "Bot"
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/eqtitan/SigilBound/releases/assets/801788972",
+      "id": 801788972,
+      "name": "Sigilbound-Windows-0.21.1-build169.zip",
+      "label": "",
+      "content_type": "application/zip",
+      "state": "uploaded",
+      "size": 192445789,
+      "download_count": 0,
+      "created_at": "2026-11-27T19:33:21Z",
+      "updated_at": "2026-11-27T19:33:27Z",
+      "browser_download_url": "https://github.com/eqtitan/SigilBound/releases/download/unity-latest/Sigilbound-Windows-0.21.1-build169.zip",
+      "uploader": {
+        "login": "github-actions[bot]",
+        "type": "Bot"
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/eqtitan/SigilBound/releases/assets/801788985",
+      "id": 801788985,
+      "name": "Sigilbound-Windows.zip",
+      "label": "",
+      "content_type": "application/zip",
+      "state": "uploaded",
+      "size": 192445789,
+      "download_count": 0,
+      "created_at": "2026-11-27T19:33:21Z",
+      "updated_at": "2026-11-27T19:33:28Z",
+      "browser_download_url": "https://github.com/eqtitan/SigilBound/releases/download/unity-latest/Sigilbound-Windows.zip",
+      "uploader": {
+        "login": "github-actions[bot]",
+        "type": "Bot"
+      }
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 Owned by the **pmo** agent (`.claude/agents/pmo.md`). Status of the project, what's next,
 what's blocked, and decisions made. Update it whenever work lands or plans change.
 
-_Last updated: 2026-11-25._
+_Last updated: 2026-11-27._
 
 ## Where things stand
 
@@ -21,10 +21,38 @@ _Last updated: 2026-11-25._
 | Gameplay animation & mechanics (Unity) | 🟡 Spec done, build not started | New **character-mechanics** agent (`.claude/agents/character-mechanics.md`). Spec in `docs/sigilbound/MECHANICS.md` (file exists, not yet reviewed by the owner). Work is PLAN.md phase G, steps 64–69. 12 animation tests are waiting for owner approval. |
 | Hero card art | ⏳ Not started | Prompts ready in `ART_DIRECTION.md`. |
 
+## Review findings (2026-11-27)
+
+Six reviews (art, UX, QA, performance, code, mechanics) of the Unity build at `main` 3430f88 (build 169, v0.21.1).
+How we know: the test suite passes (326 checks), the screenshot tour is clean (79 shots, no errors), and the win rates
+come from simulated battles. **No real-phone measurement exists yet**, so memory, heat and frame-time numbers are estimates.
+The full de-duplicated plan, including P2/P3 polish and owner, size and source for every item, is in the PMO plan
+(`scratchpad/reviews/PMO_PLAN.md`, outside the repo).
+
+**P0: crash, lost progress, store blockers (before the next tester build)**
+1. A save that fails to load is replaced by an empty game, which then overwrites the real save. Older builds also delete heroes they don't know. *Engineering + QA, M.*
+2. Out-of-memory risk: every loaded 3D hero stays in memory uncompressed (about 24 MB each, 700 MB+ per session), plus slow leaks during auto-replay. The first fix takes about an hour. *Engineering + art, S then M.*
+3. The APK is 195 MB, against Google Play's 200 MB limit, and the CI size check is silently skipped. Compress the models and use a separate install-time asset pack. *Engineering, M. Owner decision.*
+4. Confirm that the store build leaves out the in-app updater, and add tests for the updater. *Engineering + QA, S–M.*
+
+**P1: what testers will hit**
+- *Balance (owner decisions):* Light/Shadow chapters are a wall for teams without those elements (Act II about 40% wins; proposed enemies ×0.92). Stage 10-1 spikes to 3–5% wins. Act II's final stage is won 2–3% even by a maxed team, and Act II rewards stop growing. Support's speed bonus is counted twice (proposed shift: Attack +8, Defense −2, HP −4, Support 0). The Titan's top two reward tiers can't be reached (proposed 15k/40k/80k/140k/220k). Trim Hartwin's kit on `feat/new-heroes-6` before merging. Quitting mid-fight gives a free Titan or arena retry.
+- *Combat bugs and readability:* a Break caused by a counter-attack does nothing (and Stun can chain into Break); enrage from round 10 is invisible; Break looks like Stun; "dodge" plays while HP drops; auto-battle misjudges which enemy it can kill; the results screen shows 0 healing.
+- *Screens and controls:* the stage-list Battle buttons are about 19 dp tall on a phone; the Home "Continue Campaign" button is below the fold; the battle buttons and text are too small; some disabled buttons and text over art can't be read; menus ignore the camera hole and rounded corners; the Hard and Act II switches are nearly invisible; most buttons give no feedback when pressed; element and rarity colours aren't colour-blind safe.
+- *Heat and battery:* the game tries to run at 120 fps, the screen stays awake in menus, and the 3D scene redraws behind full-screen menus. Proposed: 60 fps by default, 30 fps in auto-replay. *Owner decision.*
+- *Art identity:* about 30 heroes show a different creature in their portrait than in 3D. *Owner decision on which is canon.*
+- *Process:* builds publish before the screenshot tour runs; the new combat rules have no tests guarding them.
+
+**Decisions needed (recommended answer in brackets):** portrait or model as canon for ~30 heroes (portrait, with interim animal heads and wings);
+fps target (60 by default, 120 opt-in, auto-replay at 30, replacing the 2026-11-25 "Auto/120" recommendation); quitting mid-fight stays a free retry (no, for Titan and arena);
+regenerate Vex and Aurex and replace the real-world crosses (yes); Titan tiers 15k/40k/80k/140k/220k (yes); the balance patch with Light/Shadow ×0.92, the role speed shift,
+a smaller chapter-10 jump and a gentler Act II (yes, as one change); Hartwin trim (yes, after checking the heal value's units); Play Asset Delivery for the store build (yes).
+
 ## Blockers (waiting on the owner)
 
+0a. **Review decisions (2026-11-27):** the eight questions in "Review findings" above.
 0. **Gameplay animation decisions** (from MECHANICS.md, 2026-11-25), each a one-line answer:
-   - **Frame rate default:** should everyone start on *Auto* (matches your screen, 120 on the S26+, more battery), except players who chose 30? *Recommended: yes.*
+   - **Frame rate default:** should everyone start on *Auto* (matches your screen, 120 on the S26+, more battery), except players who chose 30? *Recommended: yes.* **Superseded 2026-11-27:** the performance review recommends 60 by default with 120 as an opt-in (see "Review findings").
    - **Free clips only, or also the paid UAL tier?** The paid tier is also CC0 and has more melee, block and knock-down clips. *Recommended: start free; decide after tests T2–T4.*
    - **Screen shake setting:** add Full / Reduced / Off? *Recommended: yes, default Full.*
    - **Animation tests T1–T12:** approve, reject or change each one once the renders are posted (PLAN.md step 69).

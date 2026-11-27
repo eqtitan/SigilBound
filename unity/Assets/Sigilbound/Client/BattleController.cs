@@ -37,6 +37,8 @@ namespace Sigilbound.Client
         bool IsTitan => _spec.Mode == BattleMode.Titan;
         public BattleMode Mode => _spec?.Mode ?? BattleMode.Stage;
         public bool InProgress => _b != null && !_finished;
+        // Auto-replay is looping campaign battles (Quality caps it at 30 fps).
+        public bool Replaying => _b != null && _spec != null && _spec.Mode == BattleMode.Stage && G.S.settings.autoReplay;
 
         public void Begin(int stage) => Begin(stage < 0 ? BattleSpec.Titan() : BattleSpec.ForStage(stage));
 
@@ -47,8 +49,13 @@ namespace Sigilbound.Client
             if (spec.Mode == BattleMode.Arena && G.S.daily.arenaTries <= 0) { App.Toast("No arena fights left today."); return; }
             if (spec.Mode == BattleMode.Titan && !spec.Practice && G.S.daily.titanTries <= 0) { App.Toast("No Titan tries left today."); return; }
             if (spec.Mode == BattleMode.Hard && !G.HardOpen(spec.Stage)) { App.Toast("Clear the previous Hard stage first."); return; }
+            // Quit rule (owner decision 2026-11-27): a Titan try and an arena fight count from the start, saved
+            // at once, so leaving or closing the game mid-fight is no free retry. Practice and the campaign are free.
+            if (spec.Mode == BattleMode.Titan && !spec.Practice) { G.StartTitan(); App.Save(); }
+            if (spec.Mode == BattleMode.Arena) { G.StartArena(spec.Rival); App.Save(); }
             _spec = spec;
             App.ClearLineup();
+            HeroModels.TrimSoon(); // auto-replay starts battles back to back: free the last one's leftovers
             _b = spec.Mode switch
             {
                 BattleMode.Titan => Core.Battle.ForTitan(G),
@@ -74,7 +81,7 @@ namespace Sigilbound.Client
             Clear();
             Spawn(_b.Allies, true); Spawn(_b.Enemies, false);
             _finished = false; _awaiting = false; _banner = ""; _actor = null;
-            _cinema = _skippable = false; _revealTitle = null; // a cinematic cut short by leaving the last battle
+            ResetCinema(); // a cinematic cut short by leaving the last battle
             _t0 = Time.unscaledTime; _paused = false; _taken.Clear(); _healed.Clear();
             App.Go(ScreenId.Battle);
             // Music: the Titan its own; a campaign boss stage waits in silence for the lair reveal's swell and
@@ -618,7 +625,7 @@ namespace Sigilbound.Client
                 {
                     case EvType.Damage:
                         if (e.Dot) { SkillFx.I?.DebuffTick(v.transform.position, "poison"); Vfx.I.Number(c, Ui.Fmt(e.Amount), new Color(0.5f, 1f, 0.45f)); break; }
-                        if (e.Amount <= 0) break; // fully absorbed by a shield: the "Shield" number says it (no "CRIT 0")
+                        if (e.Amount <= 0) { v.Hit(false, true); break; } // fully absorbed by a shield: the "Shield" number says it (no "CRIT 0"); only now may it dodge
                         // weapon x armour: the attacker's weapon landing and the defender's armour answering (plate clangs,
                         // mail jingles, leather slaps, cloth thuds), heard from where the blow lands; the Titan is plate.
                         float hpan = Sound.PanOf(c);
@@ -628,8 +635,8 @@ namespace Sigilbound.Client
                         if (SkillFx.I != null) SkillFx.I.Impact(c, e.Source != null ? e.Source.El : _lastEl, e.Crit); else Vfx.I.Burst(c, color, e.Crit);
                         // The attacker's signature motif on each hit (phase E 53-55).
                         if (SkillFx.I != null && e.Source != null && !e.Source.Titan) SkillFx.I.Signature(c, e.Source.El, HeroSignatures.Of(e.Source.Template.Id, e.Source.El), e.Crit ? 0.9f : 0.6f);
-                        // Heavier reaction on crits and hits over 14% of max HP; weak glancing blows may be rolled away.
-                        v.Hit(e.Crit || e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp) > 0.14f, e.Elem < 1 || e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp) < 0.04f);
+                        // Heavier reaction on crits and hits over 14% of max HP. HP was lost, so no dodge (PLAN step 99).
+                        v.Hit(e.Crit || e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp) > 0.14f);
                         if (e.Crit) SkillFx.I?.CritFlash(e.Source != null ? e.Source.El : _lastEl);
                         ArenaEvents.RaiseHit(v.transform.position, e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp), e.Crit, _ultBy != null || (e.Source != null && e.Source.Boss));
                         Vfx.I.Number(c + Vector3.up * 0.3f, (e.Crit ? "CRIT " : "") + Ui.Fmt(e.Amount),
@@ -652,10 +659,20 @@ namespace Sigilbound.Client
                         else if (e.Fx == FxType.Shield) SkillFx.I.Shield(v.transform.position);
                         else SkillFx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
                         if (e.Fx == FxType.Stun) { if (KnocksDown(e)) v.KnockDown(); else v.Stun(); }
-                        else if (e.Fx == FxType.Broken) { v.Stun(); Tips.SawBreak = true; } // the one-time Weakness Break tip
+                        else if (e.Fx == FxType.Broken)
+                        {
+                            // Its own look (not Stun's): recoil and hold, cracked ground in the element that broke it.
+                            v.Broken(); Tips.SawBreak = true; // the one-time Weakness Break tip
+                            SkillFx.I?.Cracks(v.transform.position, BreakerOf(e.Unit.El), 1.4f);
+                            Vfx.I.Shake(0.08f);
+                        }
                         else v.StatusPulse(FxDef.IsBuff(e.Fx));
                         Vfx.I.Number(c + Vector3.up * 0.6f, SkillText.EffectName(e.Fx), FxDef.IsBuff(e.Fx) ? new Color(1f, 0.85f, 0.4f) : new Color(0.8f, 0.55f, 1f), 0.7f); break;
-                    case EvType.Text: Vfx.I.Number(c + Vector3.up * 0.6f, e.Text, new Color(0.8f, 0.9f, 1f), 0.7f); if (e.Text == "Revived!") v.Revived();
+                    case EvType.Text:
+                        if (e.Text == "Break!" || e.Text == "Broken!") Vfx.I.Number(c + Vector3.up * 0.75f, e.Text == "Break!" ? "BREAK!" : "Broken!", BreakColor, e.Text == "Break!" ? 1.35f : 0.9f); // the break banner, in the break bar's orange
+                        else Vfx.I.Number(c + Vector3.up * 0.6f, e.Text, new Color(0.8f, 0.9f, 1f), 0.7f);
+                        if (e.Text.StartsWith("Enrage")) Tips.SawEnrage = true; // the one-time Enrage tip
+                        if (e.Text == "Revived!") v.Revived();
                         if (e.Text == "Counter!")
                         {
                             // The counter's own hit follows: face whoever it lands on.
@@ -670,6 +687,22 @@ namespace Sigilbound.Client
         }
 
         static readonly Color BreakColor = new Color(1f, 0.6f, 0.22f); // the weakness break meter (PLAN step 98)
+        // The element that beats `el` (the one whose hits break it).
+        static Element BreakerOf(Element el) { foreach (var x in Elements) if (ElementMultiplier(x, el) > 1) return x; return el; }
+
+        // Round counter (PLAN step 99): the wave's round, red with "Enrage xN" from round EnrageFrom, when every hit
+        // deals +10% per stack and healing and shields lose as much. Not in the Titan fight (no enrage; it has turns).
+        static readonly Color EnrageRed = new Color(0.86f, 0.2f, 0.16f);
+        void RoundPill(float x, float y, bool detail)
+        {
+            if (_b == null || _b.IsTitan || _b.Over) return;
+            int st = _b.EnrageStacks;
+            string txt = st > 0 ? (detail ? $"Round {_b.Round} · Enrage x{st}  +{st * 10}% dmg  -{System.Math.Min(100, st * 10)}% heal" : $"Round {_b.Round} · Enrage x{st}") : $"Round {_b.Round}";
+            float w = st > 0 ? (detail ? 262 : 138) : 70;
+            var r = new Rect(x, y, w, 20);
+            Ui.Round(r, st > 0 ? new Color(EnrageRed.r, EnrageRed.g, EnrageRed.b, 0.88f) : new Color(0.06f, 0.05f, 0.08f, 0.6f), st > 0 ? (Color?)new Color(1f, 0.55f, 0.45f) : null, 8);
+            Ui.Text(r, txt, 11, st > 0 ? Color.white : Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter);
+        }
         // The break meter: a dark track with an orange fill and a bright leading edge, so a part-filled meter
         // reads at battle size (the first 2 px line was invisible in the in-game check).
         static void BreakBar(Rect r, double brk)
@@ -921,7 +954,7 @@ namespace Sigilbound.Client
         public void AskRetreat()
         {
             if (_finished) return;
-            string why = IsTitan ? "Damage so far still counts and uses this try." : _spec.Mode == BattleMode.Arena ? "Retreating counts as a loss." : "You get no rewards for this battle.";
+            string why = IsTitan ? (_spec.Practice ? "Practice: nothing is used." : "Damage so far still counts. The try was used when the fight started.") : _spec.Mode == BattleMode.Arena ? "Retreating counts as a loss." : "You get no rewards for this battle.";
             App.Modal("Retreat?", 200, r =>
             {
                 Ui.Text(new Rect(r.x, r.y, r.width, 50), why, 14, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
@@ -929,10 +962,19 @@ namespace Sigilbound.Client
                 if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Retreat", Ui.Kind.Red))
                 {
                     App.CloseModal();
-                    if (IsTitan || _spec.Mode == BattleMode.Arena) { if (_loop != null) StopCoroutine(_loop); _b.Retreat(); Finish(); }
+                    if (IsTitan || _spec.Mode == BattleMode.Arena) { if (_loop != null) StopCoroutine(_loop); ResetCinema(); _b.Retreat(); Finish(); }
                     else { G.S.settings.autoReplay = false; if (_auto != null) { if (_loop != null) StopCoroutine(_loop); Time.timeScale = 1; _finished = true; _auto.Record(false, null, false, null); ShowAutoSummary("ended by a retreat", _spec.Stage); } else End(BackScreen); }
                 }
             });
+        }
+
+        // Leaving mid-cinematic (Titan moves, intro, lair reveal) stops the coroutine before its own clean-up
+        // runs (code review M4): restore the camera, the HUD, the Titan's place and pose, and drop "Tap to skip".
+        void ResetCinema()
+        {
+            _cinema = _skippable = false; _revealTitle = null;
+            if (App?.Arena != null) { App.Arena.ClearOverride(); App.Arena.BreathTarget = 0; }
+            foreach (var kv in _views) if (kv.Key.Titan && kv.Value != null) kv.Value.ResetToHome();
         }
 
         // ---------- HUD ----------
@@ -967,6 +1009,7 @@ namespace Sigilbound.Client
             bx -= 46; if (Ui.Button(new Rect(bx, top + 8, 42, 34), "Cam", Ui.Kind.Secondary, 11)) CycleCamera();
             Ui.Text(new Rect(56, top + 8, bx - 60, 34), info, 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
             DrawTurnBar(top + 50);
+            RoundPill(8, top + 84, false);
 
             // unit bars + tap targets
             bool manual = _awaiting && _actor != null && _actor.Ally && !Auto;
@@ -1068,6 +1111,7 @@ namespace Sigilbound.Client
             Ui.Text(new Rect(info.x + 6, info.y + 2, 220, 18), where, 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
             Icons.Draw(new Rect(info.x + 6, info.y + 22, 12, 12), Icon.Clock, Palette.Dim);
             Ui.Text(new Rect(info.x + 22, info.y + 20, 200, 16), $"{secs / 60}:{secs % 60:00}{(round.Length > 0 ? "   " + round : "")}", 11, Palette.Dim);
+            RoundPill(info.x - 4, info.y + 42, true);
 
             // ---- top-right: camera, loop, auto, speed, pause ----
             float bx = right - 40;

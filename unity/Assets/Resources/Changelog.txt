@@ -6,6 +6,48 @@
 new: A new Legendary hero: Vessa Silkmourne, the spider-folk Weaver of Wraithmoor, on eight legs that step and plant like a real spider's.
 new: Her skills: Silk Snare slows, Widow's Venom poisons every enemy, and Silkfall Pounce leaps on a foe.
 
+## 2026-11-27 | Fairer chapters and clearer battles
+balance: Light and Shadow chapters are easier: Flame, Gale and Tide heroes have no edge there, so those enemies are 8% weaker.
+balance: Stage 10-1 no longer jumps in difficulty, and Act II climbs more gently to a beatable final boss.
+balance: Act II stages now give more gold and XP the further you go.
+balance: Role speeds rebalanced: attackers stay quick, supports lose their double speed bonus, and tanks and bruisers are less slow.
+balance: Titan reward tiers are now 15k, 40k, 80k, 140k and 220k damage, so the top rewards (and the Radiant shard) can be earned.
+balance: 38 heroes retuned for the new speeds.
+new: A round counter in battle turns red when the fight Enrages (from round 10), with a one-time tip explaining it.
+new: Broken heroes and enemies have their own icon and look, so a Break no longer looks like a Stun.
+fix: A Break caused by a counter-attack now really costs the next turn.
+fix: Stuns no longer wear off the Break protection, so Stun and Break can't chain.
+fix: Auto battle judges which enemy it can finish off correctly.
+fix: The Healing column on the results screen now counts healing.
+fix: Late in a long fight, auto battle stops casting heals and shields that Enrage has made useless.
+fix: The dodge roll only plays when a hit does no damage; the Break tip says your heroes can be Broken too.
+
+## 2026-11-27 | Fair tries
+change: A Titan try and an arena fight now count as soon as the fight starts. Leaving or closing the game mid-fight no longer gives a free retry (an arena fight left this way counts as a loss). Titan practice and the campaign stay free.
+fix: Leaving a Titan fight during one of its big moves no longer leaves the camera stuck, the Titan in mid-air or "Tap to skip" on screen.
+
+## 2026-11-27 | Cooler and longer battery
+change: The game now runs at 60 fps by default. Phones with a 90 or 120 Hz screen can pick it in Settings > Frame rate.
+change: Auto-replay runs at 30 fps to keep the phone cool during long sessions.
+change: The screen can turn off in the menus as usual; it stays on only during battles.
+change: The 3D arena is no longer drawn behind the title screen and the Summon altar, which cover it.
+
+## 2026-11-27 | Safer updates
+fix: The in-game updater now checks that a downloaded update is complete before installing it, on Android and Windows.
+
+## 2026-11-27 | Smaller download
+change: The game download is about 30 MB smaller: hero models are packed more tightly, with no visible difference.
+
+## 2026-11-27 | Lighter on memory
+fix: The game no longer keeps every hero you have seen in memory: heroes not on screen are let go (the last few stay for quick reuse), which should stop the game being closed by Android during long sessions.
+fix: Hero textures use about half the memory they did, and small leaks during long auto-replay sessions are cleaned up after each battle.
+fix: A hero whose model failed to load once now gets another try instead of staying a block figure.
+
+## 2026-11-27 | Safer saves
+fix: If your save ever can't be read, the game no longer starts over on top of it: the damaged save is kept, the backup from your previous save is loaded, and nothing is saved over your progress until you choose.
+fix: The game now keeps a backup of your previous save.
+fix: Heroes from a newer version of the game are kept in your save instead of being removed by an older version.
+
 ## 2026-11-27 | Faster, deeper battles
 change: Battles are about a third shorter: every hit, heal, shield and damage-over-time is stronger, so a typical fight lasts around 8 rounds.
 new: Weakness Break: hit a foe three times with the element that beats it and it is Broken, losing its next turn. Bosses take twice as long to break; the Titan can't be broken.

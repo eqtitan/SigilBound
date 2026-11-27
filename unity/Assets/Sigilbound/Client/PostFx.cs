@@ -72,8 +72,19 @@ namespace Sigilbound.Client
         {
 #if SB_URP
             _tier = tier;
-            if (_cam != null) { var data = _cam.GetUniversalAdditionalCameraData(); if (data != null) data.renderPostProcessing = tier >= 1; }
+            if (_cam != null) { var data = _cam.GetUniversalAdditionalCameraData(); if (data != null) data.renderPostProcessing = tier >= 1 && !_covered; }
             if (_bloom != null) { _bloom.active = tier >= 2; _bloom.intensity.Override(tier >= 3 ? 0.9f : 0.8f); _bloom.highQualityFiltering.Override(tier >= 3); }
+#endif
+        }
+
+        // A full-screen menu covers the arena (Arena.SetCovered): no post pass for a scene nobody sees.
+        static bool _covered;
+        public static void SetCovered(bool covered)
+        {
+            if (_covered == covered) return;
+            _covered = covered;
+#if SB_URP
+            SetTier(_tier);
 #endif
         }
 

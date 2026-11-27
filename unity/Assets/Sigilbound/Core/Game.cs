@@ -323,7 +323,6 @@ namespace Sigilbound.Core
             {
                 // Act 2: past the end of the act 1 curve, harder every stage.
                 double mul2 = Curve.End * (1 + Curve.Act2Ramp * (idx - ClassicStages + 1));
-                if (Curve.StageEase.TryGetValue(idx, out var ease)) mul2 *= ease; // single-stage difficulty fixes
                 return new EnemySpec { Level = 50, Stars = 5, Mul = mul2, Spd = Js.RoundInt(idx * Curve.SpdPerStage), ShownLevel = StageLevel(idx) };
             }
             int level = Math.Min(50, StageLevel(idx));
@@ -334,10 +333,24 @@ namespace Sigilbound.Core
             return new EnemySpec { Level = level, Stars = stars, Mul = mul, Spd = Js.RoundInt(idx * Curve.SpdPerStage), ShownLevel = StageLevel(idx) };
         }
 
+        // Unity-only campaign easing on top of Grade (the web curve, which dungeons also use): Light/Shadow
+        // chapters, replaced chapter factors and single-stage fixes (Curve.LSEase, ChapterFix, StageEase;
+        // PLAN step 99). The web parity tests divide it back out.
+        public static double CampaignEase(int idx)
+        {
+            int ch = ChapterOf(idx); double f = 1;
+            var el = ChapterElement(ch);
+            if (el == Element.Light || el == Element.Shadow) f *= Curve.LSEase;
+            if (idx < ClassicStages && ch < Curve.Chapter.Length && Curve.ChapterFix.TryGetValue(ch, out var c)) f *= c / Curve.Chapter[ch];
+            if (Curve.StageEase.TryGetValue(idx, out var e)) f *= e;
+            return f;
+        }
+
         public static List<List<EnemySpec>> StageWaves(int idx)
         {
             var rng = new Seeded(idx + 7);
             var g = Grade(idx);
+            g.Mul *= CampaignEase(idx);
             // Act 1 draws enemies from the web game's 24 heroes (identical stages); act 2 from every hero.
             var pool = idx < ClassicStages ? Classic : Heroes;
             var chapterEl = ChapterElement(ChapterOf(idx));
@@ -365,7 +378,9 @@ namespace Sigilbound.Core
         public static Reward StageRewards(int idx, bool firstClear)
         {
             int level = StageLevel(idx);
-            var r = new Reward { Gold = Js.RoundInt(200 + level * 60.0), Xp = Js.RoundInt(60 + level * level * 3.2) };
+            // Past the level cap (Act 2) rewards keep growing with the stage (Unity-only, PLAN step 99).
+            double grow = 1 + Curve.Act2RewardPerStage * Math.Max(0, idx - Curve.RewardCapIdx);
+            var r = new Reward { Gold = Js.RoundInt((200 + level * 60.0) * grow), Xp = Js.RoundInt((60 + level * level * 3.2) * grow) };
             if (firstClear)
             {
                 r.Common = 1;
@@ -398,12 +413,25 @@ namespace Sigilbound.Core
             return res;
         }
 
+        // Quit rule (owner decision 2026-11-27, PMO D3): a Titan try is used when the fight starts, so leaving
+        // or closing the game mid-fight no longer gives a free retry. Practice never calls this. Save right after.
+        bool _titanStarted;
+        public bool StartTitan()
+        {
+            EnsureDaily();
+            if (S.daily.titanTries <= 0) return false;
+            S.daily.titanTries--;
+            _titanStarted = true;
+            return true;
+        }
+
         public Reward CompleteTitan(long damage)
         {
             EnsureDaily();
             var tier = TitanTiers[0];
             foreach (var t in TitanTiers) if (damage >= t.Dmg) tier = t;
-            S.daily.titanTries = Math.Max(0, S.daily.titanTries - 1);
+            if (_titanStarted) _titanStarted = false; // the try was used at the start
+            else S.daily.titanTries = Math.Max(0, S.daily.titanTries - 1); // no StartTitan (the web game's order)
             S.daily.titanBest = Math.Max(S.daily.titanBest, damage);
             S.titanBestAllTime = Math.Max(S.titanBestAllTime, damage);
             Grant(tier.Reward); BumpQuest("titan");

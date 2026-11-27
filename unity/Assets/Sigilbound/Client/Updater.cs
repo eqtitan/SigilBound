@@ -9,12 +9,16 @@
 // installs it through PackageInstaller (Plugins/Android/SigilboundUpdateInstaller.java): one tap
 // on Android's confirmation the first time, silent later on Android 12+. With Auto-update on (the
 // default; Settings), new builds download on Wi-Fi and install on the home screen, never mid-battle.
+// Play Store builds (define SB_STORE) leave this whole file out: UpdaterStore.cs stands in with no
+// download or install path at all (Play doesn't allow apps to install their own updates). The
+// decisions (newest asset, newer build, valid package) are in Core/UpdateCheck.cs, tested in Tests~.
+#if !SB_STORE
 using System;
 using System.Collections;
 using System.IO;
-using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Networking;
+using Sigilbound.Core;
 
 namespace Sigilbound.Client
 {
@@ -27,7 +31,9 @@ namespace Sigilbound.Client
         public static int MyBuild { get; private set; }
         public static int LatestBuild { get; private set; }
         public static string LatestVersion { get; private set; } = "";
+        public const bool Included = true; // Settings shows the update options
         static string _latestFile; // the exact versioned asset found (e.g. Sigilbound-Unity-0.21.1-build23.apk)
+        static long _latestSize;   // its size from the release (0 = unknown): a download of any other size is not installed
 
         float _lastCheck = -999f;
         bool _busy, _dismissed;
@@ -36,8 +42,8 @@ namespace Sigilbound.Client
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
         {
-#if UNITY_EDITOR || SB_STORE
-            return; // the editor, and Play Store builds (Play updates the app; self-installing isn't allowed there)
+#if UNITY_EDITOR
+            return; // the editor (Play Store builds don't compile this file at all)
 #else
             var info = Resources.Load<TextAsset>("BuildInfo"); // written by BuildScript at build time
             if (info == null || !int.TryParse(info.text.Trim(), out var n) || n <= 0) return;
@@ -49,9 +55,7 @@ namespace Sigilbound.Client
 #endif
         }
 
-        static string AssetPattern => Application.platform == RuntimePlatform.Android
-            ? @"""name""\s*:\s*""(Sigilbound-Unity-([0-9.]+)-build(\d+)\.apk)"""
-            : @"""name""\s*:\s*""(Sigilbound-Windows-([0-9.]+)-build(\d+)\.zip)""";
+        static UpdatePlatform Platform => Application.platform == RuntimePlatform.Android ? UpdatePlatform.Android : UpdatePlatform.Windows;
 
         // Download the exact versioned file the check found: the fixed-name copy can briefly go missing
         // while two builds publish over each other (that gave the owner a 404).
@@ -97,13 +101,11 @@ namespace Sigilbound.Client
                 yield return req.SendWebRequest();
                 _busy = false;
                 if (req.result != UnityWebRequest.Result.Success) yield break; // offline or rate-limited: try later
-                int best = 0; string ver = "", file = null;
-                foreach (Match m in Regex.Matches(req.downloadHandler.text, AssetPattern))
-                    if (int.TryParse(m.Groups[3].Value, out var b) && b > best) { best = b; ver = m.Groups[2].Value; file = m.Groups[1].Value; }
-                if (best > MyBuild)
+                var latest = UpdateCheck.Parse(req.downloadHandler.text, Platform);
+                if (UpdateCheck.IsNewer(latest, MyBuild))
                 {
-                    if (best != LatestBuild) { _dismissed = false; _autoTried = false; _autoBlocked = false; _failText = null; _linkMode = false; } // a newer build than the one dismissed
-                    LatestBuild = best; LatestVersion = ver; _latestFile = file;
+                    if (latest.Build != LatestBuild) { _dismissed = false; _autoTried = false; _autoBlocked = false; _failText = null; _linkMode = false; } // a newer build than the one dismissed
+                    LatestBuild = latest.Build; LatestVersion = latest.Version; _latestFile = latest.File; _latestSize = latest.Size;
                     // Auto-update (Android): fetch it in the background while on Wi-Fi.
                     if (Application.platform == RuntimePlatform.Android && AutoUpdate && !_autoTried && _installing == null && !_installStarted
                         && _apkBuild != LatestBuild && Application.internetReachability == NetworkReachability.ReachableViaLocalAreaNetwork)
@@ -174,6 +176,7 @@ namespace Sigilbound.Client
                 while (!op.isDone) { _progress = req.downloadProgress; yield return null; }
                 if (req.result != UnityWebRequest.Result.Success) { Fallback(); yield break; }
             }
+            if (!PackageOk(zip)) { Fallback(); yield break; } // an error page or a cut-off download is never unpacked
             _progress = 1; _installing = "Installing… the game will restart.";
             yield return null;
             try
@@ -248,17 +251,21 @@ namespace Sigilbound.Client
                 while (!op.isDone) { _progress = req.downloadProgress; yield return null; }
                 if (req.result != UnityWebRequest.Result.Success) { DownloadFailed(background); yield break; }
             }
-            // An APK is a zip ("PK") of several MB; anything else (an error page) is not installed.
-            bool ok = false;
+            // An APK is a zip ("PK") of the size the release lists; anything else (an error page, a cut-off
+            // download) is not installed.
+            if (!PackageOk(path)) { DownloadFailed(background); yield break; }
+            _apkPath = path; _apkBuild = build; _progress = 1;
+            _installing = null;
+        }
+
+        static bool PackageOk(string path)
+        {
             try
             {
                 var fi = new FileInfo(path);
-                if (fi.Length > 1_000_000) using (var f = File.OpenRead(path)) ok = f.ReadByte() == 'P' && f.ReadByte() == 'K';
+                using (var f = File.OpenRead(path)) return UpdateCheck.LooksLikePackage(fi.Length, f.ReadByte(), f.ReadByte(), _latestSize);
             }
-            catch (Exception) { }
-            if (!ok) { DownloadFailed(background); yield break; }
-            _apkPath = path; _apkBuild = build; _progress = 1;
-            _installing = null;
+            catch (Exception) { return false; }
         }
 
         void DownloadFailed(bool background)
@@ -400,3 +407,4 @@ namespace Sigilbound.Client
         }
     }
 }
+#endif

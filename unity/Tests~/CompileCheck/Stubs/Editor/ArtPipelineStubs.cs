@@ -21,6 +21,12 @@ namespace UnityEditor
         public static AssetImporter GetAtPath(string path) => throw new NotImplementedException();
     }
 
+    public sealed class PluginImporter : AssetImporter
+    {
+        public void SetCompatibleWithPlatform(BuildTarget platform, bool enable) => throw new NotImplementedException();
+        public bool GetCompatibleWithPlatform(BuildTarget platform) => throw new NotImplementedException();
+    }
+
     public class AssetPostprocessor
     {
         public string assetPath { get; set; }
