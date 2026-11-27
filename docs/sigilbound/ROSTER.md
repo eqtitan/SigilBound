@@ -266,3 +266,11 @@ Designs: `docs/sigilbound/concepts/new_heroes.json` and `NEW_HEROES.md`. Brought
 | `lune` | Lune Duskfeather | Epic | Shadow | Support | owl-folk | An owl-folk night nurse of Hollow Deep's infirmary who moves without a sound. |
 | `aldric` | Sir Aldric Twinshade | Legendary | Shadow | Defense | human | In Wraithmoor he fought a Hollow knight for a night and a day, until his shadow rose to help him. |
 | `ondessa` | Ondessa Mirebloom | Legendary | Shadow | Hp | fen dryad (living plant) | The fen-folk whisper of a drowned thing that learned to walk. |
+
+## Creature heroes
+
+Heroes on their own creature rigs (`Core/Kit/Creatures.cs`, built by `unity/Tools~/blenderforge/creature.py` from `docs/sigilbound/concepts/creatures.json`).
+
+| Id | Name | Rarity | Element | Role | Species | Lore |
+|---|---|---|---|---|---|---|
+| `vessa` | Vessa Silkmourne | Legendary | Shadow | Attack | spider-folk (elf upper body, eight legs) | The barrows of Wraithmoor hold more than dead kings. Vessa weaves the silk that binds the Hollow in their graves, and lately she has had to weave faster. |

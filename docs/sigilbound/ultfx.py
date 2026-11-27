@@ -38,9 +38,11 @@ KEYS = {
     "Ult_Twirl": "twirl staff circle orbit",
     "Ult_Blessing": "bless hymn prayer dawn grace",
 }
-fx = {}
-for f in ("concepts.json", "new_heroes.json"):
-    for c in json.load(open(os.path.join(HERE, "concepts", f))): fx[c["id"]] = str(c.get("fx", ""))
+fx, own = {}, {}
+for f in ("concepts.json", "new_heroes.json", "creatures.json"):
+    for c in json.load(open(os.path.join(HERE, "concepts", f))):
+        fx[c["id"]] = str(c.get("fx", ""))
+        if c.get("ult_clip"): own[c["id"]] = c["ult_clip"]   # creatures pick the clip their own ultimate aliases
 out = subprocess.run(["dotnet", "run", "--project", os.path.join(ROOT, "unity", "Tests~"), "--", "ults"], capture_output=True, text=True, check=True).stdout
 rows, counts = [], collections.Counter()
 for line in out.splitlines():
@@ -48,7 +50,8 @@ for line in out.splitlines():
     if len(p) < 8: continue
     hid, fam, prop, rarity, role, target, mult, name = p[:8]
     if rarity not in ("Legendary", "Epic"): continue
-    if float(mult) == 0: clip = "Ult_Blessing"
+    if hid in own: clip = own[hid]
+    elif float(mult) == 0: clip = "Ult_Blessing"
     else:
         allowed = [c for c in FAMILY.get(fam, FAMILY["Blade"]) if c != "Ult_Twirl" or prop in STAFFLIKE]
         # Only the ultimate's own words: its name, and the clause of the fx line that names it.

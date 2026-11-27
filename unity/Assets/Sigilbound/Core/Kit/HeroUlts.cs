@@ -74,6 +74,7 @@ namespace Sigilbound.Core
             ["lune"] = "Ult_Channel",
             ["aldric"] = "Ult_Whirlwind",
             ["ondessa"] = "Ult_Channel",
+            ["vessa"] = "Ult_LeapSlam",
         };
         // Normalized impact (or release) time in each clip: damage, numbers and effects land there.
         public static readonly Dictionary<string, double> Impact = new Dictionary<string, double>

@@ -87,11 +87,12 @@ namespace Sigilbound.Client
 
         void Spawn(List<Unit> units, bool ally)
         {
+            var widths = units.Select(x => Creatures.SlotWidth(x.Template.Id)).ToList(); // creatures take more room
             for (int i = 0; i < units.Count; i++)
             {
                 var u = units[i];
                 float scale = u.Titan ? 1.3f : u.Boss ? 1.35f : 1f;
-                var pos = u.Titan ? Arena.ToUnity(BattleLayout.TitanSlot()) : Arena.Slot(ally, i, units.Count);
+                var pos = u.Titan ? Arena.ToUnity(BattleLayout.TitanSlot()) : Arena.Slot(ally, i, widths);
                 _views[u] = CharacterView.Create(u, pos, Arena.FacingYaw(pos), scale, G.GearLookOf(u));
             }
         }
@@ -526,6 +527,7 @@ namespace Sigilbound.Client
                 Vector3 aim = tgtView != null ? tgtView.transform.position : view.transform.position + view.transform.forward * 2;
                 // The colossal Titan: melee heroes stop well short of its legs instead of running into them.
                 if (melee && hit.Count > 0 && hit[0].Titan) { var away = view.transform.position - aim; away.y = 0; aim += away.normalized * 1.6f; }
+                else if (melee && hit.Count > 0 && Creatures.Is(hit[0].Template.Id)) { var away = view.transform.position - aim; away.y = 0; aim += away.normalized * (float)Creatures.MeleeReach(hit[0].Template.Id); }
                 view.Face(aim); // turn toward the target only while acting (0.17.1)
                 if (!melee && !u.Titan && fx != null)
                 {

@@ -386,6 +386,10 @@ namespace Sigilbound.Client
             _busy = false;
         }
 
+        // Centre-to-centre distance a melee attacker stops at: 1.15 m, plus a creature's own reach (a spider-folk's
+        // legs reach well ahead of her). The target's reach is added by BattleController to the aim point.
+        float MeleeStop => 1.15f + (float)Creatures.MeleeReach(Unit?.Template?.Id);
+
         IEnumerator ModelAttack(Vector3 targetPos, bool melee, bool support, bool ult, System.Action onSlam, int skill = -1)
         {
             _busy = true;
@@ -413,7 +417,7 @@ namespace Sigilbound.Client
             {
                 if (melee && HeroUlts.Travels.Contains(uc))
                 {
-                    Vector3 to = _home + dir * Mathf.Max(0.35f, 1 - 1.15f / Mathf.Max(1.2f, dir.magnitude));
+                    Vector3 to = _home + dir * Mathf.Max(0.35f, 1 - MeleeStop / Mathf.Max(MeleeStop + 0.05f, dir.magnitude));
                     m.Run();
                     for (float k = 0; k < 1; k += Time.deltaTime / 0.26f) { transform.position = Vector3.Lerp(_home, to, EaseIO(k)); yield return null; }
                     transform.position = to;
@@ -430,7 +434,7 @@ namespace Sigilbound.Client
             }
             if (melee)
             {
-                Vector3 to = _home + dir * Mathf.Max(0.35f, 1 - 1.15f / Mathf.Max(1.2f, dir.magnitude));
+                Vector3 to = _home + dir * Mathf.Max(0.35f, 1 - MeleeStop / Mathf.Max(MeleeStop + 0.05f, dir.magnitude));
                 m.Run();
                 for (float k = 0; k < 1; k += Time.deltaTime / 0.26f) { transform.position = Vector3.Lerp(_home, to, EaseIO(k)); yield return null; }
                 transform.position = to;
@@ -546,7 +550,26 @@ namespace Sigilbound.Client
         {
             if (_dead || _model == null || Unit.Titan) { Stun(); return; }
             if (_hitCo != null) { StopCoroutine(_hitCo); _hitCo = null; }
-            StartCoroutine(KnockDownRoutine());
+            var cs = Creatures.Of(Unit.Template.Id);
+            StartCoroutine(cs != null && cs.KnockDownHoldsHit ? KnockHoldRoutine() : KnockDownRoutine());
+        }
+        // Creatures that can't fall over (a spider-folk): the hit pose, held, knocked back a little.
+        IEnumerator KnockHoldRoutine()
+        {
+            _busy = true;
+            var hit = _model.Style.Hit.FirstOrDefault(_model.Has);
+            Vector3 from = transform.position, back = _home - transform.forward * 0.35f;
+            if (hit != null && _model.PlayFrom(hit, 0f, 1.4f))
+            {
+                for (float t = 0; t < 0.18f; t += Time.deltaTime) { transform.position = Vector3.Lerp(from, back, 1 - (1 - t / 0.18f) * (1 - t / 0.18f)); yield return null; }
+                yield return _model.WaitNormalized(0.45f, 0.6f);
+                _model.SetFrozen(true); yield return new WaitForSeconds(0.9f); _model.SetFrozen(false);
+                if (_dead) { _busy = false; yield break; }
+                for (float t = 0; t < 0.35f; t += Time.deltaTime) { transform.position = Vector3.Lerp(back, _home, EaseIO(t / 0.35f)); yield return null; }
+            }
+            transform.position = _home;
+            _busy = false;
+            if (!_dead && _model.Stunned()) StartCoroutine(StunRoutine()); else if (!_dead) _model.Idle(0.2f);
         }
         IEnumerator KnockDownRoutine()
         {

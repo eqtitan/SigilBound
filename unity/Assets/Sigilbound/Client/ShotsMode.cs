@@ -176,6 +176,25 @@ namespace Sigilbound.Client
             }
             G.S.settings.auto = true;
 
+            // Creature heroes (Core/Kit/Creatures.cs): Vessa in the team, on the home lineup and in a battle
+            // (wider slot, her own clips, planted feet). A throwaway hero in the throwaway save.
+            {
+                var keep = G.S.team.ToList();
+                var vh = G.AddHero("vessa"); vh.level = 30; vh.stars = 5;
+                G.S.team.Clear(); G.S.team.AddRange(new[] { keep[0], vh.uid }.Concat(keep.Skip(1)).Take(4));
+                CloseModal(); _lineupKey = ""; Go(ScreenId.Home); yield return new WaitForSecondsRealtime(3f);
+                yield return Shot("creature-home");
+                G.S.settings.auto = true; G.S.settings.speed = 1;
+                Battle.Begin(BattleSpec.ForStage(12 * GameData.StagesPerChapter + 1));
+                yield return new WaitForSecondsRealtime(2.5f);
+                yield return Shot("creature-lineup");
+                LogBudget("creature-lineup");
+                yield return new WaitForSecondsRealtime(4f);
+                yield return Shot("creature-battle");
+                Battle.End(ScreenId.Home);
+                G.S.team.Clear(); G.S.team.AddRange(keep); _lineupKey = "";
+            }
+
             // A Titan practice fight (no rewards, nothing saved): the arrival intro, then the worm's-eye view
             // every few seconds, so Titan framing and cinematics can be checked without a phone.
             CloseModal(); Go(ScreenId.Home); yield return new WaitForSecondsRealtime(1f);

@@ -267,6 +267,8 @@ namespace Sigilbound.Core
             ["aldric"] = new HeroLook { Skin = "fair", Hair = "#c8c8d0", Style = "short", Gear = "helm", Armor = "#1e1a30", Accent = "#d0d4e8", Cloth = "#2a3050", Prop = "sword", Glow = "#a070ff", Cape = false, CapeColor = "#2a3050", Base = "monarch", Height = 1.1, Hide = new[] { "hood" } },
             ["ondessa"] = new HeroLook { Skin = "fair", Hair = "#140e1e", Style = "long", Gear = "crown", Armor = "#1a1428", Accent = "#e8d8f8", Cloth = "#3a4a3a", Prop = "staff", Glow = "#a070ff", Cape = false, CapeColor = "#3a4a3a", Base = "hooded", Height = 1.08, Hide = new[] { "hood" } },
             // --- end phase H looks ---
+            // Creature heroes (fallback look only: the game shows the high-detail creature build).
+            ["vessa"] = new HeroLook { Skin = "#a2a2c6", Hair = "#0e0c12", Style = "long", Gear = "none", Armor = "#141218", Accent = "#c8cad8", Cloth = "#2a2236", Prop = "sickle", Glow = "#8a4cff", Cape = false, CapeColor = "#2a2236", Base = "hooded", Height = 1.15, Hide = new[] { "hood" } },
         };
     }
 }

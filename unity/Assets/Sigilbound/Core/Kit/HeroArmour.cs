@@ -160,6 +160,7 @@ namespace Sigilbound.Core
             ["lune"] = ArmourClass.Cloth,
             ["aldric"] = ArmourClass.Plate,
             ["ondessa"] = ArmourClass.Cloth,
+            ["vessa"] = ArmourClass.Leather,
         };
         // Unlisted ids (enemies built from other templates): by role, defenders wear plate.
         public static ArmourClass Of(string id, Role role) => Table.TryGetValue(id ?? "", out var k) ? k : role switch
