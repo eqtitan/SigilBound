@@ -29,7 +29,8 @@ def hexc(h, a=1.0):
 
 def part_file(name, sex, slot):
     if not name or str(name).startswith(("custom", "none")): return None
-    n = name.strip()
+    # the part name is the leading token: "Male_Knight_Acc_Pauldron_Spike (right only)", "Male_Peasant_Body as an apron"
+    m = re.match(r"[A-Za-z_/]+", name.strip()); n = (m.group(0) if m else name.strip()).replace("/", "_")
     cands = [n, ("Female_" if sex == "female" else "Male_") + n]
     if sex == "female" and not n.startswith("Female_"): cands = ["Female_" + n] + cands[:1]
     for c in cands:
