@@ -73,6 +73,7 @@ namespace Sigilbound.Client
             Clear();
             Spawn(_b.Allies, true); Spawn(_b.Enemies, false);
             _finished = false; _awaiting = false; _banner = ""; _actor = null;
+            _cinema = _skippable = false; _revealTitle = null; // a cinematic cut short by leaving the last battle
             _t0 = Time.unscaledTime; _paused = false; _taken.Clear(); _healed.Clear();
             App.Go(ScreenId.Battle);
             Sound.I?.StartMusic(IsTitan);
@@ -177,6 +178,63 @@ namespace Sigilbound.Client
                 yield return null;
             }
             arena.ClearOverride(); _cinema = _skippable = false; Time.timeScale = _paused ? 0 : keepSpeed;
+        }
+
+        // ---------- lair reveal (owner pick C, 2026-11-27; presentation only) ----------
+        // On a campaign boss stage (stage 6, Normal and Hard) the camera starts low behind the team looking up at
+        // the lair's landmark whole against the sky, rises, then settles into the battle view, while the lair's
+        // name fades in and out. About 2.5 s at normal speed (timeScale 1, whatever the battle speed); a tap
+        // skips it; the fight starts after it. Landmark and height: Core.StoryScenes.RevealOf.
+        string _revealTitle, _revealSub; float _revealT;
+        const float RevealLen = 2.5f;
+        IEnumerator LairReveal()
+        {
+            if ((_spec.Mode != BattleMode.Stage && _spec.Mode != BattleMode.Hard) || !Game.IsBossStage(_spec.Stage)) yield break;
+            int chapter = Game.ChapterOf(_spec.Stage);
+            var rv = StoryScenes.RevealOf(chapter);
+            if (rv == null) yield break;
+            var (pc, top) = rv.Value;
+            var arena = App.Arena; float keepSpeed = Time.timeScale; Time.timeScale = 1;
+            _cinema = _skippable = true;
+            _revealTitle = StoryScenes.LairTitle(chapter); _revealSub = Chapters[chapter];
+            var L = new Vector3(pc.X, 0, pc.Z);
+            Sound.I?.PlayAt("lairReveal", L, 0.9f);
+            // Three keys: low behind the team looking up at the whole landmark; risen and pulled back; then the
+            // override fades out into the battle view (the framed pose).
+            // The low eye looks through a gap in the team: the sight line to the landmark crosses the allies' row
+            // (z ~ -3) between two heroes, or just beside the row, whichever is nearest the straight line.
+            float k = 2.6f / Mathf.Max(4f, pc.Z + 5.6f), straight = pc.X * k;
+            var xs = _views.Where(kv => kv.Key.Ally && kv.Value != null).Select(kv => kv.Value.transform.position.x).OrderBy(x => x).ToList();
+            var gaps = new List<float>();
+            if (xs.Count > 0) { gaps.Add(xs[0] - 1.2f); gaps.Add(xs[xs.Count - 1] + 1.2f); for (int i = 1; i < xs.Count; i++) gaps.Add((xs[i - 1] + xs[i]) * 0.5f); }
+            float cross = gaps.Count > 0 ? gaps.OrderBy(g => Mathf.Abs(g - straight)).First() : straight;
+            float ex = (cross - pc.X * k) / (1 - k);
+            var eye0 = new Vector3(ex, 1.05f, -5.6f); var look0 = new Vector3(pc.X, top * 0.72f, pc.Z);
+            var eye1 = new Vector3(3.2f, 2.7f, -8f); var look1 = new Vector3(pc.X * 0.6f, top * 0.45f, pc.Z * 0.7f);
+            arena.ClearSightForReveal(new[] { eye0, Vector3.Lerp(eye0, eye1, 0.5f), eye1 }, L, top);
+            for (_revealT = 0; _revealT < RevealLen; _revealT += Time.unscaledDeltaTime)
+            {
+                if (_revealT > 0.2f && Input.GetMouseButtonDown(0)) break;
+                float u = Ease(_revealT / 1.8f);
+                arena.Override(Vector3.Lerp(eye0, eye1, u), Vector3.Lerp(look0, look1, u), Mathf.Lerp(54f, 52f, u),
+                               _revealT < 1.8f ? 1f : 1f - Ease((_revealT - 1.8f) / (RevealLen - 1.8f)));
+                yield return null;
+            }
+            arena.ClearOverride(); _cinema = _skippable = false; _revealTitle = null; Time.timeScale = _paused ? 0 : keepSpeed;
+            arena.FrameBattle(CamKey, false); // restores what the reveal hid and hides the battle view's own occluders
+        }
+
+        // The lair's name in the gold serif heading style, the chapter under it, fading in and out.
+        void DrawRevealTitle()
+        {
+            float t = _revealT, a = Mathf.Clamp01((t - 0.25f) / 0.45f) * Mathf.Clamp01((RevealLen - 0.15f - t) / 0.5f);
+            if (a <= 0) return;
+            float y = Ui.Safe.y + Ui.Safe.height * 0.18f, w = Ui.W;
+            var gold = Palette.Gold; gold.a = a; var shade = new Color(0, 0, 0, 0.6f * a); var sub = new Color(0.92f, 0.88f, 0.8f, a);
+            Ui.Text(new Rect(2, y + 2, w, 44), _revealTitle, 30, shade, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+            Ui.Text(new Rect(0, y, w, 44), _revealTitle, 30, gold, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+            Ui.Text(new Rect(1, y + 45, w, 24), _revealSub, 15, shade, FontStyle.Normal, TextAnchor.MiddleCenter, false, true);
+            Ui.Text(new Rect(0, y + 44, w, 24), _revealSub, 15, sub, FontStyle.Normal, TextAnchor.MiddleCenter, false, true);
         }
 
         // The Titan's fight-ending blow: slow motion, a low camera looking up as it raises its weapon high,
@@ -393,6 +451,7 @@ namespace Sigilbound.Client
         IEnumerator Loop()
         {
             if (IsTitan) yield return TitanIntro();
+            else yield return LairReveal();
             yield return new WaitForSeconds(0.5f);
             while (!_b.Over)
             {
@@ -858,7 +917,8 @@ namespace Sigilbound.Client
             if (_b == null) return;
             if (_cinema)
             {
-                // Titan cinematics: the HUD steps aside (a skip hint during the arrival).
+                // Titan cinematics and the lair reveal: the HUD steps aside (a skip hint during the arrivals).
+                if (_revealTitle != null) DrawRevealTitle();
                 if (_skippable) Ui.Text(new Rect(0, Ui.Safe.yMax - 40, Ui.W, 28), "Tap to skip", 13, new Color(1, 1, 1, 0.7f), FontStyle.Normal, TextAnchor.MiddleCenter);
                 return;
             }

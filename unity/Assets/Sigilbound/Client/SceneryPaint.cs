@@ -314,7 +314,9 @@ namespace Sigilbound.Client
         // A backdrop strip (sky, ridges): a straight front card at depth z across +-halfW, chamfered
         // corners and side cards running back to backZ, u along the strip, v up. Straight cards project as
         // straight lines from the high battle cameras (a curved arc bowed into an arch).
-        public static Mesh Backdrop(float halfW, float z, float backZ, float y0, float height)
+        // vTop: the texture's v at the top edge; above 1 the clamped top row (the sky's zenith colour, the same
+        // as the camera's clear colour) carries on, so low upward shots (the lair reveal) never run out of sky.
+        public static Mesh Backdrop(float halfW, float z, float backZ, float y0, float height, float vTop = 1f)
         {
             float c = 8f; // chamfer
             var path = new[] { new Vector2(-halfW, backZ), new Vector2(-halfW, z - c), new Vector2(-halfW + c, z), new Vector2(halfW - c, z), new Vector2(halfW, z - c), new Vector2(halfW, backZ) };
@@ -326,7 +328,7 @@ namespace Sigilbound.Client
             {
                 v[i * 2] = new Vector3(path[i].x, y0, path[i].y); v[i * 2 + 1] = new Vector3(path[i].x, y0 + height, path[i].y);
                 float u = len[i] / len[path.Length - 1];
-                uv[i * 2] = new Vector2(u, 0); uv[i * 2 + 1] = new Vector2(u, 1);
+                uv[i * 2] = new Vector2(u, 0); uv[i * 2 + 1] = new Vector2(u, vTop);
             }
             for (int i = 0; i < path.Length - 1; i++)
             {

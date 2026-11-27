@@ -68,6 +68,39 @@ namespace Sigilbound.Core
         }
         public static string StopName(int stageIndex) => Of(stageIndex / GameData.StagesPerChapter, stageIndex % GameData.StagesPerChapter)?.Name;
 
+        // ---- the lair reveal (owner pick C, 2026-11-27; Client/BattleController.LairReveal) ----
+        // Per chapter: the lair's main landmark (a piece of its stage-6 set) and the height of its top in metres,
+        // at the size it stands in the lair. The camera starts low behind the team looking up at it.
+        static readonly (string mesh, float top)[] Reveal =
+        {
+            ("wagon", 3.7f), ("drowned_mill", 6.6f), ("cairn", 5.2f), ("stilt_hut", 5.8f), ("bellspire", 14.3f),
+            ("glass_wastes", 7.7f), ("stormcrown", 11.3f), ("hollow_deep", 4.9f), ("sunken_cathedral", 9f), ("last_pyre", 6.4f),
+            ("lighthouse", 7.3f), ("drowned_shrine", 5.7f), ("kings_barrow", 5.7f), ("great_tree", 11.3f), ("sea_throne", 8f),
+        };
+        public static (Piece piece, float top)? RevealOf(int chapter)
+        {
+            if (chapter < 0 || chapter >= Reveal.Length || chapter >= Sets.Length) return null;
+            var lair = Sets[chapter][GameData.StagesPerChapter - 1];
+            foreach (var p in lair.Pieces) if (p.Mesh == Reveal[chapter].mesh && !p.Far) return (p, Reveal[chapter].top);
+            return null;
+        }
+        // "The half-sunk mill" -> "The Half-Sunk Mill" (the reveal's title card).
+        public static string LairTitle(int chapter)
+        {
+            var name = Of(chapter, GameData.StagesPerChapter - 1)?.Name;
+            if (name == null) return null;
+            var small = new System.Collections.Generic.HashSet<string> { "of", "in", "the", "a", "an", "at", "on", "and" };
+            var words = name.Split(' ');
+            for (int i = 0; i < words.Length; i++)
+            {
+                if (i > 0 && small.Contains(words[i])) continue;
+                var parts = words[i].Split('-');
+                for (int k = 0; k < parts.Length; k++) if (parts[k].Length > 0) parts[k] = char.ToUpperInvariant(parts[k][0]) + parts[k].Substring(1);
+                words[i] = string.Join("-", parts);
+            }
+            return string.Join(" ", words);
+        }
+
         public static readonly StageSet[][] Sets =
         {
             // ACT1-BEGIN
@@ -91,7 +124,7 @@ namespace Sigilbound.Core
                     P("drowned_mill", 7, 17.5f, -20, 0.99f, 3), P("drowned_mill_wheel", 4.72f, 17.5f, 70, 0.99f, 2, y: 0.89f)),
                 S("The mill yard", Mood.Dusk, P("mill_yard", -4.5f, 10.5f, 10, 1.1f, 3.5f), P("cottage", -10.5f, 13.5f, 40, 0.9f, 3),
                     P("drowned_mill", 6.5f, 15, -15, 1.02f, 3), P("drowned_mill_wheel", 4.16f, 15, 75, 1.02f, 2, y: 0.88f)),
-                S("The half-sunk mill", Mood.Dusk, P("drowned_mill", -1, 11, -12, 0.99f, 3.2f), P("drowned_mill_wheel", -3.19f, 10.4f, 78, 0.99f, 2, y: 0.82f, fx: LairFx.Spin),
+                S("The half-sunk mill", Mood.Dusk, P("drowned_mill", 1, 12.8f, -12, 1.45f, 4.5f), P("drowned_mill_wheel", -2.2f, 12.2f, 78, 1.45f, 2.5f, y: 1.2f, fx: LairFx.Spin),
                     P("rowboat", 6, 10.8f, 30, 1, 1.5f)),
             },
             new[] { // 3. Ashgrave Pass (red badlands)
@@ -100,7 +133,7 @@ namespace Sigilbound.Core
                 S("The mourners' camp", Mood.Golden, P("camp", -6, 10, 20, 1.1f, 3), P("banner_pole", 6, 8.5f), P("cairn", -3, 21, 0, 1.14f, 2, far: true), P("cairn", 3, 21.5f, 0, 1.2f, 2, far: true)),
                 S("The mourners' bell", Mood.Golden, P("bellpost", 5.8f, 8, -20, 1.1f, 1.5f), P("graves", -7, 9.5f, 10, 0.8f, 3), P("cairn", -3, 20, 0, 1.16f, 2, far: true), P("cairn", 3, 20.5f, 0, 1.2f, 2, far: true)),
                 S("The gate cairns", Mood.Dusk, P("cairn", -7.5f, 9.5f, 0, 1.3f, 2), P("cairn", 7.5f, 10, 0, 1.3f, 2), P("graves", 0, 16, 0, 1, 3)),
-                S("The graveyard in the pass", Mood.Dusk, P("cairn", -5, 11, 0, 1.31f, 2, fx: LairFx.Vent), P("cairn", 5, 11.5f, 0, 1.47f, 2, fx: LairFx.Vent), P("graves", 0, 12.5f, 0, 1.3f, 3.5f),
+                S("The graveyard in the pass", Mood.Dusk, P("cairn", -5, 11, 0, 1.6f, 2, fx: LairFx.Vent), P("cairn", 5, 11.5f, 0, 1.6f, 2, fx: LairFx.Vent), P("graves", 0, 12.5f, 0, 1.3f, 3.5f),
                     P("bellpost", 2.8f, 15.5f, -10, 1.2f, 1.5f, fx: LairFx.Toll)),
             },
             new[] { // 4. Saltmarsh Reaches (green marsh; water beyond z 10)
@@ -109,7 +142,7 @@ namespace Sigilbound.Core
                 S("The drowned boat", Mood.Golden, P("rowboat", -4.5f, 11, 30, 1, 1.5f, y: -0.2f), P("reeds1", 6, 7.5f), P("stilt_hut", 4, 21, -10, 0.99f, 2.5f, far: true)),
                 S("The salt pans", Mood.Golden, P("salt_pans", -7, 8, 10, 1, 3), P("stilt_hut", 5, 20, -10, 1, 2.5f, far: true)),
                 S("The outer hut", Mood.Dusk, P("stilt_hut", 6.5f, 11, -15, 1.1f, 2.5f), P("plankwalk", -6.5f, 8, 80, 1, 2)),
-                S("The stilt village", Mood.Night, P("stilt_hut", -3, 12.5f, 10, 1.04f, 2.5f, fx: LairFx.Sway), P("stilt_hut", 3.8f, 13.5f, -20, 1.11f, 2.5f, fx: LairFx.Sway),
+                S("The stilt village", Mood.Night, P("stilt_hut", -3, 12.5f, 10, 1.4f, 2.5f, fx: LairFx.Sway), P("stilt_hut", 3.8f, 13.5f, -20, 1.25f, 2.5f, fx: LairFx.Sway),
                     P("plankwalk", 0.4f, 13, 0, 1.2f, 2), P("fishing_gear", -7.5f, 9, 20, 1, 2), P("lantern", 7, 9.5f, 0, 1, 1, "fire", fx: LairFx.Flare, fxY: 1.9f)),
             },
             new[] { // 5. Bellspire Ruins (gold ruins)
@@ -118,7 +151,7 @@ namespace Sigilbound.Core
                 S("The market cross", Mood.Late, P("market_cross", -6, 9.5f, 0, 1, 3), P("bellspire", 6, 22, 0, 0.35f, 3, far: true)),
                 S("The cloister", Mood.Golden, P("arcade", -7, 10, 80, 0.76f, 3.5f), P("bellspire", 4, 21, 0, 0.34f, 3, far: true)),
                 S("The fallen buttress", Mood.Golden, P("buttress", 6, 9, -20, 1.2f, 2.5f), P("bellspire", 4, 17, 0, 0.37f, 3)),
-                S("The leaning bell tower", Mood.Dusk, P("bellspire", -0.5f, 9.4f, 0, 0.39f, 2.6f), P("bellspire_bell", -0.92f, 9.4f, 0, 0.39f, 1, y: 3.2f, fx: LairFx.Swing),
+                S("The leaning bell tower", Mood.Dusk, P("bellspire", 2.5f, 12.5f, 0, 1.2f, 3.5f), P("bellspire_bell", 1.2f, 12.5f, 0, 1.2f, 1, y: 9.8f, fx: LairFx.Swing),
                     P("column2", -6.5f, 10), P("wall1", 7, 10.5f, -20, 1, 2.5f)),
             },
             new[] { // 6. The Glass Wastes (glass desert)
@@ -127,7 +160,7 @@ namespace Sigilbound.Core
                 S("The glassed caravan", Mood.Late, P("wagon", -6.5f, 9.5f, 30, 1, 3), P("glass_spire", -4, 12, 0, 0.6f, 1.2f, "glass"), P("glass_wastes", 3, 22, 0, 0.65f, 4, "glass", far: true)),
                 S("The fulgurite field", Mood.Golden, P("fulgurite", -6.5f, 9, 20, 1.2f, 2.5f), P("fulgurite", 7, 11, -30, 1, 2.5f), P("glass_wastes", 0, 21, 0, 0.63f, 4, "glass", far: true)),
                 S("The spire gate", Mood.Dusk, P("glass_spire", -5.5f, 11, 0, 1.6f, 2, "glass"), P("glass_spire", 5.5f, 11.5f, 30, 1.6f, 2, "glass"), P("glass_wastes", 0, 18, 0, 0.67f, 4, "glass")),
-                S("The singing spires", Mood.Dusk, P("glass_wastes", -2, 10.6f, 0, 0.73f, 3.6f, "glass", fx: LairFx.Chime)),
+                S("The singing spires", Mood.Dusk, P("glass_wastes", 0, 12.5f, 0, 1.25f, 4.5f, "glass", fx: LairFx.Chime)),
             },
             new[] { // 7. Stormcrown Heights (stormcrown crag)
                 S("The switchback", Mood.Day, P("scree", 6.5f, 9), P("pine0", -6.5f, 8), P("stormcrown", -4, 23, 0, 0.45f, 4, far: true)),
@@ -135,7 +168,7 @@ namespace Sigilbound.Core
                 S("The shepherds' bothy", Mood.Golden, P("bothy", 6.5f, 9, -20, 1.1f, 2), P("fence", -7, 8, 60), P("stormcrown", -4, 22, 0, 0.46f, 4, far: true)),
                 S("The scree field", Mood.Dusk, P("scree", -6.5f, 9, 0, 1.3f, 2.5f), P("scree", 6.5f, 10.5f, 60, 1.1f, 2.5f), P("stormcrown", 2, 21, 0, 0.51f, 4, far: true)),
                 S("The storm altar", Mood.Night, P("storm_altar", 6, 9, -15, 1, 2), P("stormcrown", 0, 18, 0, 0.52f, 4)),
-                S("The crown crag", Mood.Night, P("stormcrown", -2, 10, 0, 0.58f, 3.2f, fx: LairFx.Strike, fxY: 5.2f)),
+                S("The crown crag", Mood.Night, P("stormcrown", 0, 14.5f, 0, 1.45f, 4.5f, fx: LairFx.Strike, fxY: 5.2f)),
             },
             new[] { // 8. Hollow Deep (amethyst badlands)
                 S("The mine track", Mood.Day, P("mine_cart", -6.5f, 8.5f, 10, 1, 2.5f), P("hollow_deep", 4, 23, 0, 0.94f, 4, "hollow", far: true)),
@@ -143,7 +176,7 @@ namespace Sigilbound.Core
                 S("The crystal seam", Mood.Golden, P("crystal0", -6.5f, 8, 0, 1.4f), P("crystal1", 6.5f, 9.5f, 0, 1.3f), P("hollow_deep", 4, 22, 0, 0.95f, 4, "hollow", far: true)),
                 S("The sinkhole", Mood.Dusk, P("sinkhole", 6.5f, 10.5f, 0, 1, 2.5f, "hollow"), P("hollow_deep", -3, 21, 0, 0.88f, 4, "hollow", far: true)),
                 S("The Hollow-touched", Mood.Night, P("crystal0", -6, 9), P("crystal1", 7, 8), P("sinkhole", -7, 12.5f, 0, 1, 2.5f, "hollow"), P("hollow_deep", 2, 18, 0, 0.99f, 4, "hollow")),
-                S("The cavern mouth", Mood.Night, P("hollow_deep", 0, 13.5f, 0, 1.04f, 4.5f, "hollow", fx: LairFx.Drip), P("winch", 7, 9.5f)),
+                S("The cavern mouth", Mood.Night, P("hollow_deep", 0, 13.5f, 0, 1.15f, 4.5f, "hollow", fx: LairFx.Drip), P("winch", 7, 9.5f)),
             },
             new[] { // 9. Sunken Cathedral (glow marsh; water beyond z 10)
                 S("The pilgrims' road", Mood.Late, P("shrine_post", -5.8f, 7), P("shrine_post", 6, 8.5f), P("sunken_cathedral", -2, 21, 0, 0.55f, 4, "rose", far: true)),
@@ -151,7 +184,7 @@ namespace Sigilbound.Core
                 S("The bell in the reeds", Mood.Golden, P("fallen_bell", 6, 9.5f, 0, 1, 1.5f), P("reeds0", 7.5f, 7.5f), P("sunken_cathedral", -3, 20, 0, 0.55f, 4, "rose", far: true)),
                 S("The chapter house", Mood.Dusk, P("chapel", -7, 9, 15, 1.1f, 3), P("sunken_cathedral", 2, 20, 0, 0.59f, 4, "rose", far: true)),
                 S("The nave steps", Mood.Night, P("nave_steps", 0, 12, 0, 1, 3), P("sunken_cathedral", 0, 17.5f, 0, 0.6f, 4, "rose")),
-                S("The flooded nave", Mood.Night, P("sunken_cathedral", 0, 9.6f, 0, 0.68f, 3, "rose", fx: LairFx.Drip)),
+                S("The flooded nave", Mood.Night, P("sunken_cathedral", 0, 9.6f, 0, 1.3f, 3, "rose", fx: LairFx.Drip)),
             },
             new[] { // 10. The Last Pyre (burning ruins)
                 S("The burning road", Mood.Dusk, P("gatehouse", -6.5f, 10, 10, 1, 3), P("last_pyre", 0, 23, 0, 0.67f, 4, "fire", far: true)),
@@ -160,7 +193,7 @@ namespace Sigilbound.Core
                     P("torch_post", 7, 9, 0, 1, 1, "fire"), P("torch_post", -7.2f, 12, 0, 1, 1, "fire"), P("torch_post", 7.2f, 12, 0, 1, 1, "fire"), P("last_pyre", 0, 22, 0, 0.68f, 4, "fire", far: true)),
                 S("The Hollow host", Mood.Night, P("banner_pole", -5.5f, 9), P("banner_pole", 5.5f, 9.5f), P("camp", -7.5f, 12.5f, 20, 1, 3), P("last_pyre", 2, 21, 0, 0.71f, 4, "fire", far: true)),
                 S("The dais steps", Mood.Night, P("torch_post", -6, 9, 0, 1, 1, "fire"), P("torch_post", 6, 9, 0, 1, 1, "fire"), P("last_pyre", 0, 17, 0, 0.74f, 4, "fire")),
-                S("The Last Pyre", Mood.Night, P("last_pyre", -2, 10.4f, 0, 0.8f, 3.6f, "fire", fx: LairFx.Flare, fxY: 3.6f),
+                S("The Last Pyre", Mood.Night, P("last_pyre", 0, 13.5f, 0, 1.15f, 4.5f, "fire", fx: LairFx.Flare, fxY: 3.6f),
                     P("torch_post", -6.8f, 8.5f, 0, 1, 1, "fire", fx: LairFx.Flare, fxY: 1.9f), P("torch_post", 6.8f, 8.5f, 0, 1, 1, "fire", fx: LairFx.Flare, fxY: 1.9f)),
             },
             // ACT1-END
@@ -174,7 +207,7 @@ namespace Sigilbound.Core
                 S("The breakwater", Mood.Dusk, P("post0", -5, 9.6f), P("post1", -3, 9.8f), P("post0", 5, 9.6f), P("rowboat", 4.5f, 11.4f, 40, 1, 1.5f),
                     P("lighthouse", 5, 20, 0, 0.43f, 3, far: true), P("lighthouse_lamp", 5, 20, 25, 0.43f, 1, "flame", y: 3.52f, far: true)),
                 S("The pier's end", Mood.Dusk, P("post0", -5.5f, 9.6f), P("crate", -7, 8), P("lighthouse", 5.5f, 17, 0, 0.46f, 3), P("lighthouse_lamp", 5.5f, 17, 25, 0.46f, 1, "flame", y: 3.7f)),
-                S("The old lighthouse", Mood.Night, P("lighthouse", 1.5f, 11.2f, 0, 0.48f, 2.4f), P("lighthouse_lamp", 1.5f, 11.2f, 25, 0.48f, 1, "flame", y: 3.88f, fx: LairFx.Beam),
+                S("The old lighthouse", Mood.Night, P("lighthouse", 3.5f, 16, 0, 0.75f, 3), P("lighthouse_lamp", 3.5f, 16, 25, 0.75f, 1, "flame", y: 6.1f, fx: LairFx.Beam),
                     P("rowboat", -4, 11, 20, 1, 1.5f), P("post0", -6, 9.6f), P("post1", 6.5f, 9.6f)),
             },
             new[] { // 12. The Black Fens (water beyond z 10)
@@ -185,7 +218,7 @@ namespace Sigilbound.Core
                 S("The bog hovel", Mood.Dusk, P("cottage", -7.5f, 9, 25, 1, 3, y: -0.4f), P("drowned_shrine", 3, 20, 0, 1.2f, 3, "shadow", far: true)),
                 S("The lantern path", Mood.Night, P("spirit_lantern", -6, 7, 0, 1, 1), P("spirit_lantern", 6, 7, 0, 1, 1), P("spirit_lantern", -5.5f, 10.5f, 0, 1, 1), P("spirit_lantern", 5.5f, 10.5f, 0, 1, 1),
                     P("drowned_shrine", 0, 16, 0, 1.2f, 3, "shadow")),
-                S("The drowned shrine", Mood.Night, P("drowned_shrine", 0, 12, 0, 1.31f, 3.5f, "shadow", fx: LairFx.Pulse),
+                S("The drowned shrine", Mood.Night, P("drowned_shrine", 0, 12, 0, 1.65f, 3.5f, "shadow", fx: LairFx.Pulse),
                     P("spirit_lantern", -6.5f, 6.5f, 0, 1, 1, fx: LairFx.Snuff), P("spirit_lantern", 6.5f, 6.5f, 0, 1, 1, fx: LairFx.Snuff), P("spirit_lantern", -6, 9.5f, 0, 1, 1, fx: LairFx.Snuff),
                     P("spirit_lantern", 6, 9.5f, 0, 1, 1, fx: LairFx.Snuff), P("spirit_lantern", -4.5f, 12, 0, 1, 1, fx: LairFx.Snuff), P("spirit_lantern", 4.5f, 12, 0, 1, 1, fx: LairFx.Snuff)),
             },
@@ -195,7 +228,7 @@ namespace Sigilbound.Core
                 S("The stone row", Mood.Golden, P("stone0", -6.5f, 6), P("stone1", -6.5f, 8.5f), P("stone0", -6.5f, 11), P("stone1", -6.5f, 13.5f), P("kings_barrow", 3, 22, 0, 0.95f, 5, "tide", far: true)),
                 S("The opened grave", Mood.Dusk, P("opened_grave", 7, 11, -20, 1, 3), P("kings_barrow", -2, 22, 0, 0.88f, 5, "tide", far: true)),
                 S("The king's avenue", Mood.Night, P("stone0", -5.5f, 8), P("stone0", 5.5f, 8), P("stone1", -6, 11), P("stone1", 6, 11), P("kings_barrow", 0, 19, 0, 0.96f, 5, "tide")),
-                S("The king's barrow", Mood.Night, P("kings_barrow", 0, 14.5f, 0, 1.03f, 5, "tide", fx: LairFx.Pulse)),
+                S("The king's barrow", Mood.Night, P("kings_barrow", 0, 14.5f, 0, 1.35f, 5, "tide", fx: LairFx.Pulse)),
             },
             new[] { // 14. The Ember Groves
                 S("The grove edge", Mood.Dusk, P("dead0", -6.5f, 8), P("roots", 7, 10, 0, 0.7f, 2), P("great_tree", 3, 23, 0, 0.4f, 4, "light", far: true)),
@@ -203,7 +236,7 @@ namespace Sigilbound.Core
                 S("The burning arch", Mood.Night, P("burning_arch", 0, 13, 0, 0.87f, 3), P("great_tree", 6, 23, 0, 0.41f, 4, "light", far: true)),
                 S("The cinder stream", Mood.Night, P("cinder_stream", 6, 11.5f, 20, 1, 3), P("great_tree", -3, 22, 0, 0.37f, 4, "light", far: true)),
                 S("The heartwood ring", Mood.Night, P("roots", -6.5f, 10.5f, 0, 1, 2.5f), P("roots", 7, 11, 40, 1, 2.5f), P("great_tree", 0, 18.5f, 0, 0.41f, 4, "light")),
-                S("The burning great tree", Mood.Night, P("great_tree", -2, 10, 0, 0.46f, 3, "light", fx: LairFx.Flare, fxY: 7f)),
+                S("The burning great tree", Mood.Night, P("great_tree", 0, 14.5f, 0, 1.15f, 4.5f, "light", fx: LairFx.Flare, fxY: 7f)),
             },
             new[] { // 15. The Storm Coast (water beyond z 10)
                 S("The cliff path", Mood.Day, P("stone0", -6, 6.5f), P("stone1", 6.5f, 8), P("sea_throne", -3, 23, 8, 0.32f, 4, "gale", far: true)),
@@ -212,7 +245,7 @@ namespace Sigilbound.Core
                 S("The sea stacks", Mood.Dusk, P("sea_stacks", 3, 14.5f, 0, 0.85f, 4), P("post0", -6.5f, 8), P("sea_throne", -6, 22, 10, 0.31f, 4, "gale", far: true)),
                 S("The Hollow camp", Mood.Dusk, P("banner_pole", -5.5f, 9), P("banner_pole", 5.5f, 9.5f), P("brazier", -7, 6.5f, 0, 1, 1, "fire"), P("brazier", 7, 6.5f, 0, 1, 1, "fire"),
                     P("crate", -3.5f, 11.5f, 10), P("sea_throne", 1, 19, 0, 0.36f, 4, "gale")),
-                S("The sea-cliff throne", Mood.Night, P("sea_throne", -2, 10.2f, 0, 0.4f, 3.2f, "gale", fx: LairFx.Strike, fxY: 9.5f)),
+                S("The sea-cliff throne", Mood.Night, P("sea_throne", 1.5f, 13.5f, 0, 0.72f, 4.5f, "gale", fx: LairFx.Strike, fxY: 9.5f)),
             },
             // ACT2-END
         };

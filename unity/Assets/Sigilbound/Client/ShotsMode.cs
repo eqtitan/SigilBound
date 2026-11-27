@@ -146,10 +146,24 @@ namespace Sigilbound.Client
                 CloseModal(); Go(ScreenId.Home); yield return new WaitForSecondsRealtime(0.5f);
                 G.S.settings.auto = false;
                 Battle.Begin(BattleSpec.ForStage(c * GameData.StagesPerChapter + st));
-                yield return new WaitForSecondsRealtime(2.5f);
+                yield return new WaitForSecondsRealtime(st == GameData.StagesPerChapter - 1 ? 3.2f : 2.5f); // boss stages: after the lair reveal
                 ShotLog($"story {GameData.Chapters[c]} stage {st + 1}: {StoryScenes.Of(c, st)?.Name}");
                 yield return Shot(label);
                 LogBudget(label);
+                Battle.End(ScreenId.Home);
+            }
+            G.S.settings.auto = true;
+
+            // The lair reveal (boss stages): a mid-reveal frame, then the battle view it settles into.
+            foreach (var (c, label) in new[] { (4, "lair-reveal-1"), (14, "lair-reveal-2") })
+            {
+                CloseModal(); Go(ScreenId.Home); yield return new WaitForSecondsRealtime(0.5f);
+                G.S.settings.auto = false;
+                Battle.Begin(BattleSpec.ForStage(c * GameData.StagesPerChapter + GameData.StagesPerChapter - 1));
+                yield return new WaitForSecondsRealtime(0.35f);   // Shot waits 0.8 s more: the frame lands ~1.1 s in
+                yield return Shot(label);
+                yield return new WaitForSecondsRealtime(1.6f);
+                yield return Shot(label + "-battle");
                 Battle.End(ScreenId.Home);
             }
             G.S.settings.auto = true;

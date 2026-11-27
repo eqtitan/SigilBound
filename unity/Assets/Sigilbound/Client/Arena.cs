@@ -118,6 +118,14 @@ namespace Sigilbound.Client
                     var p = ctr + new Vector3(Mathf.Cos(ang) * (float)BattleLayout.RimRx * k, 0, Mathf.Sin(ang) * (float)BattleLayout.RimRz * k);
                     foreach (float h in new[] { 0.3f, 1.2f, 2.4f }) targets.Add(p + Vector3.up * h);
                 }
+            HideBetween(new[] { eye }, targets, null);
+        }
+
+        // Hides scenery that sits within 1.2 m of an eye or cuts a sight line from any eye to any target
+        // (ground, sky, water, the ring and far backdrop stay). keep: the subject's base (the lair landmark):
+        // renderers centred within 3.5 m of it (the landmark, its bell, lamp or wheel) are never hidden.
+        void HideBetween(Vector3[] eyes, List<Vector3> targets, Vector3? keep)
+        {
             foreach (var r in _scenery.GetComponentsInChildren<Renderer>(true))
             {
                 if (!r.enabled) continue;
@@ -126,18 +134,34 @@ namespace Sigilbound.Client
                 var b = r.bounds;
                 if (b.extents.magnitude > 18f) continue; // sky domes, backdrop hills far away
                 if (b.max.y < 0.15f) continue;            // flat ground decals never block
-                bool block = b.SqrDistance(eye) < 1.2f * 1.2f;
-                if (!block)
+                if (keep.HasValue && new Vector2(b.center.x - keep.Value.x, b.center.z - keep.Value.z).sqrMagnitude < 3.5f * 3.5f) continue; // the landmark and its parts
+                bool block = false;
+                foreach (var eye in eyes)
                 {
+                    if (b.SqrDistance(eye) < 1.2f * 1.2f) { block = true; break; }
                     var bb = b; bb.Expand(0.25f);
                     foreach (var t in targets)
                     {
                         var d = t - eye; float len = d.magnitude;
                         if (bb.IntersectRay(new Ray(eye, d / len), out float hit) && hit < len - 0.45f) { block = true; break; }
                     }
+                    if (block) break;
                 }
                 if (block) { r.enabled = false; _hidden.Add(r); }
             }
+        }
+
+        // The lair reveal's low camera path: hide scatter between its eyes and the landmark (base, middle, top).
+        // FrameBattle (called when the reveal ends) puts them back and hides the battle view's own occluders.
+        public void ClearSightForReveal(Vector3[] eyes, Vector3 landmark, float top)
+        {
+            foreach (var r in _hidden) if (r) r.enabled = true;
+            _hidden.Clear();
+            if (!_scenery) return;
+            var targets = new List<Vector3>();
+            foreach (float k in new[] { 0.1f, 0.5f, 0.9f })
+                foreach (float dx in new[] { -1.5f, 0f, 1.5f }) targets.Add(landmark + new Vector3(dx, top * k, 0));
+            HideBetween(eyes, targets, landmark + Vector3.up * 0.5f);
         }
 
         void LateUpdate()

@@ -98,7 +98,7 @@ namespace Sigilbound.Client
                 // ridge card stands at z 28 (x +-30), inside the ground the high menu/gallery and battle cameras see at the
                 // top of the frame (they look down ~30 degrees and never see the true horizon), so the field
                 // always ends in painted hills; low Titan cameras see the farther ranges and the sky above.
-                _arcs = new[] { Keep(SceneryPaint.Backdrop(50, 44, -32, -2, 50)), Keep(SceneryPaint.Backdrop(42, 38, -28, -1.5f, 15)),
+                _arcs = new[] { Keep(SceneryPaint.Backdrop(50, 44, -32, -2, 90, 1.8f)), Keep(SceneryPaint.Backdrop(42, 38, -28, -1.5f, 15)),
                                 Keep(SceneryPaint.Backdrop(36, 33, -26, -1.5f, 10)), Keep(SceneryPaint.Backdrop(30, 28, -24, -1.5f, 7)) };
                 // water: painted, low gloss (a glossy plane mirrored Unity's default blue sky and a hard sun streak);
                 // lava: dark crust with glowing veins, the glow building only far out
