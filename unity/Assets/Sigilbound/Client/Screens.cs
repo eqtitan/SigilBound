@@ -240,10 +240,12 @@ namespace Sigilbound.Client
                 Ui.Panel(r, Palette.Panel, Palette.Rarity(t.Rarity), 12);
                 Ui.Round(new Rect(r.x + 8, r.y + 10, 6, 34), Palette.Element(t.Element), null, 3);
                 float tx = Portraits.Thumb(new Rect(r.x + 20, r.y + 6, 42, 42), t.Id, Palette.Rarity(t.Rarity)) ? 70 : 22; // painted portrait, when there is one
-                Ui.Text(new Rect(r.x + tx, r.y + 4, r.width - 98 - tx, 24), HeroLine(h), 14, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + tx, r.y + 28, r.width - 98 - tx, 20), Tag(t), 12, Palette.Dim);
                 int ti = G.S.team.IndexOf(h.uid);
-                Ui.Text(new Rect(r.xMax - 100, r.y, 90, 54), $"{(ti >= 0 ? Ui.ColorTag($"Team {ti + 1}  ", Palette.Gold) : "")}{Ui.Fmt(G.Power(h))}", 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
+                // Team tag above the power on the right, so the name keeps room (the portrait took 48 px).
+                if (ti >= 0) Ui.Text(new Rect(r.xMax - 84, r.y + 6, 74, 20), $"Team {ti + 1}", 12, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight);
+                Ui.Text(new Rect(r.xMax - 84, ti >= 0 ? r.y + 26 : r.y, 74, ti >= 0 ? 22 : 54), Ui.Fmt(G.Power(h)), 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
+                Ui.Text(new Rect(r.x + tx, r.y + 4, r.width - 90 - tx, 24), HeroLine(h), 14, Palette.Text, FontStyle.Bold);
+                Ui.Text(new Rect(r.x + tx, r.y + 28, r.width - 90 - tx, 20), Tag(t), 12, Palette.Dim);
                 if (Ui.Button(r, "", Ui.Kind.Ghost)) { _heroUid = h.uid; Go(ScreenId.Hero); }
             }
             Scroller.End();
