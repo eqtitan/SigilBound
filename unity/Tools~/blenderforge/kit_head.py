@@ -21,6 +21,9 @@ def has(t, *ks):
     return any(re.search(r"\b" + k + r"(e?s)?\b", t) for k in ks)
 
 
+RIG = {}   # set by ubc.py from kit_rig.extend (tail points, etc.)
+
+
 class Ctx:
     """Per-hero state: materials, the head box, ray fitting, binding."""
     def __init__(self, c, arm, mats, U):
@@ -1536,6 +1539,7 @@ def species(c, arm, mats, U):
     if has(accs, "scroll") and has(accs, "belt"): scroll_belt(X, X.mat("#5a3b26", "leather"), X.mat("#e8dcc0"), X.mat("#7a5a3a", "leather"))
     if "dragon-head pauldron" in accs: dragon_pauldrons(X, X.mat(pal.get("metal", "#3a3230"), "metal"), X.mat(pal.get("glow", "#ff6a1a"), "glow"), X.mat("#2a2220", "horn"), snout=skin)
     if "molten vein" in accs or "glowing veins" in accs: molten_veins(X, X.mat(pal.get("glow", "#ff6a1a"), "glow"))
+    if "gold trim" in accs: gold_trim(X, X.mat("#d8b04a", "metal"), X.mat(pal.get("glow", "#ffe070"), "glow"))
     if has(accs, "bulbous", "nose"): X.add(G.sphere(Vector((X.cx, X.front - 0.004, X.eye - 0.028)), 0.018, skin, segs=12, scale=(1, 0.9, 0.85)), "Head", tag="Kit_Species", piece="bulbous nose")
     # horns from species (if the design text did not already give them)
     if any(k in sp for k in ("goat", "stag", "tree")) and not has(X.head_txt + " " + X.kit_txt, "horn", "antler"):
@@ -1553,7 +1557,12 @@ def species(c, arm, mats, U):
     elif has(accs, "cotton tail") or "hare" in sp or "rabbit" in sp: tk = "cotton"
     elif has(accs, "stubby"): tk = "stub"
     tip = furtip if tk == "fox" else X.mat("#3a2a1a") if tk == "lion" else (X.glow if tk == "lizard" and has(accs, "ember") else None)
-    if tk: X.add(tail(X, tk, fur if tk not in ("lizard", "shark") else skin, tip), "pelvis", tag="Kit_Species", piece=tk + " tail")
+    if tk:
+        tw = "pelvis"
+        if RIG.get("tail_n"):
+            import kit_rig as KR
+            tw = KR.tail_weights([Vector(p) for p in RIG["tail_pts"]], RIG["tail_n"])
+        X.add(tail(X, tk, fur if tk not in ("lizard", "shark") else skin, tip), tw, tag="Kit_Species", piece=tk + " tail")
     if has(accs, "tail-feather", "tail feather"): X.add(tail_fan(X, fur), "pelvis", tag="Kit_Species", piece="tail-feather fan")
     if has(accs, "tail fin"): X.add(fin(X, "back", X.mat("#2a8a86")), "spine_03", tag="Kit_Species", piece="tail fin")
     # backs
@@ -1735,8 +1744,10 @@ def _neck_sleeve(X, mat, r_top, C, cz_low):
     rad = [r_top * (1.1 - 0.15 * i / n) for i in range(n + 1)]
     o = G.sweep(pts, [(r, r * 0.95) for r in rad], mat, segs=16, cap=False)
     hz = cz_low
+    n2 = "neck_02" in X.arm.data.bones
     def w(p):
         u = max(0.0, min(1.0, (p.z - (nk.z - 0.03)) / max(1e-6, hz - nk.z + 0.03)))
+        if n2: return {"neck_01": max(0.0, 1 - 2 * u), "neck_02": 1 - abs(2 * u - 1), "Head": max(0.0, 2 * u - 1)}
         return {"neck_01": 1 - u * 0.7, "Head": u * 0.7}
     return X.add(o, w, tag="Kit_Species", piece="beast neck")
 
@@ -1757,8 +1768,12 @@ def dragon_head(X, scale_mat, belly_mat, glow_mat, slim=False, text=""):
     # lower jaw, slightly open, paler underside
     j0 = p0 + Vector((0, 0.01, -c * 0.45)); j2 = p2 + Vector((0, 0.03, -W * 0.85))
     jp = G.bezier(j0, (j0 + j2) / 2 + Vector((0, 0, -0.008)), j2, n=10)
-    parts.append(G.sweep(jp, [((a * 0.7) * (1 - t) + W * 0.8 * t, (c * 0.28) * (1 - t) + W * 0.32 * t) for t in [i / 10 for i in range(11)]], belly_mat, segs=12, side=Vector((1, 0, 0))))
+    jaw_parts = [G.sweep(jp, [((a * 0.7) * (1 - t) + W * 0.8 * t, (c * 0.28) * (1 - t) + W * 0.32 * t) for t in [i / 10 for i in range(11)]], belly_mat, segs=12, side=Vector((1, 0, 0)))]
     tooth = X.mat("#efe6d0", "horn")
+    for sx in (-1, 1):   # lower fangs ride on the jaw
+        for k, f in enumerate((0.85, 0.6)):
+            q = jp[int(f * 10)] + Vector((sx * W * 0.55, 0, W * 0.25))
+            jaw_parts.append(G.sweep([q, q + Vector((0, -0.002, 0.016 - 0.004 * k))], [0.0042, 0.0004], tooth, segs=6))
     for sx in (-1, 1):
         for k, f in enumerate((0.92, 0.75, 0.58, 0.42)):
             q = pts[int(f * n)]; rr = rad[int(f * n)]
@@ -1787,6 +1802,8 @@ def dragon_head(X, scale_mat, belly_mat, glow_mat, slim=False, text=""):
         low = e + Vector((0, 0, -0.022))
         parts.append(G.sweep(G.bezier(low, low + Vector((-0.02, 0.01, -0.06)), low + Vector((-0.05, 0.04, -0.12)), n=10), 0.0015, br_, segs=4))
     X.add(G.join(parts, "Kit_Species"), "Head", tag="Kit_Species", piece="dragon head")
+    has_jaw = "jaw" in X.arm.data.bones
+    X.add(G.join(jaw_parts, "Kit_Species"), "jaw" if has_jaw else "Head", tag="Kit_Species", piece="dragon jaw" + (" (jaw bone)" if has_jaw else ""))
     _neck_sleeve(X, scale_mat, X.hw * 0.72, C, C.z - c * 0.55)
 
 
@@ -2014,6 +2031,39 @@ def crab_body(X, shell, under, barnacle, weed, glow_mat):
             d = Vector((sx * X.rng.uniform(0.2, 1.0), X.rng.uniform(-0.6, 0.6), 1.0)).normalized()
             sp.append(G.sweep([c + d * 0.06, c + d * 0.13], [0.014, 0.001], X.mat("#e87a4a", "horn"), segs=6))
         X.add(G.join(sp, "Kit_Species"), "upperarm_" + side, tag="Kit_Species", piece="crab shoulder")
+
+
+def gold_trim(X, gold, glow_mat):
+    """Gilded plate: gold bands fitted around the arm and leg plates, a gold rim at the waist and a sun
+    emblem on the breastplate (white-and-gold paladins)."""
+    def band_around(a, b, t, width=0.022, extra=0.006):
+        A = a.lerp(b, t); d = (b - a).normalized()
+        u = d.cross(Vector((0, 0, 1)) if abs(d.z) < 0.9 else Vector((1, 0, 0))).normalized(); w = d.cross(u)
+        rs = []
+        for k in range(8):
+            ang = k / 8 * TAU; dirv = u * math.cos(ang) + w * math.sin(ang)
+            hit = X.fit.surface(A, -dirv)   # from outside toward the axis
+            rs.append(((hit - A).length if hit else 0.06))
+        R = sorted(rs)[len(rs) // 2] + extra
+        ring = [A + (u * math.cos(k / 24 * TAU) + w * math.sin(k / 24 * TAU)) * R for k in range(25)]
+        return G.sweep(ring, (width * 0.5, 0.006), gold, segs=6, side=d, cap=False)
+    for side in ("l", "r"):
+        for bn, nb, ts in (("upperarm_" + side, "lowerarm_" + side, (0.15, 0.85)), ("lowerarm_" + side, "hand_" + side, (0.8,)),
+                           ("thigh_" + side, "calf_" + side, (0.2, 0.92)), ("calf_" + side, "foot_" + side, (0.85,))):
+            A, _ = X.U.rest_bone(X.arm, bn); B, _ = X.U.rest_bone(X.arm, nb)
+            X.add(G.join([band_around(A, B, t) for t in ts], "Kit_Acc"), bn, tag="Kit_Acc", piece="gold band")
+    pz, _ = X.U.rest_bone(X.arm, "pelvis"); s3, _ = X.U.rest_bone(X.arm, "spine_03")
+    z = pz.z + 0.1
+    X.add(G.band(X.fit.ring(s3.x, pz.y, z, 32, fallback=0.17, reach=0.6), gold, s3.x, pz.y, z - 0.015, 0.03, 0.006, off=0.006), {"spine_01": 0.6, "pelvis": 0.4}, tag="Kit_Acc", piece="gold waist rim")
+    zc = s3.z + 0.02
+    hit = X.fit.surface(Vector((s3.x, s3.y, zc)), (0, 1, 0)); c = (hit if hit else Vector((s3.x, s3.y - 0.13, zc))) + Vector((0, -0.008, 0))
+    parts = [G.extrude(circle_outline(0.045, 20), 0.008, gold, c, Vector((1, 0, 0)), Vector((0, 0, 1))),
+             G.extrude(circle_outline(0.028, 16), 0.004, glow_mat, c + Vector((0, -0.009, 0)), Vector((1, 0, 0)), Vector((0, 0, 1)))]
+    for k in range(12):
+        a = k / 12 * TAU
+        q = c + Vector((math.cos(a) * 0.05, -0.006, math.sin(a) * 0.05))
+        parts.append(G.sweep([q, q + Vector((math.cos(a) * 0.03, 0, math.sin(a) * 0.03))], [0.008, 0.0008], gold, segs=5))
+    X.add(G.join(parts, "Kit_Acc"), {"spine_03": 1.0}, tag="Kit_Acc", piece="sun emblem")
 
 
 def report():

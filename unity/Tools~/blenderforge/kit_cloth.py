@@ -719,8 +719,8 @@ def insect_wing(root, sx, mats_list, petal=False, spots=True, ragged=False):
         for i in range(n + 1):
             t = i / n; a = math.pi * t
             r = L * (math.sin(a) ** (0.7 if not petal else 1.4))
-            if ragged:   # torn notches in the outer edge
-                r *= 1 - 0.2 * max(0.0, math.sin(t * 7 * math.pi + skew * 3)) ** 6 - 0.08 * max(0.0, math.sin(t * 17 * math.pi)) ** 8
+            if ragged:   # torn notches and ragged tongues along the outer edge
+                r *= 1 - 0.3 * max(0.0, math.sin(t * 7 * math.pi + skew * 3)) ** 4 - 0.14 * max(0.0, math.sin(t * 17 * math.pi + 0.7)) ** 6 - 0.06 * max(0.0, math.sin(t * 31 * math.pi)) ** 8
             x = W * math.cos(a) * (1 + skew * (1 - t)) * (0.6 if petal else 1.0)
             vs.append(Vector((x * 0.5, 0, r * 0.95 + L * 0.05 * math.sin(2 * a))))
         fs = [(0, i, i + 1) for i in range(1, n + 1)]
@@ -842,5 +842,6 @@ def make_wings(c, arm, mats, bind, head_box):
                 o = membrane_wing(root - Vector((0.07 * sx, 0, 0)), sx, [main, trim], glider=True,
                                   scale=1.25 if _has(phrase, "twice", "wide", "big") or "width" in phrase else 1.0)
             o.name = "Kit_Wing"
-            out.append(bind(o, arm, {"spine_03": 1.0}))
+            wb = ("wing_l" if sx > 0 else "wing_r")
+            out.append(bind(o, arm, {wb: 1.0} if wb in arm.data.bones else {"spine_03": 1.0}))
     return out

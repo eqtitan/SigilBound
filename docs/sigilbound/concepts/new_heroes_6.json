@@ -106,7 +106,13 @@
     ]
    }
   ],
-  "notes_for_3d": "Big male knight with a custom dragon head (snout, fangs, swept horns), dragon-head pauldrons, torn tabard, a ragged ember-edged cape and a lizard tail with a glowing tip. Lava greatsword."
+  "notes_for_3d": "Big male knight with a custom dragon head (snout, fangs, swept horns), dragon-head pauldrons, torn tabard, a ragged ember-edged cape and a lizard tail with a glowing tip. Lava greatsword.",
+  "rig": {
+   "neck": 0.07,
+   "jaw": true,
+   "tail": 7,
+   "legs": "digitigrade"
+  }
  },
  {
   "id": "talvo",
@@ -211,7 +217,14 @@
     ]
    }
   ],
-  "notes_for_3d": "Slim male with a custom dragon head (narrow snout, small horns) and a brass monocle over the right eye; a long greatcoat with brass trim; lizard tail with glowing cracks. Cutlass with a knuckle guard and a glowing blade."
+  "notes_for_3d": "Slim male with a custom dragon head (narrow snout, small horns) and a brass monocle over the right eye; a long greatcoat with brass trim; lizard tail with glowing cracks. Cutlass with a knuckle guard and a glowing blade.",
+  "rig": {
+   "neck": 0.06,
+   "jaw": true,
+   "tail": 8,
+   "tail_len": 1.15,
+   "legs": "digitigrade"
+  }
  },
  {
   "id": "wystan",
@@ -224,7 +237,7 @@
   "species": "owl-folk",
   "body": {
    "height": 1.0,
-   "bulk": 1.05,
+   "bulk": 1.3,
    "head": 1.08
   },
   "skin": "#b88a5a",
@@ -314,7 +327,10 @@
     ]
    }
   ],
-  "notes_for_3d": "Male owl-folk: owl face plate, beak and ear tufts, round spectacles, a long green robe with a feather capelet and flowing sleeves, scrolls on the belt, talons. Gnarled staff with hanging chimes."
+  "notes_for_3d": "Male owl-folk: owl face plate, beak and ear tufts, round spectacles, a long green robe with a feather capelet and flowing sleeves, scrolls on the belt, talons. Gnarled staff with hanging chimes.",
+  "rig": {
+   "legs": "digitigrade"
+  }
  },
  {
   "id": "crusk",
@@ -448,13 +464,14 @@
    "acc": [
     "Male_Knight_Acc_Pauldron_Round (gold)",
     "custom:white tabard with a golden sun",
-    "custom:long white cape"
+    "custom:long white cape",
+    "custom:white plate with gold trim and a sun emblem"
    ]
   },
   "palette": {
    "main": "#f0ece2",
-   "secondary": "#e8d8a0",
-   "accent": "#d8a83a",
+   "secondary": "#f2eee4",
+   "accent": "#f0d070",
    "metal": "#e8e2d4",
    "glow": "#ffe070"
   },
@@ -529,7 +546,11 @@
     ]
    }
   ],
-  "notes_for_3d": "Tall male knight in white and gold plate with a stag head (muzzle, ears), great golden antlers hung with small bells, a halo ring behind them, a sun tabard, a long white cape. Marble hammer with a glowing sun."
+  "notes_for_3d": "Tall male knight in white and gold plate with a stag head (muzzle, ears), great golden antlers hung with small bells, a halo ring behind them, a sun tabard, a long white cape. Marble hammer with a glowing sun.",
+  "rig": {
+   "neck": 0.08,
+   "legs": "digitigrade"
+  }
  },
  {
   "id": "nyssa",
@@ -636,6 +657,9 @@
     "pierce": true
    }
   ],
-  "notes_for_3d": "Slim female ranger in black leather and steel plates; a grey hood with feathered moth antennae and a lower-face mask; big tattered insect wings with glowing violet eye spots (the wing kit's moth type). Twin curved daggers with glowing edges."
+  "notes_for_3d": "Slim female ranger in black leather and steel plates; a grey hood with feathered moth antennae and a lower-face mask; big tattered insect wings with glowing violet eye spots (the wing kit's moth type). Twin curved daggers with glowing edges.",
+  "rig": {
+   "wings": true
+  }
  }
 ]

@@ -537,6 +537,8 @@ def main():
     os.makedirs(a.out, exist_ok=True)
     c = normalise_parts({d["id"]: d for d in json.load(open(a.design))}[a.hero])
     arm = P.build(c, pose=False)
+    import kit_rig as KR
+    KH.RIG = KR.extend(c, arm, head_box)   # creature rig extensions (tail, jaw, neck, digitigrade legs, wing bones)
     pieces = kit(c, arm)
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     for x in bpy.context.selected_objects: x.select_set(False)
