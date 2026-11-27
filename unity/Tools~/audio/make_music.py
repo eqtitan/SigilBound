@@ -7,7 +7,7 @@
 - music_victory: a short brass-and-harp fanfare (sting, not a loop)
 Loops are rendered an exact number of bars with the reverb tail folded back to the start, so they
 repeat without a seam. Loudness: RMS -18 dBFS, peaks under -1 dBFS. (Normal battles keep the
-composed CC0 battle_theme; see CREDITS.md. The stereo boss, act 2 and map themes: make_music2.py.)
+composed CC0 battle theme, looped by loop_battle.py into music_battle; see CREDITS.md. The stereo boss, act 2 and map themes: make_music2.py.)
 """
 import os, sys
 import numpy as np

@@ -2,7 +2,7 @@
 //   amb_*.ogg   ambience beds: streamed from disk (never decoded whole into memory), Vorbis 0.35
 //   sfx_*.ogg   one-shots: decompressed on load if short (instant start, no decode cost mid-battle);
 //               the long Titan / cinematic / boss-lair ones stay compressed in memory. Vorbis 0.5.
-//   music_*.ogg, battle_theme   music loops: streamed from disk like the beds, Vorbis 0.45; the short
+//   music_*.ogg  music loops: streamed from disk like the beds, Vorbis 0.45; the short
 //               victory sting (played as a one-shot over the music) stays compressed in memory.
 // All keep their stereo (forceToMono off): positional panning and the wide beds depend on it.
 using System;
@@ -22,7 +22,7 @@ namespace Sigilbound.EditorTools
             if (!path.StartsWith(Dir, StringComparison.Ordinal)) return;
             var file = path.Substring(Dir.Length);
             bool amb = file.StartsWith("amb_", StringComparison.Ordinal), sfx = file.StartsWith("sfx_", StringComparison.Ordinal);
-            bool music = file.StartsWith("music_", StringComparison.Ordinal) || file.StartsWith("battle_theme", StringComparison.Ordinal);
+            bool music = file.StartsWith("music_", StringComparison.Ordinal);
             bool sting = file.StartsWith("music_victory", StringComparison.Ordinal);
             if (!amb && !sfx && !music) return;
             var ai = assetImporter as AudioImporter;

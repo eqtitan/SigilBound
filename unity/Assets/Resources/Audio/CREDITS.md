@@ -9,9 +9,12 @@ All audio here is **CC0 1.0** (public domain). Credit isn't required; we give it
   - RPG Audio: https://kenney.nl/assets/rpg-audio
   - Sci-fi Sounds: https://kenney.nl/assets/sci-fi-sounds
   - Digital Audio: https://kenney.nl/assets/digital-audio
-- **Battle music** (`battle_theme.mp3`): "Battle Theme A" by **cynicmusic**,
-  https://opengameart.org/content/battle-theme-a (the page lists CC0). Re-encoded at
-  96 kbps to keep the app small.
+- **Battle music** (`music_battle.ogg`): "Battle Theme A" by **cynicmusic**,
+  https://opengameart.org/content/battle-theme-a (the page lists CC0). **Edited for the game**: the
+  original fades out at its end, so it is cut to a seamless 24-bar loop (3.80 s to 82.71 s of the
+  original, on the downbeat; the material after the end point crossfaded into the start over 120 ms),
+  loudness matched and re-encoded as Ogg Vorbis by `unity/Tools~/audio/loop_battle.py`. The web build
+  still ships the unedited `battle_theme.mp3`.
 
 Taken from the CC0 npm package `@netforge/asset-library-files` 0.2.0, whose NOTICE lists
 the sources above.

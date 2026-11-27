@@ -57,8 +57,11 @@ static class SoundTests
         var missingTracks = wantTracks.Concat(asked).Where(k => !tracks.ContainsKey(k) || !Directory.GetFiles(audio, tracks[k] + ".*").Any(f => !f.EndsWith(".meta"))).Distinct().ToList();
         check(missingTracks.Count == 0 && asked.Contains("boss") && asked.Contains("act2"),
             $"music: {tracks.Count} tracks, each with its file; battles ask for {string.Join(", ", asked)}" + (missingTracks.Count > 0 ? " — missing: " + string.Join(", ", missingTracks) : ""));
-        var newMusic = new[] { "music_boss", "music_act2", "music_map" }.Select(f => Path.Combine(audio, f + ".ogg")).ToList();
-        check(newMusic.All(f => File.Exists(f) && OggChannels(f) == 2), "music: the boss, act 2 and map themes are stereo OGG files");
+        var newMusic = new[] { "music_boss", "music_act2", "music_map", "music_battle" }.Select(f => Path.Combine(audio, f + ".ogg")).ToList();
+        check(newMusic.All(f => File.Exists(f) && OggChannels(f) == 2), "music: the battle, boss, act 2 and map themes are stereo OGG files");
+        // the battle theme is the seamless loop cut (loop_battle.py), not the original that fades out
+        check(tracks.TryGetValue("battle", out var bt) && bt == "music_battle" && !Directory.GetFiles(audio, "battle_theme.*").Any(f => !f.EndsWith(".meta")),
+            "music: battles play the looped battle theme (music_battle), and the fading original is not shipped");
         var heroes = Sigilbound.Core.GameData.Heroes;
         var noArmour = heroes.Where(h => !Sigilbound.Core.HeroArmour.Table.ContainsKey(h.Id)).Select(h => h.Id).ToList();
         var kinds = heroes.Select(h => Sigilbound.Core.HeroArmour.Of(h.Id, h.Role)).Distinct().Count();
