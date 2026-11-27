@@ -691,13 +691,13 @@ namespace Sigilbound.Client
         // Round counter (PLAN step 99): the wave's round, red with "Enrage xN" from round EnrageFrom, when every hit
         // deals +10% per stack and healing and shields lose as much. Not in the Titan fight (no enrage; it has turns).
         static readonly Color EnrageRed = new Color(0.86f, 0.2f, 0.16f);
-        void RoundPill(float x, float y, bool detail)
+        void RoundPill(float x, float y, bool detail, bool centre = false)
         {
             if (_b == null || _b.IsTitan || _b.Over) return;
             int st = _b.EnrageStacks;
             string txt = st > 0 ? (detail ? $"Round {_b.Round} · Enrage x{st}  +{st * 10}% dmg  -{System.Math.Min(100, st * 10)}% heal" : $"Round {_b.Round} · Enrage x{st}") : $"Round {_b.Round}";
             float w = st > 0 ? (detail ? 262 : 138) : 70;
-            var r = new Rect(x, y, w, 20);
+            var r = new Rect(centre ? x - w / 2 : x, y, w, 20);
             Ui.Round(r, st > 0 ? new Color(EnrageRed.r, EnrageRed.g, EnrageRed.b, 0.88f) : new Color(0.06f, 0.05f, 0.08f, 0.6f), st > 0 ? (Color?)new Color(1f, 0.55f, 0.45f) : null, 8);
             Ui.Text(r, txt, 11, st > 0 ? Color.white : Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter);
         }
@@ -1109,7 +1109,8 @@ namespace Sigilbound.Client
             Ui.Text(new Rect(info.x + 6, info.y + 2, 220, 18), where, 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
             Icons.Draw(new Rect(info.x + 6, info.y + 22, 12, 12), Icon.Clock, Palette.Dim);
             Ui.Text(new Rect(info.x + 22, info.y + 20, 200, 16), $"{secs / 60}:{secs % 60:00}{(round.Length > 0 ? "   " + round : "")}", 11, Palette.Dim);
-            RoundPill(info.x - 4, info.y + 42, true);
+            // Centred under the turn-order bar (beside the info box it ran under the turn chips).
+            RoundPill(Ui.W / 2, top + 76, true, true);
 
             // ---- top-right: camera, loop, auto, speed, pause ----
             float bx = right - 40;
