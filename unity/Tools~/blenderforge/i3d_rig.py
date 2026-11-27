@@ -71,6 +71,30 @@ def main():
         body.select_set(True); bpy.context.view_layer.objects.active = body
         d = body.modifiers.new("Dec", "DECIMATE"); d.ratio = cap / n
         bpy.ops.object.modifier_apply(modifier="Dec")
+    # texture fixes for generator guesses (recolour masks are UV triangles of faces picked in the mesh's pose)
+    recol = []
+    if L.get("recolor"):
+        uvl = body.data.uv_layers.active.data
+        bm = bmesh.new(); bm.from_mesh(body.data); bm.faces.ensure_lookup_table()
+        for rc in L["recolor"]:
+            sel = [f for f in bm.faces if rc["faces"](f.calc_center_median(), f.normal)]
+            ids = {f.index for f in sel}
+            edge = [f.index for f in sel if any(e.is_boundary or any(g.index not in ids for g in e.link_faces) for e in f.edges)]
+            tri = lambda fi: [tuple(uvl[l].uv) for l in body.data.polygons[fi].loop_indices]
+            recol.append((rc, [tri(f.index) for f in sel], [tri(fi) for fi in edge]))
+        bm.free()
+    halo_uv = None
+    if L.get("halo"):
+        hc = L["halo"]
+        bpy.ops.mesh.primitive_torus_add(major_radius=hc["radius"], minor_radius=hc["minor"], major_segments=48, minor_segments=8, generate_uvs=False,
+                                         location=hc["center"], rotation=(math.radians(90), 0, 0))
+        ring = bpy.context.object
+        # every halo vertex samples one reserved gold texel block (found free in the UV layout at export)
+        ring.data.uv_layers.new(name=body.data.uv_layers.active.name)
+        for o in bpy.context.selected_objects: o.select_set(False)
+        ring.select_set(True); body.select_set(True); bpy.context.view_layer.objects.active = body
+        bpy.ops.object.join()
+        halo_uv = True
     dg = bpy.context.evaluated_depsgraph_get()
     bvh = BVHTree.FromObject(body, dg)
 
@@ -213,7 +237,17 @@ def main():
     for o in bpy.context.selected_objects: o.select_set(False)
     bpy.context.view_layer.objects.active = body; body.select_set(True)
     md = next(m for m in body.modifiers if m.type == "ARMATURE")
+    len0 = [(body.data.vertices[e.vertices[0]].co - body.data.vertices[e.vertices[1]].co).length for e in body.data.edges]
     bpy.ops.object.modifier_apply(modifier=md.name)
+    # tear generator fusions: faces bridging two separately moving parts (a hammer head welded to a boot, a
+    # sleeve to the robe) stretch into sheets once the mesh leaves its own pose; drop faces whose edges grew a lot
+    bm = bmesh.new(); bm.from_mesh(body.data); bm.edges.ensure_lookup_table()
+    torn_e = {e.index for e in bm.edges if e.calc_length() > max(0.08, len0[e.index] * L.get("tear", 2.5))}
+    kill = [f for f in bm.faces if any(e.index in torn_e for e in f.edges)]
+    bmesh.ops.delete(bm, geom=kill, context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(body.data); bm.free()
+    print(f"[i3d] {a.hero}: tore {len(kill)} stretched faces")
     body.parent = None
     bpy.data.objects.remove(A2, do_unlink=True)
     # A1 back to its rest; bind
@@ -230,6 +264,41 @@ def main():
     alb_png = os.path.join(a.out, f"_tmp_{a.hero}.png")
     img.filepath_raw = alb_png; img.file_format = "PNG"; img.save()
     im = Image.open(alb_png).convert("RGB")
+    from PIL import ImageDraw, ImageChops
+    W_, H_ = im.size
+    def mask_of(tris):
+        mk = Image.new("L", (W_, H_), 0); dr = ImageDraw.Draw(mk)
+        for t in tris:
+            if len(t) >= 3: dr.polygon([(u * W_, (1 - v) * H_) for u, v in t], fill=255)
+        return mk
+    for rc, tris, etris in recol:
+        mk = mask_of(tris); em = mask_of(etris) if rc.get("edge_color") else None
+        px = im.load(); mp = mk.load(); ep = em.load() if em else None
+        dark = rc.get("dark", 0.32); col = rc["color"]; ecol = rc.get("edge_color")
+        for y in range(H_):
+            for x in range(W_):
+                if not mp[x, y]: continue
+                r, g, b_ = px[x, y]; v = max(r, g, b_) / 255.0
+                if v > dark: continue
+                shade = 0.55 + 0.45 * (v / dark)
+                c = ecol if (ep and ep[x, y]) else col
+                px[x, y] = tuple(int(min(255, ch * shade)) for ch in c)
+    glow_extra = None
+    if halo_uv:
+        cov = Image.new("L", (W_ // 8, H_ // 8), 0); dr = ImageDraw.Draw(cov)
+        for poly in body.data.polygons:
+            pts_ = [tuple(body.data.uv_layers.active.data[l].uv) for l in poly.loop_indices]
+            if all(abs(u) < 1e-6 and abs(v) < 1e-6 for u, v in pts_): continue
+            dr.polygon([(u * W_ / 8, (1 - v) * H_ / 8) for u, v in pts_], fill=255)
+        cp = cov.load(); free = next(((x, y) for y in range(1, cov.height - 2) for x in range(1, cov.width - 2)
+                                      if not any(cp[x + i, y + j] for i in range(-1, 3) for j in range(-1, 3))), (0, 0))
+        bx, by = free[0] * 8, free[1] * 8
+        ImageDraw.Draw(im).rectangle([bx, by, bx + 15, by + 15], fill=tuple(L["halo"]["color"]))
+        uc, vc = (bx + 8) / W_, 1 - (by + 8) / H_
+        for poly in body.data.polygons:
+            if all(all(abs(x) < 1e-6 for x in body.data.uv_layers.active.data[l].uv) for l in poly.loop_indices):
+                for l in poly.loop_indices: body.data.uv_layers.active.data[l].uv = (uc, vc)
+        glow_extra = (bx, by)
     im.save(os.path.join(a.out, f"SB_Hero_{a.hero}_HD_albedo.jpg"), quality=88, optimize=True)
     # glow: bright saturated element-coloured pixels (lava, flames, runes), half size
     g = im.resize((im.width // 2, im.height // 2)).convert("HSV")
@@ -242,6 +311,8 @@ def main():
             hd = h * 360 // 255
             if s > 120 and v > 200 and hue_lo <= hd <= hue_hi:
                 dst[x, y] = (255, 255, 255); n += 1
+    if glow_extra:
+        ImageDraw.Draw(gp).rectangle([glow_extra[0] // 2, glow_extra[1] // 2, glow_extra[0] // 2 + 7, glow_extra[1] // 2 + 7], fill=(255, 255, 255)); n += 64
     if n > 50:
         gp.save(os.path.join(a.out, f"SB_Hero_{a.hero}_HD_glow.png"))
     os.remove(alb_png)

@@ -30,8 +30,12 @@ static class MechanicsTests
             var (ev1, _) = b.BeginTurn(t);
             t.Effects.Add(new Effect { Type = FxType.Poison, Turns = 2 }); t.Effects.Add(new Effect { Type = FxType.Shield, Val = 99999, Turns = 2 });
             var (ev2, _) = b.BeginTurn(t);
-            check(Dmg(ev1, t) == 500 && Dmg(ev2, t) == 900 && !FxDef.IsBuff(FxType.Burn) && new FxDef { Type = FxType.Burn }.IsStatus,
-                $"Burn: 5% max HP a turn ({Dmg(ev1, t)}), with Poison 9% ({Dmg(ev2, t)}), through shields; a debuff");
+            // Ticks scale with the battle pace (PLAN step 98); a second Poison application stacks (x2 ticks, up to 3).
+            int p5 = (int)Math.Round(500 * Battle.Pace), p4 = (int)Math.Round(400 * Battle.Pace);
+            t.Effects.First(e => e.Type == FxType.Poison).Stacks = 2;
+            var (ev3, _) = b.BeginTurn(t);
+            check(Dmg(ev1, t) == p5 && Dmg(ev2, t) == p5 + p4 && Dmg(ev3, t) == p5 + 2 * p4 && !FxDef.IsBuff(FxType.Burn) && new FxDef { Type = FxType.Burn }.IsStatus,
+                $"Burn: 5% max HP a turn x pace ({Dmg(ev1, t)}), with Poison 9% ({Dmg(ev2, t)}), two Poison stacks ({Dmg(ev3, t)}), through shields; a debuff");
             var healer = Def("cleanser", new SkillDef { Name = "Cleanse", Target = Target.Ally, Fx = new[] { new FxDef { Type = FxType.Cleanse } } });
             var c = U(true, healer); var bc = Fight(c, U(false, dummy));
             c.Effects.Add(new Effect { Type = FxType.Burn, Turns = 2 });
@@ -122,6 +126,21 @@ static class MechanicsTests
                 "Revive: a lethal hit leaves the holder at 30% HP once, then it falls; given by skills (Pct); a buff");
         }
 
+        // Stacking (PLAN step 98): Poison/Burn stack to 3 on normal units; the Titan never stacks (a re-apply
+        // only refreshes its turns), so its damage-based rewards stay as they were.
+        {
+            var poisoner = Def("poisoner", new SkillDef { Name = "Venom", Target = Target.Enemy, Mult = 0.0001, Fx = new[] { new FxDef { Type = FxType.Poison, Turns = 2 } } });
+            var a = U(true, poisoner); var t = U(false, dummy, 1000000); var b = Fight(a, t);
+            for (int k = 0; k < 4; k++) b.Act(a, 0, t);
+            var titan = U(false, dummy, 1000000); titan.Titan = true; titan.Boss = true;
+            var a2 = U(true, poisoner); var bt = new Battle(new List<Unit> { a2 }, new List<List<Unit>> { new List<Unit> { titan } }, new Fixed(), true, 20);
+            bt.Act(a2, 0, titan); titan.Effects.First(e => e.Type == FxType.Poison).Turns = 1; bt.Act(a2, 0, titan);
+            var tp = titan.Effects.First(e => e.Type == FxType.Poison);
+            var (tev, _) = bt.BeginTurn(titan);
+            check(t.Effects.First(e => e.Type == FxType.Poison).Stacks == Battle.MaxDotStacks && tp.Stacks == 1 && tp.Turns == 2 && tev.Count(e => e.Type == EvType.Damage && e.Dot) == 1,
+                "Stacking: Poison stacks to 3 on a normal unit; on the Titan a re-apply only refreshes its turns (one tick a turn)");
+        }
+
         // Rage (phase 3): damage grows with the attacker's missing HP.
         {
             var rager = Def("rager", new SkillDef { Name = "Fury", Target = Target.Enemy, Mult = 1.0, Rage = 1.0 });
@@ -139,8 +158,9 @@ static class MechanicsTests
             var foe = U(false, Def("foe", Basic(5)));
             var b = new Battle(new List<Unit> { keeper, friend, hurt }, new List<List<Unit>> { new List<Unit> { foe } }, new Fixed());
             var ev = b.Act(foe, 0, friend);
-            check(!friend.Alive && keeper.Hp == 6000 && hurt.Hp == 6000 && ev.Any(e => e.Text == "Last Light") && SkillText.Passive(ember) != null && SkillText.Passive(dummy) == null,
-                "Last Light: an ally falls and the passive heals the living allies 10%; the hero screen shows the passive");
+            int healed = 5000 + (int)Math.Round(1000 * Battle.Pace); // 10% of 10000, times the battle pace (PLAN step 98)
+            check(!friend.Alive && keeper.Hp == healed && hurt.Hp == healed && ev.Any(e => e.Text == "Last Light") && SkillText.Passive(ember) != null && SkillText.Passive(dummy) == null,
+                "Last Light: an ally falls and the passive heals the living allies 10% (x battle pace); the hero screen shows the passive");
         }
 
         // Text and web parity.

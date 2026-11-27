@@ -139,6 +139,20 @@ namespace Sigilbound.Client
             yield return new WaitForSecondsRealtime(4f);
             yield return Shot("battle-mid");
             LogBudget("battle-mid");
+            // Stage the new combat UI for one shot: a part-filled Break bar on each enemy and a x3 Poison
+            // stack (badge) on the first one (nothing is saved in this mode).
+            var core = Battle.Engine;
+            if (core != null)
+            {
+                var foes = Sigilbound.Core.Battle.Living(core.Enemies);
+                foreach (var f in foes) f.Break = 68;
+                if (foes.Count > 0)
+                {
+                    var p = foes[0].Effects.Find(e => e.Type == FxType.Poison);
+                    if (p != null) p.Stacks = 3; else foes[0].Effects.Add(new Effect { Type = FxType.Poison, Turns = 3, Stacks = 3 });
+                }
+                yield return Shot("combat-ui");
+            }
             G.S.settings.speed = 3; // finish the fight quickly so the results screen is photographed
             float until = Time.realtimeSinceStartup + 150f;
             while (Battle.InProgress && Time.realtimeSinceStartup < until) yield return null;

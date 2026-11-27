@@ -23,22 +23,34 @@ namespace Sigilbound.Client
             (FxType.Shield, "Shield", "Absorbs damage."), (FxType.Taunt, "Taunt", "Enemies must attack it."),
             (FxType.Counter, "Counter", "Strikes back when hit."), (FxType.Revive, "Revive", "Saved once from falling."),
             (FxType.AtkDown, "Attack down", "Deals less damage."), (FxType.DefDown, "Defense down", "Takes more damage."),
-            (FxType.Slow, "Slow", "Acts later."), (FxType.Poison, "Poison", "Loses health each turn."),
-            (FxType.Burn, "Burn", "Takes fire damage each turn."), (FxType.Stun, "Stun", "Skips its next turn."),
+            (FxType.Slow, "Slow", "Acts later."), (FxType.Poison, "Poison", "Loses health each turn (stacks up to 3)."),
+            (FxType.Burn, "Burn", "Takes fire damage each turn (stacks up to 3)."), (FxType.Stun, "Stun", "Skips its next turn."),
+            (FxType.Broken, "Broken", "Weakness break: hit 3 times by the element that beats it, it skips a turn."),
         };
 
         // Draws the icons left to right from (x, y) (or centred on x when centre), each `size` square with its
         // turns in the corner. Effects without art fall back to their text tag. Returns the area covered.
         public static Rect Row(float x, float y, IList<Effect> effects, float size, bool centre)
         {
-            float gap = 2, w = effects.Count * (size + gap) - gap;
-            float x0 = centre ? x - w / 2 : x;
+            // A stacked effect (Poison/Burn x2/x3) gets extra room on its right for a readable "x3" (the
+            // corner badge was too small to read at battle size).
+            float gap = 2, sw = size * 1.3f;
+            float w = -gap; foreach (var e in effects) w += size + gap + (e.Stacks > 1 ? sw : 0);
+            float x0 = centre ? x - w / 2 : x, cx = x0;
+            int fs = Mathf.Max(10, Mathf.RoundToInt(size * 0.72f));
             for (int i = 0; i < effects.Count; i++)
             {
-                var e = effects[i]; var r = new Rect(x0 + i * (size + gap), y, size, size);
+                var e = effects[i]; var r = new Rect(cx, y, size, size);
+                cx += size + gap + (e.Stacks > 1 ? sw : 0);
                 var t = Get(e.Type);
                 if (t != null) GUI.DrawTexture(r, t);
                 else Ui.Text(r, SkillText.EffectShort(e.Type), 7, FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff"), FontStyle.Bold, TextAnchor.MiddleCenter);
+                if (e.Stacks > 1)
+                {
+                    var sr = new Rect(r.xMax + 1, r.y, sw, size);
+                    Ui.Text(new Rect(sr.x + 1, sr.y + 1, sr.width, sr.height), "\u00d7" + e.Stacks, fs, new Color(0, 0, 0, 0.85f), FontStyle.Bold, TextAnchor.MiddleLeft);
+                    Ui.Text(sr, "\u00d7" + e.Stacks, fs, new Color(1f, 0.85f, 0.45f), FontStyle.Bold, TextAnchor.MiddleLeft);
+                }
                 if (e.Turns > 0 && e.Type != FxType.Shield)
                 {
                     var n = new Rect(r.xMax - size * 0.42f, r.yMax - size * 0.42f, size * 0.46f, size * 0.46f);

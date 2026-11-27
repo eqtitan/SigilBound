@@ -29,6 +29,11 @@ static class Program
             }
             return 0;
         }
+        // `dotnet run --project Tests~ -- combatstats`: 2000 random 4v4 battles (all heroes, lv40 4*) -> length,
+        // stalemates, AI choices and effect use. Used to judge combat rule changes (PLAN step 97).
+        if (args.Length > 1 && args[0] == "stagerate") { CombatProbes.StageRate(int.Parse(args[1]), args.Length > 2 ? int.Parse(args[2]) : 30); return 0; }
+        if (args.Length > 0 && args[0] == "titandmg") { CombatProbes.TitanDamage(); return 0; }
+        if (args.Length > 0 && args[0] == "combatstats") { CombatStats.Run(); return 0; }
         // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).
         if (args.Length > 0 && args[0] == "balance")
         {

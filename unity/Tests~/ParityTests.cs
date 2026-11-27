@@ -49,11 +49,12 @@ static class ParityTests
             statN++;
             var h = g.HeroByUid(Json.Int(o, "uid"));
             var st = g.HeroStats(h);
-            if (st.Hp == N(o, "hp") && st.Atk == N(o, "atk") && st.Def == N(o, "def") && st.Spd == N(o, "spd") && st.Crit == N(o, "crit") && st.Cdmg == N(o, "cdmg") && st.Power == N(o, "power")) statOk++;
+            int sh = RoleSpdShift(Hero(h.id).Role); // Unity-only role speed spread (PLAN step 98); gear % speed bonuses make it approximate
+            if (st.Hp == N(o, "hp") && st.Atk == N(o, "atk") && st.Def == N(o, "def") && Math.Abs(st.Spd - (N(o, "spd") + sh)) <= 1 && st.Crit == N(o, "crit") && st.Cdmg == N(o, "cdmg") && Math.Abs(st.Power - (N(o, "power") + 4 * (st.Spd - N(o, "spd")))) <= 1) statOk++;
             else Console.WriteLine($"   {h.id}: unity {st.Hp}/{st.Atk}/{st.Def}/{st.Spd}/{st.Crit}/{st.Cdmg} p{st.Power} vs web {N(o, "hp")}/{N(o, "atk")}/{N(o, "def")}/{N(o, "spd")}/{N(o, "crit")}/{N(o, "cdmg")} p{N(o, "power")}");
         }
         Check(statOk == statN, $"hero stats and power match the web for {statOk}/{statN} heroes (with gear and set bonuses)");
-        Check(g.TeamPower == Json.Int(fx, "teamPower"), $"team power matches ({g.TeamPower})");
+        Check(Math.Abs(g.TeamPower - Json.Int(fx, "teamPower")) <= 4 * 8 * g.Team.Count + g.Team.Count, $"team power matches within the role speed spread ({g.TeamPower} vs {Json.Int(fx, "teamPower")})");
 
         // ---------- export round trip ----------
         var json = SaveCodec.ToJson(save);
@@ -112,7 +113,7 @@ static class ParityTests
                 { rBad++; Console.WriteLine($"   rival {a.Name} {a.Level} {a.Power} vs {Json.Str(b, "name")} {N(b, "level")} {N(b, "power")}"); continue; }
                 var units = Trials.RivalUnits(a); var wu = Json.Arr(b, "units");
                 for (int k = 0; k < units.Count; k++)
-                    if (units[k].MaxHp != N(wu[k], "hp") || units[k].Atk != N(wu[k], "atk") || units[k].Def != N(wu[k], "def") || units[k].Spd != N(wu[k], "spd")) { rBad++; Console.WriteLine($"   rival unit {units[k].Template.Id} differs"); }
+                    if (units[k].MaxHp != N(wu[k], "hp") || units[k].Atk != N(wu[k], "atk") || units[k].Def != N(wu[k], "def") || Math.Abs(units[k].Spd - (N(wu[k], "spd") + RoleSpdShift(units[k].Template.Role))) > 1) { rBad++; Console.WriteLine($"   rival unit {units[k].Template.Id} differs"); }
             }
         }
         Check(rBad == 0, "arena rivals (names, heroes, levels, power, unit stats) match");
@@ -241,7 +242,7 @@ static class ParityTests
             {
                 var e = mine[w][i]; var o = tw[i]; var u = Battle.FromEnemy(e);
                 if (e.Template.Id != Json.Str(o, "id") || e.El != El(Json.Str(o, "el")) || e.Boss != Json.Bool(o, "boss") || e.ShownLevel != N(o, "shownLevel")
-                    || u.MaxHp != N(o, "hp") || u.Atk != N(o, "atk") || u.Def != N(o, "def") || Math.Abs(u.Spd - N(o, "spd")) > 1e-9)
+                    || u.MaxHp != N(o, "hp") || u.Atk != N(o, "atk") || u.Def != N(o, "def") || Math.Abs(u.Spd - (N(o, "spd") + RoleSpdShift(e.Template.Role))) > 1e-9)
                 { bad++; Console.WriteLine($"   {label} w{w} #{i}: {e.Template.Id}/{e.El}/{u.MaxHp}/{u.Atk}/{u.Def}/{u.Spd} vs {Json.Str(o, "id")}/{Json.Str(o, "el")}/{N(o, "hp")}/{N(o, "atk")}/{N(o, "def")}/{N(o, "spd")}"); }
             }
         }
@@ -325,6 +326,9 @@ static class ParityTests
         tg.StartWith("hask");
         var t1 = Tips.Next(tg, true, false); var t2 = Tips.Next(tg, true, false); var t3 = Tips.Next(tg, false, true);
         Check(t1?.Id == "welcome" && t2 == null && t3?.Id == "battle" && tg.S.modes.tips.SequenceEqual(new[] { "welcome", "battle" }), "first-time tips show once each, in order, when their condition holds");
+        // Unity-only: the Weakness Break tip waits for a watched Break, then shows once (PLAN step 98).
+        Tips.SawBreak = false; var tb0 = Tips.Next(tg, false, true); Tips.SawBreak = true; var tb1 = Tips.Next(tg, false, true); var tb2 = Tips.Next(tg, false, true); Tips.SawBreak = false;
+        Check(tb0 == null && tb1?.Id == "break" && tb1.Body.StartsWith("Break! Hits from the element that beats a foe") && tb2 == null, "the Weakness Break tip shows once, after the first Break the player sees");
         var vet = new Game(seed: 3) { Now = () => now }; vet.StartWith("hask"); vet.S.wins = 4; vet.S.summons = 2; Tips.Seed(vet);
         Check(vet.S.modes.tips.Contains("welcome") && vet.S.modes.tips.Contains("battle") && vet.S.modes.tips.Contains("gear") && vet.S.modes.tips.Contains("summon"), "existing players skip beginner tips (seedTips)");
         var run = new AutoRun(); run.Record(true, new Reward { Gold = 500, Xp = 100, Common = 1 }, true, new[] { "Hask Lv 6" }); run.Record(false, null, false, null);

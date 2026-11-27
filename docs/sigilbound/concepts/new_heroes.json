@@ -5335,7 +5335,7 @@
      {
       "type": "AtkDown",
       "turns": 2,
-      "chance": 0.35
+      "chance": 0.25
      }
     ]
    },
@@ -5349,7 +5349,7 @@
     "effects": [
      {
       "type": "Heal",
-      "pct": 0.18
+      "pct": 0.12
      },
      {
       "type": "Regen",
@@ -5357,7 +5357,7 @@
      },
      {
       "type": "Taunt",
-      "turns": 2,
+      "turns": 1,
       "to": "Self"
      }
     ]
@@ -5373,7 +5373,7 @@
      {
       "type": "Stun",
       "turns": 1,
-      "chance": 0.3
+      "chance": 0.15
      },
      {
       "type": "DefUp",
