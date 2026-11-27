@@ -34,4 +34,4 @@ The Sigil has shattered. Gather a team of champions and fight to restore it.
 ## Graphics
 - App icon 512x512: `icon_512.png`
 - Feature graphic 1024x500: `feature_1024x500.png`
-- Phone screenshots (landscape 16:9): `screenshots/` (from the Linux preview tour; recapture from a current phone build before publishing).
+- Phone screenshots (landscape 16:9, 1280x720, 8 of max 8): `screenshots/`, refreshed 2026-11-27 from the Linux preview tour (lair reveals, Titan, painted world map, victory screen, Glass Wastes boss, summon altar). Recapture on a phone before publishing if the preview looks off.
