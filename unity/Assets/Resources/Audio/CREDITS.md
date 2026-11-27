@@ -46,6 +46,11 @@ bubble and wind synthesis, a formant-filtered choir pad and generated stereo hal
 
 ## Procedural sounds and music (made for Sigilbound)
 
+`music_boss.ogg` (boss stages), `music_act2.ogg` (act 2 battles) and `music_map.ogg` (campaign map) are
+composed and synthesized in code by `unity/Tools~/audio/make_music2.py`: stereo, no samples, no
+third-party material. Their tonal balance is matched by EQ to the CC0 battle theme above (a measurement
+of its band levels, not any of its audio).
+
 The interface and summon sounds (`sfx_tap`, `sfx_confirm`, `sfx_reward`, `sfx_summon_*`) and `music_*.ogg`
 are synthesized from scratch by `unity/Tools~/audio/make_sfx.py` and `make_music.py` (numpy, encoded with
 ffmpeg/libvorbis): no samples, no third-party material; they belong to the project. Re-run the scripts

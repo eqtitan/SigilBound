@@ -52,9 +52,11 @@ namespace Sigilbound.Client
             "shore", "marsh", "wind", "fire", "storm",                                                 // act 2: harbor, fens, barrows, ember groves, storm coast
             "wind", "storm",                                                                           // the Glass Wastes' glass desert, Stormcrown Heights' crag
         };
+        // Music. menu/titan/victory: make_music.py; boss/act2/map: make_music2.py (stereo, streamed); battle: the CC0 theme.
         public static readonly Dictionary<string, string> Tracks = new Dictionary<string, string>
         {
             ["menu"] = "music_menu", ["battle"] = "battle_theme", ["titan"] = "music_titan", ["victory"] = "music_victory",
+            ["boss"] = "music_boss", ["act2"] = "music_act2", ["map"] = "music_map",
         };
         const float MusicMax = 0.55f, Crossfade = 1.2f, AmbMax = 0.6f, AmbFade = 1.5f;
         const int MaxVariants = 8;
@@ -182,9 +184,12 @@ namespace Sigilbound.Client
         }
 
         // ---- music: crossfade to a named track (menu, battle, titan); a sting over it (victory) ----
+        // key null: fade the music out (a boss stage waits in silence for its lair reveal).
         public void Music(string key)
         {
-            if (key == _track || !_tracks.TryGetValue(key, out var clip)) return;
+            if (key == _track) return;
+            AudioClip clip = null;
+            if (key != null && !_tracks.TryGetValue(key, out clip)) return;
             _track = key;
             if (_fade != null) StopCoroutine(_fade);
             _fade = StartCoroutine(CrossTo(clip));
@@ -193,23 +198,31 @@ namespace Sigilbound.Client
         {
             var from = _a; var to = _b; _a = to; _b = from;
             to.clip = clip; to.volume = 0; to.time = 0;
-            if (MusicVol > 0) to.Play();
+            if (MusicVol > 0 && clip != null) to.Play();
             float v0 = from.volume;
             for (float t = 0; t < Crossfade; t += Time.unscaledDeltaTime)
             {
-                float k = t / Crossfade; to.volume = MusicLevel * k; from.volume = v0 * (1 - k);
+                float k = t / Crossfade; to.volume = clip != null ? MusicLevel * k : 0; from.volume = v0 * (1 - k);
                 yield return null;
             }
-            to.volume = MusicLevel; from.Stop(); from.volume = 0; _fade = null;
+            to.volume = clip != null ? MusicLevel : 0; from.Stop(); from.volume = 0; _fade = null;
         }
         public void Sting(string key)
         {
             if (MusicVol <= 0 || !_tracks.TryGetValue(key, out var clip)) return;
             _sting.PlayOneShot(clip, Mathf.Min(1, MusicVol * 0.9f));
         }
-        // Battles: their track; back to the menu theme afterwards.
-        public void StartMusic(bool titan = false) => Music(titan ? "titan" : "battle");
-        public void StopMusic() { Music("menu"); StopAmbience(); }
+        // Battles: their track (battle, act2, titan; boss after its lair reveal); back to the menu theme
+        // afterwards. Out of battle the campaign map and team select have their own calm theme.
+        bool _inBattle;
+        public void StartMusic(bool titan = false) => StartMusic(titan ? "titan" : "battle");
+        public void StartMusic(string key) { _inBattle = true; Music(key); }
+        public void StopMusic() { _inBattle = false; Music(MenuTrack); StopAmbience(); }
+        string MenuTrack => _app != null && (_app.Screen == ScreenId.Campaign || _app.Screen == ScreenId.Prep) ? "map" : "menu";
+        void Update()
+        {
+            if (!_inBattle && _app != null && _app.Screen != ScreenId.Battle && _track != MenuTrack && _track != null) Music(MenuTrack);
+        }
 
         // Volume sliders apply instantly.
         public void ApplyVolumes()

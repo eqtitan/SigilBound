@@ -7,6 +7,14 @@ using System.Text.RegularExpressions;
 // make_music.py). Every arena theme has an ambience bed; every hero has an armour class (HeroArmour).
 static class SoundTests
 {
+    // Channel count from an Ogg Vorbis identification header (byte 11 of the vorbis packet).
+    static int OggChannels(string path)
+    {
+        var b = File.ReadAllBytes(path);
+        for (int i = 0; i + 12 < b.Length && i < 512; i++)
+            if (b[i] == 1 && b[i + 1] == 'v' && b[i + 2] == 'o' && b[i + 3] == 'r' && b[i + 4] == 'b' && b[i + 5] == 'i' && b[i + 6] == 's') return b[i + 11];
+        return 0;
+    }
     public static void Run(System.Action<bool, string> check)
     {
         string dir = System.AppContext.BaseDirectory, root = null;
@@ -39,6 +47,18 @@ static class SoundTests
         var bedTable = Regex.Match(src, "ThemeBeds =\\s*\\{([^}]*)\\}");
         var beds = Regex.Matches(bedTable.Groups[1].Value, "\"([a-z]+)\"").Cast<Match>().Select(m => m.Groups[1].Value).ToList();
         check(beds.Count >= themes && beds.All(keys.Contains), $"ambience: each of the {themes} arena themes has a bed that exists ({beds.Distinct().Count()} beds)");
+        // music: every track the battle and menu code asks for is in Sound.Tracks with a stereo file
+        var trackTable = Regex.Match(src, "Tracks = new Dictionary<string, string>\\s*\\{([^}]*)\\}").Groups[1].Value;
+        var tracks = Regex.Matches(trackTable, "\\[\"([a-z0-9]+)\"\\] = \"([A-Za-z0-9_]+)\"").Cast<Match>().ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value);
+        var wantTracks = new[] { "menu", "battle", "titan", "victory", "boss", "act2", "map" };
+        var bc = File.ReadAllText(Path.Combine(root, "Assets", "Sigilbound", "Client", "BattleController.cs"));
+        var asked = Regex.Matches(bc, "Sound\\.I\\?\\.(?:StartMusic|Music)\\(([^;]*?)\\);").Cast<Match>()
+            .SelectMany(m => Regex.Matches(m.Groups[1].Value, "\"([a-z0-9]+)\"").Cast<Match>().Select(q => q.Groups[1].Value)).Distinct().ToList();
+        var missingTracks = wantTracks.Concat(asked).Where(k => !tracks.ContainsKey(k) || !Directory.GetFiles(audio, tracks[k] + ".*").Any(f => !f.EndsWith(".meta"))).Distinct().ToList();
+        check(missingTracks.Count == 0 && asked.Contains("boss") && asked.Contains("act2"),
+            $"music: {tracks.Count} tracks, each with its file; battles ask for {string.Join(", ", asked)}" + (missingTracks.Count > 0 ? " — missing: " + string.Join(", ", missingTracks) : ""));
+        var newMusic = new[] { "music_boss", "music_act2", "music_map" }.Select(f => Path.Combine(audio, f + ".ogg")).ToList();
+        check(newMusic.All(f => File.Exists(f) && OggChannels(f) == 2), "music: the boss, act 2 and map themes are stereo OGG files");
         var heroes = Sigilbound.Core.GameData.Heroes;
         var noArmour = heroes.Where(h => !Sigilbound.Core.HeroArmour.Table.ContainsKey(h.Id)).Select(h => h.Id).ToList();
         var kinds = heroes.Select(h => Sigilbound.Core.HeroArmour.Of(h.Id, h.Role)).Distinct().Count();
