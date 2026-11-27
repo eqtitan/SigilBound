@@ -347,9 +347,25 @@ namespace Sigilbound.Client
         // strike; casters step forward and cast (or the support cast for heals and buffs); the Titan
         // jump-slams or swings in place. onSlam fires when the Titan lands.
         // skill: the skill index (0-based) when known; a hero with its own Skill_<n> clip plays that.
+        // Steps a routine (and the routines it waits on) only while this view exists. Attacks run on the
+        // battle controller, so they outlived a view destroyed mid-swing (leaving a battle, a scene change)
+        // and threw on `transform`.
+        IEnumerator WhileAlive(IEnumerator work)
+        {
+            var stack = new System.Collections.Generic.Stack<IEnumerator>(); stack.Push(work);
+            while (stack.Count > 0)
+            {
+                if (this == null) yield break;
+                if (!stack.Peek().MoveNext()) { stack.Pop(); continue; }
+                var cur = stack.Peek().Current;
+                if (cur is IEnumerator nested) { stack.Push(nested); continue; }
+                yield return cur;
+            }
+        }
+
         public IEnumerator Attack(Vector3 targetPos, bool melee, bool support = false, bool ult = false, System.Action onSlam = null, int skill = -1)
         {
-            if (_model != null) { yield return ModelAttack(targetPos, melee, support, ult, onSlam, skill); yield break; }
+            if (_model != null) { yield return WhileAlive(ModelAttack(targetPos, melee, support, ult, onSlam, skill)); yield break; }
             _busy = true;
             if (_animator != null) _animator.SetTrigger(melee ? "Attack" : "Cast");
             Vector3 dir = (targetPos - _home); dir.y = 0;
