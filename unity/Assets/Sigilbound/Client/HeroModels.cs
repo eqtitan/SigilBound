@@ -231,8 +231,8 @@ namespace Sigilbound.Client
         // of the load says what it got.
         static void Trace(string msg) => Debug.Log("SBMODEL " + msg);
 
-        // GLBs ship gzipped (prepare-models.mjs writes NAME.glbz; a ".gz" name is un-gzipped by Android's packaging): Unity stores every StreamingAssets
-        // file uncompressed in the APK, so this halves the models' share of the download, losslessly.
+        // GLBs ship packed and gzipped (prepare-models.mjs writes NAME.glbz; a ".gz" name is un-gzipped by Android's packaging): Unity stores every
+        // StreamingAssets file uncompressed in the APK, so this cuts the models' share of the download to about a third.
         // A .glb read tries the .glbz first and unzips it, then falls back to a plain .glb.
         static IEnumerator ReadBytes(string file, Action<byte[]> done)
         {
@@ -249,6 +249,7 @@ namespace Sigilbound.Client
                         using (var unzip = new System.IO.Compression.GZipStream(src, System.IO.Compression.CompressionMode.Decompress))
                         using (var dst = new MemoryStream(gz.Length * 3))
                         { unzip.CopyTo(dst); plain = dst.ToArray(); }
+                        plain = ModelPack.Unpack(plain); // "SBZ1" byte-transposed buffers (prepare-models.mjs): back to the exact GLB
                     }
                     catch (Exception e) { Debug.LogWarning($"Sigilbound: couldn't unzip {file}z: {e.Message}"); }
                     if (plain != null) { Trace($"read {file}z: {gz.Length} -> {plain.Length} bytes"); done(plain); yield break; }

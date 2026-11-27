@@ -2,6 +2,9 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-27 | Smaller download
+change: The game download is about 30 MB smaller: hero models are packed more tightly, with no visible difference.
+
 ## 2026-11-27 | Lighter on memory
 fix: The game no longer keeps every hero you have seen in memory: heroes not on screen are let go (the last few stay for quick reuse), which should stop the game being closed by Android during long sessions.
 fix: Hero textures use about half the memory they did, and small leaks during long auto-replay sessions are cleaned up after each battle.

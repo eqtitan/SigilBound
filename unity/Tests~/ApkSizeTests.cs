@@ -24,7 +24,8 @@ static class ApkSizeTests
             var p = Path.Combine(dir, "Tools~", "models", "heroes_hd");
             if (Directory.Exists(p)) hd = p;
         }
-        if (hd == null) { check(true, "apk size: heroes_hd not found here (skipped)"); return; }
+        // On CI a missing folder fails instead of passing as "skipped" (QA review 2026-11-27, #9).
+        if (hd == null) { bool ci = System.Environment.GetEnvironmentVariable("CI") == "true"; check(!ci, "apk size: heroes_hd not found here" + (ci ? "" : " (skipped)")); return; }
         var files = Directory.GetFiles(hd);
         int heroes = files.Count(f => f.EndsWith("_HD.glb"));
         long tex = files.Where(f => f.EndsWith(".jpg") || f.EndsWith(".png")).Sum(f => new FileInfo(f).Length);
