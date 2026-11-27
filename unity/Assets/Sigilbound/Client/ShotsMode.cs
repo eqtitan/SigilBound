@@ -146,8 +146,11 @@ namespace Sigilbound.Client
             {
                 var foes = Sigilbound.Core.Battle.Living(core.Enemies);
                 foreach (var f in foes) f.Break = 68;
-                if (foes.Count > 0 && !foes[0].Effects.Exists(e => e.Type == FxType.Poison))
-                    foes[0].Effects.Add(new Effect { Type = FxType.Poison, Turns = 3, Stacks = 3 });
+                if (foes.Count > 0)
+                {
+                    var p = foes[0].Effects.Find(e => e.Type == FxType.Poison);
+                    if (p != null) p.Stacks = 3; else foes[0].Effects.Add(new Effect { Type = FxType.Poison, Turns = 3, Stacks = 3 });
+                }
                 yield return Shot("combat-ui");
             }
             G.S.settings.speed = 3; // finish the fight quickly so the results screen is photographed
