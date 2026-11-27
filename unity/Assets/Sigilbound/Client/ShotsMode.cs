@@ -133,7 +133,8 @@ namespace Sigilbound.Client
             yield return new WaitForSecondsRealtime(4f);
             yield return Shot("battle-mid");
             LogBudget("battle-mid");
-            float until = Time.realtimeSinceStartup + 90f;
+            G.S.settings.speed = 3; // finish the fight quickly so the results screen is photographed
+            float until = Time.realtimeSinceStartup + 150f;
             while (Battle.InProgress && Time.realtimeSinceStartup < until) yield return null;
             yield return new WaitForSecondsRealtime(2f);
             yield return Shot("battle-result");
