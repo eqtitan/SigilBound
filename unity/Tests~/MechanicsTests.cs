@@ -163,6 +163,71 @@ static class MechanicsTests
                 "Last Light: an ally falls and the passive heals the living allies 10% (x battle pace); the hero screen shows the passive");
         }
 
+        // Combat fixes (PLAN step 99).
+        Console.WriteLine("\nCombat fixes (PLAN step 99):");
+        {
+            // A Break caused by a Counter hit lands on the attacker's own turn: it must still cost the next turn.
+            var a = U(true, dummy); a.El = Element.Gale; a.Break = 90;
+            var t = U(false, dummy); t.Effects.Add(new Effect { Type = FxType.Counter, Turns = 3 });
+            var b = Fight(a, t);
+            b.BeginTurn(a); var ev = b.Act(a, 0, t); b.EndTurn(a, out _);
+            bool stillBroken = a.Has(FxType.Broken);
+            var (_, skip) = b.BeginTurn(a); b.EndTurn(a, out _);
+            check(ev.Any(e => e.Text == "Break!" && e.Unit == a) && stillBroken && skip && !a.Has(FxType.Broken) && a.BreakGuard == Battle.BreakGuardTurns,
+                "Break from a Counter hit: survives the attacker's own turn and costs it the next one (guard starts after)");
+
+            // BreakGuard counts down only on turns the unit acts, not on a turn lost to Stun.
+            var x = U(true, dummy); var bx = Fight(x, U(false, dummy));
+            x.BreakGuard = 2; x.Effects.Add(new Effect { Type = FxType.Stun, Turns = 1 });
+            var (_, s1) = bx.BeginTurn(x); bx.EndTurn(x, out _); int afterStun = x.BreakGuard;
+            var (_, s2) = bx.BeginTurn(x); bx.EndTurn(x, out _);
+            check(s1 && afterStun == 2 && !s2 && x.BreakGuard == 1, $"BreakGuard: a stunned turn doesn't count ({afterStun}), an acted one does ({x.BreakGuard})");
+        }
+        {
+            // Auto-battle kill estimate uses the real hit maths (Pace, enrage, scaling stat): it finishes the
+            // enemy it can kill instead of the one with the lowest HP share.
+            var a = U(true, dummy); var w1 = U(false, dummy, 2000); var w2 = U(false, dummy, 1200);
+            w1.Hp = 1400;
+            var b = Fight(a, w1, w2);
+            var (_, pick) = b.AiChoose(a);
+            var hp = U(true, Def("hpscaler", new SkillDef { Name = "Slam", Target = Target.Enemy, Mult = 0.1, Scale = Scale.Hp }), 20000);
+            var v1 = U(false, dummy, 6000); var v2 = U(false, dummy, 2400); v1.Hp = 3000;
+            var (_, pick2) = Fight(hp, v1, v2).AiChoose(hp);
+            check(pick == w2 && pick2 == v2, $"AI kill estimate ({pick?.Hp}, {pick2?.Hp}): counts Pace and the skill's scaling stat (picks the killable foe, not the lowest HP share)");
+        }
+        {
+            // Heals carry their healer (the results screen's Healing column).
+            var healer = U(true, Def("healer", Basic(), new SkillDef { Name = "Mend", Target = Target.Ally, Cooldown = 3, Fx = new[] { new FxDef { Type = FxType.Heal, Pct = 0.2 } } }));
+            var hurt = U(true, dummy); hurt.Hp = 2000;
+            var b = new Battle(new List<Unit> { healer, hurt }, new List<List<Unit>> { new List<Unit> { U(false, dummy) } }, new Fixed());
+            var ev = b.Act(healer, 1, hurt);
+            check(ev.Any(e => e.Type == EvType.Heal && e.Unit == hurt && e.Source == healer && e.Amount > 0), "Heal events name the healer (Source)");
+
+            // Late enrage: healing and shields are ~0, so the AI stops casting them and no empty shield is added.
+            var sh = U(true, Def("shielder", Basic(), new SkillDef { Name = "Mend", Target = Target.Ally, Cooldown = 3, Fx = new[] { new FxDef { Type = FxType.Heal, Pct = 0.2 } } },
+                new SkillDef { Name = "Ward", Target = Target.AllAllies, Cooldown = 4, Fx = new[] { new FxDef { Type = FxType.Shield, Pct = 0.2, Turns = 2 } } }));
+            var hurt2 = U(true, dummy); hurt2.Hp = 2000;
+            var b2 = new Battle(new List<Unit> { sh, hurt2 }, new List<List<Unit>> { new List<Unit> { U(false, dummy) } }, new Fixed());
+            var early = b2.AiChoose(sh).skill;
+            b2.SkipToRound(Battle.EnrageFrom + 9);
+            var late = b2.AiChoose(sh).skill;
+            b2.Act(sh, 2, sh);
+            check(early == 2 && late == 0 && b2.HealEnrage == 0 && !sh.Has(FxType.Shield) && !hurt2.Has(FxType.Shield),
+                $"Late enrage: the AI casts its basic instead of heals and shields (skill {early} -> {late}); a zero shield isn't added");
+        }
+
+        // Balance patch (PLAN step 99): campaign easing, role speed shift, Act 2 rewards.
+        {
+            double m(int idx) => Game.StageWaves(idx)[0][0].Mul;
+            bool ls = Math.Abs(m(18) / Game.Grade(18).Mul - Curve.LSEase) < 1e-9 && Math.Abs(m(12) / Game.Grade(12).Mul - 1) < 1e-9; // 4-1 Light vs 3-1 Tide
+            double ch10 = m(54) / Curve.LSEase / (Game.Grade(54).Mul / Curve.Chapter[9]); // chapter 10 (Shadow): its chapter factor
+            bool finale = Math.Abs(m(89) / Game.Grade(89).Mul - Curve.LSEase * 0.90) < 1e-9 && Math.Abs(Curve.Act2Ramp - 0.015) < 1e-12;
+            bool spd = RoleSpdShift(Role.Attack) == 8 && RoleSpdShift(Role.Defense) == -2 && RoleSpdShift(Role.Hp) == -4 && RoleSpdShift(Role.Support) == 0;
+            var r61 = Game.StageRewards(61, false); var r89 = Game.StageRewards(89, false);
+            check(ls && Math.Abs(ch10 - 0.98) < 1e-9 && finale && spd && r89.Gold > r61.Gold * 1.5 && r89.Xp > r61.Xp * 1.5 && Game.StageRewards(59, false).Gold == Js.RoundInt(200 + 58 * 60.0),
+                $"balance patch: Light/Shadow chapters x{Curve.LSEase}, chapter 10 x{ch10:0.00}, 15-6 eased, role speed A+8/D-2/H-4/S0, Act 2 rewards grow ({r61.Gold} -> {r89.Gold} gold)");
+        }
+
         // Text and web parity.
         var demo = new SkillDef { Name = "Demo", Target = Target.Enemy, Mult = 1, Pierce = true, Execute = 0.25, Spread = true, Fx = new[] { new FxDef { Type = FxType.Pull, Val = 0.2 }, new FxDef { Type = FxType.Burn, Turns = 2 } } };
         var txt = SkillText.Describe(demo);
