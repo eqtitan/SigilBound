@@ -26,7 +26,7 @@ namespace Sigilbound.Client
 
     public sealed partial class App : MonoBehaviour
     {
-        public const string SaveKey = "sigilbound.save.v1";
+        public const string SaveKey = SaveStore.MainKey;
         public Game G;
         public Arena Arena;
         public ScreenId Screen = ScreenId.Home;
@@ -76,6 +76,7 @@ namespace Sigilbound.Client
             Arena.FrameMenu();
             StartShotsIfAsked(); // -sbShots=DIR: screenshot tour (ShotsMode.cs)
             PreloadModels();
+            ShowLoadProblem();
         }
 
         // Starts loading the high-detail models the player will see first (the menu lineup: the team, or
@@ -92,23 +93,54 @@ namespace Sigilbound.Client
 
         // ---------- save ----------
         // Stored in the web game's JSON layout (SaveCodec), so save codes move between the two.
-        static SaveData Load()
+        // SaveStore (Core) owns the safety rules: an unreadable save is kept as a copy and never
+        // overwritten, the previous save is kept as a backup, and nothing is written while a failed
+        // load is unresolved (QA review 2026-11-27, P0-1).
+        sealed class PrefsStorage : ISaveStorage
         {
-            try
-            {
-                var json = PlayerPrefs.GetString(SaveKey, "");
-                if (!string.IsNullOrEmpty(json)) return SaveCodec.FromJson(json) ?? new SaveData();
-            }
-            catch (Exception e) { Debug.LogWarning("Save unreadable, starting fresh: " + e.Message); }
-            return new SaveData();
+            public string Get(string key) => PlayerPrefs.GetString(key, "");
+            public void Set(string key, string value) => PlayerPrefs.SetString(key, value);
+            public void Flush() => PlayerPrefs.Save();
+        }
+        public SaveStore Store;
+        SaveData Load()
+        {
+            Store = new SaveStore(new PrefsStorage());
+            var s = Store.Load(DateTime.Now);
+            if (Store.State == SaveLoadState.FromBackup || Store.State == SaveLoadState.Failed)
+                Debug.LogWarning($"Sigilbound: save unreadable ({Store.Error}), kept as {Store.CorruptKey}; state {Store.State}");
+            return s;
         }
         public void Save()
         {
             if (NoSave) return; // screenshot mode (ShotsMode.cs) never touches the real save
+            if (Store == null || !Store.CanWrite) return; // failed load: never overwrite the real save
             G.S.gameVersion = Application.version;
-            var json = SaveCodec.ToJson(G.S);
-            G.S.sourceJson = json;
-            PlayerPrefs.SetString(SaveKey, json); PlayerPrefs.Save();
+            Store.Write(G.S);
+        }
+
+        // After a failed load: explain, and let the player load a save code or start over on purpose.
+        void ShowLoadProblem()
+        {
+            if (Store == null || NoSave) return;
+            if (Store.State == SaveLoadState.FromBackup)
+            {
+                Modal("Save restored from backup", 230, b =>
+                {
+                    Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), "Your save couldn't be read, so the backup from just before your last save was loaded. A copy of the damaged save is kept on this device.", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
+                    if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "OK")) CloseModal();
+                });
+                return;
+            }
+            if (Store.State != SaveLoadState.Failed) return;
+            Modal("Your save couldn't be read", 330, b =>
+            {
+                Ui.Text(new Rect(b.x, b.y, b.width, 150), "Your progress is kept safe on this device and nothing will be saved over it.\n\nIf you have a save code, load it in Settings. Or copy the damaged save to send with a bug report. Starting a new game keeps the damaged copy too.", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
+                float bw = (b.width - 10) / 2;
+                if (Ui.Button(new Rect(b.x, b.yMax - 96, bw, 44), "Load a save code", Ui.Kind.Secondary)) OpenSettings();
+                if (Ui.Button(new Rect(b.x + bw + 10, b.yMax - 96, bw, 44), "Copy damaged save", Ui.Kind.Secondary)) { GUIUtility.systemCopyBuffer = Store.CorruptText; Toast("Copied"); }
+                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Start a new game", Ui.Kind.Red)) { Store.AcceptFresh(); CloseModal(); }
+            });
         }
 
         // Replace this device's progress with a save code from the web game (or another device).
@@ -116,6 +148,7 @@ namespace Sigilbound.Client
         {
             var s = SaveCodec.FromCode(code);
             if (s == null) return false;
+            Store?.AcceptFresh(); // the player chose this save over the unreadable one
             G = new Game(s);
             G.EnsureDaily();
             Save();

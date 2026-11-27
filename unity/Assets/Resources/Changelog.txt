@@ -2,6 +2,11 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-27 | Safer saves
+fix: If your save ever can't be read, the game no longer starts over on top of it: the damaged save is kept, the backup from your previous save is loaded, and nothing is saved over your progress until you choose.
+fix: The game now keeps a backup of your previous save.
+fix: Heroes from a newer version of the game are kept in your save instead of being removed by an older version.
+
 ## 2026-11-27 | Faster, deeper battles
 change: Battles are about a third shorter: every hit, heal, shield and damage-over-time is stronger, so a typical fight lasts around 8 rounds.
 new: Weakness Break: hit a foe three times with the element that beats it and it is Broken, losing its next turn. Bosses take twice as long to break; the Titan can't be broken.
