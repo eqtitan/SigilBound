@@ -50,6 +50,28 @@ namespace Sigilbound.Client
                 }
         }
 
+        // A painted frame (panel, card): borders at texture size, shrunk on small rects so the ornate
+        // corners never overlap (a 60 px card would otherwise fold its 76 px corners over each other).
+        public static bool DrawFrame(Rect r, string name)
+        {
+            var t = Tex(name); if (t == null) return false;
+            if (Event.current.type != EventType.Repaint) return true;
+            var b = Border(name, 24);
+            float k = Mathf.Min(1f, Mathf.Min(r.width / (b.left + b.right), r.height / (b.top + b.bottom)) * 0.85f);
+            float W = t.width, H = t.height;
+            float l = b.left * k, rr = b.right * k, tp = b.top * k, bt = b.bottom * k;
+            float[] dx = { r.x, r.x + l, r.xMax - rr, r.xMax }, dy = { r.y, r.y + tp, r.yMax - bt, r.yMax };
+            float[] u = { 0, b.left / W, 1 - b.right / W, 1 }, v = { 1, 1 - b.top / H, b.bottom / H, 0 };
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                {
+                    var dst = new Rect(dx[i], dy[j], dx[i + 1] - dx[i], dy[j + 1] - dy[j]);
+                    if (dst.width <= 0 || dst.height <= 0) continue;
+                    GUI.DrawTextureWithTexCoords(dst, t, new Rect(u[i], v[j + 1], u[i + 1] - u[i], v[j] - v[j + 1]));
+                }
+            return true;
+        }
+
         // A painted button: plate (pressed variant while held) plus its centre ornament. False if no art.
         public static bool DrawButton(Rect r, string name, bool pressed)
         {

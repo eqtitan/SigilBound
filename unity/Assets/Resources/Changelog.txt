@@ -2,6 +2,9 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-27 | Gilded menus
+new: Painted blue buttons, gem chips for tabs and filters, and ornate gold frames around panels and cards.
+
 ## 2026-11-27 | New music
 new: Boss stages have their own dark battle theme, with war drums, low brass and a choir. It starts as the lair reveal ends.
 new: Act II battles have a stormy coastal theme with a fiddle and frame drum.
