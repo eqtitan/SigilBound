@@ -25,7 +25,10 @@ namespace Sigilbound.Client
             Ui.Backdrop(new Rect(Ui.Left, 0, Ui.FullW, Ui.H), "bg_title", 0.25f);
             float y = area.y + 20;
             Ui.Heading(new Rect(0, y, Ui.W, 44), "SIGILBOUND", 34, TextAnchor.MiddleCenter); y += 48;
-            Ui.Text(new Rect(30, y, Ui.W - 60, 40), "The Sigil has shattered. Choose the first champion to answer your call.", 14, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter, true);
+            // A soft dark band so the line reads over the painting's bright sigils.
+            float bw = Mathf.Min(Ui.W - 40, 560);
+            Ui.Round(new Rect(Ui.W / 2 - bw / 2, y - 2, bw, 44), new Color(0.04f, 0.03f, 0.07f, 0.72f), null, 14);
+            Ui.Text(new Rect(30, y, Ui.W - 60, 40), "The Sigil has shattered. Choose the first champion to answer your call.", 14, Palette.Text, FontStyle.Normal, TextAnchor.MiddleCenter, true);
             y = area.yMax - 3 * 92 - 30;
             foreach (var id in Starters)
             {

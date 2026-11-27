@@ -517,6 +517,17 @@ def export(arm, obj, path):
                               export_apply=False, export_yup=True, export_materials="PLACEHOLDER")
     return os.path.getsize(path) // 1024
 
+def normalise_parts(c):
+    """Outfit part names are file names (Male_Knight_Body_Armor). The phase H designs wrote them as
+    Pack/Part ("Female_Ranger/Legs"): nothing matched, and every such slot silently fell back to the
+    peasant part. Rewrite Pack/Part to Pack_Part everywhere a part is named, keeping any note after it."""
+    o = c.get("outfit") or {}
+    fix = lambda v: re.sub(r"\b((?:Male|Female)_[A-Za-z]+)/([A-Za-z_]+)", r"\1_\2", v) if isinstance(v, str) else v
+    for k in ("arms", "body", "legs", "feet", "head"):
+        if k in o: o[k] = fix(o[k])
+    if o.get("acc"): o["acc"] = [fix(x) for x in o["acc"]]
+    return c
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--design", required=True); ap.add_argument("--hero", required=True); ap.add_argument("--out", required=True)
@@ -524,7 +535,7 @@ def main():
     ap.add_argument("--lod1", action="store_true", help="also export a ~1/3-triangle LOD1 (not shipped by default)")
     a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
     os.makedirs(a.out, exist_ok=True)
-    c = {d["id"]: d for d in json.load(open(a.design))}[a.hero]
+    c = normalise_parts({d["id"]: d for d in json.load(open(a.design))}[a.hero])
     arm = P.build(c, pose=False)
     pieces = kit(c, arm)
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
