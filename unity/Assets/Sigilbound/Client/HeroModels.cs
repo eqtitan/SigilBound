@@ -738,8 +738,8 @@ namespace Sigilbound.Client
             anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
             // Creature rig extensions (tail, jaw, longer neck, digitigrade legs, wing bones; kit_rig.py):
             // re-apply this hero's rest-pose changes over the humanoid clips and drive the extra bones.
-            bool creature = RigExtras.Needed(holder);
-            if (creature) root.AddComponent<RigExtras>().Init(holder, lib.Prototype, anim);
+            bool rigExt = RigExtras.Needed(holder);
+            if (rigExt) root.AddComponent<RigExtras>().Init(holder, lib.Prototype, anim);
             if (titan) root.AddComponent<HandGrip>();
             else if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
@@ -747,7 +747,7 @@ namespace Sigilbound.Client
             var head = BodyShaper.Find(holder, "Head");
             if (head != null) headY = Mathf.Max(0.5f, holder.InverseTransformPoint(head.position).y);
             // a creature's longer neck raises its head: size it by where a humanoid head would sit
-            var neck = creature ? BodyShaper.Find(holder, "neck_01") : null;
+            var neck = rigExt ? BodyShaper.Find(holder, "neck_01") : null;
             if (neck != null) headY = Mathf.Max(0.5f, holder.InverseTransformPoint(neck.position).y + 0.08f);
             // Height and build from the approved design (heroes_hd/body.json): gnomes stand short, golems tall and broad.
             yield return EnsureHdBodies();
