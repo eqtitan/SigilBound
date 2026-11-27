@@ -24,7 +24,7 @@
    "body": "Male_Knight_Body_Armor",
    "legs": "Male_Knight_Legs",
    "feet": "Male_Knight_Feet_Armor",
-   "head": "custom:red dragon head with swept-back horns",
+   "head": "custom:red dragon head with large swept-back horns",
    "acc": [
     "custom:dragon-head pauldrons with glowing eyes",
     "custom:glowing molten veins in the armour",
@@ -139,7 +139,7 @@
    "body": "custom:long dark greatcoat with brass trim and buckled straps",
    "legs": "Male_Peasant_Legs",
    "feet": "Male_Ranger_Feet_Boots",
-   "head": "custom:orange dragon head with small swept horns and a brass monocle",
+   "head": "custom:orange dragon head with large swept-back horns and a brass monocle",
    "acc": [
     "custom:long dark greatcoat with brass trim and coat tails",
     "custom:brass-buckled bandolier",
@@ -255,7 +255,8 @@
    "acc": [
     "custom:long moss-green robe with leaf-trimmed hem and flowing sleeves and a sash",
     "custom:broad owl-feather capelet that flares like folded wings",
-    "custom:wide leather belt hung with scrolls and pouches"
+    "custom:wide leather belt hung with scrolls and pouches",
+    "custom:fluffy pale feathered bib on the chest"
    ]
   },
   "palette": {

@@ -335,7 +335,9 @@ def make_cape(arm, mat, clasp_mat, long_=True, train=False, ember=None, ragged=F
 
 def kit(c, arm):
     pal = c.get("palette", {}); el = P.hexc(ELEM.get(c.get("element"), pal.get("glow")))
-    mats = {"metal": P.flat("K_Metal", P.hexc(pal.get("metal", "#aab0b8")), metal=0.9, rough=0.3),
+    _mc = P.hexc(pal.get("metal", "#aab0b8")); _light = (0.3 * _mc[0] + 0.59 * _mc[1] + 0.11 * _mc[2]) > 0.72
+    # a light palette metal (white-and-gold plate) is enamel, not a mirror: a mirror-white reflects the dark scene and reads black
+    mats = {"metal": P.flat("K_Metal", _mc, metal=0.3 if _light else 0.9, rough=0.35 if _light else 0.3),
             "acc": P.flat("K_Accent", P.hexc(pal.get("accent")), metal=0.3, rough=0.4),
             "main": P.flat("K_Main", P.hexc(pal.get("main")), rough=0.6),
             "glow": P.flat("K_Glow", el, emit=4),

@@ -478,9 +478,10 @@ def horns(X, text, kind=None):
                     b = beam[i]; d = Vector((X.rng.uniform(-1, 1), X.rng.uniform(-1, 1), 0.4)).normalized()
                     parts.append(G.sweep([b, b + d * 0.02], [0.004, 0.0003], wood, segs=5))
         else:  # swept back
+            K = 1.75 if has(text, "large", "big", "long") else 1.0
             root = Vector((X.cx + sx * X.hw * 0.6, X.cy - 0.005, X.top - 0.03))
-            pts = G.bezier(root, root + Vector((sx * 0.05, 0.02, 0.08)), root + Vector((sx * 0.08, 0.14, 0.1)), root + Vector((sx * 0.09, 0.22, 0.05)), n=14)
-            parts.append(G.sweep(pts, G.taper(15, 0.028, 0.003, 1.2), mt, segs=10, ridge=0.07, ridges=10))
+            pts = G.bezier(root, root + Vector((sx * 0.05, 0.02, 0.08)) * K, root + Vector((sx * 0.09, 0.14, 0.1)) * K, root + Vector((sx * 0.1, 0.24, 0.04)) * K, n=14)
+            parts.append(G.sweep(pts, G.taper(15, 0.028 * (1 + 0.45 * (K - 1)), 0.003, 1.2), mt, segs=10, ridge=0.07, ridges=10))
     return X.add(G.join(parts), "Head", piece="horns:" + kind)
 
 
@@ -1531,11 +1532,13 @@ def species(c, arm, mats, U):
                         X.mat("#d8d0c0", "stone"), X.mat("#4a7a2a")), "Head", tag="Kit_Species", piece="crab head + carapace hood")
         crab_claws(X, shell, X.mat("#e8a070", "horn"))
         crab_body(X, shell, X.mat("#e8b080", "horn"), X.mat("#d8d0c0", "stone"), X.mat("#3a6a2a"), X.mat(pal.get("glow", "#5ae8ff"), "glow"))
+        crab_legs(X, shell, X.mat("#e8a070", "horn"))
     if "stag" in sp:
         stag_head(X, fur, X.mat("#ece2d0"), X.mat("#1a1412", "horn"))
     if "hoof" in feet_t or "hooves" in feet_t: hooves(X, X.mat("#2a2018", "horn"), fur)
     if "talon" in feet_t: talons(X, X.mat("#d8b04a", "leather"), X.mat("#1e1814", "horn"))
     if "wing-sleeve" in arms_t or "wing sleeve" in arms_t: wing_sleeves(X, fur, X.mat("#e8dcc0"))
+    if "feathered bib" in accs: feather_bib(X, X.mat(pal.get("secondary", "#e8dcc0")), X.mat("#b89a6a"))
     if has(accs, "scroll") and has(accs, "belt"): scroll_belt(X, X.mat("#5a3b26", "leather"), X.mat("#e8dcc0"), X.mat("#7a5a3a", "leather"))
     if "dragon-head pauldron" in accs: dragon_pauldrons(X, X.mat(pal.get("metal", "#3a3230"), "metal"), X.mat(pal.get("glow", "#ff6a1a"), "glow"), X.mat("#2a2220", "horn"), snout=skin)
     if "molten vein" in accs or "glowing veins" in accs: molten_veins(X, X.mat(pal.get("glow", "#ff6a1a"), "glow"))
@@ -1657,17 +1660,17 @@ def crab_claws(X, shell_mat, spike_mat):
         la, _ = X.U.rest_bone(X.arm, "lowerarm_" + side); hd, ht = X.U.rest_bone(X.arm, "hand_" + side)
         along = (hd - la).normalized(); up = Vector((0, 0, 1)); up = (up - along * up.dot(along)).normalized()
         sl = [la + (hd - la) * t + up * 0.012 for t in (0.05, 0.4, 0.75, 1.0)]
-        sleeve = G.sweep(sl, [(0.07, 0.062), (0.085, 0.074), (0.09, 0.08), (0.082, 0.07)], shell_mat, segs=14, side=up)
+        sleeve = G.sweep(sl, [(0.09, 0.08), (0.11, 0.095), (0.115, 0.1), (0.105, 0.09)], shell_mat, segs=14, side=up)
         parts = [sleeve]
         for t in (0.25, 0.55, 0.85):
             b = la + (hd - la) * t + up * 0.07
             parts.append(G.sweep([b, b + up * 0.03 + along * 0.008], [0.009, 0.0008], spike_mat, segs=6))
         base = hd + up * 0.05 + along * 0.02
-        fin = G.bezier(base, base + along * 0.18 + up * 0.08, base + along * 0.33 - up * 0.01, n=10)
-        parts.append(G.sweep(fin, [(0.08 * (1 - 0.9 * (i / 10) ** 1.4), 0.05 * (1 - 0.85 * i / 10)) for i in range(11)], shell_mat, segs=12, side=Vector((0, 0, 1)) if abs(along.z) < 0.9 else Vector((1, 0, 0))))
+        fin = G.bezier(base, base + along * 0.24 + up * 0.1, base + along * 0.44 - up * 0.01, n=10)
+        parts.append(G.sweep(fin, [(0.11 * (1 - 0.9 * (i / 10) ** 1.4), 0.07 * (1 - 0.85 * i / 10)) for i in range(11)], shell_mat, segs=12, side=Vector((0, 0, 1)) if abs(along.z) < 0.9 else Vector((1, 0, 0))))
         lo = base - up * 0.02
-        thumb = G.bezier(lo, lo + along * 0.12 - up * 0.06, lo + along * 0.23 - up * 0.01, n=8)
-        parts.append(G.sweep(thumb, [(0.045 * (1 - 0.9 * i / 8), 0.032 * (1 - 0.85 * i / 8)) for i in range(9)], shell_mat, segs=10))
+        thumb = G.bezier(lo, lo + along * 0.16 - up * 0.08, lo + along * 0.3 - up * 0.01, n=8)
+        parts.append(G.sweep(thumb, [(0.065 * (1 - 0.9 * i / 8), 0.045 * (1 - 0.85 * i / 8)) for i in range(9)], shell_mat, segs=10))
         X.add(G.join(parts[:1] + parts[1:4]), "lowerarm_" + side, tag="Kit_Species", piece="crab sleeve")
         X.add(G.join(parts[4:]), "hand_" + side, tag="Kit_Species", piece="crab pincer")
 
@@ -1756,19 +1759,21 @@ def dragon_head(X, scale_mat, belly_mat, glow_mat, slim=False, text=""):
     """A whole dragon head: a scaled skull enclosing the human head, a long ridged snout with nostrils,
     a hinged lower jaw with fangs, heavy brow ridges over glowing eyes, cheek frills and spines down the
     back of the head, set on a scaled neck. Horns come from horns() (swept back)."""
-    C, a, b, c = _head_dims(X, 0.98 if slim else 1.04)
+    C, a, b, c = _head_dims(X, 1.05 if slim else 1.12)
+    a *= 1.12   # the skull wider than the neck: reads as a dragon from the front
     parts = [G.sphere(C, 1.0, scale_mat, segs=22, scale=(a, b * 1.05, c))]
-    zs = X.eye - 0.02
-    L = 0.17 if slim else 0.2; W = 0.042 if slim else 0.052
+    zs = X.eye - 0.012
+    L = 0.21 if slim else 0.25; W = 0.058 if slim else 0.07
     p0 = Vector((X.cx, C.y - b * 0.35, zs + 0.008)); p1 = Vector((X.cx, C.y - b * 1.0, zs + 0.002)); p2 = Vector((X.cx, C.y - b - L, zs - 0.012))
     n = 12; pts = G.bezier(p0, p1, p2, n=n)
     rad = [((a * 0.8) * (1 - t) + W * t, (c * 0.55) * (1 - t) + W * 0.62 * t) for t in [(i / n) ** 0.8 for i in range(n + 1)]]
     rad[-1] = (W * 0.75, W * 0.45)
     parts.append(G.sweep(pts, rad, scale_mat, segs=16, side=Vector((1, 0, 0)), ridge=0.05, ridges=7))
     # lower jaw, slightly open, paler underside
-    j0 = p0 + Vector((0, 0.01, -c * 0.45)); j2 = p2 + Vector((0, 0.03, -W * 0.85))
+    j0 = p0 + Vector((0, 0.01, -c * 0.5)); j2 = p2 + Vector((0, 0.045, -W * 1.55))   # open a little: a clear gap between the jaws
     jp = G.bezier(j0, (j0 + j2) / 2 + Vector((0, 0, -0.008)), j2, n=10)
-    jaw_parts = [G.sweep(jp, [((a * 0.7) * (1 - t) + W * 0.8 * t, (c * 0.28) * (1 - t) + W * 0.32 * t) for t in [i / 10 for i in range(11)]], belly_mat, segs=12, side=Vector((1, 0, 0)))]
+    jaw_parts = [G.sweep(jp, [((a * 0.72) * (1 - t) + W * 0.85 * t, (c * 0.32) * (1 - t) + W * 0.42 * t) for t in [i / 10 for i in range(11)]], belly_mat, segs=12, side=Vector((1, 0, 0)))]
+    jaw_parts.append(G.sweep(jp[2:], [((a * 0.5) * (1 - t) + W * 0.6 * t, 0.006) for t in [i / 8 for i in range(9)]], X.mat("#5a1410"), segs=10, side=Vector((1, 0, 0))))   # dark mouth inside
     tooth = X.mat("#efe6d0", "horn")
     for sx in (-1, 1):   # lower fangs ride on the jaw
         for k, f in enumerate((0.85, 0.6)):
@@ -1789,7 +1794,7 @@ def dragon_head(X, scale_mat, belly_mat, glow_mat, slim=False, text=""):
         # cheek frill spikes, swept back
         for k in range(3):
             q = _ell(C, a, b, c, (sx * 0.9, 0.25 + 0.2 * k, -0.25 + 0.2 * k))
-            parts.append(G.sweep([q, q + Vector((sx * 0.035, 0.05 + 0.01 * k, 0.01))], [0.009, 0.0006], scale_mat, segs=6))
+            parts.append(G.sweep([q, q + Vector((sx * 0.06, 0.07 + 0.012 * k, 0.015))], [0.014, 0.0008], scale_mat, segs=6))
     for k in range(6):   # spines from the crown down the back of the head
         q = _ell(C, a, b, c, (0, 0.2 + 0.25 * k, 1.0 - 0.32 * k))
         parts.append(G.sweep([q, q + Vector((0, 0.03, 0.02 - 0.006 * k))], [0.011 - 0.001 * k, 0.0006], scale_mat, segs=6))
@@ -1838,20 +1843,31 @@ def owl_head(X, fur, disc_mat, text=""):
     """A round, feathered owl head: a big speckled skull, a pale facial disc framed by a dark rim, large
     amber eyes with black pupils, a small hooked beak, a V of brow feathers and ear tufts. Round brass
     spectacles when the design asks for them."""
-    C, a, b, c = _head_dims(X, 1.18)
-    parts = [G.sphere(C, 1.0, fur, segs=24, scale=(a * 1.05, b, c))]
-    dc = _ell(C, a * 1.05, b, c, (0, -1, -0.05)) + Vector((0, 0.012, 0))
-    parts.append(G.sphere(dc, 1.0, X.mat("#3a2a1a"), segs=20, scale=(a * 0.98, 0.022, c * 0.86)))
-    parts.append(G.sphere(dc + Vector((0, -0.006, 0)), 1.0, disc_mat, segs=20, scale=(a * 0.9, 0.02, c * 0.78)))
+    C, a, b, c = _head_dims(X, 1.22)
+    parts = [G.sphere(C, 1.0, fur, segs=26, scale=(a * 1.08, b, c))]
+    # the facial disc is a shallow dish set INTO the round skull: a dark ruff rim on the skull's front,
+    # the pale disc sunk behind it, so the face has depth from the front and three-quarter views
+    front = _ell(C, a * 1.08, b, c, (0, -1, -0.05))
+    rim = []
+    for k in range(33):
+        th = k / 32 * TAU
+        d = Vector((math.cos(th) * 0.78, -1.0, math.sin(th) * 0.86 - 0.05))
+        rim.append(_ell(C, a * 1.08, b, c, d) + Vector((0, -0.004, 0)))
+    parts.append(G.sweep(rim, [(0.016, 0.012)] * 33, X.mat("#4a3420"), segs=8, cap=False))
+    dish = G.lathe([(0.0, -0.035), (0.35, -0.03), (0.7, -0.015), (0.95, 0.0), (1.0, 0.004)], disc_mat, center=front + Vector((0, 0.03, 0)),
+                   rx=a * 0.82, ry=c * 0.84, segs=28, M=Matrix((Vector((1, 0, 0)), Vector((0, 0, -1)), Vector((0, 1, 0)))).transposed())
+    parts.append(dish)
+    dc = front + Vector((0, 0.012, 0))
     amber = X.mat("#f0a020", "glass"); pupil = X.mat("#0a0806", "glass")
-    ez = dc.z + c * 0.18
+    ez = dc.z + c * 0.16
     for sx in (-1, 1):
-        e = Vector((X.cx + sx * a * 0.4, dc.y - 0.024, ez))
-        parts.append(G.sphere(e, 0.03, amber, segs=14, scale=(1, 0.5, 1)))
-        parts.append(G.sphere(e + Vector((0, -0.012, 0)), 0.016, pupil, segs=10, scale=(1, 0.4, 1)))
+        e = Vector((X.cx + sx * a * 0.38, dc.y - 0.012, ez))
+        parts.append(G.sphere(e, 0.044, amber, segs=16, scale=(1, 0.55, 1)))
+        parts.append(G.sphere(e + Vector((0, -0.02, 0)), 0.022, pupil, segs=12, scale=(1, 0.4, 1)))
+        parts.append(G.sphere(e + Vector((sx * 0.012, -0.026, 0.014)), 0.006, X.mat("#ffffff", "glass"), segs=6))
         if has(text, "spectacle"):
             br_ = X.metal_of("brass"); q = e + Vector((0, -0.02, 0))
-            ring = [q + Vector((math.cos(j / 22 * TAU) * 0.036, 0, math.sin(j / 22 * TAU) * 0.036)) for j in range(23)]
+            ring = [q + Vector((math.cos(j / 22 * TAU) * 0.05, 0, math.sin(j / 22 * TAU) * 0.05)) for j in range(23)]
             parts.append(G.sweep(ring, 0.0028, br_, segs=6, cap=False))
             parts.append(G.sweep([q + Vector((sx * 0.036, 0, 0)), _ell(C, a * 1.05, b, c, (sx, -0.1, (ez - C.z) / c))], 0.002, br_, segs=4))
         # brow feathers: a V from above the beak out over each eye
@@ -1865,7 +1881,7 @@ def owl_head(X, fur, disc_mat, text=""):
     for sx in (-1, 1):
         for k in range(3):
             root = _ell(C, a * 1.05, b, c, (sx * 0.55, 0.0 + 0.1 * k, 0.85))
-            parts.append(feather(root, (sx * (0.3 + 0.1 * k), 0.15, 1), 0.1 - 0.015 * k, 0.018, fur, side=(0, 1, 0), curl=0.15))
+            parts.append(feather(root, (sx * (0.3 + 0.1 * k), 0.15, 1), 0.15 - 0.02 * k, 0.026, fur, side=(0, 1, 0), curl=0.15))
     X.add(G.join(parts, "Kit_Species"), "Head", tag="Kit_Species", piece="owl head")
     _neck_sleeve(X, fur, X.hw * 0.85, C, C.z - c * 0.5)
 
@@ -2003,7 +2019,10 @@ def crab_body(X, shell, under, barnacle, weed, glow_mat):
     s3, _ = X.U.rest_bone(X.arm, "spine_03"); s1, _ = X.U.rest_bone(X.arm, "spine_01"); nk, _ = X.U.rest_bone(X.arm, "neck_01")
     zc = (s3.z + s1.z) / 2 + 0.02
     fh = X.fit.surface(Vector((s3.x, s3.y, zc)), (0, 1, 0)); fy = (fh.y if fh else s3.y - 0.13) - 0.03
-    parts = [G.sphere(Vector((s3.x, fy + 0.07, zc)), 1.0, shell, segs=22, scale=(0.27, 0.11, 0.3))]
+    parts = [G.sphere(Vector((s3.x, fy + 0.07, zc + 0.04)), 1.0, shell, segs=24, scale=(0.36, 0.14, 0.38))]
+    for sx in (-1, 1):   # the carapace's front horns curve up beside the face
+        b0 = Vector((s3.x + sx * 0.2, fy - 0.02, zc + 0.3))
+        parts.append(G.sweep(G.bezier(b0, b0 + Vector((sx * 0.02, -0.03, 0.12)), b0 + Vector((sx * 0.03, -0.01, 0.22)), n=7), G.taper(8, 0.06, 0.006), shell, segs=10))
     for k in range(3):   # overlapping belly plates
         z = zc - 0.12 - 0.07 * k
         h = X.fit.surface(Vector((s3.x, s3.y, z)), (0, 1, 0)); y = (h.y if h else s3.y - 0.12) - 0.02
@@ -2014,7 +2033,7 @@ def crab_body(X, shell, under, barnacle, weed, glow_mat):
         parts.append(G.sphere(p, X.rng.uniform(0.008, 0.014), glow_mat if k % 3 == 0 else barnacle, segs=8, scale=(1, 0.6, 1)))
     X.add(G.join(parts, "Kit_Species"), {"spine_03": 0.7, "spine_02": 0.3}, tag="Kit_Species", piece="crab chest shell")
     bk = X.fit.surface(Vector((s3.x, s3.y, zc + 0.05)), (0, -1, 0)); by = (bk.y if bk else s3.y + 0.13) + 0.04
-    back = [G.sphere(Vector((s3.x, by - 0.06, zc + 0.08)), 1.0, shell, segs=24, scale=(0.4, 0.2, 0.42))]
+    back = [G.sphere(Vector((s3.x, by - 0.06, zc + 0.14)), 1.0, shell, segs=26, scale=(0.48, 0.24, 0.5))]
     for k in range(16):
         u = X.rng.uniform(-0.9, 0.9); v = X.rng.uniform(-0.8, 0.95)
         p = Vector((s3.x + u * 0.36, by - 0.06 + 0.2 * math.sqrt(max(0, 1 - u * u * 0.8 - v * v * 0.5)), zc + 0.08 + v * 0.38))
@@ -2064,6 +2083,43 @@ def gold_trim(X, gold, glow_mat):
         q = c + Vector((math.cos(a) * 0.05, -0.006, math.sin(a) * 0.05))
         parts.append(G.sweep([q, q + Vector((math.cos(a) * 0.03, 0, math.sin(a) * 0.03))], [0.008, 0.0008], gold, segs=5))
     X.add(G.join(parts, "Kit_Acc"), {"spine_03": 1.0}, tag="Kit_Acc", piece="sun emblem")
+
+
+def feather_bib(X, pale, speck):
+    """A fluffy feathered bib: rows of overlapping rounded feathers from the throat down the chest and
+    belly, over the robe's front (a rounder, fluffier owl chest)."""
+    s3, _ = X.U.rest_bone(X.arm, "spine_03"); s1, _ = X.U.rest_bone(X.arm, "spine_01"); nk, _ = X.U.rest_bone(X.arm, "neck_01")
+    fit = G.Fit(X.U.body_bvh(include=("Kit_Robe", "Kit_Belt")))
+    parts = []
+    rows = 7
+    for r in range(rows):
+        z = nk.z - 0.03 - r * (nk.z - s1.z) / rows
+        n = 5 + r % 2
+        for k in range(n):
+            x = s3.x + (k - (n - 1) / 2) * 0.05 * (1 + 0.12 * r / rows)
+            hit = fit.surface(Vector((x, s3.y, z)), (0, 1, 0))
+            if hit is None: continue
+            root = hit + Vector((0, -0.02 - 0.008 * math.cos((k - (n - 1) / 2) * 0.5), 0.02))
+            parts.append(feather(root, (0, -0.25, -1), 0.075, 0.03, pale if (r + k) % 3 else speck, side=(1, 0, 0), curl=-0.12))
+    X.add(G.join(parts, "Kit_Species"), {"spine_03": 0.6, "spine_02": 0.4}, tag="Kit_Species", piece="feathered bib")
+
+
+def crab_legs(X, shell, spike):
+    """Short, thick armoured legs for an upright crab-warrior: shell sleeves over thigh and shin, a spiked
+    knee cap and a clawed shell foot."""
+    for side in ("l", "r"):
+        th, _ = X.U.rest_bone(X.arm, "thigh_" + side); cf, _ = X.U.rest_bone(X.arm, "calf_" + side); ft, _ = X.U.rest_bone(X.arm, "foot_" + side)
+        for bn, A, B, r0, r1 in (("thigh_" + side, th, cf, 0.13, 0.11), ("calf_" + side, cf, ft, 0.115, 0.09)):
+            pts = [A.lerp(B, 0.05 + 0.9 * i / 6) for i in range(7)]
+            o = [G.sweep(pts, [(r0 + (r1 - r0) * i / 6, (r0 + (r1 - r0) * i / 6) * 0.92) for i in range(7)], shell, segs=14, ridge=0.06, ridges=3)]
+            for j in (2, 4): o.append(G.sweep([pts[j] + Vector((0, -r0 * 0.9, 0)), pts[j] + Vector((0, -r0 * 0.9 - 0.04, 0.02))], [0.016, 0.001], spike, segs=5))
+            X.add(G.join(o, "Kit_Species"), bn, tag="Kit_Species", piece="crab leg shell")
+        knee = G.sphere(cf + Vector((0, -0.08, 0.02)), 1.0, shell, segs=14, scale=(0.09, 0.07, 0.09))
+        X.add(G.join([knee, G.sweep([cf + Vector((0, -0.14, 0.04)), cf + Vector((0, -0.2, 0.08))], [0.02, 0.001], spike, segs=6)], "Kit_Species"), "calf_" + side, tag="Kit_Species", piece="crab knee")
+        toes = [G.sphere(ft + Vector((0, -0.06, -0.04)), 1.0, shell, segs=14, scale=(0.09, 0.15, 0.06))]
+        for k, dx in enumerate((-0.05, 0.0, 0.05)):
+            b0 = ft + Vector((dx, -0.17, -0.06)); toes.append(G.sweep(G.bezier(b0, b0 + Vector((0, -0.04, -0.005)), b0 + Vector((0, -0.07, -0.03)), n=5), G.taper(6, 0.022, 0.002), spike, segs=6))
+        X.add(G.join(toes, "Kit_Species"), "foot_" + side, tag="Kit_Species", piece="crab foot")
 
 
 def report():
