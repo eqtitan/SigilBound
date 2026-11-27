@@ -1,3 +1,4 @@
+banner 250 10 250 10
 button_blue 124 25 124 28
 button_chip 112 36 112 35
 button_chipon 114 33 114 36
@@ -8,4 +9,5 @@ button_secondary 67 65 67 66
 button_secondary_pressed 67 65 67 66
 card 76 76 76 76
 card_highlight 76 76 76 76
+card_small 64 64 64 64
 panel 76 76 76 76

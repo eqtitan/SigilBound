@@ -52,12 +52,21 @@ namespace Sigilbound.Client
 
         // A painted frame (panel, card): borders at texture size, shrunk on small rects so the ornate
         // corners never overlap (a 60 px card would otherwise fold its 76 px corners over each other).
-        public static bool DrawFrame(Rect r, string name)
+        public static bool DrawFrame(Rect r, string name) => DrawFrame(r, name, 0.5f, true);
+        // maxK: largest scale of the painted borders; around: grow the rect so the frame sits around the
+        // content (big panels). Small stacked rows pass around = false and a smaller maxK, so their frames
+        // stay inside their own rect and never overlap the next row.
+        public static bool DrawFrame(Rect r, string name, float maxK, bool around)
         {
             var t = Tex(name); if (t == null) return false;
             if (Event.current.type != EventType.Repaint) return true;
             var b = Border(name, 24);
-            float k = Mathf.Min(1f, Mathf.Min(r.width / (b.left + b.right), r.height / (b.top + b.bottom)) * 0.85f);
+            // Half the painted size at most (owner check 2026-11-27: at full size the gilded edges covered
+            // titles and the first letters of labels), and the frame sits around the content, not on it:
+            // the rect grows by most of the band so the inner edge of the gold lines up with the content edge.
+            float k = Mathf.Min(maxK, Mathf.Min(r.width / (b.left + b.right), r.height / (b.top + b.bottom)) * 0.85f);
+            float pad = around ? Mathf.Min(b.left, b.top) * k * 0.55f : 0f;
+            r = new Rect(r.x - pad, r.y - pad, r.width + 2 * pad, r.height + 2 * pad);
             float W = t.width, H = t.height;
             float l = b.left * k, rr = b.right * k, tp = b.top * k, bt = b.bottom * k;
             float[] dx = { r.x, r.x + l, r.xMax - rr, r.xMax }, dy = { r.y, r.y + tp, r.yMax - bt, r.yMax };
@@ -67,7 +76,10 @@ namespace Sigilbound.Client
                 {
                     var dst = new Rect(dx[i], dy[j], dx[i + 1] - dx[i], dy[j + 1] - dy[j]);
                     if (dst.width <= 0 || dst.height <= 0) continue;
+                    var keep = GUI.color;
+                    if (i == 1 && j == 1) GUI.color = keep * new Color(0.62f, 0.62f, 0.66f, 1f); // a darker centre so text reads
                     GUI.DrawTextureWithTexCoords(dst, t, new Rect(u[i], v[j + 1], u[i + 1] - u[i], v[j] - v[j + 1]));
+                    GUI.color = keep;
                 }
             return true;
         }

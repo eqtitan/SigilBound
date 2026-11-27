@@ -40,6 +40,18 @@ namespace Sigilbound.Client
         }
 
         // Draws an icon tinted with a colour (keeps GUI.color as it was).
+        // Painted icon from the owner's art (Resources/Skin/icons/<name>.png, Tools~/skin/sheet2.py), drawn
+        // when the skin is on. False when there is none, so callers fall back to the vector icon.
+        public static bool Painted(Rect r, string name, float alpha = 1f)
+        {
+            var t = Skin.Tex("icons/" + name); if (t == null) return false;
+            if (Event.current.type != EventType.Repaint) return true;
+            var col = GUI.color; GUI.color = new Color(col.r, col.g, col.b, col.a * alpha);
+            GUI.DrawTexture(r, t, ScaleMode.ScaleToFit);
+            GUI.color = col;
+            return true;
+        }
+
         public static void Draw(Rect r, Icon i, Color c)
         {
             if (Event.current.type != EventType.Repaint) return;

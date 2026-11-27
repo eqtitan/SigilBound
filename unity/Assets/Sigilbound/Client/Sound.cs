@@ -52,10 +52,10 @@ namespace Sigilbound.Client
             "shore", "marsh", "wind", "fire", "storm",                                                 // act 2: harbor, fens, barrows, ember groves, storm coast
             "wind", "storm",                                                                           // the Glass Wastes' glass desert, Stormcrown Heights' crag
         };
-        // Music. menu/titan/victory: make_music.py; boss/act2/map: make_music2.py (stereo, streamed); battle: the CC0 theme.
+        // Music. menu/titan/victory: make_music.py; boss/act2/map: make_music2.py (stereo, streamed); battle: the CC0 theme cut to a seamless loop (loop_battle.py).
         public static readonly Dictionary<string, string> Tracks = new Dictionary<string, string>
         {
-            ["menu"] = "music_menu", ["battle"] = "battle_theme", ["titan"] = "music_titan", ["victory"] = "music_victory",
+            ["menu"] = "music_menu", ["battle"] = "music_battle", ["titan"] = "music_titan", ["victory"] = "music_victory",
             ["boss"] = "music_boss", ["act2"] = "music_act2", ["map"] = "music_map",
         };
         const float MusicMax = 0.55f, Crossfade = 1.2f, AmbMax = 0.6f, AmbFade = 1.5f;

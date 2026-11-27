@@ -31,7 +31,7 @@ namespace Sigilbound.Client
         static Rect StageListRect(Rect map, int c)
         {
             float w = Mathf.Min(map.width * 0.62f, 640), h = map.height - 16;
-            var pt = c < ClassicChapters ? MapPoints[c] : MapPoints2[c - ClassicChapters]; // act 2 chapters have their own map points
+            var pt = c < ClassicChapters ? Act1Points[c] : Act2Points[c - ClassicChapters]; // act 2 chapters have their own map points
             bool right = pt.x < 0.5f;
             return new Rect(right ? map.xMax - w - 8 : map.x + 8, map.y + 8, w, h);
         }
@@ -204,7 +204,7 @@ namespace Sigilbound.Client
                 var h = list[i]; var t = Hero(h.id);
                 var r = new Rect((i % 2) * (cw + 6), (i / 2) * (ch + 6), cw, ch);
                 bool inTeam = G.S.team.Contains(h.uid);
-                Ui.Panel(r, inTeam ? Palette.Hex("#3a2f22") : Palette.Panel2, inTeam ? Palette.Gold : Palette.Rarity(t.Rarity), 9);
+                if (inTeam) Ui.Panel(r, Palette.Hex("#3a2f22"), Palette.Gold, 9); else Ui.SmallCard(r, Palette.Panel2, Palette.Rarity(t.Rarity), 9); // in-team cards keep their gold highlight
                 // Portrait face at the left when there is one; the element icon sits beside the name.
                 float px = Portraits.Thumb(new Rect(r.x + 6, r.y + 6, ch - 12, ch - 12), t.Id, Palette.Rarity(t.Rarity)) ? ch : 0;
                 Icons.Draw(new Rect(r.x + px + 6, r.y + 6, 14, 14), Icons.ForElement(t.Element), Palette.Element(t.Element));

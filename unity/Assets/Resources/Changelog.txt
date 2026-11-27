@@ -2,6 +2,17 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-27 | The storm coast, painted
+new: Act II has its own painted map, from Saltreach harbour past the fens, barrows and ember groves to the Hollow King's spire.
+
+## 2026-11-27 | Painted portraits
+new: Every hero now has a hand-painted portrait card.
+
+## 2026-11-27 | A painted world
+new: The Act I campaign map is now a hand-painted world map, with every chapter on its own land from the western woods to the corrupted east.
+new: The summon altar glows behind your shards, and the citadel greets new players on the title screen.
+new: Painted icons for gold, shards and essence, the menu bar and the battle modes, ribbon banners on screen titles, and bronze frames on hero rows.
+
 ## 2026-11-27 | Gilded menus
 new: Painted blue buttons, gem chips for tabs and filters, and ornate gold frames around panels and cards.
 

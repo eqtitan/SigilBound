@@ -11,11 +11,13 @@ Summon 150 heroes, master five elements and topple the colossal Titan.
 ## Full description
 The Sigil has shattered. Gather a team of champions and fight to restore it.
 
-- **150 unique heroes**: knights, witches, archers, golems, spirits and beast-folk, each with their own look, weapons and signature effects.
+- **150 unique heroes**: knights, witches, archers, golems, spirits and beast-folk, each with their own look, portrait, weapons and signature effects.
 - **Five elements**: Flame, Gale, Tide, Light and Shadow, each strong against another. Build teams that hit where it hurts.
 - **Tactical turn-based battles**: a live turn-order bar, skills that recharge, buffs and debuffs, counters, revives and knock-downs. Play every turn yourself, or switch on Auto and 2x/3x speed.
 - **The Titan**: a daily boss that towers over your team, with cinematic camera views, a Meteor Leap and an Earthsplitter finishing blow. Practise against it as often as you like.
-- **A long campaign** across a painted world map, plus Hard mode, Dungeons, Arena rivals, daily quests and achievements.
+- **A story campaign**: two acts and 15 chapters, each a journey through its own place (a drowned mill, a leaning bell tower, glass deserts, a storm coast), stage by stage to the boss's lair. Every lair is revealed with a cinematic arrival and reacts to the fight: bells toll, pyres roar, lightning strikes the Hollow King's throne.
+- **Real battle sound and music**: armour that clangs like armour, stereo hits, a growling Titan, and battle, boss and coastal themes.
+- **More to play**: Hard mode at night, Dungeons, Arena rivals, daily quests and achievements.
 - **Friends and chat**: add friends by code, compare teams and chat. Optional.
 - **Plays offline**. No ads. No purchases.
 

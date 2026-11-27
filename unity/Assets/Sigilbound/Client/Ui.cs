@@ -219,6 +219,46 @@ namespace Sigilbound.Client
                 GUI.DrawTexture(new Rect(p.x, p.y, 4, 4), stud);
         }
 
+        // A screen title on the owner's painted ribbon (skin "banner"); today's gold heading without it.
+        public static void Banner(Rect r, string text, int size = 20)
+        {
+            var t = Skin.Tex("banner");
+            if (t == null) { Heading(r, text, size, TextAnchor.MiddleCenter); return; }
+            float h = r.height * 1.3f, w = Mathf.Max(r.width, h * 3.2f);
+            var br = new Rect(r.center.x - w / 2, r.center.y - h / 2, w, h);
+            if (Event.current.type == EventType.Repaint) Skin.Draw9(br, t, Skin.Border("banner", 40));
+            // The ribbon's face sits a little above the middle of the art (the tails hang below).
+            var face = new Rect(br.x, br.y + h * 0.06f, br.width, h * 0.62f);
+            Text(new Rect(face.x + 1, face.y + 1, face.width, face.height), text, size, new Color(0, 0, 0, 0.6f), FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+            Text(face, text, size, Palette.Hex("#f3dfa6"), FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+        }
+
+        // A small card or list row: the owner's bronze frame (skin "card_small") over a dark fill, or the
+        // given plain panel without it.
+        public static void SmallCard(Rect r, Color fill, Color border, int radius = 10)
+        {
+            if (Skin.Tex("card_small") != null) { Round(r, new Color(fill.r, fill.g, fill.b, Mathf.Max(fill.a, 0.85f)), null, radius); Skin.DrawFrame(r, "card_small", 0.3f, false); }
+            else Panel(r, fill, border, radius);
+        }
+
+        // A painted backdrop (skin "bg_*") filling a rect, cropped to fit and darkened for readable text.
+        public static bool Backdrop(Rect r, string name, float darken = 0.35f)
+        {
+            var t = Skin.Tex(name); if (t == null) return false;
+            if (Event.current.type != EventType.Repaint) return true;
+            GUI.DrawTexture(r, t, ScaleMode.ScaleAndCrop);
+            if (darken > 0) GUI.DrawTexture(r, Solid(new Color(0.04f, 0.03f, 0.06f, darken)));
+            return true;
+        }
+
+        // A gradient plate at any size (9-sliced so its corners and rim stay crisp on tall cards).
+        public static void GradientBox(Rect r, Color top, Color bottom, Color? border, int radius)
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            var tex = GradientTex(top, bottom, border, radius);
+            Style($"gbox{tex.GetInstanceID()}", () => new GUIStyle { normal = { background = tex }, border = new RectOffset(radius + 2, radius + 2, radius + 2, radius + 2) }).Draw(r, false, false, false, false);
+        }
+
         // Section heading in serif gold (h2 in the web skin).
         public static void Heading(Rect r, string text, int size = 22, TextAnchor align = TextAnchor.MiddleLeft) =>
             Text(r, text, size, Palette.Gold, FontStyle.Bold, align, false, true);
