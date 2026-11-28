@@ -12,6 +12,10 @@ fix: The Titan's arrival is filmed from behind your heroes looking up at its fac
 change: Brannoc, Vex and Aurex have new 3D models that match their portraits.
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
 change: Painted icons for the Gale, Light and Shadow elements on the campaign map, and each shard type has its own coloured crystal.
+fix: Shields stay on the forearm instead of swinging through their bearer's head and shoulders.
+fix: Faces stay put on their heads: cheeks, chins and muzzles no longer stretch when a hero turns.
+fix: Vorgrim's and Wystan's long robes follow their legs instead of being cut through in a stride.
+fix: Brannoc's and Aurex's faces are evened out.
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 new: Release Heroes: filter by rarity, stars, element, role and level, keep the best copies, save presets, review before you release, and undo within 2 minutes.

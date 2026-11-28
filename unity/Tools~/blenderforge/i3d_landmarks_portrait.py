@@ -130,3 +130,9 @@ LANDMARKS = {
         "glow_hue": (400, 400),
     },
 }
+
+# Clipping and face review (2026-11-28): faces symmetrised (i3d_rig.symmetrise_face), keeping the better half.
+LANDMARKS["brannoc"]["sym_face"] = {"keep": "r"}
+LANDMARKS["aurex"]["sym_face"] = {"keep": "l"}
+# Odo's frog hood hangs to his shoulders and his face was already clean: the head lock only drove the hood into them.
+LANDMARKS["odo"]["head_lock"] = False

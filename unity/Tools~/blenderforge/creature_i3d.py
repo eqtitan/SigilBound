@@ -204,6 +204,21 @@ def main():
             for gi in [g.group for g in v.groups]: body.vertex_groups[gi].remove([v.index])
             vg[tgt].add([v.index], 1.0, "REPLACE")
     print(f"[i3d-creature] {a.hero}: vertices {count}")
+    # head lock (as i3d_rig.py): bone heat bled neck_01 and the clavicles into the face, which warped when the neck
+    # turned. Inside the head's radius, above the jaw = Head alone; from the neck joint up to the jaw a blend.
+    hn_, hh_, ht_ = J["neck"], J["head"], J["head_top"]
+    H_ = max(0.08, ht_.z - hn_.z); jaw = hn_.z + 0.45 * (hh_.z - hn_.z); R_ = 0.62 * H_; nhl = 0
+    hg = vg.get("Head")
+    for v in body.data.vertices:
+        p = body.matrix_world @ v.co
+        if hg is None or p.z < hn_.z or math.hypot(p.x - hh_.x, p.y - hh_.y) > (R_ if p.z < hh_.z else 1.3 * H_): continue
+        ws = {body.vertex_groups[g.group].name: g.weight for g in v.groups}
+        if not ws or max(ws, key=ws.get).startswith(("clavicle", "upperarm", "lowerarm", "hand", "leg_")): continue
+        t = 1.0 if p.z >= jaw else max(0.0, min(1.0, (p.z - hn_.z) / max(1e-6, jaw - hn_.z)))
+        t = t * t * (3 - 2 * t); tot = sum(ws.values()) or 1.0
+        for nm, w in ws.items(): body.vertex_groups[nm].add([v.index], w / tot * (1 - t), "REPLACE")
+        hg.add([v.index], ws.get("Head", 0.0) / tot * (1 - t) + t, "REPLACE"); nhl += 1
+    print(f"[i3d-creature] {a.hero}: head-locked {nhl}")
 
     # --- A2 back to A1's rest (arms to the T-pose), apply, tear stretched fusions ---
     for o in bpy.context.selected_objects: o.select_set(False)

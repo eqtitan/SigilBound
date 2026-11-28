@@ -129,3 +129,11 @@ LANDMARKS = {
         "glow_hue": (400, 400),
     },
 }
+
+# Clipping and face review (2026-11-28). Skirt weighting (i3d_rig.py) for the long robe and gown panels: measured over
+# the battle clips, the legs cut through the cloth less than with bone heat alone. Hartwin's head joints follow the
+# stag's head (it sits 10 cm to his left and forward of the body's centre line; at x 0 the rays found only the cape
+# behind it, which put the Head joint 28 cm behind the face and warped the muzzle in every head turn).
+LANDMARKS["vorgrim"]["skirt"] = {"share": 0.65}
+LANDMARKS["wystan"]["skirt"] = {"share": 0.65}
+LANDMARKS["hartwin"]["joints"].update(neck=(0.08, 0.04, 1.37), head=(0.10, -0.03, 1.45), head_top=(0.10, -0.02, 1.62))

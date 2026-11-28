@@ -53,6 +53,126 @@ def pt(bvh, spec):
     return Vector((x, ray_mid(bvh, x, z), z))
 
 
+def symmetrise_face(body, J, opt, hero):
+    """Image-to-3D faces come out lopsided (one eye bigger or higher, the mouth pulled to a side). Mirror the better
+    half of the face (opt["keep"]: "l" = the hero's left, +X; "r" = -X) across the head's midline, geometry and
+    texture, inside a soft face mask, so asymmetric hair, hats and gear stay. Runs in the T-pose after skinning: the
+    mask is the front of what follows the Head bone alone (the head lock), from the jaw to below the crown, within
+    the face's half-width of the midline. opt: keep, x0 (midline, default the head joint's x), radius (x the face's
+    half-width, 1.0), top (mask top as a fraction from the neck joint to the head top, 0.8)."""
+    import numpy as np
+    from mathutils.bvhtree import BVHTree as _B
+    hn, ht = J["neck"], J["head_top"]; hc = J["head"]
+    H = max(0.08, ht.z - hn.z)
+    x0 = opt.get("x0", hc.x)
+    zl = hn.z + 0.3 * (hc.z - hn.z); zt = hn.z + opt.get("top", 0.8) * H
+    keep = 1 if opt.get("keep", "l") == "l" else -1
+    def sm(x): x = max(0.0, min(1.0, x)); return x * x * (3 - 2 * x)
+    hg = body.vertex_groups.get("Head")
+    hw_ = {}
+    if hg is not None:
+        for v in body.data.vertices:
+            for g in v.groups:
+                if g.group == hg.index: hw_[v.index] = g.weight
+    pts = [(body.matrix_world @ body.data.vertices[i].co) for i, w in hw_.items() if w > 0.98]
+    front = [p for p in pts if zl < p.z < zt and p.y < hc.y]
+    # the midline (unless given): the x that best maps the face's vertices onto themselves when mirrored (generated
+    # heads are often a few cm off the body's centre line)
+    if "x0" not in opt and len(front) > 20:
+        from mathutils.kdtree import KDTree
+        kd = KDTree(len(front))
+        for i, p in enumerate(front): kd.insert(p, i)
+        kd.balance()
+        xs = sorted(p.x for p in front); xm = xs[len(xs) // 2]
+        x0 = min((xm + 0.002 * k for k in range(-25, 26)),
+                 key=lambda c: sum(kd.find(Vector((2 * c - p.x, p.y, p.z)))[2] for p in front))
+    # the face's half-width: the 85th percentile of |x| of the head-locked front vertices in the band
+    hw = sorted(abs(p.x - x0) for p in front)
+    R = opt.get("radius", 1.0) * (hw[int(len(hw) * 0.85)] if len(hw) > 20 else 0.5 * H)
+    print(f"[i3d] {hero}: face mask half-width {R:.3f}, midline {x0:.3f}, z {zl:.2f}-{zt:.2f}, {len(front)} face vertices")
+    def mask(p, vi=None):
+        if vi is not None and hw_.get(vi, 0.0) < 0.98: return 0.0
+        return (sm((R * 1.1 - abs(p.x - x0)) / (0.3 * R)) * sm((p.z - zl) / (0.1 * H)) * sm((zt - p.z) / (0.1 * H))
+                * sm((hc.y + 0.02 - p.y) / 0.04))
+    me = body.data; mw = body.matrix_world; mwi = mw.inverted()
+    co = [mw @ v.co for v in me.vertices]
+    good = [pl for pl in me.polygons if (sum((co[i].x for i in pl.vertices)) / len(pl.vertices) - x0) * keep > 0.002]
+    gidx = [pl.index for pl in good]
+    gt = _B.FromPolygons(co, [list(pl.vertices) for pl in good])
+    mir = lambda p: Vector((2 * x0 - p.x, p.y, p.z))
+    moved = 0
+    for v in me.vertices:
+        p = co[v.index]
+        if (p.x - x0) * keep >= -0.001: continue
+        w = mask(p, v.index)
+        if w <= 0: continue
+        q = gt.find_nearest(mir(p))[0]
+        if q is None: continue
+        v.co = mwi @ p.lerp(mir(q), w); moved += 1
+    # texture: every texel of a bad-side face in the mask takes the colour of its mirror point on the good side
+    img = next((i for i in bpy.data.images if i.size[0] > 0 and i.name != "Render Result"), None)
+    texels = 0
+    if img is not None and me.uv_layers.active:
+        W, Hh = img.size
+        px = np.empty(W * Hh * 4, dtype=np.float32); img.pixels.foreach_get(px); px = px.reshape(Hh, W, 4)
+        src = px.copy()
+        uvl = me.uv_layers.active.data
+        co2 = [mw @ v.co for v in me.vertices]
+        gt = _B.FromPolygons(co2, [list(pl.vertices) for pl in good])
+        gtri = {}
+        for pl in me.polygons:
+            cen = sum((co2[i] for i in pl.vertices), Vector()) / len(pl.vertices)
+            if (cen.x - x0) * keep >= -0.001 or mask(cen) <= 0 or min(hw_.get(i, 0.0) for i in pl.vertices) < 0.98: continue
+            lps = list(pl.loop_indices); vs = list(pl.vertices)
+            for k in range(1, len(vs) - 1):   # fan-triangulate
+                tri = (0, k, k + 1)
+                uv = [uvl[lps[t]].uv for t in tri]; P3 = [co2[vs[t]] for t in tri]
+                nm = (P3[1] - P3[0]).cross(P3[2] - P3[0]); nm = Vector((-nm.x, nm.y, nm.z)).normalized()   # mirrored normal
+                xs = [u.x * W for u in uv]; ys = [u.y * Hh for u in uv]
+                x_lo, x_hi = int(max(0, min(xs))), int(min(W - 1, max(xs) + 1)); y_lo, y_hi = int(max(0, min(ys))), int(min(Hh - 1, max(ys) + 1))
+                (ax, ay), (bx, by), (cx_, cy_) = zip(xs, ys)
+                den = (by - cy_) * (ax - cx_) + (cx_ - bx) * (ay - cy_)
+                if abs(den) < 1e-9: continue
+                for yy in range(y_lo, y_hi + 1):
+                    for xx in range(x_lo, x_hi + 1):
+                        X_, Y_ = xx + 0.5, yy + 0.5
+                        l1 = ((by - cy_) * (X_ - cx_) + (cx_ - bx) * (Y_ - cy_)) / den
+                        l2 = ((cy_ - ay) * (X_ - cx_) + (ax - cx_) * (Y_ - cy_)) / den
+                        l3 = 1 - l1 - l2
+                        if min(l1, l2, l3) < 0: continue
+                        p = P3[0] * l1 + P3[1] * l2 + P3[2] * l3
+                        w = mask(p)
+                        if w <= 0: continue
+                        # the outer surface at the mirror point: a ray in along the mirrored normal (nearest-point
+                        # lookups snap onto inner shells and eyelid undersides)
+                        m_ = mir(p)
+                        loc, _, fi, _ = gt.ray_cast(m_ + nm * 0.03, -nm, 0.06)
+                        if loc is None: loc, _, fi, _ = gt.find_nearest(m_)
+                        if loc is None: continue
+                        gp = good[fi]
+                        if gp.index not in gtri:
+                            gtri[gp.index] = ([co2[i] for i in gp.vertices], [uvl[l].uv.copy() for l in gp.loop_indices])
+                        gv, guv = gtri[gp.index]
+                        # barycentric of loc in the good polygon's best triangle (fan)
+                        best = None
+                        for k2 in range(1, len(gv) - 1):
+                            a_, b_, c_ = gv[0], gv[k2], gv[k2 + 1]
+                            v0, v1, v2 = b_ - a_, c_ - a_, loc - a_
+                            d00, d01, d11, d20, d21 = v0.dot(v0), v0.dot(v1), v1.dot(v1), v2.dot(v0), v2.dot(v1)
+                            dn = d00 * d11 - d01 * d01
+                            if abs(dn) < 1e-14: continue
+                            bb = (d11 * d20 - d01 * d21) / dn; cc = (d00 * d21 - d01 * d20) / dn
+                            err = max(0, -bb) + max(0, -cc) + max(0, bb + cc - 1)
+                            if best is None or err < best[0]: best = (err, k2, bb, cc)
+                        if best is None: continue
+                        _, k2, bb, cc = best
+                        u_ = guv[0] * (1 - bb - cc) + guv[k2] * bb + guv[k2 + 1] * cc
+                        sx = int(min(W - 1, max(0, u_.x * W))); sy = int(min(Hh - 1, max(0, u_.y * Hh)))
+                        px[yy, xx, :3] = px[yy, xx, :3] * (1 - w) + src[sy, sx, :3] * w; texels += 1
+        img.pixels.foreach_set(px.ravel())
+    print(f"[i3d] {hero}: face symmetrised (kept the {'left' if keep > 0 else 'right'} half): {moved} vertices, {texels} texels")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--hero", required=True); ap.add_argument("--clean", required=True)
@@ -62,9 +182,10 @@ def main():
     bpy.ops.wm.open_mainfile(filepath=a.clean)
     body = bpy.data.objects["Body"]
     # optional mesh trims (generator guesses to drop)
-    if L.get("trim"):
+    if L.get("trim") or L.get("trim_faces"):
         bm = bmesh.new(); bm.from_mesh(body.data)
-        kill = [f for f in bm.faces if any(t(f.calc_center_median()) for t in L["trim"])]
+        kill = [f for f in bm.faces if any(t(f.calc_center_median()) for t in L.get("trim", []))
+                or any(t(f.calc_center_median(), f.normal) for t in L.get("trim_faces", []))]
         bmesh.ops.delete(bm, geom=kill, context="FACES")
         loose = [v for v in bm.verts if not v.link_faces]
         bmesh.ops.delete(bm, geom=loose, context="VERTS")
@@ -262,6 +383,75 @@ def main():
                     vg[tgt].add([v.index], 1.0, "REPLACE")
                 cut += 1
         print(f"[i3d] {a.hero}: arm weight cut from {cut} torso vertices")
+    def _sm(x): x = max(0.0, min(1.0, x)); return x * x * (3 - 2 * x)
+    def _dominant(v):
+        return body.vertex_groups[max(v.groups, key=lambda g: g.weight).group].name if v.groups else ""
+    LIMB = ("clavicle", "upperarm", "lowerarm", "hand", "thigh", "calf", "foot", "ball")
+    def _reweight(v, new, t):
+        """v's weights -> (1 - t) * current + t * new ({bone: w}, summing to 1)."""
+        ws = {body.vertex_groups[g.group].name: g.weight for g in v.groups}
+        tot = sum(ws.values()) or 1.0
+        out = {n_: w / tot * (1 - t) for n_, w in ws.items()}
+        for n_, w in new.items(): out[n_] = out.get(n_, 0.0) + w * t
+        for n_, w in out.items():
+            if n_ in body.vertex_groups: body.vertex_groups[n_].add([v.index], w, "REPLACE")
+            elif w > 1e-4: vg[n_].add([v.index], w, "REPLACE")
+    # skirt weighting (robes, gowns, coat tails, loincloths, capes below the hips): bone heat gives cloth that hangs
+    # away from the legs the nearest leg's weight, so the panels split with the legs and the far leg cuts through
+    # them in a stride. Cloth farther than a leg radius from both legs takes the kit gowns' skirt weights instead
+    # (kit_cloth.skirt_weights): pelvis at the hips, sharing at most `share` with the thighs by the knee, split
+    # left/right by a wide smooth ramp, the front panel riding the knees a little more. A band of half a leg radius
+    # blends the two, so nothing tears where the cloth leaves the leg. Opt-in per hero ("skirt": {} or with share /
+    # leg_r / top), usually instead of a "blend": measured over the battle clips it helps long open coats and robes,
+    # but on short tunics, belts and back gear it trades a split for legs passing through the cloth.
+    sk = L.get("skirt", False)
+    if sk is True: sk = {}
+    nsk = 0
+    if sk is not False:
+        hl_, hr_ = J["hip_l"], J["hip_r"]; kl_, kr_ = J["knee_l"], J["knee_r"]
+        legs = [(hl_, kl_), (kl_, J["ankle_l"]), (hr_, kr_), (kr_, J["ankle_r"])]
+        rleg = sk.get("leg_r", 0.55) * max(0.08, (hl_ - hr_).length)
+        topz = (hl_.z + hr_.z) / 2 + sk.get("top", 0.03); kneez = (kl_.z + kr_.z) / 2
+        share = sk.get("share", 0.45); py_ = J["pelvis"].y
+        def segd2(p, a_, b_):
+            ab = b_ - a_; u = max(0.0, min(1.0, (p - a_).dot(ab) / max(ab.length_squared, 1e-9))); return (p - (a_ + ab * u)).length
+        for v in body.data.vertices:
+            p = mw @ v.co
+            if p.z > topz or v.index in attached or any(t_(p) for _, t_ in over): continue
+            dom = _dominant(v)
+            if dom.startswith(("clavicle", "upperarm", "lowerarm", "hand")) or dom in extra or dom.startswith("tail"): continue
+            d = min(segd2(p, a_, b_) for a_, b_ in legs)
+            t = _sm((d - rleg) / (0.5 * rleg))
+            if t <= 0: continue
+            a_ = _sm((topz - p.z) / max(1e-6, topz - kneez))
+            fy = _sm((py_ - 0.06 - p.y) / 0.2)   # front (-Y) panel: up to +50% leg share
+            a_ *= min(0.9, share * (0.85 + 0.5 * fy))
+            u = _sm((p.x - (hl_.x + hr_.x) / 2) / max(1e-6, (hl_.x - hr_.x) * 1.6) + 0.5)
+            _reweight(v, {"pelvis": 1 - a_, "thigh_l": a_ * u, "thigh_r": a_ * (1 - u)}, t)
+            nsk += 1
+    # head lock (faces): bone heat lets neck_01, the clavicles and the spine bleed into the face, which then warps
+    # and slides off the skull whenever the neck or shoulders turn. Inside the head's radius, everything above the
+    # jaw follows the Head bone alone; from the neck joint up to the jaw it blends into Head. Limbs, rigid parts and
+    # extra bones (a hand raised to the face, a held weapon, wings) keep their own weights. "head_lock": False = off.
+    hk = L.get("head_lock", {})
+    nhl = 0
+    if hk is not False:
+        hn_, hh_, ht_ = J["neck"], J["head"], J["head_top"]
+        H_ = max(0.08, ht_.z - hn_.z)
+        jaw = hn_.z + hk.get("jaw", 0.45) * (hh_.z - hn_.z)
+        low = hn_.z + hk.get("low", 0.0) * (hh_.z - hn_.z)
+        R_ = hk.get("radius", 0.62) * H_; Rt = hk.get("radius_top", 1.3) * H_
+        for v in body.data.vertices:
+            p = mw @ v.co
+            if p.z < low or v.index in attached or any(t_(p) for _, t_ in over): continue
+            dom = _dominant(v)
+            if dom.startswith(LIMB) or dom in extra or dom.startswith("tail"): continue
+            r = math.hypot(p.x - hh_.x, p.y - hh_.y)
+            if p.z >= jaw and (r <= R_ or (p.z >= hh_.z and r <= Rt)): t = 1.0
+            elif p.z < jaw and r <= R_: t = _sm((p.z - low) / max(1e-6, jaw - low))
+            else: continue
+            _reweight(v, {"Head": 1.0}, t); nhl += 1
+    print(f"[i3d] {a.hero}: skirt-weighted {nsk}, head-locked {nhl}")
     # soft blends: long robes and coats share part of their weight with a calmer bone (pelvis), so they don't
     # split with the legs: (bone, share, test)
     soft = 0
@@ -346,6 +536,8 @@ def main():
     bm.verts.layers.int.remove(oid)
     bm.to_mesh(body.data); bm.free()
     print(f"[i3d] {a.hero}: tore {len(kill)} stretched faces, capped {filled_n} holes")
+    if L.get("sym_face"):   # in the T-pose, on the head-locked face
+        symmetrise_face(body, J, L["sym_face"], a.hero)
     body.parent = None
     bpy.data.objects.remove(A2, do_unlink=True)
     # A1 back to its rest; bind

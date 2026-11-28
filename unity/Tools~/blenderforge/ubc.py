@@ -219,6 +219,28 @@ def head_box(arm):
     return {"top": top, "base": base, "cx": (min(xs) + max(xs)) / 2, "cy": (min(ys) + max(ys)) / 2, "hw": (max(xs) - min(xs)) / 2,
             "eye": base + (top - base) * 0.58, "front": min(ys)}
 
+def head_lock(arm):
+    """The pack body's face blends into neck_01 down from the mouth, so the chin and cheeks slid a few mm off the
+    skull whenever the neck turned. In front of the Head joint and above the jaw (the joint's height), the body, hair
+    and pack headgear follow the Head bone alone; from halfway up the neck to the jaw they blend into Head. Hair and
+    hoods behind the joint keep their weights (locked whole, a ponytail folded through itself at the neck)."""
+    nh, _ = rest_bone(arm, "neck_01"); hh, _ = rest_bone(arm, "Head")
+    lo = (nh.z + hh.z) / 2
+    n = 0
+    for o in bpy.context.scene.objects:
+        if o.type != "MESH" or o.name.startswith("Kit_") or "Head" not in arm.data.bones: continue
+        mw = o.matrix_world
+        hg = o.vertex_groups.get("Head") or o.vertex_groups.new(name="Head")
+        for v in o.data.vertices:
+            p = mw @ v.co
+            if p.z < lo or abs(p.x - hh.x) > 0.17 or p.y > hh.y + 0.01 or hh.y - p.y > 0.2: continue   # the face only
+            t = min(1.0, (p.z - lo) / max(1e-4, hh.z - lo)); t = t * t * (3 - 2 * t)
+            ws = {g.group: g.weight for g in v.groups}; tot = sum(ws.values()) or 1.0
+            if ws.get(hg.index, 0) / tot > 0.999: continue
+            for gi, w in ws.items(): o.vertex_groups[gi].add([v.index], w / tot * (1 - t), "REPLACE")
+            hg.add([v.index], ws.get(hg.index, 0) / tot * (1 - t) + t, "REPLACE"); n += 1
+    print(f"[ubc] head lock: {n} head vertices now follow the Head bone")
+
 def body_bvh(include=()):
     """BVH of the dressed body (every non-kit mesh, evaluated in the rest pose) for fitting kit to it;
     `include` adds kit pieces by name prefix (a cape hangs over the gown)."""
@@ -365,7 +387,12 @@ def kit(c, arm):
         out_dir = (out_dir - along * out_dir.dot(along)).normalized()
         o = KP.build_shield(c, mats)                                # face in XY, local Y along the forearm, +Z out
         y = along; z = out_dir; xax = y.cross(z).normalized()
-        M = Matrix((xax, y, z)).transposed().to_4x4(); M.translation = lh + (hl - lh) * 0.5 + out_dir * 0.06
+        # centred along the forearm, but a tall shield slides toward the fist so its elbow-side edge ends at most
+        # 4 cm past the elbow: centred, a kite or tower shield's top cut through the upper arm, shoulder and head
+        # whenever the elbow bent (guard idles, casts)
+        ylo = min(v.co.y for v in o.data.vertices); fl = (hl - lh).length
+        cy = max(fl * 0.5, -ylo - 0.04)
+        M = Matrix((xax, y, z)).transposed().to_4x4(); M.translation = lh + along * cy + out_dir * 0.065
         o.matrix_world = M @ o.matrix_world; apply_xform(o); o.name = "Kit_Shield"; out.append(bind(o, arm, {"lowerarm_l": 1.0}))
     hb = head_box(arm); top = Vector((hb["cx"], hb["cy"], hb["top"]))
     # Crowns, circlets, halos, horns and headwear, modelled and fitted to the head (kit_head.py)
@@ -542,6 +569,7 @@ def main():
     import kit_rig as KR
     KH.RIG = KR.extend(c, arm, head_box)   # creature rig extensions (tail, jaw, neck, digitigrade legs, wing bones)
     pieces = kit(c, arm)
+    head_lock(arm)
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     for x in bpy.context.selected_objects: x.select_set(False)
     for o in meshes: o.select_set(True)
