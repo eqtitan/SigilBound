@@ -242,6 +242,12 @@ namespace Sigilbound.Client
             ShotLog("scenes on");
             BattleController.ForgetLairReveals();
             G.S.settings.auto = false; G.S.settings.speed = 1;
+            // Throwaway save: the team at level 60 so a late chapter's foes don't win before the frame (build 182 shot three
+            // defeat screens), and every stage and Hard stage open (Begin refuses a locked Hard stage).
+            var keepLv = G.S.team.Select(uid => G.HeroByUid(uid)).Where(h => h != null).Select(h => (h, h.level)).ToList();
+            foreach (var (h, _) in keepLv) h.level = 60;
+            int keepCleared = G.S.cleared, keepHard = G.S.hardCleared;
+            G.S.cleared = GameData.TotalStages; G.S.hardCleared = GameData.TotalStages - 1;
             var stops = new System.Collections.Generic.List<(int c, int st, bool hard)>();
             for (int c = 0; c < GameData.Chapters.Length; c++) foreach (int st in new[] { 0, 2, GameData.StagesPerChapter - 1 }) stops.Add((c, st, false));
             stops.Add((1, GameData.StagesPerChapter - 1, true)); stops.Add((GameData.Chapters.Length - 1, GameData.StagesPerChapter - 1, true));
@@ -252,6 +258,7 @@ namespace Sigilbound.Client
                 bool boss = st == GameData.StagesPerChapter - 1;
                 string tag = $"scene-{c + 1:00}-{st + 1}{(hard ? "H" : "")}";
                 Battle.Begin(hard ? BattleSpec.ForHard(idx) : BattleSpec.ForStage(idx));
+                if (hard && !G.HardOpen(idx)) ShotLog($"scene {tag}: Hard stage still locked");
                 if (boss && !hard)
                 {
                     yield return new WaitForSecondsRealtime(0.35f);   // Shot waits 0.8 s more: the reveal's middle key (~1.1 s in)
@@ -265,6 +272,8 @@ namespace Sigilbound.Client
                 LogBudget(tag);
                 Battle.End(ScreenId.Home);
             }
+            foreach (var (h, lv) in keepLv) h.level = lv;
+            G.S.cleared = keepCleared; G.S.hardCleared = keepHard;
             G.S.settings.auto = true;
         }
 

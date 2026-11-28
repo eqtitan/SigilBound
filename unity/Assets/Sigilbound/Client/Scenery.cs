@@ -117,7 +117,11 @@ namespace Sigilbound.Client
                 }
                 var mote = Palette.Hex(th.MoteColor);
                 // The glass desert's crystals are glass, not lamps: a pale lilac body with a faint glow, so their facets read.
-                _glow = th.Name == "glass desert" ? Materials.Glow(Palette.Hex("#b4a6d6"), Palette.Hex("#d6c8ff"), 0.22f) : Materials.Glow(mote * 0.4f, mote, th.Mushrooms ? 0.9f : 1.2f);
+                // Other crystal lands (gold ruins, amethyst badlands, burning ruins) the same way: a lit body in the mote colour
+                // with a soft glow. At 1.2 the bloom burned them to flat white cut-outs (real screenshots, build 182).
+                _glow = th.Name == "glass desert" ? Materials.Glow(Palette.Hex("#b4a6d6"), Palette.Hex("#d6c8ff"), 0.22f)
+                      : th.Crystals && !th.Mushrooms ? Materials.Glow(mote * 0.7f, mote, 0.3f)
+                      : Materials.Glow(mote * 0.4f, mote, th.Mushrooms ? 0.9f : 1.2f);
                 _fire = Materials.Glow(Palette.Hex("#3a1a08"), Palette.Hex("#ffb050"), 1.8f);
             }
 
