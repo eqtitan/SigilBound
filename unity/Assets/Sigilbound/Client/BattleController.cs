@@ -1346,7 +1346,7 @@ namespace Sigilbound.Client
                 Vector3 sp = cam.WorldToScreenPoint(u.Titan ? TitanTagPoint(v) // the Titan's tag sits above its horn tips
                     : v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
                 if (sp.z < 0) continue;
-                float w = u.Titan ? 156 : 96;
+                float w = (u.Titan ? 156 : 96) * Ui.TextGrow; // wider with bigger text, so names never run into the next tag
                 float x = Mathf.Clamp(sp.x / Ui.Scale - Ui.Offset, Mathf.Max(0, safe.x) + w / 2 + 4, Mathf.Min(Ui.W, safe.xMax) - w / 2 - 4); // inside the safe area
                 // The Titan's tag keeps an extra 18-unit gap under the skill banner: in close shots its head is off the
                 // top and the tag is pinned here, where it read as part of the "QUAKE" banner (in-house report).

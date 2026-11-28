@@ -39,11 +39,25 @@ namespace Sigilbound.Client
 
         static float Tap => Mathf.Max(44, Ui.Tap);
 
+        // Rows grow with the text size (Settings scrolls): the title's line scales and the note wraps.
+        static readonly GUIContent _subGc = new GUIContent();
         void SettingRow(ref float y, Rect b, string title, string sub)
         {
-            Ui.Text(new Rect(b.x, y, b.width, 22), title, 15, Palette.TrimHi, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
-            if (!string.IsNullOrEmpty(sub)) Ui.Text(new Rect(b.x, y + 21, b.width, 18), sub, 12, Palette.Dim);
-            y += string.IsNullOrEmpty(sub) ? 26 : 44;
+            float g = Ui.TextGrow, th = 22 * g;
+            Ui.Text(new Rect(b.x, y, b.width, th), title, 15, Palette.TrimHi, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+            if (string.IsNullOrEmpty(sub)) { y += th + 4; return; }
+            _subGc.text = sub;
+            float sh = Mathf.Max(18 * g, Ui.Label(12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true).CalcHeight(_subGc, b.width));
+            Ui.Text(new Rect(b.x, y + th - 1, b.width, sh), sub, 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
+            y += th + sh + 4;
+        }
+
+        // A chip's width: its label at the player's text size plus padding (never narrower than a tap target).
+        static float ChipW(string label, Rect b)
+        {
+            _subGc.text = label;
+            float w = Ui.Label(13, null, FontStyle.Bold, TextAnchor.MiddleCenter, false, Ui.SerifCanDraw(label)).CalcSize(_subGc).x + 2 * Ui.ButtonInset(Tap, Ui.Kind.Chip) + 4;
+            return Mathf.Min(b.width, Mathf.Max(Tap, w));
         }
 
         void Chips(ref float y, Rect b, string[] labels, int on, System.Action<int> pick)
@@ -52,7 +66,7 @@ namespace Sigilbound.Client
             for (int i = 0; i < labels.Length; i++)
             {
                 // 48 dp tall chips (UX review #1); the chosen one is gilded (gold frame and label).
-                float w = Mathf.Max(Tap, labels[i].Length * 8.2f + 34);
+                float w = ChipW(labels[i], b);
                 if (x + w > b.xMax) { x = b.x; y += Tap + 6; }
                 if (Ui.Button(new Rect(x, y, w, Tap), labels[i], i == on ? Ui.Kind.ChipOn : Ui.Kind.Chip, 13)) pick(i);
                 x += w + 6;
@@ -63,11 +77,12 @@ namespace Sigilbound.Client
         void Slider(ref float y, Rect b, string title, double value, System.Action<double> set)
         {
             int pct = Mathf.RoundToInt((float)value * 100);
-            Ui.Text(new Rect(b.x, y, b.width - 60, 22), title, 15, Palette.TrimHi, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
-            Ui.Text(new Rect(b.xMax - 60, y, 60, 22), pct > 0 ? pct + "%" : "Off", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
+            float th = 22 * Ui.TextGrow;
+            Ui.Text(new Rect(b.x, y, b.width - 60, th), title, 15, Palette.TrimHi, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+            Ui.Text(new Rect(b.xMax - 60, y, 60, th), pct > 0 ? pct + "%" : "Off", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
             // A visible gold track with its filled part and a 28-unit thumb in a 48 dp tall hit area (UX review #15,
             // art review H5: the stock track was invisible and the thumb 12 px).
-            var area = new Rect(b.x, y + 24, b.width, Tap);
+            var area = new Rect(b.x, y + th + 2, b.width, Tap);
             var track = new Rect(area.x + 14, area.center.y - 4, area.width - 28, 8);
             Ui.Round(track, Palette.Hex("#0d0a12"), Palette.Bronze, 4);
             if (pct > 0) Ui.Round(new Rect(track.x, track.y, track.width * pct / 100f, track.height), Palette.GoldDark, Palette.Trim, 4);
@@ -76,7 +91,82 @@ namespace Sigilbound.Client
             float v = GUI.HorizontalSlider(area, pct, 0, 100, barSt, thumbSt);
             int nv = Mathf.RoundToInt(v / 5) * 5; // 5% steps like the web slider
             if (nv != pct) { set(nv / 100.0); Save(); }
-            y += 30 + Tap;
+            y += th + 8 + Tap;
+        }
+
+        // A group heading in Settings: gold serif title with a gold rule under it.
+        void SettingGroup(ref float y, Rect b, string title)
+        {
+            float h = 28 * Ui.TextGrow;
+            Ui.Heading(new Rect(b.x, y, b.width, h), title, 18);
+            Ui.GoldRule(new Rect(b.x, y + h, b.width, 2));
+            y += h + 10;
+        }
+
+        // Settings > Accessibility (PLAN step 115; UX review #12 and #16, art review L2). All on this device.
+        void DrawAccessibility(ref float y, Rect b)
+        {
+            SettingGroup(ref y, b, "Accessibility");
+
+            SettingRow(ref y, b, "Text size", "Bigger text everywhere. Text that can't grow in place shrinks to fit, never below Default.");
+            Chips(ref y, b, Accessibility.TextSizeNames, Access.TextLevel, i => { Access.TextLevel = i; Toast("Text size: " + Accessibility.TextSizeNames[i]); });
+
+            SettingRow(ref y, b, "Reduce motion", Access.ReduceMotion ? "No screen shake; Titan and lair cinematics hold still shots with gentle cuts." : "Cinematic camera moves, zooms and screen shake as designed.");
+            Chips(ref y, b, new[] { "Off", "On" }, Access.ReduceMotion ? 1 : 0, i => { Access.ReduceMotion = i == 1; Toast(i == 1 ? "Reduce motion: on" : "Reduce motion: off"); });
+
+            // Screen shake lives here now (UX review #16: it was 7th in the list); Reduce motion turns it off.
+            string[] shakes = { "full", "reduced", "off" };
+            SettingRow(ref y, b, "Screen shake", Access.ReduceMotion ? "Off while Reduce motion is on." : "How much the camera shakes on big hits.");
+            if (Access.ReduceMotion)
+            {
+                float x = b.x;
+                foreach (var l in new[] { "Full", "Reduced", "Off" }) { float w = ChipW(l, b); Ui.Button(new Rect(x, y, w, Tap), l, l == "Off" ? Ui.Kind.ChipOn : Ui.Kind.Chip, 13, false); x += w + 6; }
+                y += Tap + 10;
+            }
+            else Chips(ref y, b, new[] { "Full", "Reduced", "Off" }, System.Array.IndexOf(shakes, Quality.SavedShake) is int si && si >= 0 ? si : 0, i =>
+            {
+                Quality.SavedShake = shakes[i]; Toast("Screen shake: " + new[] { "full", "reduced", "off" }[i]);
+            });
+
+            SettingRow(ref y, b, "Flash effects", Access.Flash == 0 ? "Crit and ultimate flashes, lightning and bright bursts as designed." : Access.Flash == 1 ? "Dimmer, shorter flashes; lightning doesn't flicker." : "No full-screen flashes or sky lightning; bursts kept dim.");
+            Chips(ref y, b, Accessibility.FlashNames, Access.Flash, i => { Access.Flash = i; Toast("Flash effects: " + Accessibility.FlashNames[i].ToLowerInvariant()); });
+
+            SettingRow(ref y, b, "Colour-blind palette", "Element and rarity colours picked for each type. Icons and letters stay.");
+            Chips(ref y, b, Accessibility.PaletteShort, Access.ColourMode, i => { Access.ColourMode = i; Toast("Palette: " + Accessibility.PaletteNames[i]); });
+            PalettePreview(ref y, b);
+
+            SettingRow(ref y, b, "Hold to confirm", $"How long to hold Release and risky Rank Ups: {Access.HoldSeconds:0.#} s.");
+            Chips(ref y, b, Accessibility.HoldNames, Access.HoldLevel, i => { Access.HoldLevel = i; Toast($"Hold to confirm: {Access.HoldSeconds:0.#} s"); });
+
+            SettingRow(ref y, b, "Larger tap targets", Access.LargeTaps ? "Buttons are at least 56 dp." : "Buttons are at least 48 dp.");
+            Chips(ref y, b, new[] { "Off", "On" }, Access.LargeTaps ? 1 : 0, i => { Access.LargeTaps = i == 1; Toast(i == 1 ? "Larger tap targets: on" : "Larger tap targets: off"); });
+
+            y += 4;
+            SettingGroup(ref y, b, "Game");
+        }
+
+        // Preview chips for the chosen palette: the five element badges (icon + name) and the four rarity tabs.
+        static readonly Element[] _els = { Element.Flame, Element.Gale, Element.Tide, Element.Light, Element.Shadow };
+        static readonly Rarity[] _rars = { Rarity.Common, Rarity.Rare, Rarity.Epic, Rarity.Legendary };
+        void PalettePreview(ref float y, Rect b)
+        {
+            float g = Ui.TextGrow, cw = (b.width - 4 * 6) / 5, ch = 30 + 16 * g;
+            for (int i = 0; i < 5; i++)
+            {
+                var r = new Rect(b.x + i * (cw + 6), y, cw, ch);
+                Ui.Round(r, Palette.Hex("#0d0a12"), Palette.Element(_els[i]), 10);
+                Ui.ElementBadge(new Rect(r.center.x - 12, r.y + 4, 24, 24), _els[i]);
+                Ui.Text(new Rect(r.x + 2, r.y + 28, r.width - 4, ch - 30), _els[i].ToString(), 11, Palette.Element(_els[i]), FontStyle.Bold, TextAnchor.MiddleCenter);
+            }
+            y += ch + 6;
+            float rw = (b.width - 3 * 6) / 4, rh = 22 * g + 8;
+            for (int i = 0; i < 4; i++)
+            {
+                var r = new Rect(b.x + i * (rw + 6), y, rw, rh);
+                Ui.Round(r, Color.Lerp(Palette.Rarity(_rars[i]), Color.black, 0.7f), Palette.Rarity(_rars[i]), 8);
+                Ui.Text(new Rect(r.x + 6, r.y, r.width - 12, r.height), Ui.RarityLetter(_rars[i]) + "  " + _rars[i], 12, Palette.Rarity(_rars[i]), FontStyle.Bold, TextAnchor.MiddleCenter);
+            }
+            y += rh + 12;
         }
 
         // The rows scroll (drag) inside the modal; the version line and Done stay pinned below.
@@ -87,6 +177,7 @@ namespace Sigilbound.Client
             var b = new Rect(0, 0, outer.width - 1, view.height);
             float y = 0;
             var st = G.S.settings;
+            DrawAccessibility(ref y, b); // first (UX review #16)
             // Volume sliders (0 = off) that apply instantly, as audio.js.
             Slider(ref y, b, "Music", st.musicVol, v => { st.musicVol = v; Sound.I?.ApplyVolumes(); });
             Slider(ref y, b, "Sound effects", st.sfxVol, v => { st.sfxVol = v; Sound.I?.ApplyVolumes(); });
@@ -120,8 +211,8 @@ namespace Sigilbound.Client
                 Quality.SaveFpsMode(modes[i]); st.fpsCap = modes[i] == "30" ? 30 : 60; Save(); Quality.I?.Set(st.quality, modes[i]);
                 Toast(modes[i] == "high" ? $"{hz} fps: uses more battery" : modes[i] == "60" ? "60 fps" : "30 fps: cooler and longer battery");
             });
-            Ui.Text(new Rect(b.x, y - 6, b.width, 18), "Auto-replay always runs at 30 fps.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
-            y += 14;
+            Ui.Text(new Rect(b.x, y - 6, b.width, 18 * Ui.TextGrow), "Auto-replay always runs at 30 fps.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
+            y += 14 * Ui.TextGrow;
 
             if (Background.Supported)
             {
@@ -140,13 +231,6 @@ namespace Sigilbound.Client
                     });
                 }
             }
-
-            SettingRow(ref y, b, "Screen shake", "How much the camera shakes on big hits.");
-            string[] shakes = { "full", "reduced", "off" };
-            Chips(ref y, b, new[] { "Full", "Reduced", "Off" }, System.Array.IndexOf(shakes, Quality.SavedShake) is int si && si >= 0 ? si : 0, i =>
-            {
-                Quality.SavedShake = shakes[i]; Toast("Screen shake: " + new[] { "full", "reduced", "off" }[i]);
-            });
 
             if (Skin.Any)
             {

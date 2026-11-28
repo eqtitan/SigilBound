@@ -233,14 +233,15 @@ namespace Sigilbound.Client
             if (_flash > 0 || _boltT > 0)
             {
                 _flash = Mathf.Max(0, _flash - dt * 5f);
-                float f = _flash * Arena.MotionScale; // Settings > Screen shake off: no flashing
+                float f = _flash * Access.FlashScale; // Settings > Accessibility > Flash effects
                 if (Sun != null) Sun.intensity = _sunBase * (1 + 1.6f * f);
                 RenderSettings.ambientLight = _ambBase * (1 + 1.2f * f);
                 _lit = f > 0;
                 if (_bolt != null)
                 {
                     _boltT -= dt;
-                    _bolt.enabled = _boltT > 0 && (_boltT > 0.12f || _boltT % 0.06f > 0.03f);
+                    // the bolt flickers as it fades; with flashes limited it shows steady (Reduced) or not at all (Off)
+                    _bolt.enabled = _boltT > 0 && Access.Flash < 2 && (_boltT > 0.12f || Access.Flash == 1 || _boltT % 0.06f > 0.03f);
                 }
             }
             if (Storm && t > _nextStrike) { Lightning(); _nextStrike = t + Random.Range(7f, 14f); }

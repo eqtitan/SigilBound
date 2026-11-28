@@ -46,7 +46,8 @@ namespace Sigilbound.Client
         }
         // The smallest side of anything tappable: 48 dp on a phone (never under 44 units on a PC), so every
         // target clears the 44 dp minimum.
-        public static float Tap => Mathf.Max(44f, Dp(48f));
+        // Settings > Accessibility > Larger tap targets makes it 56 dp.
+        public static float Tap => Mathf.Max(44f, Dp(Accessibility.TapDp(Access.LargeTaps)));
         // The safe area (camera hole, rounded corners) inset by a gutter on the left and right, in layout units.
         // Screens laid out across the whole width use it for their content; bars use it for their contents.
         public static Rect SafeContent(float gutter = 0)
@@ -82,7 +83,8 @@ namespace Sigilbound.Client
         {
             if (Event.current.type == EventType.Repaint)
             {
-                float w = Mathf.Min(r.width, Label(size, color, fs, align).CalcSize(new GUIContent(text)).x + 24);
+                int px = TextPx(r, text, size, fs, align, false, false);
+                _gc.text = text; float w = Mathf.Min(r.width, RawLabel(px, color, fs, align).CalcSize(_gc).x + 24);
                 float x = align == TextAnchor.MiddleLeft || align == TextAnchor.UpperLeft || align == TextAnchor.LowerLeft ? r.x - 8
                     : align == TextAnchor.MiddleRight || align == TextAnchor.UpperRight || align == TextAnchor.LowerRight ? r.xMax - w + 8 : r.center.x - w / 2;
                 Round(new Rect(x, r.y + 1, w, r.height - 2), new Color(0.04f, 0.03f, 0.06f, 0.72f), null, Mathf.Clamp(Mathf.RoundToInt(r.height / 2 - 1), 4, 14));
@@ -149,7 +151,7 @@ namespace Sigilbound.Client
 
         // Generated textures and styles, keyed by a UiKey struct (Core/UiCache.cs): no string building, boxing or
         // closures per call (performance review #5). Kinds:
-        const int KRound = 1, KGrad = 2, KSolid = 3, KGoldRule = 4, KLabel = 5, KRoundStyle = 6, KGradStyle = 7, KBox = 8, KCard = 9, KButton = 10, KField = 11;
+        const int KRound = 1, KGrad = 2, KSolid = 3, KGoldRule = 4, KLabel = 5, KRoundStyle = 6, KGradStyle = 7, KBox = 8, KCard = 9, KButton = 10, KField = 11, KPlain = 12;
         static readonly Dictionary<UiKey, Texture2D> _tex = new Dictionary<UiKey, Texture2D>();
         static readonly Dictionary<UiKey, GUIStyle> _kstyles = new Dictionary<UiKey, GUIStyle>();
         static readonly Dictionary<string, GUIStyle> _styles = new Dictionary<string, GUIStyle>(); // Style(string, make) for other screens
@@ -264,7 +266,7 @@ namespace Sigilbound.Client
             return t;
         }
 
-        public static void ClearStyles() { _styles.Clear(); _kstyles.Clear(); } // after the skin is switched on or off
+        public static void ClearStyles() { _styles.Clear(); _kstyles.Clear(); _fit.Clear(); } // after the skin is switched on or off
         public static GUIStyle Style(string key, System.Func<GUIStyle> make)
         {
             if (!_styles.TryGetValue(key, out var s) || s == null) { s = make(); _styles[key] = s; }
@@ -294,15 +296,78 @@ namespace Sigilbound.Client
             normal = { background = RoundTex(fill, border, radius) }, border = new RectOffset(radius + 2, radius + 2, radius + 2, radius + 2),
         };
 
-        public static GUIStyle Label(int size = 15, Color? color = null, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleLeft, bool wrap = false, bool serif = false)
+        // ---------- text size (Settings > Accessibility; Core/Accessibility.cs) ----------
+        // Every size written in the draw code is the Default-setting size. Sized() is what it is drawn at for
+        // the player's setting (with the minimum readable size), and every text helper here goes through it:
+        // Label (styles other screens measure with), Text, TextOnArt, Heading, Banner, Button, Field, FitSize.
+        public static int Sized(int size) => Accessibility.TextSize(size, Access.TextLevel);
+        // How much larger than Default the player's text is (1 at Default and Small): layouts that can grow
+        // (scrolling lists such as Settings) multiply their row heights by it.
+        public static float TextGrow => Mathf.Max(1f, Access.TextFactor);
+        // The size text written at `size` is drawn at inside rect r: Sized(size), or, when that doesn't fit the
+        // rect (one line: its width and line height; wrapped: its height), the largest size that does, never
+        // below the Default size. Layouts that can't grow therefore shrink to fit rather than overflow.
+        // Measured on Repaint only and cached per string and rect.
+        public static int TextPx(Rect r, string text, int size, FontStyle fs, TextAnchor align, bool wrap, bool serif)
+        {
+            int level = Access.TextLevel, top = Accessibility.TextSize(size, level), floor = Accessibility.FitFloor(size, level);
+            if (top <= floor || string.IsNullOrEmpty(text) || Event.current == null || Event.current.type != EventType.Repaint) return top;
+            var key = new FitKey(text, r.width, r.height, size, (int)fs | (int)align << 4 | (wrap ? 1 << 12 : 0) | (serif ? 1 << 13 : 0) | level << 14);
+            if (_fit.TryGetValue(key, out int px)) return px;
+            _gc.text = text;
+            for (px = top; px > floor; px--)
+            {
+                var st = RawLabel(px, null, fs, align, wrap, serif);
+                if (wrap ? st.CalcHeight(_gc, r.width) <= r.height + 2 : st.CalcSize(_gc).x <= r.width + 1 && st.lineHeight <= r.height + 3) break;
+            }
+            if (_fit.Count > 3000) _fit.Clear();
+            return _fit[key] = px;
+        }
+        // How far a button's label keeps from its sides when fitting: the style's 6-unit padding, plus the painted
+        // plates' ornamented ends (about 0.3 of the height, at most 18) on every kind but Ghost.
+        public static float ButtonInset(float height, Kind k = Kind.Primary) => k == Kind.Ghost ? 6 : 6 + Mathf.Min(18, height * 0.3f);
+        // The same for a button's label (side inset as above, 4-unit top/bottom padding; labels wrap at spaces).
+        static int ButtonPx(Rect r, string text, int size, bool serif, Kind k)
+        {
+            int level = Access.TextLevel, top = Accessibility.TextSize(size, level), floor = Accessibility.FitFloor(size, level);
+            if (top <= floor || string.IsNullOrEmpty(text) || Event.current == null || Event.current.type != EventType.Repaint) return top;
+            var key = new FitKey(text, r.width, r.height, size, 1 << 20 | (serif ? 1 << 13 : 0) | level << 14 | (k == Kind.Ghost ? 1 << 21 : 0));
+            if (_fit.TryGetValue(key, out int px)) return px;
+            _gc.text = text; float w = r.width - 2 * ButtonInset(r.height, k), h = r.height - 8; bool words = text.IndexOf(' ') >= 0 || text.IndexOf('\n') >= 0;
+            for (px = top; px > floor; px--)
+            {
+                var st = RawLabel(px, null, FontStyle.Bold, TextAnchor.MiddleCenter, false, serif);
+                var one = st.CalcSize(_gc);
+                if (text.IndexOf('\n') < 0 && one.x <= w + 1 && st.lineHeight <= h + 4) break;
+                if (words && RawLabel(px, null, FontStyle.Bold, TextAnchor.MiddleCenter, true, serif).CalcHeight(_gc, w) <= h + 4) break;
+            }
+            if (_fit.Count > 3000) _fit.Clear();
+            return _fit[key] = px;
+        }
+        readonly struct FitKey : System.IEquatable<FitKey>
+        {
+            readonly string _t; readonly int _w, _h, _s, _f;
+            public FitKey(string t, float w, float h, int s, int f) { _t = t; _w = Mathf.RoundToInt(w * 4); _h = Mathf.RoundToInt(h * 4); _s = s; _f = f; }
+            public bool Equals(FitKey o) => _w == o._w && _h == o._h && _s == o._s && _f == o._f && string.Equals(_t, o._t);
+            public override bool Equals(object o) => o is FitKey k && Equals(k);
+            public override int GetHashCode() => ((_t.GetHashCode() * 31 + _w) * 31 + _h) * 31 + (_s | _f << 8);
+        }
+        static readonly Dictionary<FitKey, int> _fit = new Dictionary<FitKey, int>();
+        static readonly GUIContent _gc = new GUIContent();
+
+        // A label style at the player's text size (other screens measure text with it).
+        public static GUIStyle Label(int size = 15, Color? color = null, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleLeft, bool wrap = false, bool serif = false) =>
+            RawLabel(Sized(size), color, fs, align, wrap, serif);
+        // A label style at exactly px (already scaled).
+        static GUIStyle RawLabel(int px, Color? color = null, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleLeft, bool wrap = false, bool serif = false)
         {
             var c = color ?? Palette.Text;
-            var key = new UiKey(KLabel, Rgba(c), x: size, y: (int)fs | (int)align << 4 | UiKey.Bits(wrap, 12) | UiKey.Bits(serif, 13));
+            var key = new UiKey(KLabel, Rgba(c), x: px, y: (int)fs | (int)align << 4 | UiKey.Bits(wrap, 12) | UiKey.Bits(serif, 13));
             if (!_kstyles.TryGetValue(key, out var s) || s == null)
                 _kstyles[key] = s = new GUIStyle
                 {
                     // Bold serif uses Cinzel's real bold face rather than a synthesized one.
-                    fontSize = size, fontStyle = serif && fs == FontStyle.Bold ? FontStyle.Normal : fs, alignment = align, wordWrap = wrap, richText = true, clipping = TextClipping.Clip,
+                    fontSize = px, fontStyle = serif && fs == FontStyle.Bold ? FontStyle.Normal : fs, alignment = align, wordWrap = wrap, richText = true, clipping = TextClipping.Clip,
                     normal = { textColor = c }, font = serif ? (fs == FontStyle.Bold ? _serifBold : _serif) : _font,
                 };
             return s;
@@ -460,6 +525,7 @@ namespace Sigilbound.Client
         {
             bool covered = Cover.HasValue && !OnTop && Cover.Value.Contains(Event.current.mousePosition);
             bool serif = SerifCanDraw(text);
+            int px = ButtonPx(r, text, size, serif && k != Kind.Ghost, k); // the player's text size, shrunk to fit the button (Ghost labels use the sans face)
             if (!enabled)
             {
                 // Disabled: a grey plate with light grey text (4.5:1 or better), clearly off but readable.
@@ -472,7 +538,7 @@ namespace Sigilbound.Client
                         if (!Skin.DrawButton(r, SkinName(k), false)) { GUI.color = keep; GradientBox(r, Palette.Hex("#45414c"), DisabledPlate, Palette.Hex("#5a5560"), 10); }
                         GUI.color = keep;
                     }
-                    ButtonStyle(k, size, serif, true).Draw(r, new GUIContent(text), false, false, false, false);
+                    ButtonStyle(k, px, serif, true).Draw(r, new GUIContent(text), false, false, false, false);
                 }
                 return false;
             }
@@ -483,7 +549,7 @@ namespace Sigilbound.Client
                 if (k != Kind.Ghost) Skin.DrawButton(held ? Pressed(r) : r, SkinName(k), held);
                 else PressOverlay(r, held);
             }
-            bool hit = GUI.Button(r, text, ButtonStyle(k, size, serif));
+            bool hit = GUI.Button(r, text, ButtonStyle(k, px, serif));
             if (k != Kind.Ghost && !held && Event.current.type == EventType.Repaint) PressOverlay(r, false); // hover only on plates (the press shows on the plate itself)
             GUI.enabled = was;
             hit = hit && !Scroller.WasDragging;
@@ -495,17 +561,30 @@ namespace Sigilbound.Client
         static readonly string[] _skinNames = System.Array.ConvertAll((Kind[])System.Enum.GetValues(typeof(Kind)), k => "button_" + k.ToString().ToLowerInvariant());
         static string SkinName(Kind k) => _skinNames[(int)k];
 
-        public static void Text(Rect r, string text, int size = 15, Color? color = null, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleLeft, bool wrap = false, bool serif = false) =>
-            GUI.Label(r, text, Label(size, color, fs, align, wrap, serif && SerifCanDraw(text)));
+        // All screen text goes through here: the player's text size, shrunk to fit r if it has to (TextPx).
+        public static void Text(Rect r, string text, int size = 15, Color? color = null, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleLeft, bool wrap = false, bool serif = false)
+        {
+            bool sf = serif && SerifCanDraw(text);
+            GUI.Label(r, text, RawLabel(TextPx(r, text, size, fs, align, wrap, sf), color, fs, align, wrap, sf));
+        }
+
+        // Text the player typed (friend names, chat): no rich-text tags, otherwise as Text (scaled, fitted).
+        public static void PlainText(Rect r, string text, int size, Color c, FontStyle fs = FontStyle.Normal, TextAnchor a = TextAnchor.MiddleLeft, bool wrap = false)
+        {
+            int px = TextPx(r, text, size, fs, a, wrap, false);
+            var key = new UiKey(KPlain, Rgba(c), x: px, y: (int)fs | (int)a << 4 | UiKey.Bits(wrap, 12));
+            if (!_kstyles.TryGetValue(key, out var st) || st == null) _kstyles[key] = st = new GUIStyle(RawLabel(px, c, fs, a, wrap)) { richText = false };
+            GUI.Label(r, text, st);
+        }
 
         // Multi-line text box (save codes, promo codes). Tapping it opens the phone keyboard.
         public static string Field(Rect r, string value, int maxLength, bool multiline)
         {
-            var key = new UiKey(KField, x: multiline ? 1 : 0);
+            var key = new UiKey(KField, x: multiline ? 1 : 0, y: Sized(13));
             if (!_kstyles.TryGetValue(key, out var st) || st == null)
                 _kstyles[key] = st = new GUIStyle(multiline ? GUI.skin.textArea : GUI.skin.textField)
                 {
-                    fontSize = 13, wordWrap = multiline, padding = new RectOffset(8, 8, 6, 6), font = _font,
+                    fontSize = Sized(13), wordWrap = multiline, padding = new RectOffset(8, 8, 6, 6), font = _font,
                     normal = { background = RoundTex(Palette.Hex("#0d0a12"), Palette.Hex("#5c4a30"), 8), textColor = Palette.Text },
                     focused = { background = RoundTex(Palette.Hex("#120e19"), Palette.Gold, 8), textColor = Palette.Text },
                     border = new RectOffset(10, 10, 10, 10),

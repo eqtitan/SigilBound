@@ -26,7 +26,7 @@ namespace Sigilbound.Client
         public const float SlotH = 116, SlotGap = 8;
         public const int SlotCols = 3;
         public static float PickRowH => Mathf.Max(58, Ui.Tap + 10);
-        public const float HoldSeconds = 1f;
+        public static float HoldSeconds => Access.HoldSeconds; // Settings > Accessibility > Hold to confirm (1 s by default)
         public static float UndoBarH => Ui.Tap + 8;
     }
 

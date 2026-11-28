@@ -15,9 +15,9 @@ namespace Sigilbound.Client
 
         static GUIStyle Plain(int size, Color c, FontStyle fs = FontStyle.Normal, TextAnchor a = TextAnchor.MiddleLeft, bool wrap = false) =>
             Ui.Style($"plain{size}{c}{fs}{a}{wrap}", () => new GUIStyle(Ui.Label(size, c, fs, a, wrap)) { richText = false });
-        static GUIStyle Field(int size = 16) => Ui.Style($"field{size}", () => new GUIStyle
+        static GUIStyle Field(int size = 16) => Ui.Style($"field{Ui.Sized(size)}", () => new GUIStyle
         {
-            fontSize = size, alignment = TextAnchor.MiddleLeft, padding = new RectOffset(12, 12, 6, 6), clipping = TextClipping.Clip,
+            fontSize = Ui.Sized(size), // Settings > Accessibility > Text size alignment = TextAnchor.MiddleLeft, padding = new RectOffset(12, 12, 6, 6), clipping = TextClipping.Clip,
             normal = { background = Ui.RoundTex(Palette.Panel2, Palette.Line, 10), textColor = Palette.Text },
             focused = { background = Ui.RoundTex(Palette.Panel2, Palette.Gold, 10), textColor = Palette.Text },
             border = new RectOffset(12, 12, 12, 12), richText = false,
@@ -73,8 +73,8 @@ namespace Sigilbound.Client
 
             var c = Row(ref y, 84);
             Ui.Panel(c, new Color(0.12f, 0.1f, 0.17f, 0.95f));
-            GUI.Label(new Rect(c.x + 14, c.y + 8, c.width - 120, 20), $"Signed in as {d.me.name} · your friend code", Plain(12, Palette.Dim));
-            GUI.Label(new Rect(c.x + 14, c.y + 30, c.width - 120, 40), d.me.code, Plain(30, Palette.Gold, FontStyle.Bold));
+            Ui.PlainText(new Rect(c.x + 14, c.y + 8, c.width - 120, 20), $"Signed in as {d.me.name} · your friend code", 12, Palette.Dim);
+            Ui.PlainText(new Rect(c.x + 14, c.y + 30, c.width - 120, 40), d.me.code, 30, Palette.Gold, FontStyle.Bold);
             if (Ui.Button(new Rect(c.xMax - 100, c.y + 24, 86, 36), "Copy", Ui.Kind.Secondary, 13)) { GUIUtility.systemCopyBuffer = d.me.code; Toast("Friend code copied"); }
 
             c = Row(ref y, 96);
@@ -91,7 +91,7 @@ namespace Sigilbound.Client
                 for (int i = 0; i < d.incoming.Count; i++)
                 {
                     var f = d.incoming[i]; float ry = c.y + 36 + i * 56;
-                    GUI.Label(new Rect(c.x + 14, ry, c.width - 200, 24), f.name, Plain(15, Palette.Text, FontStyle.Bold));
+                    Ui.PlainText(new Rect(c.x + 14, ry, c.width - 200, 24), f.name, 15, Palette.Text, FontStyle.Bold);
                     Ui.Text(new Rect(c.x + 14, ry + 22, c.width - 200, 20), "wants to be friends", 12, Palette.Dim);
                     if (Ui.Button(new Rect(c.xMax - 182, ry + 4, 84, 36), "Accept", Ui.Kind.Primary, 13)) on.Respond(f.id, true);
                     if (Ui.Button(new Rect(c.xMax - 92, ry + 4, 78, 36), "Decline", Ui.Kind.Secondary, 13)) on.Respond(f.id, false);
@@ -108,7 +108,7 @@ namespace Sigilbound.Client
                 Ui.Panel(rr, Palette.Panel2, Palette.Line, 10);
                 var lead = f.profile?.heroes?.FirstOrDefault(h => Hero(h.id) != null);
                 if (lead != null) Ui.Round(new Rect(rr.x + 8, rr.y + 12, 6, 34), Palette.Element(Hero(lead.id).Element), null, 3);
-                GUI.Label(new Rect(rr.x + 22, rr.y + 6, rr.width - 90, 24), f.name, Plain(15, Palette.Text, FontStyle.Bold));
+                Ui.PlainText(new Rect(rr.x + 22, rr.y + 6, rr.width - 90, 24), f.name, 15, Palette.Text, FontStyle.Bold);
                 string stage = f.profile == null ? "" : f.profile.cleared >= TotalStages ? "Campaign complete" : $"Stage {Game.StageLabel(Mathf.Min(f.profile.cleared, TotalStages - 1))}";
                 Ui.Text(new Rect(rr.x + 22, rr.y + 30, rr.width - 90, 20), $"{stage} · Power {Ui.Fmt(f.profile?.power ?? 0)} · {Online.Ago(f.seen)}", 12, Palette.Dim);
                 if (f.unread > 0)
@@ -128,7 +128,7 @@ namespace Sigilbound.Client
                 for (int i = 0; i < d.outgoing.Count; i++)
                 {
                     var f = d.outgoing[i]; float ry = c.y + 36 + i * 48;
-                    GUI.Label(new Rect(c.x + 14, ry + 6, c.width - 130, 24), f.name + "  (waiting)", Plain(14, Palette.Text));
+                    Ui.PlainText(new Rect(c.x + 14, ry + 6, c.width - 130, 24), f.name + "  (waiting)", 14, Palette.Text);
                     if (Ui.Button(new Rect(c.xMax - 98, ry + 2, 84, 34), "Cancel", Ui.Kind.Secondary, 13)) on.Remove(f.id);
                 }
             }
@@ -154,8 +154,8 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(Pad, y, 96, 34), "‹ Friends", Ui.Kind.Secondary, 13)) Go(ScreenId.Friends);
             if (Ui.Button(new Rect(Ui.W - Pad - 100, y, 100, 34), "More…", Ui.Kind.Secondary, 13)) FriendActions(f);
             y += 44;
-            GUI.Label(new Rect(Pad, y, Ui.W - 32, 30), f.name, Plain(22, Palette.Text, FontStyle.Bold)); y += 30;
-            GUI.Label(new Rect(Pad, y, Ui.W - 32, 20), $"{Online.Ago(f.seen)} · code {f.code}", Plain(13, Palette.Dim)); y += 26;
+            Ui.PlainText(new Rect(Pad, y, Ui.W - 32, 30), f.name, 22, Palette.Text, FontStyle.Bold); y += 30;
+            Ui.PlainText(new Rect(Pad, y, Ui.W - 32, 20), $"{Online.Ago(f.seen)} · code {f.code}", 13, Palette.Dim); y += 26;
             y = Mathf.Max(y + 200, area.yMax - 260); // their team stands here in 3D
             var r = new Rect(Pad, y, Ui.W - 32, 110);
             Ui.Panel(r, new Color(0.12f, 0.1f, 0.17f, 0.95f));
@@ -183,7 +183,7 @@ namespace Sigilbound.Client
             string[] reasons = { "Harassment or bullying", "Hate speech", "Spam or scams", "Inappropriate name", "Something else" };
             Modal(messageId > 0 ? "Report message" : $"Report {f.name}", 120 + reasons.Length * 52, b =>
             {
-                if (messageBody != null) GUI.Label(new Rect(b.x, b.y, b.width, 40), $"\"{messageBody}\"", Plain(12, Palette.Dim, FontStyle.Italic, TextAnchor.UpperLeft, true));
+                if (messageBody != null) Ui.PlainText(new Rect(b.x, b.y, b.width, 40), $"\"{messageBody}\"", 12, Palette.Dim, FontStyle.Italic, TextAnchor.UpperLeft, true);
                 float ry = b.y + (messageBody != null ? 44 : 0);
                 foreach (var reason in reasons)
                 {
@@ -200,7 +200,7 @@ namespace Sigilbound.Client
             if (f == null) { Go(ScreenId.Friends); return; }
             float y = area.y + 6;
             if (Ui.Button(new Rect(Pad, y, 40, 36), "‹", Ui.Kind.Secondary, 16)) Go(ScreenId.FriendProfile);
-            GUI.Label(new Rect(Pad + 50, y, Ui.W - 100, 20), f.name, Plain(16, Palette.Text, FontStyle.Bold));
+            Ui.PlainText(new Rect(Pad + 50, y, Ui.W - 100, 20), f.name, 16, Palette.Text, FontStyle.Bold);
             Ui.Text(new Rect(Pad + 50, y + 20, Ui.W - 100, 16), Online.Ago(f.seen), 11, Palette.Dim);
             y += 46;
             var log = new Rect(Pad, y, Ui.W - 32, area.yMax - y - 60);
@@ -257,7 +257,7 @@ namespace Sigilbound.Client
             {
                 var r = Row(ref y, 52, 8);
                 Ui.Panel(r, Palette.Panel2, Palette.Line, 10);
-                GUI.Label(new Rect(r.x + 14, r.y, r.width - 130, 52), p.name, Plain(15, Palette.Text, FontStyle.Bold));
+                Ui.PlainText(new Rect(r.x + 14, r.y, r.width - 130, 52), p.name, 15, Palette.Text, FontStyle.Bold);
                 if (Ui.Button(new Rect(r.xMax - 104, r.y + 9, 92, 34), "Unblock", Ui.Kind.Secondary, 13)) Online.Unblock(p.id);
             }
         }
