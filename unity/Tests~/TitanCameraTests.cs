@@ -119,6 +119,28 @@ static class TitanCameraTests
             }
             TitanSpec.Current = keep;
 
+            // No hero's back in the way: for teams of 1 to 4, the line from each key's eye to the Titan's face
+            // passes at least 0.6 m to the side of every hero (3 heroes put Pell right in front of the lens).
+            var blocked = new System.Collections.Generic.List<string>();
+            for (int n = 1; n <= 4; n++)
+            {
+                var slots = Enumerable.Range(0, n).Select(i => BattleLayout.Slot(true, i, n)).ToList();
+                foreach (var aspect in new[] { 2.17, 0.56 })
+                {
+                    var (a, b) = BattleLayout.TitanIntroKeys(aspect, slots.Select(p => p.X).ToList());
+                    var face = BattleLayout.TitanSlot() + new V3(0, BattleLayout.TitanFace, 0);
+                    foreach (var (k, v) in new[] { ("A", a), ("B", b) })
+                        foreach (var hp in slots)
+                        {
+                            double t = (hp.Z - v.Eye.Z) / (face.Z - v.Eye.Z);
+                            if (t <= 0 || t >= 1) continue;
+                            double x = v.Eye.X + (face.X - v.Eye.X) * t;
+                            if (Math.Abs(x - hp.X) < 0.6) blocked.Add($"{n} heroes {k}@{aspect}: {Math.Abs(x - hp.X):0.00} m");
+                        }
+                }
+            }
+            check(blocked.Count == 0, "titan intro: with 1 to 4 heroes the camera stands in a gap, no hero's back between it and the Titan's face" + (blocked.Count > 0 ? " — " + string.Join("; ", blocked.Take(4)) : ""));
+
             // Meteor Leap at its peak: the worm's-eye camera aimed at a Titan 12 m up on a 78-degree lens
             // must be tilted down so the ground stays in frame (77-titan-4: it floated in an empty sky).
             var wv = BattleLayout.WormView(2.17);

@@ -231,7 +231,7 @@ static class MechanicsTests
                 $"balance patch: Light/Shadow chapters x{Curve.LSEase}, chapter 10 x{ch10:0.00}, 15-6 eased, role speed A+8/D-2/H-4/S0, Act 2 rewards grow ({r61.Gold} -> {r89.Gold} gold)");
         }
 
-        // Stage enemy pools are frozen (PLAN step 110): new heroes never change an existing stage's line-up.
+        // Stage enemy pools are frozen (PLAN step 111): new heroes never change an existing stage's line-up.
         {
             var fake = new HeroDef { Id = "zz_new", Name = "Zz New", Rarity = Rarity.Legendary, Element = Element.Shadow, Role = Role.Attack, Skills = Heroes[0].Skills };
             var appended = Heroes.Concat(new[] { fake }).ToArray();

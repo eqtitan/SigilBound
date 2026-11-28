@@ -67,13 +67,26 @@ namespace Sigilbound.Client
         }
 
         // Enemy chip: the element's icon on a dark disc (its shape reads without colour: UX review #4), name and
-        // level; gold ring for a boss.
+        // level; gold ring for a boss. When "Name LvN" doesn't fit on one line (the in-house report's "Tamsin Lv"),
+        // the level goes under the name, and the font steps down to 10 before a long name is cut with an ellipsis.
+        static readonly GUIContent _chipText = new GUIContent();
+        static float TextW(string t, int size) { _chipText.text = t; return Ui.Label(size).CalcSize(_chipText).x; }
         static void EnemyChip(Rect r, EnemySpec e, int size = 12)
         {
             float d = Mathf.Min(24, r.height);
             var disc = new Rect(r.x, r.y + (r.height - d) / 2, d, d);
-            Ui.ElementBadge(disc, e.El, e.Boss ? Palette.Gold : (Color?)null);
-            Ui.Text(new Rect(disc.xMax + 4, r.y, r.width - d - 4, r.height), $"{e.Template.ShortName} {Ui.ColorTag("Lv" + e.ShownLevel, Palette.Dim)}", size, Palette.Text); // the boss is marked by its gold ring (the word "Boss" cut names off)
+            Ui.ElementBadge(disc, e.El, e.Boss ? Palette.Gold : (Color?)null); // the boss is marked by its gold ring (the word "Boss" cut names off)
+            var tr = new Rect(disc.xMax + 4, r.y, r.width - d - 4, r.height);
+            string name = e.Template.ShortName, lv = "Lv" + e.ShownLevel;
+            if (TextW(name + " " + lv, size) <= tr.width) { Ui.Text(tr, $"{name} {Ui.ColorTag(lv, Palette.Dim)}", size, Palette.Text); return; }
+            bool stack = r.height >= 28;
+            int fs = size; string n = name;
+            while (fs > 10 && TextW(stack ? n : n + " " + lv, fs) > tr.width) fs--;
+            while (n.Length > 3 && TextW(stack ? n : n + " " + lv, fs) > tr.width) n = n.Substring(0, n.Length - 2) + "…";
+            if (!stack) { Ui.Text(tr, $"{n} {Ui.ColorTag(lv, Palette.Dim)}", fs, Palette.Text); return; }
+            float hh = Mathf.Min(16, tr.height / 2);
+            Ui.Text(new Rect(tr.x, tr.center.y - hh, tr.width, hh), n, fs, Palette.Text, FontStyle.Normal, TextAnchor.LowerLeft);
+            Ui.Text(new Rect(tr.x, tr.center.y, tr.width, hh), lv, Mathf.Min(fs, 11), Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
         }
 
         // ---------- stage list (on the world map, when a chapter is chosen) ----------

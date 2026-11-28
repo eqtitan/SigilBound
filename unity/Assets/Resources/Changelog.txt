@@ -3,6 +3,15 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-28 | New heroes and a new Titan
+fix: Act II stages have the same enemies as before the new heroes arrived, so its gentler climb (12-6, 14-6 and 15-5) is back.
+fix: Undo after releasing heroes puts them back in your saved teams in the same order.
+fix: Holding the phone upright, battles get the big round buttons, a Pause button and turn chips with ally and enemy marks.
+fix: Holding the phone upright, the campaign has the Normal/Hard and Act I/II switches, bigger stage buttons and solid locked chapters.
+fix: Enemy names on the stage list are no longer cut off; the level moves under a long name.
+fix: The release review marks every copy of a hero with "!" when you release all of them.
+fix: The Titan's arrival is filmed between your heroes, so none of them blocks its face, and its name tag keeps clear of the skill banner.
+fix: Wide heroes (Vorgrim, Talvo, Wystan, Crusk, Hartwin, Nyssa, Vessa) get more room in the Home line-up.
+fix: Heroes no longer flash in a T-pose on Home while their models load.
 fix: The update banner on Windows stays on top after you tap the bottom bar instead of slipping behind the screen.
 new: On Windows the game now keeps running when you click into another window, so battles don't freeze (Settings lets you pause instead, and mute the sound in the background).
 new: Six new heroes join the summon pool: Vorgrim Ashscale, Talvo Brassfang, Wystan Quillmere, Crusk Brineclaw, Hartwin Sunhorn and Nyssa Duskwing.

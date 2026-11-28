@@ -160,7 +160,7 @@ static class PolishTests
 
         check(!bc.Contains("$\"A{i + 1}\"") && bc.Contains("ShortNames(_actor.Template)"), "skill buttons: named with the skill, not A1/A2/A3");
         check(bc.Contains("MatchupBadge(") && bc.Split("MatchupBadge(new Rect").Length - 1 >= 2, "targets: Weak/Resist badges in both battle layouts");
-        check(bc.Contains("Icon.Info, \"Status\"") && bc.Contains("\"?\", Ui.Kind.Secondary"), "status legend: a Status button opens it on any turn (both layouts)");
+        check(System.Text.RegularExpressions.Regex.Matches(bc, "RoundButton\\([^;]*Icon\\.Info, \"Status\"").Count >= 2, "status legend: a Status button opens it on any turn (both layouts; portrait uses the 48 dp round button too)");
         check(!bc.Contains("\"Loop\"") && !bc.Contains("\"Cam\"") && !set.Contains("with Cam"), "wording: \"Replay\" (auto-replay) and \"View\" everywhere, no Loop or Cam");
         check(!prep.Contains("next ? \"Battle\" : clear ? \"Replay\"") && prep.Contains("\"Team ▶\""), "wording: the stage row's button says it opens team setup");
         check(!home.Contains("\"Reset save\"") && set.Contains("\"Reset save…\"") && set.Contains("void AskResetSave()") && set.Contains("Store?.AcceptFresh()"), "reset save: moved from Home to Settings > Danger zone, behind a confirm");

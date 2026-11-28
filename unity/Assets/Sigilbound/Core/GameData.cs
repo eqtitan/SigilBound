@@ -285,7 +285,7 @@ namespace Sigilbound.Core
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web
         // fixtures) as the roster grows. New heroes join the enemy pools only deliberately (Act II: Act2EnemyIds).
         public static readonly HeroDef[] Classic = Heroes.Take(24).ToArray();
-        // Act II campaign enemies (PLAN step 110). A frozen list: the roster as it was when Act II was
+        // Act II campaign enemies (PLAN step 111). A frozen list: the roster as it was when Act II was
         // tuned (step 99), so adding heroes never reshuffles existing stages. Waves pick from it by index,
         // so never reorder or remove entries; a new hero joins Act II only by appending it here on purpose
         // (which re-rolls Act II and needs a campaign re-tune). Unity only: the web game has no Act II.

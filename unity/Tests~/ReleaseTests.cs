@@ -91,6 +91,7 @@ static class ReleaseTests
         f.protect &= ~(int)Protect.LastCopy;
         var p4 = g.PlanRelease(f);
         check(p4.Release.Count == 3 && p4.LastCopies == 1 && p4.Risky, "…unless the red last-copy toggle is ticked (then the summary flags it)");
+        check(p4.LastCopyIds.SetEquals(new[] { "hask" }) && !p1.LastCopyIds.Contains("hask"), "release review: when every copy of a hero is selected, each of its cards is marked (LastCopyIds), not only a single copy");
         var solo = g.AddHero("velka"); // one copy only
         check(!g.PlanRelease(new ReleaseFilter { rarityMask = 2, starMask = 2, dupesOnly = true, keepBest = 0, protect = 0 }).Release.Contains(solo), "dupes only: a hero you own once never matches");
     }

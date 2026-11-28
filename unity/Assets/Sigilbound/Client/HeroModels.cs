@@ -528,9 +528,11 @@ namespace Sigilbound.Client
 
             var holder = new GameObject("Model").transform;
             holder.SetParent(parent, false);
+            holder.localPosition = BuildAway; // out of sight while it instantiates (no bind pose on screen; see Reveal)
             var inst = lib.Gltf.InstantiateMainSceneAsync(holder);
             while (!inst.IsCompleted) yield return null;
             if (inst.IsFaulted || !inst.Result || holder == null) { Trace($"build {id}: instantiate failed {inst.Exception?.GetBaseException().Message}"); if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
+            holder.localPosition = Vector3.zero;
 
             var bones = new Dictionary<string, Transform>();
             foreach (var t in holder.GetComponentsInChildren<Transform>(true)) if (!bones.ContainsKey(t.name)) bones[t.name] = t;
@@ -575,7 +577,7 @@ namespace Sigilbound.Client
                 foreach (var c in lib.Ual) anim.AddClip(c, c.name);
             }
             Trace($"build {id}: done, anim={(anim != null ? anim.GetClipCount() + " clips" : "none")}");
-            done(new HeroModel(holder.gameObject, anim, (titan ? 4.7f : 2.3f) * (float)body.H, titan ? AnimStyle.TitanStyle : AnimStyle.For(id)));
+            done(Reveal(holder, new HeroModel(holder.gameObject, anim, (titan ? 4.7f : 2.3f) * (float)body.H, titan ? AnimStyle.TitanStyle : AnimStyle.For(id))));
         }
 
         // ---------- high-detail heroes (phase F) ----------
@@ -922,11 +924,17 @@ namespace Sigilbound.Client
             holder.SetParent(parent, false);
             bk.Live++; bk.Used = Time.unscaledTime;
             holder.gameObject.AddComponent<HdRef>().Key = cacheKey; // released when the figure is destroyed
+            // Never seen in its bind (T) pose: the instance is built far below the arena, then kept unrendered until
+            // its clips are on and the idle is sampled (in-house report 2026-11-28: Home at 2400x1080 caught the
+            // heroes with their arms straight out while EnsureHdBodies was still loading). See Reveal.
+            holder.localPosition = BuildAway;
             var inst = bk.Gltf.InstantiateMainSceneAsync(holder);
             while (!inst.IsCompleted) yield return null;
             if (inst.IsFaulted || !inst.Result || holder == null || holder.childCount == 0) { if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
+            holder.localPosition = Vector3.zero;
             foreach (var r in holder.GetComponentsInChildren<Renderer>(true))
             {
+                r.forceRenderingOff = true;
                 var mats = r.sharedMaterials;
                 for (int i = 0; i < mats.Length; i++) mats[i] = bk.Mat;
                 r.sharedMaterials = mats;
@@ -940,7 +948,7 @@ namespace Sigilbound.Client
             var root = holder.Find("Armature") != null ? holder.gameObject : holder.GetChild(0).gameObject;
             // Creature heroes (Core/Kit/Creatures.cs): their own clips, fixed scale, planted feet (CreatureRig).
             var creature = Creatures.Of(id);
-            if (creature != null) { done(CreatureRig.Setup(holder.gameObject, root, bk.Gltf.GetAnimationClips(), creature)); yield break; }
+            if (creature != null) { done(Reveal(holder, CreatureRig.Setup(holder.gameObject, root, bk.Gltf.GetAnimationClips(), creature))); yield break; }
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
             var spec = titan ? TitanSpec.Current : null;
             // A separately rigged Titan brings its own clips ("clips": "embedded"); the shared UAL set is added
@@ -981,8 +989,20 @@ namespace Sigilbound.Client
                 if (spec.AutoGround) { float low = MeshBottom(holder); if (!float.IsNaN(low)) lift -= low; }
                 holder.localPosition += Vector3.up * lift / Mathf.Max(0.01f, holder.parent != null ? holder.parent.lossyScale.y : 1f);
             }
-            done(titan ? new HeroModel(holder.gameObject, anim, (float)(spec.HornWorld / spec.ViewScale), AnimStyle.TitanHd, TitanAliases())
-                       : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliases));
+            done(Reveal(holder, titan ? new HeroModel(holder.gameObject, anim, (float)(spec.HornWorld / spec.ViewScale), AnimStyle.TitanHd, TitanAliases())
+                                      : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliases)));
+        }
+
+        // Where a model is instantiated (out of every camera) until its instance is complete.
+        static readonly Vector3 BuildAway = new Vector3(0, -1000, 0);
+        // Shows a built model: its idle (started by the HeroModel) sampled now, then its renderers on, so the first
+        // frame it is drawn is already the idle pose, not the bind pose.
+        static HeroModel Reveal(Transform holder, HeroModel m)
+        {
+            if (holder == null) return m;
+            if (m != null && m.Anim != null) m.Anim.Sample();
+            foreach (var r in holder.GetComponentsInChildren<Renderer>(true)) r.forceRenderingOff = false;
+            return m;
         }
 
         static Dictionary<string, string> TitanAliases()
@@ -1077,9 +1097,11 @@ namespace Sigilbound.Client
             }
             var holder = new GameObject("Model").transform;
             holder.SetParent(parent, false);
+            holder.localPosition = BuildAway; // out of sight while it instantiates (see Reveal)
             var inst = bk.gltf.InstantiateMainSceneAsync(holder);
             while (!inst.IsCompleted) yield return null;
             if (inst.IsFaulted || !inst.Result || holder == null || holder.childCount == 0) { Trace($"baked {id}: instantiate failed {inst.Exception?.GetBaseException().Message}"); if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
+            holder.localPosition = Vector3.zero;
             foreach (var r in holder.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
@@ -1096,7 +1118,7 @@ namespace Sigilbound.Client
             foreach (var c in lib.Ual) anim.AddClip(c, c.name);
             float k = 1.85f / Mathf.Max(0.1f, lib.HeadY) * (float)body.H;
             holder.localScale = Vector3.one * k;
-            done(new HeroModel(holder.gameObject, anim, 2.3f * (float)body.H, AnimStyle.For(id)));
+            done(Reveal(holder, new HeroModel(holder.gameObject, anim, 2.3f * (float)body.H, AnimStyle.For(id))));
         }
 
         // Applies the hero's colour roles (three3d.mjs buildRigged recolour), trims hair for shaved

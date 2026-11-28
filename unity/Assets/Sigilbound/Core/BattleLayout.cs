@@ -226,14 +226,29 @@ namespace Sigilbound.Core
         // the foreground) looking up the Titan's front. Key A: 3.2 m behind the row at 1.1 m, aimed at its
         // waist (feet to chest in frame, the heroes' heads low in the foreground). Key B (the roar): 1.2 m behind
         // the row, between the two middle heroes, at 0.8 m, aimed up at its face (TitanFace). Then it blends into the view.
-        public static (CamView a, CamView b) TitanIntroKeys(double aspect)
+        // heroXs: the team's x positions. The camera stands in the gap nearest the middle, so with an odd team
+        // (3 heroes: the middle one at x = 0) it no longer sits right behind a hero's back (in-house report,
+        // 2026-11-28: Pell's back filled the frame and hid the Titan's face).
+        public static (CamView a, CamView b) TitanIntroKeys(double aspect, IList<double> heroXs = null)
         {
             var ts = TitanSlot(); double row = Slot(true, 1, 4).Z; bool portrait = aspect < 0.75;
-            var a = new CamView { Eye = new V3(0, 1.1, row - 3.2), Target = new V3(0, TitanHead * 0.42, ts.Z), Fov = portrait ? 70 : 52 };
-            var b = new CamView { Eye = new V3(0, 0.8, row - 1.2), Target = new V3(0, TitanFace, ts.Z), Fov = portrait ? 74 : 56 };
+            double ex = IntroGapX(heroXs);
+            var a = new CamView { Eye = new V3(ex, 1.1, row - 3.2), Target = new V3(ex * 0.5, TitanHead * 0.42, ts.Z), Fov = portrait ? 70 : 52 };
+            var b = new CamView { Eye = new V3(ex, 0.8, row - 1.2), Target = new V3(0, TitanFace, ts.Z), Fov = portrait ? 74 : 56 };
             // Both keep the ground in frame: the aim drops just enough (the face then sits above the centre).
             a.Target = ClampTargetForGround(a.Eye, a.Target, a.Fov); b.Target = ClampTargetForGround(b.Eye, b.Target, b.Fov);
             return (a, b);
+        }
+
+        // The x of the gap between neighbouring heroes nearest the middle (0 with no team or an even one).
+        public static double IntroGapX(IList<double> heroXs)
+        {
+            if (heroXs == null || heroXs.Count == 0) return 0;
+            var xs = heroXs.OrderBy(x => x).ToList();
+            if (xs.Count == 1) return xs[0] + (xs[0] > 0 ? -1 : 1) * Spacing / 2;
+            double best = 0, bestD = double.MaxValue;
+            for (int i = 1; i < xs.Count; i++) { double m = (xs[i - 1] + xs[i]) / 2; if (Math.Abs(m) < bestD) { bestD = Math.Abs(m); best = m; } }
+            return best;
         }
 
         // A cinematic camera keeps the ground in frame (77-titan-4 showed the Titan alone in an empty sky):

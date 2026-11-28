@@ -264,14 +264,8 @@ namespace Sigilbound.Client
         }
 
         // ---------- 3D lineup behind the menus ----------
-        // Menu lineup x: spread over 4.2 m, each gap weighted by its neighbours' widths (creatures take more room).
-        static float LineupX(List<string> ids, int i)
-        {
-            if (ids.Count <= 1) return 0;
-            var w = ids.Select(Creatures.SlotWidth).ToList(); double total = 0, at = 0;
-            for (int k = 1; k < ids.Count; k++) { double g = (w[k - 1] + w[k]) / 2; total += g; if (k <= i) at += g; }
-            return (float)(-2.1 + 4.2 * at / total);
-        }
+        // Menu lineup x: 1.4 m per gap for normal heroes, more next to wide ones (Creatures.LineupXs).
+        static float LineupX(List<string> ids, int i) => ids.Count <= 1 ? 0 : (float)Creatures.LineupXs(ids)[i];
 
         void UpdateLineup()
         {

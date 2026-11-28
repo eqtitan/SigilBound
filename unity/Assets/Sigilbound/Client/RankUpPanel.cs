@@ -59,7 +59,7 @@ namespace Sigilbound.Client
 
         float DrawRankTarget(float y, HeroSave h)
         {
-            float T = RosterLayout.Tap, G6 = RosterLayout.Gap;
+            float T = RosterLayout.Tap;
             var t = Hero(h.id);
             int cap = MaxLevelFor(h.stars); bool atCap = h.level >= cap, maxed = h.stars >= MaxStars;
             // Target card.

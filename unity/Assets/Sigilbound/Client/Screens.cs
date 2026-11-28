@@ -173,19 +173,20 @@ namespace Sigilbound.Client
         // ---------- campaign ----------
         void DrawCampaign(Rect area)
         {
-            int open = _chapterOpen >= 0 ? _chapterOpen : Mathf.Min(Chapters.Length - 1, G.S.cleared / StagesPerChapter);
-            float content = 92 + Chapters.Length * 70 + 70;
+            var (c0, c1) = ActChapters(false);
+            int open = _chapterOpen >= 0 ? _chapterOpen : Mathf.Clamp(G.S.cleared / StagesPerChapter, c0, c1 - 1);
+            float content = 108 + (c1 - c0) * 70 + 70;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = CampaignTabs(8);
             Ui.Banner(new Rect(Ui.W / 2 - 130, y + 2, 260, 30), "Campaign", 19); y += 42;
-            for (int c = 0; c < Chapters.Length; c++)
+            for (int c = c0; c < c1; c++)
             {
                 int first = c * StagesPerChapter;
                 bool locked = first > G.S.cleared;
                 bool isOpen = open == c && !locked;
-                var r = Row(ref y, isOpen ? 124 : 60);
+                var r = Row(ref y, isOpen ? 76 + Mathf.Max(48, Ui.Tap) : 60);
                 var sc = Palette.Scene(c);
-                Ui.Panel(r, Color.Lerp(sc.top, Palette.Panel, 0.6f) * new Color(1, 1, 1, locked ? 0.5f : 0.95f), Palette.Line);
+                Ui.Panel(r, ChapterCard(Color.Lerp(sc.top, Palette.Panel, 0.6f), locked), Palette.Line);
                 int done = Mathf.Clamp(G.S.cleared - first, 0, StagesPerChapter);
                 Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 60, 24), $"{c + 1}. {Chapters[c]}", 16, locked ? Palette.Dim : Palette.Text, FontStyle.Bold);
                 Ui.Text(new Rect(r.x + 14, r.y + 32, r.width - 60, 20), $"{Game.ChapterElement(c)} · Lv {Game.StageLevel(first)}–{Game.StageLevel(first + 5)} · {done}/{StagesPerChapter}", 12, Palette.Dim);
@@ -197,7 +198,7 @@ namespace Sigilbound.Client
                     for (int s = 0; s < StagesPerChapter; s++)
                     {
                         int idx = first + s;
-                        var b = new Rect(r.x + 14 + s * (sw + 6), r.y + 64, sw, 48);
+                        var b = new Rect(r.x + 14 + s * (sw + 6), r.y + 64, sw, Mathf.Max(48, Ui.Tap));
                         var kind = idx < G.S.cleared ? Ui.Kind.Secondary : idx == G.S.cleared ? Ui.Kind.Primary : Ui.Kind.Chip;
                         if (Ui.Button(b, Game.IsBossStage(idx) ? "Boss" : Game.StageLabel(idx), kind, 13, idx <= G.S.cleared)) OpenPrep(idx, false, ScreenId.Campaign);
                     }
