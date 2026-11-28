@@ -4,6 +4,7 @@
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
+change: Vex, Aurex and Brannoc have new 3D models that match their portraits.
 fix: The Round and Enrage banner now sits under the turn order bar instead of running beneath it.
 balance: Light and Shadow chapters are easier: Flame, Gale and Tide heroes have no edge there, so those enemies are 8% weaker.
 balance: Stage 10-1 no longer jumps in difficulty, and Act II climbs more gently to a beatable final boss.
