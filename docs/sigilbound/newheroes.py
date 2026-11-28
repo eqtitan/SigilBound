@@ -85,7 +85,7 @@ def look_cs(c):
     return f'            [{cs(c["id"])}] = new HeroLook {{ ' + ", ".join(fields) + " },"
 
 def roster_md(heroes):
-    lines = ["", "## 7. Phase H: 50 new heroes (owner-approved concepts, 2026-11-26)", "",
+    lines = ["", f"## 7. Phase H: {len(heroes)} new heroes (owner-approved concepts, 2026-11-26; the last 6 from the owner's Grok concept sheets, 2026-11-27, pending approval)", "",
              "Designs: `docs/sigilbound/concepts/new_heroes.json` and `NEW_HEROES.md`. Brought into the game by `docs/sigilbound/newheroes.py`, 10 per step, each balanced against the classic hero(es) of its rarity and role.", "",
              "| Id | Name | Rarity | Element | Role | Species | Concept |", "|---|---|---|---|---|---|---|"]
     for c in heroes:
@@ -110,12 +110,13 @@ def rates(ids):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--count", type=int, required=True); ap.add_argument("--tune", action="store_true")
+    ap.add_argument("--only", default="", help="comma-separated ids: tune only these (the rest keep their tuned factors)")
     a = ap.parse_args()
     heroes = json.load(open(os.path.join(CON, "new_heroes.json")))[: a.count]
     tune = json.load(open(TUNE)) if os.path.exists(TUNE) else {}
     write(heroes, tune)
     if a.tune:
-        todo = [c["id"] for c in heroes]
+        todo = [c["id"] for c in heroes if not a.only or c["id"] in a.only.split(",")]
         lo, hi = {}, {}   # bracket: power factors known to be too weak / too strong
         for rnd in range(14):
             r = rates(todo)

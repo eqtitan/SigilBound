@@ -2,6 +2,16 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-28 | New heroes and a new Titan
+new: Six new heroes join the summon pool: Vorgrim Ashscale, Talvo Brassfang, Wystan Quillmere, Crusk Brineclaw, Hartwin Sunhorn and Nyssa Duskwing.
+new: A new Legendary hero: Vessa Silkmourne, the spider-folk Weaver of Wraithmoor, on eight legs that step and plant like a real spider's.
+new: Vessa's skills: Silk Snare slows, Widow's Venom poisons every enemy, and Silkfall Pounce leaps on a foe.
+change: The Titan has a new look: a hunched basalt colossus with huge fists, crystal ridges and molten seams that glow in its element's colour.
+change: The Titan's arena is now a caldera with lava veins and a crater rim.
+fix: The Titan's arrival is filmed from behind your heroes looking up at its face, its jump keeps the ground in view, and its name tag clears its horns.
+change: Brannoc, Vex and Aurex have new 3D models that match their portraits.
+change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
+
 ## 2026-11-27 | Fairer chapters and clearer battles
 new: Release Heroes: filter by rarity, stars, element, role and level, keep the best copies, save presets, review before you release, and undo within 2 minutes.
 new: Rank Up shows the fodder it will use; change any slot, Auto-fill with the cheapest safe heroes, or Rank up all to a chosen star with a cost preview.

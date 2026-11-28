@@ -98,6 +98,7 @@ static class Program
         ChangelogTests.Run(Check);
         HdClipTests.Run(Check);
         ImpactTests.Run(Check);
+        CreatureTests.Run(Check);
         ApkSizeTests.Run(Check);
         FlightTests.Run(Check);
         HdClipFileTests.Run(Check);

@@ -2,6 +2,7 @@
 // is testable outside Unity. Coordinates here are Unity's (left-handed, +Z away from the default
 // camera): the web's three.js (x, y, z) maps to (x, y, -z), which keeps the same picture on screen.
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Sigilbound.Core
@@ -50,6 +51,20 @@ namespace Sigilbound.Core
             return new V3(RimCx + Math.Sin(a) * RimRx, 0, RimCz - Math.Cos(a) * RimRz);
         }
 
+        // As Slot, with per-unit widths (Creatures.SlotWidth: a spider-folk takes more room): each gap is
+        // Spacing x the mean width of its two neighbours, the row stays centred and within the same 140 degrees.
+        public static V3 Slot(bool ally, int i, IList<double> widths)
+        {
+            int n = widths.Count;
+            if (n <= 1) return Slot(ally, 0, 1);
+            double step = Spacing / ((RimRx + RimRz) / 2), total = 0; var at = new double[n];
+            for (int k = 1; k < n; k++) { total += step * (widths[k - 1] + widths[k]) / 2; at[k] = total; }
+            double half = total / 2, scale = Math.Min(1.0, 70 * Math.PI / 180 / Math.Max(1e-6, half));
+            double t = (at[i] - half) * scale;
+            double a = ally ? t : Math.PI - t;
+            return new V3(RimCx + Math.Sin(a) * RimRx, 0, RimCz - Math.Cos(a) * RimRz);
+        }
+
         // Yaw (degrees, Unity: 0 = facing +Z) that turns a unit at p toward the circle's centre.
         public static double FacingCentreYaw(V3 p) => Math.Atan2(Centre.X - p.X, Centre.Z - p.Z) * 180 / Math.PI;
 
@@ -76,7 +91,11 @@ namespace Sigilbound.Core
         // The Titan's head-and-tag points (each must stay under TitanCeiling).
         // The high-detail Titan stands behind the far rim, head at TitanHead metres (heroes: 1.85), so it
         // towers over the team (owner: "players should say wow, that Titan is massive").
-        public const double TitanHead = 4.8 * 1.3, TitanBack = 1.2; // the model's 4.8 m head times the battle view's 1.3 Titan scale (BattleController.Spawn)
+        // Head height and stand-off come from the Titan's model data (TitanSpec, heroes_hd/titan.json):
+        // 6.24 m (the old 4.8 m head times the battle view's 1.3 scale) for the current knight.
+        public static double TitanHead => TitanSpec.Current.HeadWorld;
+        public static double TitanBack => TitanSpec.Current.Back;
+        public static double TitanFace => TitanSpec.Current.FaceWorld;   // where the cameras look it in the eye
         public static V3 TitanSlot() => Slot(false, 0, 1) + new V3(0, 0, TitanBack);
         public static V3[] TitanPoints()
         {
@@ -167,7 +186,8 @@ namespace Sigilbound.Core
         // under the HUD; owner request) while every hero stays on screen from the chest up with its tag.
         public const double WormBack = 5.0, WormHeight = 0.9, WormHfov = 62;
         public const double WormTagTop = 0.16;                 // NDC the horns may reach (the tag sits above them)
-        public static double WormHornTop => TitanHead * 1.32 + 0.4;
+        // Where its name tag sits: above the horn tips (TitanSpec.HornTop), with room for the tag itself.
+        public static double WormHornTop => TitanSpec.Current.HornWorld + 0.6;
         public static CamView WormView(double aspect)
         {
             var ts = TitanSlot();
@@ -199,6 +219,44 @@ namespace Sigilbound.Core
                     if (q == null || Math.Abs(q.Value.x) > 0.95 || q.Value.y > 0.84 || q.Value.y < -0.84) return false;
                 }
             return true;
+        }
+
+        // ---------- Titan cinematics: framing rules (art review H3, 2026-11-28) ----------
+        // The arrival is shot from the heroes' side: two keys, both low behind the team's row (their backs in
+        // the foreground) looking up the Titan's front. Key A: 3.2 m behind the row at 1.1 m, aimed at its
+        // waist (feet to chest in frame, the heroes' heads low in the foreground). Key B (the roar): 1.2 m behind
+        // the row, between the two middle heroes, at 0.8 m, aimed up at its face (TitanFace). Then it blends into the view.
+        public static (CamView a, CamView b) TitanIntroKeys(double aspect)
+        {
+            var ts = TitanSlot(); double row = Slot(true, 1, 4).Z; bool portrait = aspect < 0.75;
+            var a = new CamView { Eye = new V3(0, 1.1, row - 3.2), Target = new V3(0, TitanHead * 0.42, ts.Z), Fov = portrait ? 70 : 52 };
+            var b = new CamView { Eye = new V3(0, 0.8, row - 1.2), Target = new V3(0, TitanFace, ts.Z), Fov = portrait ? 74 : 56 };
+            // Both keep the ground in frame: the aim drops just enough (the face then sits above the centre).
+            a.Target = ClampTargetForGround(a.Eye, a.Target, a.Fov); b.Target = ClampTargetForGround(b.Eye, b.Target, b.Fov);
+            return (a, b);
+        }
+
+        // A cinematic camera keeps the ground in frame (77-titan-4 showed the Titan alone in an empty sky):
+        // the bottom edge of the frame must hit the ground within GroundSeen metres. Returns the highest
+        // allowed pitch (degrees, + looks up) for a camera at eyeY with this vertical field of view.
+        public const double GroundSeen = 30, GroundMargin = 2;
+        public static double MaxPitchForGround(double eyeY, double vfovDeg)
+        {
+            double down = Math.Atan(Math.Max(0.05, eyeY) / GroundSeen) * 180 / Math.PI;
+            return vfovDeg / 2 - down - GroundMargin;
+        }
+        public static double PitchOf(V3 eye, V3 target)
+        {
+            var d = target - eye; double h = Math.Sqrt(d.X * d.X + d.Z * d.Z);
+            return Math.Atan2(d.Y, Math.Max(1e-6, h)) * 180 / Math.PI;
+        }
+        // Lowers a look target (keeping its heading and distance on the ground) until the ground rule holds.
+        public static V3 ClampTargetForGround(V3 eye, V3 target, double vfovDeg)
+        {
+            double max = MaxPitchForGround(eye.Y, vfovDeg), p = PitchOf(eye, target);
+            if (p <= max) return target;
+            var d = target - eye; double h = Math.Sqrt(d.X * d.X + d.Z * d.Z);
+            return new V3(target.X, eye.Y + Math.Tan(max * Math.PI / 180) * Math.Max(1e-6, h), target.Z);
         }
 
         // Any battle view (the usual presets, or a Titan view in a Titan fight).

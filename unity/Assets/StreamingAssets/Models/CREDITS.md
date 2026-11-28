@@ -31,6 +31,19 @@ confirm the clips match.**
 The clips are retargeted from the pack's Rigify (`DEF-*`) rig onto our character rig and baked to
 JSON by `tools/anim-retarget` (rotations for 20 bones, plus hips and feet positions; 24 fps).
 
+## Unity-only bodies: `women_medieval.glb`, `women_witch.glb`, `women_adventurer.glb`
+
+The Medieval, Witch and Adventurer characters from **Quaternius, Ultimate Modular Women (April 2022)**,
+CC0 1.0 (pack licence file: `godot/models/women_LICENSE.txt`). Original page: https://quaternius.com.
+The source files came from a public GitHub repository that redistributes the pack unmodified with its
+licence (github.com/flawlesshappiness/EmotionCreatures, `Assets/Quaternius/Ultimate Modular Women - April 2022`);
+converted from glTF to GLB without other changes. The female heroes' baked models are built on them
+(phase E, step 45).
+
+## Unity-only clips for the high-detail rig: `ubc_anims.glb` (phase F/G)
+
+All 46 clips of **Quaternius, Universal Animation Library (Standard / free tier)**, CC0 1.0, from the same GitHub mirror as above (github.com/J-Ponzo/gltf-universal-animation-library, `glTF/AnimationLibrary_Godot_Standard.gltf`, with the pack's CC0 LICENSE). Retargeted onto the Universal Base Characters 65-joint skeleton by `unity/Tools~/blenderforge/ual_retarget.py` (world-space rotation deltas per bone; hips translation scaled by leg length). **Before a store release, re-download from quaternius.com or itch and confirm the clips match.**
+
 ## Image-to-3D hero meshes (new heroes, 2026-11-27)
 
 Base meshes for Vorgrim Ashscale, Talvo Brassfang, Wystan Quillmere, Crusk Brineclaw and Hartwin
@@ -41,3 +54,9 @@ project's own art; TRELLIS is a tool, not a content source. The meshes are clean
 UBC skeleton and skinned in Blender (`unity/Tools~/blenderforge`). Any mesh made with another
 generator (e.g. Hunyuan3D or Tripo) must have its tool, licence and any attribution added here
 before it ships.
+
+Later meshes (2026-11-27) for Crusk Brineclaw (regenerated), Nyssa Duskwing, Vessa Silkmourne,
+Brannoc, Vex and Aurex (the last three remodelled to match their portraits) and the Titan were generated
+from front images the owner approved through fal.ai's hosted **`fal-ai/trellis`** endpoint, which runs the
+same MIT-licensed TRELLIS model as a paid API call; the outputs are the project's own art on the same
+terms as above.
