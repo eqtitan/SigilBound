@@ -83,7 +83,7 @@ so.rotation_euler = Euler((math.radians(50), 0, math.radians(200)))
 fill = bpy.data.lights.new("Fill", "SUN"); fill.energy = 0.8; fo = bpy.data.objects.new("Fill", fill); sc.collection.objects.link(fo)
 fo.rotation_euler = Euler((math.radians(60), 0, math.radians(20)))
 
-sc.render.engine = "CYCLES"; sc.cycles.samples = 14; sc.cycles.device = "CPU"; sc.cycles.use_denoising = True
+sc.render.engine = "CYCLES"; sc.cycles.samples = int(os.environ.get("SB_SAMPLES", "6")); sc.render.resolution_percentage = int(os.environ.get("SB_PCT", "80")); sc.cycles.device = "CPU"; sc.cycles.use_denoising = True
 sc.cycles.max_bounces = 3; sc.view_settings.view_transform = "AgX" if MODE != "poses" else "Standard"
 # bloom (the game renders bloom on its seams): compositor glare
 sc.use_nodes = True if hasattr(sc, "use_nodes") else None
@@ -168,10 +168,10 @@ def dust(frame, pos, n=14, radius=2.5):
     mm = solid_mat("Dust", "#8a7a66");
     for i in range(n):
         a = i / n * math.tau; d = Vector((math.cos(a), math.sin(a), 0))
-        bpy.ops.mesh.primitive_ico_sphere_add(radius=0.35, subdivisions=1, location=(pos[0], pos[1], 0.2)); o = bpy.context.object; o.data.materials.append(mm)
+        bpy.ops.mesh.primitive_ico_sphere_add(radius=0.2, subdivisions=2, location=(pos[0], pos[1], 0.2)); o = bpy.context.object; o.data.materials.append(mm)
         o.scale = (0.01,) * 3; o.keyframe_insert("scale", frame=frame - 1); o.keyframe_insert("location", frame=frame - 1)
-        o.scale = (0.8,) * 3; o.keyframe_insert("scale", frame=frame)
-        o.location = Vector((pos[0], pos[1], 0.25)) + d * radius; o.scale = (1.6,) * 3; o.keyframe_insert("location", frame=frame + 14); o.keyframe_insert("scale", frame=frame + 14)
+        o.scale = (0.6,) * 3; o.keyframe_insert("scale", frame=frame)
+        o.location = Vector((pos[0], pos[1], 0.25)) + d * radius; o.scale = (1.0,) * 3; o.keyframe_insert("location", frame=frame + 14); o.keyframe_insert("scale", frame=frame + 14)
         o.scale = (0.01,) * 3; o.keyframe_insert("scale", frame=frame + 22)
 
 def ridge_break(frame, stage):
@@ -264,7 +264,7 @@ if MODE == "fists":   # Bedrock Hammer: knuckle-walk in, wind-up flare, two-fist
     sc.frame_set(int(imp)); fl = (bone_world("fist_l") + bone_world("fist_r")) / 2
     shock(int(imp), fl, 4.0); dust(int(imp), fl)
     log["contact_vs_target_m"] = round(((fl - target) * Vector((1, 1, 0))).length, 2)
-    look(WORM["eye"], (0, 3.0, 2.6), 62, WORM["res"])
+    look((6.5, -11.5, 3.0), (0.4, 0.6, 3.4), 60, WORM["res"])   # the battle view pulled back: the whole Titan and its target
     end = f2 + L * FPS + 4
 elif MODE == "leap":   # Faultline Leap: crouch on the knuckles, spring, fly, land on the team with a quake
     f = 1; seq("Titan_Leap", f, 1.0, hold_until=True)
@@ -281,7 +281,7 @@ elif MODE == "leap":   # Faultline Leap: crouch on the knuckles, spring, fly, la
     phase(f, "wind-up: crouch on the knuckles, seams flare"); phase(to, "takeoff"); phase(land_at, "IMPACT (lands on the team)"); phase(land_at + 6, "recovery (aftershocks)")
     shock(land_at, TEAM, 6.0); dust(land_at, TEAM, 18, 3.5)
     for k in range(3): shock(land_at + 6 * (k + 1), TEAM, 5 + 2 * k, dur=10)
-    look((0, -9.5, 1.0), (0, 1.5, 4.5), 70, WORM["res"])
+    look((4.5, -17.5, 2.2), (0, 1.0, 6.5), 66, WORM["res"])   # pulled back to keep the whole arc and the landing in view
     end = lstart + frames_for("Titan_Land") + 2
 elif MODE == "breath":   # Heartfire Torrent: gather (core flares), chest thrust, the torrent sweeps the team and back
     f = 1; seq("Titan_Breath", f, 1.0, hold_until=True)
