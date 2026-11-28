@@ -338,3 +338,8 @@ built from those real frames. Results are recorded below per build.
     3 are real candidates: right forearm into the chest in Augustin `Ult_Volley` (8.7 cm), Titan `Titan_Slam`
     (9.5 cm) and `Titan_Sweep` (21 cm); to look at frame by frame before fixing or listing them in move_baseline.txt.
     Foot sliding stays under 4.2 cm in every stance clip (limit 10).
+  - The three limb-through-body cases, frame by frame: **Titan_Sweep fixed** in `titan_moves.py` (the follow-through
+    now ends out in front and the return to idle loops forward; the right forearm was 21 cm into the chest at the old
+    end pose and on the way back, now 6.5 cm by the offline check, events and impact window unchanged); **Titan_Slam
+    accepted** (the hunch over the fists around the overhead slam, not visible at battle distance); **Augustin
+    Ult_Volley accepted** (never played by Augustin, whose ult is Ult_Blessing). Both accepts are in move_baseline.txt.
