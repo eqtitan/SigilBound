@@ -144,3 +144,15 @@ What did not work, so other heroes don't repeat it: spring chains on a full kit 
 legs out of the skirt in Death01); chains on image-to-3D meshes whose cloth carries arm/hand weights from bone heat
 (wystan's robe, vorgrim's cape on the right upper arm and tail on the right thigh) - those need a re-rig of the
 upper body first. Results per hero: scratchpad `ctd/summary.json`.
+
+## Accessories: rigid props, loose pieces, metal (character TD roster batch 1, 2026-11-28)
+
+- `blenderforge/prop_rigid.py`: a weapon on a hand or a shield on the left forearm that carries blended weights
+  (fingers, upper arm, or legs from bone heat) is bound 100% to that bone, in place. The kit shields all had the
+  same 1.46x strap stretch; image-to-3D props on marrow, maelis, benedict and barley followed the legs.
+- `blenderforge/mesh_fix.py`: removes small loose pieces (speckles floating off the silhouette) by making their
+  triangles degenerate. Props in a hand are kept. Run per hero after looking: the rule also flags some intentional
+  pieces (poppy's leaf, aurex's crown rays). The winding fix in the same tool is opt-in and not shipped.
+- `blenderforge/hd_materials.py` + `HeroModels.MaskFromGlow`: `SB_Hero_<id>_HD_mat.png` (R metal, G smoothness)
+  for the steel/gold texels of props only, listed in `index_mat.txt`. Half metal, very smooth: the painted shader
+  has no reflection probe, so full metal reads dark. Head gear was left out (kit hair above the skull read as gold).

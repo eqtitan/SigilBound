@@ -9,6 +9,9 @@ Pilot result (2026-11-28, scratchpad ctd/): shipped for jasper only. Tried and n
 the chains opened holes in the idle and let the legs out in Death01; fixed by clip overrides instead), wystan
 (robe and sleeves carry hand weights; no frame got clearly better), vorgrim (cape weighted to the right upper arm,
 tail to the right thigh; the cape/tail chains below tore from the arm-weighted top).
+Roster batch 1: lazlo (coat; idle/jog much better but Spell_Simple_Enter, Hit_Kneel f0-6 and Death01 f28-70 worse,
+with or without the leg re-skin), neve (big leg slabs gone, but dark specks of the legs show through the feathered
+skirt in the idle; wider colliders tore the skirt) and holt (worse in every clip) - none shipped.
 
 Cloth = vertices below the waist that are further than r_in from every leg bone (full spring weight beyond r_out),
 not on the arms/hands/props. Each chain follows the median outline of the cloth in its sector; a vertex takes the

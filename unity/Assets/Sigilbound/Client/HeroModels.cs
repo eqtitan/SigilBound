@@ -581,7 +581,7 @@ namespace Sigilbound.Client
         }
 
         // ---------- high-detail heroes (phase F) ----------
-        static HashSet<string> _hd, _hdLod1;
+        static HashSet<string> _hd, _hdLod1, _hdMat;
 
         // The parsed high-detail models, by cache key (hero id, "|hollow" for enemy copies, "titan|<element>",
         // and "|lo" on the Low tier, which loads no normal map and the LOD1 mesh where one ships).
@@ -702,6 +702,13 @@ namespace Sigilbound.Client
                 foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
                     if (line.Trim().Length > 0) lod.Add(line.Trim());
             _hdLod1 = lod;
+            // Heroes with a metal/smoothness map (SB_Hero_<id>_HD_mat.png): only these are asked for one.
+            var mats = new HashSet<string>(); bytes = null;
+            yield return ReadRaw(Path.Combine("heroes_hd", "index_mat.txt"), b => bytes = b, false);
+            if (bytes != null)
+                foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
+                    if (line.Trim().Length > 0) mats.Add(line.Trim());
+            _hdMat = mats;
         }
 
         // The painted-character material for the baked atlas: albedo, tangent normal, and a mask whose
@@ -719,11 +726,21 @@ namespace Sigilbound.Client
                 px[i] = new Color32((byte)((r + v.r) / 2), (byte)((gg + v.g) / 2), (byte)((b + v.b) / 2), c.a);
             }
         }
-        // The mask's blue channel is the glow (eyes, runes, auras), from the _glow PNG's brightness.
-        static Color32[] MaskFromGlow(Color32[] g)
+        // The mask's blue channel is the glow (eyes, runes, auras), from the _glow PNG's brightness. Metal (R) and
+        // smoothness (A) come from the hero's _mat PNG (R metal, G smoothness; blenderforge/hd_materials.py: blades,
+        // shield rims, helmets and crowns), sampled at the mask's size; without one everything is matte (metal 0, smooth 90).
+        static Color32[] MaskFromGlow(Color32[] g, int w, int h, Color32[] mat = null, int mw = 0, int mh = 0)
         {
-            var mask = new Color32[g.Length];
-            for (int i = 0; i < g.Length; i++) { byte lum = (byte)Math.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2); mask[i] = new Color32(0, 255, lum, 90); }
+            var mask = new Color32[w * h];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    int i = y * w + x;
+                    byte lum = g == null ? (byte)0 : (byte)Math.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2);
+                    byte metal = 0, smooth = 90;
+                    if (mat != null) { var m = mat[(y * mh / h) * mw + (x * mw / w)]; metal = m.r; smooth = (byte)Math.Max(90, (int)m.g); }
+                    mask[i] = new Color32(metal, 255, lum, smooth);
+                }
             return mask;
         }
         static IEnumerator OnWorker(Action work)
@@ -825,6 +842,8 @@ namespace Sigilbound.Client
                     if (nrm == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.png"), b => nrm = b);
                 }
                 yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_glow.png"), b => glow = b);
+                byte[] matb = null;
+                if (_hdMat != null && _hdMat.Contains(id)) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_mat.png"), b => matb = b);
                 if (glb == null || alb == null) { yield break; }
                 var gltf = new GLTFast.GltfImport(null, null, new SigilMaterialGenerator());
                 var load = gltf.LoadGltfBinary(glb, null, new GLTFast.ImportSettings { AnimationMethod = GLTFast.AnimationMethod.Legacy, GenerateMipMaps = false });
@@ -854,12 +873,16 @@ namespace Sigilbound.Client
                 var glowTex = LoadPng(glow, false, true);
                 Color32[] glowPx = null; int gw = 0, gh = 0;
                 if (glowTex != null) { glowPx = glowTex.GetPixels32(); gw = glowTex.width; gh = glowTex.height; UnityEngine.Object.Destroy(glowTex); }
+                var matTex = LoadPng(matb, false, true);
+                Color32[] matPx = null; int mw = 0, mh = 0;
+                if (matTex != null) { matPx = matTex.GetPixels32(); mw = matTex.width; mh = matTex.height; UnityEngine.Object.Destroy(matTex); }
+                if (glowPx == null && matPx != null) { gw = mw; gh = mh; }
                 tGlow = sw.Elapsed.TotalMilliseconds;
                 Texture2D maskTex = null;
-                if (glowPx != null)
+                if (glowPx != null || matPx != null)
                 {
                     Color32[] mask = null;
-                    yield return OnWorker(() => mask = MaskFromGlow(glowPx));
+                    yield return OnWorker(() => mask = MaskFromGlow(glowPx, gw, gh, matPx, mw, mh));
                     yield return HeavySlot(); sw.Restart();
                     if (mask != null) { maskTex = new Texture2D(gw, gh, TextureFormat.RGBA32, true, true); maskTex.SetPixels32(mask); maskTex.Apply(true, true); }
                     tMask = sw.Elapsed.TotalMilliseconds;

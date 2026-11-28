@@ -34,6 +34,13 @@ namespace Sigilbound.Core
         {
             // full gown: the jog's knees and the kneel's trailing leg cut through the skirt; a formal walk and a head hit stay inside it
             ["kaelith"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            // the same for the other full-gown kit heroes checked frame by frame (roster batch 1)
+            ["solenne"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["aelira"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["ember"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["azura"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["morwenna"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["kasimir"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
             // robe and wing-sleeves carry hand weights (fused mesh): arms-out casting idle and the jog shred it
             ["wystan"] = new ClipOverride { Idle = "Idle_Loop", Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
             // tower shield: Punch_Cross sweeps the sword through the shield

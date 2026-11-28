@@ -144,6 +144,11 @@ static class SpringTests
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
         { var p = Path.Combine(dir.FullName, "unity", "Tools~", "models", "heroes_hd"); if (Directory.Exists(p)) { models = p; break; } }
         if (models == null) { bool ci = Environment.GetEnvironmentVariable("CI") == "true"; check(!ci, "spring: models not found here" + (ci ? "" : " (skipped)")); return; }
+        // accessory metal maps (blenderforge/hd_materials.py): every listed hero has its map, every map is listed
+        var matIndex = Path.Combine(models, "index_mat.txt");
+        var listed = File.Exists(matIndex) ? File.ReadAllLines(matIndex).Where(l => l.Trim().Length > 0).Select(l => l.Trim()).ToList() : new List<string>();
+        var maps = Directory.GetFiles(models, "SB_Hero_*_HD_mat.png").Select(f => { var n = Path.GetFileName(f).Substring(8); return n.Substring(0, n.Length - 11); }).ToList();
+        check(listed.All(maps.Contains) && maps.All(listed.Contains), $"materials: {maps.Count} accessory metal maps, all listed in index_mat.txt");
         var rigged = new List<string>();
         foreach (var f in Directory.GetFiles(models, "SB_Hero_*_HD.glb").OrderBy(x => x))
         {
