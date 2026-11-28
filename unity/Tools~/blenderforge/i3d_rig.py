@@ -62,9 +62,10 @@ def main():
     bpy.ops.wm.open_mainfile(filepath=a.clean)
     body = bpy.data.objects["Body"]
     # optional mesh trims (generator guesses to drop)
-    if L.get("trim"):
+    if L.get("trim") or L.get("trim_faces"):
         bm = bmesh.new(); bm.from_mesh(body.data)
-        kill = [f for f in bm.faces if any(t(f.calc_center_median()) for t in L["trim"])]
+        kill = [f for f in bm.faces if any(t(f.calc_center_median()) for t in L.get("trim", []))
+                or any(t(f.calc_center_median(), f.normal) for t in L.get("trim_faces", []))]
         bmesh.ops.delete(bm, geom=kill, context="FACES")
         loose = [v for v in bm.verts if not v.link_faces]
         bmesh.ops.delete(bm, geom=loose, context="VERTS")
