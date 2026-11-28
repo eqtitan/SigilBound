@@ -3,6 +3,9 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-28 | New heroes and a new Titan
+fix: Jasper's long coat now swings and slides off his legs instead of splitting around them, and his boots and trousers bend with his knees.
+fix: Hask's tower shield sits closer to his fist so it no longer cuts through his helmet, and he attacks with sword swings only.
+change: Kaelith and Wystan glide at a formal walk instead of jogging and take heavy hits on their feet, so their gown and robe stay closed.
 fix: Act II stages have the same enemies as before the new heroes arrived, so its gentler climb (12-6, 14-6 and 15-5) is back.
 fix: Undo after releasing heroes puts them back in your saved teams in the same order.
 fix: Holding the phone upright, battles get the big round buttons, a Pause button and turn chips with ally and enemy marks.

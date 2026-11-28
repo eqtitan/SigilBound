@@ -60,3 +60,12 @@ Brannoc, Vex, Aurex, Odo and 27 more roster heroes (remodelled to match their po
 front images the owner approved through fal.ai's hosted **`fal-ai/trellis`** endpoint, which runs the
 same MIT-licensed TRELLIS model as a paid API call; the outputs are the project's own art on the same
 terms as above.
+
+## Spring bones (code)
+
+Skirts, robes and coat tails on some high-detail heroes swing on spring-bone chains simulated at runtime by
+`Core/SpringSolver.cs`. Its algorithm (Verlet tail, stiffness pull to the animated rest direction, drag, gravity,
+length restore, sphere/capsule push-out, then rotate the bone onto the tail) follows **UniVRM**'s
+`VRMSpringBone` (https://github.com/vrm-c/UniVRM), **MIT licence**, Copyright (c) 2020 VRM Consortium,
+Copyright (c) 2018 Masataka SUMI for MToon. The C# here is our own re-implementation (no UniVRM source files are
+included); the chains and weights are added to the meshes by `unity/Tools~/blenderforge/spring_rig.py`.
