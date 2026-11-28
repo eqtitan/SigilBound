@@ -5,6 +5,7 @@
 #   - shots.log has the "DONE <n>" line (the tour reached its end),
 #   - the battle-mid and titan-* SBBUDGET lines are there and each reports skinned>0
 #     (hero models actually loaded and animated, not stand-ins),
+#   - the Titan's pose is sane in every Titan shot (SBBOUNDS titan-*)
 #   - every gallery hero's pose is sane: shots.log has SBBOUNDS lines and none says BAD (a body flung
 #     into the sky or smeared into a sheet still counts as a "real model" with skinned>0; build 180),
 #   - player.log has no NullReferenceException / MissingReferenceException /
@@ -41,6 +42,10 @@ if [ -f "$SHOTS" ]; then
   if [ "${nb:-0}" -eq 0 ]; then bad "no SBBOUNDS lines in shots.log (gallery pose check did not run)"
   elif [ -n "$badb" ]; then bad "gallery heroes with broken poses:"; sed 's/^/    /' <<<"$badb"
   else echo "ok: $nb gallery heroes have sane poses (SBBOUNDS)"; fi
+  # The Titan's pose in its shots (build 190: limbs stretched into sheets): one SBBOUNDS titan-* line per Titan shot.
+  nt=$(grep -c '^SBBOUNDS titan-' "$SHOTS" || true)
+  if [ "${nt:-0}" -eq 0 ]; then bad "no SBBOUNDS titan-* lines in shots.log (Titan pose check did not run)"
+  else echo "ok: $nt Titan shots pose-checked (SBBOUNDS titan-*; any BAD fails above)"; fi
 fi
 
 if [ ! -f "$PLAYER" ]; then
