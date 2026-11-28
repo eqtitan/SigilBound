@@ -119,7 +119,7 @@ namespace Sigilbound.Client
         // the caller can say why), or -1.
         public static int Segmented(Rect r, string[] labels, int selected, bool[] open, int size = 14)
         {
-            Round(r, Palette.Hex("#0d0a12"), Palette.Trim, 12);
+            Round(r, Palette.Well, Palette.Trim, 12);
             int n = labels.Length, hit = -1;
             float w = (r.width - 6) / n;
             for (int i = 0; i < n; i++)
@@ -410,7 +410,7 @@ namespace Sigilbound.Client
             if (!_kstyles.TryGetValue(key, out var s) || s == null)
                 _kstyles[key] = s = new GUIStyle
                 {
-                    normal = { background = GradientTex(Palette.Hex("#221b2e"), Palette.Hex("#1a1523"), highlight ? Palette.Gold : Palette.Hex("#5c4a30"), 12) },
+                    normal = { background = GradientTex(Palette.PanelHi, Palette.PanelLo, highlight ? Palette.Gold : Palette.Hex("#5c4a30"), 12) },
                     border = new RectOffset(14, 14, 14, 14),
                 };
             GUI.Box(r, GUIContent.none, s);
@@ -485,10 +485,10 @@ namespace Sigilbound.Client
                     Kind.Primary => (Palette.Hex("#fde3a0"), Palette.Hex("#e2b14e"), Palette.Hex("#b98330"), Palette.Hex("#d9a64a"), Palette.Hex("#2a1a05"), (Color?)Palette.Hex("#4a3110")),
                     Kind.Blue => (Palette.Hex("#a6d6ff"), Palette.Hex("#4aa3ff"), Palette.Hex("#2563b5"), Palette.Hex("#3f8ae0"), Color.white, Palette.Hex("#0f2c52")),
                     Kind.Red => (Palette.Hex("#ffb0a0"), Palette.Hex("#ff6a5a"), Palette.Hex("#b52a2a"), Palette.Hex("#e0503e"), Color.white, Palette.Hex("#4a0f0f")),
-                    Kind.Chip => (Palette.Hex("#2a2236"), Palette.Hex("#241d30"), Palette.Hex("#1f1829"), Palette.Hex("#1b1624"), Palette.Hex("#d8cbb2"), Palette.Hex("#5c4a30")),
+                    Kind.Chip => (Palette.ChipHi, Palette.ChipMid, Palette.ChipLo, Palette.Panel, Palette.Hex("#d8cbb2"), Palette.Hex("#5c4a30")),
                     Kind.ChipOn => (Palette.Hex("#3d3020"), Palette.Hex("#33281b"), Palette.Hex("#2a2117"), Palette.Hex("#241c14"), Palette.Gold, Palette.Gold),
                     Kind.Ghost => (Color.clear, Color.clear, Color.clear, Color.clear, Palette.Text, (Color?)null),
-                    _ => (Palette.Hex("#3a2f45"), Palette.Hex("#2f2639"), Palette.Hex("#261e30"), Palette.Hex("#1c1624"), Palette.Hex("#f3e3c3"), Palette.Hex("#6b5432")),
+                    _ => (Palette.ButtonHi, Palette.ButtonMid, Palette.ButtonLo, Palette.ButtonEdge, Palette.Hex("#f3e3c3"), Palette.Hex("#6b5432")),
                 };
                 int rad = k == Kind.Chip || k == Kind.ChipOn ? 14 : 10;
                 var s = new GUIStyle
@@ -585,8 +585,8 @@ namespace Sigilbound.Client
                 _kstyles[key] = st = new GUIStyle(multiline ? GUI.skin.textArea : GUI.skin.textField)
                 {
                     fontSize = Sized(13), wordWrap = multiline, padding = new RectOffset(8, 8, 6, 6), font = _font,
-                    normal = { background = RoundTex(Palette.Hex("#0d0a12"), Palette.Hex("#5c4a30"), 8), textColor = Palette.Text },
-                    focused = { background = RoundTex(Palette.Hex("#120e19"), Palette.Gold, 8), textColor = Palette.Text },
+                    normal = { background = RoundTex(Palette.Well, Palette.Hex("#5c4a30"), 8), textColor = Palette.Text },
+                    focused = { background = RoundTex(Palette.WellFocus, Palette.Gold, 8), textColor = Palette.Text },
                     border = new RectOffset(10, 10, 10, 10),
                 };
             return multiline ? GUI.TextArea(r, value ?? "", maxLength, st) : GUI.TextField(r, value ?? "", maxLength, st);

@@ -25,8 +25,18 @@ namespace Sigilbound.Client
             return c;
         }
 
-        // The web game's gilded skin (style.css :root).
-        public static readonly Color Bg = Hex("#0f0c15"), Panel = Hex("#1b1624"), Panel2 = Hex("#251e31"), Line = Hex("#4a3d2e");
+        // UI chrome (art review M7/M9, PLAN P2-14): neutral deep slate and charcoal with gold trim. Violet belongs
+        // to the Shadow element only (Palette.Element), so menus no longer read as "Shadow". Every panel, card,
+        // well and plain button takes these tokens; change them here and the whole interface follows. The web
+        // game's violet-black was Bg #0f0c15, Panel #1b1624, Panel2 #251e31.
+        public static readonly Color Bg = Hex("#0e1013"), Panel = Hex("#181b20"), Panel2 = Hex("#21252b"), Line = Hex("#4a3d2e");
+        public static readonly Color Well = Hex("#0b0d10"), WellFocus = Hex("#101318");      // text fields, segmented bars, map frames
+        public static readonly Color Card = Hex("#1a1d22"), CardAlt = Hex("#16191d");        // list rows and cards
+        public static readonly Color PanelHi = Hex("#20242a"), PanelLo = Hex("#181b20");     // big panel gradient
+        public static readonly Color ButtonHi = Hex("#363b43"), ButtonMid = Hex("#2c3037"), ButtonLo = Hex("#23272d"), ButtonEdge = Hex("#1a1d22"); // plain (secondary) buttons
+        public static readonly Color ChipHi = Hex("#272b31"), ChipMid = Hex("#22262b"), ChipLo = Hex("#1d2025");                                 // chips, off
+        // The chrome tokens, for the palette checks (Tests~ GameplayUiTests: low saturation, not violet).
+        public static readonly string[] ChromeHex = { "#0e1013", "#181b20", "#21252b", "#0b0d10", "#101318", "#1a1d22", "#16191d", "#20242a", "#363b43", "#2c3037", "#23272d", "#272b31", "#22262b", "#1d2025" };
         public static readonly Color Text = Hex("#f1e9da"), Dim = Hex("#b0a48f"), Gold = Hex("#f2c45c"), GoldDark = Hex("#b3802a");
         public static readonly Color Trim = Hex("#b88a3e"), TrimHi = Hex("#ffe2a0"), TrimLo = Hex("#6b4b1c"), Bronze = Hex("#5c4a30");
         public static readonly Color Blue = Hex("#4aa3ff");

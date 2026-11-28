@@ -84,7 +84,7 @@ namespace Sigilbound.Client
             // art review H5: the stock track was invisible and the thumb 12 px).
             var area = new Rect(b.x, y + th + 2, b.width, Tap);
             var track = new Rect(area.x + 14, area.center.y - 4, area.width - 28, 8);
-            Ui.Round(track, Palette.Hex("#0d0a12"), Palette.Bronze, 4);
+            Ui.Round(track, Palette.Well, Palette.Bronze, 4);
             if (pct > 0) Ui.Round(new Rect(track.x, track.y, track.width * pct / 100f, track.height), Palette.GoldDark, Palette.Trim, 4);
             var thumbSt = Ui.Style("sliderThumb", () => new GUIStyle { normal = { background = Ui.RoundTex(Palette.Gold, Palette.TrimHi, 14) }, active = { background = Ui.RoundTex(Palette.TrimHi, Palette.Gold, 14) }, fixedWidth = 28, fixedHeight = 28 });
             var barSt = Ui.Style("sliderBar", () => new GUIStyle { fixedHeight = 0, stretchHeight = true, padding = new RectOffset(0, 0, 0, 0), overflow = new RectOffset(0, 0, 0, 0) });
@@ -154,7 +154,7 @@ namespace Sigilbound.Client
             for (int i = 0; i < 5; i++)
             {
                 var r = new Rect(b.x + i * (cw + 6), y, cw, ch);
-                Ui.Round(r, Palette.Hex("#0d0a12"), Palette.Element(_els[i]), 10);
+                Ui.Round(r, Palette.Well, Palette.Element(_els[i]), 10);
                 Ui.ElementBadge(new Rect(r.center.x - 12, r.y + 4, 24, 24), _els[i]);
                 Ui.Text(new Rect(r.x + 2, r.y + 28, r.width - 4, ch - 30), _els[i].ToString(), 11, Palette.Element(_els[i]), FontStyle.Bold, TextAnchor.MiddleCenter);
             }

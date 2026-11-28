@@ -52,34 +52,81 @@ namespace Sigilbound.Client
 
         // ---------- home ----------
         // Landscape (UX review #2): the team stands in the middle in 3D, daily login and quests on the left, and
-        // "Continue Campaign" pinned on the right, always visible (the welcome tip points at it). Portrait keeps
-        // the column with the button pinned above the nav.
+        // "Continue Campaign" pinned on the right, always visible (the welcome tip points at it).
+        // Portrait (in-house report S4: the cards covered the team): HomeLayout keeps the team's band of the
+        // screen clear. Login, quests and achievements fold into a strip of tabs under the title (each with its
+        // ready count); a tab opens its card in a sheet under the team's feet; the button stays pinned above the nav.
         public static Rect HomeCta; // where "Continue Campaign" is (the tutorial points at it)
-        Vector2 _homeLeftScroll;
+        Vector2 _homeLeftScroll, _homeSheetScroll;
+        int _homeTab = -1; // portrait: the open card (0 login, 1 quests, 2 achievements), -1 none
+
+        static Rect R(URect r) => new Rect((float)r.X, (float)r.Y, (float)r.W, (float)r.H);
 
         void DrawHome(Rect area)
         {
             if (Ui.Landscape) { DrawHomeWide(area); return; }
-            float ctaH = Mathf.Max(56, Ui.Tap + 8);
-            var cta = new Rect(Pad, area.yMax - ctaH - 8, Ui.W - Pad * 2, ctaH);
-            var view = new Rect(area.x, area.y, area.width, cta.y - 6 - area.y);
-            float content = 650;
-            _scroll = Scroller.Begin(view, _scroll, content);
-            float y = 8;
-            Ui.Heading(new Rect(0, y, Ui.W, 40), "SIGILBOUND", 30, TextAnchor.MiddleCenter); y += 40;
-            Ui.TextOnArt(new Rect(0, y, Ui.W, 22), HomeSubtitle(), 13, Palette.Text); y += 30;
-            y += 170; // space where the team stands in 3D
-            LoginCard(Row(ref y, 64));
-            QuestsCard(Row(ref y, QuestsHeight));
-            y = AchievementsCard(y);
-            HomeChips(Row(ref y, Mathf.Max(44, Ui.Tap)));
-            Scroller.End();
-            if (content > view.height + 1) ScrollFade(view, _scroll.y, content);
+            var lay = HomeLayout.Portrait(new URect(area.x, area.y, area.width, area.height), Ui.H, Ui.Tap, Pad);
+            var title = R(lay.title); var strip = R(lay.strip); var sheet = R(lay.sheet); var cta = R(lay.cta);
+            LoadingPlaceholder.DrawLineup(Arena != null ? Arena.Cam : null, _lineup); // soft cards where heroes are still loading
+            Ui.Heading(new Rect(0, title.y, Ui.W, 36), "SIGILBOUND", 28, TextAnchor.MiddleCenter);
+            Ui.TextOnArt(new Rect(0, title.y + 36, Ui.W, 20), HomeSubtitle(), 12, Palette.Text);
+            HomeTabs(strip);
+            if (_homeTab >= 0 && sheet.height >= 60)
+            {
+                float content = _homeTab == 1 ? QuestsHeight : 64;
+                var view = new Rect(sheet.x, sheet.y, sheet.width, Mathf.Min(sheet.height, content + 2));
+                _homeSheetScroll = Scroller.Begin(view, _homeSheetScroll, content);
+                var r = new Rect(0, 0, view.width, content);
+                if (_homeTab == 0) LoginCard(r); else if (_homeTab == 1) QuestsCard(r); else AchievementsCard(r);
+                Scroller.End();
+                if (content > view.height + 1) ScrollFade(view, _homeSheetScroll.y, content);
+            }
+            else if (_homeTab >= 0) { if (_homeTab == 2) Go(ScreenId.Achievements); else ShowHomeCard(_homeTab); _homeTab = -1; } // no room under the team: a modal
+            float ch = Mathf.Max(44, Ui.Tap);
+            if (_homeTab < 0 && sheet.height >= ch) HomeChips(new Rect(sheet.x, sheet.yMax - ch, sheet.width, ch)); // Settings / How to play, low and out of the team's way
             HomeContinue(cta);
         }
 
+        // The tab strip: Login, Quests, Achievements, each with what's waiting; the open one is lit.
+        void HomeTabs(Rect r)
+        {
+            int quests = 0, questsDone = 0;
+            foreach (var q in DailyQuests) { if (G.QuestClaimed(q.Id)) questsDone++; else if (G.QuestProgress(q.Id) >= q.Goal) quests++; }
+            int ach = G.AchReadyCount;
+            var tabs = new (string label, int ready)[]
+            {
+                (G.LoginAvailable ? "Login · Claim" : "Login · Done", G.LoginAvailable ? 1 : 0),
+                ($"Quests {questsDone}/{DailyQuests.Length}", quests),
+                ("Achievements", ach),
+            };
+            float g = 6, w = (r.width - g * (tabs.Length - 1)) / tabs.Length;
+            for (int i = 0; i < tabs.Length; i++)
+            {
+                var b = new Rect(r.x + i * (w + g), r.y, w, r.height);
+                if (Ui.Button(b, tabs[i].label, _homeTab == i ? Ui.Kind.ChipOn : Ui.Kind.Chip, 13))
+                {
+                    _homeTab = _homeTab == i ? -1 : i; _homeSheetScroll = Vector2.zero;
+                }
+                if (tabs[i].ready > 0)
+                {
+                    var dot = new Rect(b.xMax - 20, b.y - 6, 22, 18);
+                    Ui.Round(dot, Palette.Gold, null, 9);
+                    Ui.Text(dot, NumText.Of(tabs[i].ready), 11, Palette.Hex("#1a1208"), FontStyle.Bold, TextAnchor.MiddleCenter);
+                }
+            }
+        }
+
+        // A card in a modal, for screens too short to open it under the team.
+        void ShowHomeCard(int tab) => Modal(tab == 0 ? "Daily Login" : "Daily Quests", (tab == 0 ? 64 : QuestsHeight) + 110, b =>
+        {
+            var r = new Rect(b.x, b.y, b.width, tab == 0 ? 64 : QuestsHeight);
+            if (tab == 0) LoginCard(r); else QuestsCard(r);
+            if (Ui.Button(new Rect(b.x, b.yMax - 44, b.width, 42), "Close", Ui.Kind.Secondary)) CloseModal();
+        });
+
         void DrawHomeWide(Rect area)
         {
+            LoadingPlaceholder.DrawLineup(Arena != null ? Arena.Cam : null, _lineup); // soft cards where heroes are still loading
             // Inset by the painted frames' outer band (Ui.Card grows its frame about 21 units around the rect).
             float colW = Mathf.Clamp((area.width - 350) / 2, 230, 320), gap = 24;
             var left = new Rect(area.x + gap, area.y + 20, colW, area.height - 28);

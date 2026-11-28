@@ -64,6 +64,12 @@ balance: Gear can add at most +50 speed to a hero.
 balance: Kettle, Oriel and Wren toned down; Corvan, Ysolde, Brannoc, Nyx, Tamsin and Sable strengthened.
 balance: 45 more heroes retuned for the new speeds.
 balance: Stage 13-6 and the final stage 15-6 are a little easier.
+new: Enemy intent: a small icon over each foe shows its next move (attack, attack all, heal, buff, debuff, ultimate ready or stunned) and who it will hit. Tap it for the skill.
+change: Home in portrait folds login, quests and achievements into tabs under the title, so your team stands in full view; Continue Campaign stays at the bottom.
+new: Heroes still loading on Home show a soft portrait card with a light sweep instead of an empty spot.
+change: Menus, panels and plain buttons are deep slate with gold trim; violet now means the Shadow element only.
+fix: The Act II world map no longer shows fold lines across the parchment.
+balance: Stage 13-6 is a little easier again (it got much harder after the Act II enemy pool change).
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
