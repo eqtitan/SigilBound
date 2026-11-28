@@ -1,5 +1,7 @@
 // Friends, friend profile, chat and blocked-player screens.
 // Player-written text (names, messages) is drawn with rich text off, so it can't inject markup.
+// Play Store builds (define SB_STORE) leave this whole file out for v1, with Online.cs: no Friends tab (App.NavItems).
+#if !SB_STORE
 using System.Linq;
 using UnityEngine;
 using Sigilbound.Core;
@@ -263,3 +265,4 @@ namespace Sigilbound.Client
         }
     }
 }
+#endif

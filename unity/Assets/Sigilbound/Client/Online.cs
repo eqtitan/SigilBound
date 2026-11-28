@@ -1,6 +1,9 @@
 // Friends & chat client for the Sigilbound server (functions/api/sb on the website).
 // Same server as the web version, so web and app players can be friends.
 // Credentials live in their own PlayerPrefs key, separate from the game save.
+// Play Store builds (define SB_STORE) leave this whole file out for v1 (owner decision 2026-11-28: the server
+// isn't live): no Friends account, no chat and no calls to functions/api/sb at all.
+#if !SB_STORE
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -248,3 +251,4 @@ namespace Sigilbound.Client
         }
     }
 }
+#endif

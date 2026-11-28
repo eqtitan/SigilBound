@@ -29,9 +29,9 @@ _Last updated: 2026-11-28, about 07:00 UTC (main `d911552`)._
 | Character system rebuild | 🟡 Pilot built, not merged | `feat/skeleton-library`: skeleton library + Unity Humanoid retargeting + per-hero profiles, pilot on 5 heroes, physics standard on library rigs. Pilot build (run 46118984547) dispatched 06:57. |
 | Campaign scenes | ✅ Merged (step 118); 🟡 owner look pending | All 90 stops and 15 lairs, real screenshots of build 182 checked. |
 | UI/UX | ✅ Merged (steps 106, 109, 116, 119, 120) | Shared components and design rules as tests (UxRulesTests). Owner phone checks pending; most screenshots were mock-ups, not real builds. |
-| Google Play release | ⛔ Waiting on the owner | Code ready (store AAB task, updater left out). Needs the developer account, upload key, package name, privacy contact (see "Waiting on the owner"). |
+| Google Play release | ⛔ Waiting on the owner | Code ready (store AAB task, updater left out). Needs the developer account, upload key, privacy contact (see "Waiting on the owner"). Package name decided: `com.sigilbound.game`, store build only (`feat/store-config`, step 123). |
 | iOS | ⏸ Parked | Needs an Apple Developer account ($99/year). |
-| Friends & chat | ⛔ Built, not live | D1 database missing; recommended hidden in store builds for v1. |
+| Friends & chat | ⛔ Built, not live | D1 database missing. Hidden in the store build for v1 (owner decision 2026-11-28, `feat/store-config`); tester builds keep it. |
 | Web game (`public/game/`) | ⏸ Maintenance only | v0.21.1. New work goes into Unity. |
 | Hero card art | ✅ Done | 150 painted portraits (step 92); 3D busts as fallback. |
 
@@ -125,13 +125,13 @@ Each item is something only you can do. Most urgent first.
    - Actions > Sigilbound Unity > Run workflow > task **build-store-aab** on `main`. Download the `sigilbound-store-aab` artifact.
      The first run may need an engineering fix.
    - On the first upload, accept **Play App Signing**.
-3. **Choose the package name** (can never change after the first upload). *Recommended: `com.sigilbound.game`*, so the store
-   app and the tester app (`com.sigilbound.unity`) can sit side by side. Reply with the name; engineering sets it.
+3. ✅ **Package name** decided 2026-11-28: `com.sigilbound.game` for the store build; the tester app keeps `com.sigilbound.unity`
+   (`feat/store-config`). The old Capacitor test app used the same id: uninstall it before installing from Play.
 4. **Privacy policy:** send the contact email for the policy and pick where it's hosted. *Recommended: the GitHub page of
    `docs/sigilbound/store/PRIVACY.md` for now* (the `sigilbound.pages.dev/privacy` address is 404). Then paste the URL in
    Play Console > App content > Privacy policy.
-5. **Friends and chat in v1?** *Recommended: hide them in store builds* and turn them on in an update once the server is live
-   and someone reads reports weekly. It keeps the Data safety and rating forms simple.
+5. ✅ **Friends and chat in v1** decided 2026-11-28: hidden in the store build (`feat/store-config`); turn them on in an update once
+   the server is live and someone reads reports weekly.
 6. **Run the phone check on a real phone** (about 30 minutes, `docs/sigilbound/qa/PHONE_CHECK.md`) once build 209/210 is out:
    Settings > Graphics quality > Auto > Run phone check, paste the report; again at Low; play 20 minutes; a third check while warm.
    This gives the first real memory, heat and frame-time numbers.
@@ -148,7 +148,7 @@ Each item is something only you can do. Most urgent first.
 3. **Skeleton library: finish the rig features and the pilot verdict.** Sockets/grips/two-hand IK, accessory meshes, twist bones and facial basics, life layers and partial ragdoll, per-move CI checks; owner approval of the pilot frames, then hero batches. It removes the patch layer behind L002/L003 and unblocks the weapon-through-head fix. *Engineering + character TD.*
 4. **Physics standard for all heroes, in batches.** Builds on the library rigs; every hero gets colliders so cloth, hair and props stop passing through bodies. *Engineering + character TD.*
 5. **Merge `perf/textures-lod`** after renumbering its step and lesson ids. Cuts memory and loading on phones; needs one real build. *Engineering.*
-6. **Store release prep that doesn't wait on the owner:** hide Friends in `SB_STORE` builds, in-game privacy link, fresh store screenshots from a real build (READINESS items 7, 9, 14). Short tasks that remove days from the release path. *Engineering.*
+6. **Store release prep that doesn't wait on the owner:** ~~hide Friends in `SB_STORE` builds~~ (`feat/store-config`), in-game privacy link, fresh store screenshots from a real build (READINESS items 7, 9, 14). Short tasks that remove days from the release path. *Engineering.*
 7. **Lazlo A, Neve B (braid with physics), Holt A remodels.** Owner-picked; Neve's braid should use the physics standard. *Art pipeline + character TD.*
 8. **Review leftovers:** Light/Shadow counter hint, defeat reasons, Hit_Big × Pace. Small player-facing clarity wins. *Engineering.*
 9. **Play Asset Delivery** before the APK passes 185 MB. Not needed for the first upload. *Engineering.*

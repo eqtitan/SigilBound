@@ -300,3 +300,13 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Prevention: agents push a WIP branch as soon as they start (push their own branch only, L014); PMO checks `gh run list -w "Sigilbound Unity" -b main` for the last completed main build before reporting what testers have; after a hotfix for a NO-GO build, hold other merges and dispatches until main's build publishes.
 - Related: L005, L014
 - Evidence: git ls-remote --heads origin (2026-11-28 07:00); Actions runs 191-208 cancelled, 209/210 running
+
+## L031 - The recommended store package name was already one of our app ids
+- Status: open
+- Systems: platform, process
+- Symptom: READINESS and ROADMAP recommended `com.sigilbound.game` for the Play app "so it sits beside the tester app", and the owner chose it; only while wiring it did the comment in ProjectSetup.cs show it is also the old Capacitor web-wrapper app's id (`mobile/`, release `android-latest`, signed with the committed test key).
+- Cause: the review compared the store id only with the Unity tester id (`com.sigilbound.unity`) and never grepped the repo for other apps (`mobile/android/app/build.gradle`, `capacitor.config.json`). Android refuses to install an app over one with the same id and a different signing key.
+- Fix: kept the owner's permanent choice (feat/store-config, PLAN step 123); READINESS item 5, PLAY_CONSOLE and ROADMAP now say to uninstall the old Capacitor app before installing from Play, and suggest retiring or re-iding `android-latest` before the closed test.
+- Prevention: before recommending an app id, grep the whole repo (`grep -rn "com\.sigilbound\." --include=*.gradle --include=*.json --include=*.cs`) and list every app that already uses it.
+- Related: L030
+- Evidence: mobile/android/app/build.gradle (applicationId "com.sigilbound.game"); unity/Assets/Sigilbound/Editor/ProjectSetup.cs; docs/sigilbound/store/READINESS.md item 5
