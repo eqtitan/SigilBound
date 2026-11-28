@@ -341,3 +341,13 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Related: L018, L009, L033
 - Batch 2 (2026-11-28): even on kit heroes "cape" can be the back half of a gown or a panel joined to a tabard (aelira, corvan, pell: reverted), and "hair" was a hood, a veil, scarf ends or headband tails (kaelith, sable, drift, kaito: reverted). Check in the part view that a cape is a free sheet hanging from the shoulders and that hair is a separate lock that hangs below the head before rigging.
 - Evidence: scratchpad physics/pv1.jpg, pv2.jpg, pv3.jpg, pv_b2a.jpg, pv_b2b.jpg, classify_all.json
+
+## L035 - Timing checks measured the build configuration, not the solver
+- Status: solved
+- Systems: tests, ci, rig-runtime
+- Symptom: CI run 46143425817 failed two PhysicsTests cost checks: one 48-joint hero 229.7 us per frame (budget 150), a full battle 2.30 ms (budget 1.5); the author measured ~24 us locally and the local gate passed.
+- Cause: CI runs `dotnet run --project unity/Tests~` (Debug, JIT optimiser off); the documented gate is `-c Release`. The solver was already allocation-free (0 B per step) and LINQ-free; its SVec/SQuat operators and properties are not inlined in unoptimised IL, so it ran ~9x slower (Debug 210-230 us, Release 21-23 us on the same machine). Warm-up, GC and timer resolution were not it (tier-0 JIT costs ~2.5x only for the first ~0.1 s; 1 ns Stopwatch; 0 collections). Absolute microsecond budgets also depend on the runner's core.
+- Fix: unity/Tests~/CoreTests.csproj sets Optimize=true for every configuration; PhysicsTests asserts the core is not JIT-unoptimised (DebuggableAttribute), asserts 0 allocated bytes over 2000 updates, warms up 0.4 s, and checks the median of 9 interleaved batches against a fixed scalar reference workload in reference units (RefUs 12.5 us = the reference machine; budgets unchanged: 12 units = 150 us, 120 = 1.5 ms). Now ~1.6-1.8 units per hero in Debug and Release.
+- Prevention: a performance check states and asserts what it measures: optimised code, a warm JIT, zero allocations (exact), and a ratio to an in-process reference rather than absolute time. When a local gate and CI disagree, first diff how they invoke the build (configuration, flags) before touching code or budgets.
+- Related: L001, L033
+- Evidence: CI run 46143425817 (checks job); scratchpad physprof/ (Debug 213 us, Release 23 us, cold Release first batch 54 us, 40 B per batch = the Stopwatch object only); unity/Tests~/PhysicsTests.cs section 4; docs/sigilbound/art/PHYSICS.md section 4

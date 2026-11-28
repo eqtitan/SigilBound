@@ -8,6 +8,9 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- Always optimised, whatever the configuration: CI runs `dotnet run` (Debug) and unoptimised IL made the
+         physics cost checks ~9x slower than the documented `-c Release` gate and any player build (L035). -->
+    <Optimize>true</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Assets/Sigilbound/Core/**/*.cs" />

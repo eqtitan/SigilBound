@@ -103,6 +103,49 @@ static class PhysicsTests
         return new SpringSolver(par.ToArray(), anc.ToArray(), lp.ToArray(), lr.ToArray(), ax.ToArray(), rig);
     }
 
+    // Cost check helpers (section 4). RefUs: the reference workload's cost per frame on the reference machine
+    // (this repo's CI class: GitHub ubuntu-latest, 4 vCPU; measured 12-13 us, .NET 8 optimised, after warm-up).
+    const double RefUs = 12.5;
+
+    static void Frames(SpringSolver s, SQuat[] ar, SVec[] ap, SCapsule[] caps, int n, bool kin, ref int f)
+    {
+        for (int i = 0; i < n; i++, f++) { ap[0] = new SVec(0.1f * (float)Math.Sin(f * 0.1), 1.3f, 0); s.Update(1 / 60f, ar, ap, caps, caps.Length, kin); }
+    }
+
+    // The reference workload: the solver's inner loop shape (48 points x 17 segments x 2 passes of point-to-segment
+    // distance with a square root) in plain scalar float code on arrays - no structs, no operators, nothing that
+    // optimisation settings or solver changes affect. Fixed forever: changing it rescales every budget.
+    static float[] RefInputs(SCapsule[] caps)
+    {
+        var w = new float[7 * 17 + 144];
+        for (int k = 0; k < 17; k++) { var c = caps[k]; var o = 7 * k; w[o] = c.A.X; w[o + 1] = c.A.Y; w[o + 2] = c.A.Z; w[o + 3] = c.B.X; w[o + 4] = c.B.Y; w[o + 5] = c.B.Z; w[o + 6] = c.R; }
+        for (int j = 0; j < 144; j++) w[7 * 17 + j] = 0.01f * j - 0.5f;
+        return w;
+    }
+
+    static float RefFrames(float[] w, int n)
+    {
+        float acc = 0;
+        for (int f = 0; f < n; f++)
+            for (int j = 0; j < 48; j++)
+            {
+                int p = 7 * 17 + 3 * j; float px = w[p], py = w[p + 1], pz = w[p + 2];
+                for (int pass = 0; pass < 2; pass++)
+                    for (int k = 0; k < 17; k++)
+                    {
+                        int o = 7 * k; float ax = w[o], ay = w[o + 1], az = w[o + 2], bx = w[o + 3] - ax, by = w[o + 4] - ay, bz = w[o + 5] - az;
+                        float l = bx * bx + by * by + bz * bz;
+                        float t = l > 1e-12f ? Math.Max(0f, Math.Min(1f, ((px - ax) * bx + (py - ay) * by + (pz - az) * bz) / l)) : 0f;
+                        float dx = px - (ax + bx * t), dy = py - (ay + by * t), dz = pz - (az + bz * t); float d = (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                        if (d < w[o + 6]) { px += dx * 0.01f; py += dy * 0.01f; pz += dz * 0.01f; }
+                        acc += d;
+                    }
+            }
+        return acc;
+    }
+
+    static double Median(double[] v) { var c = (double[])v.Clone(); Array.Sort(c); return c[c.Length / 2]; }
+
     public static void Run(Action<bool, string> check)
     {
         // 1. kinds and budgets are consistent
@@ -154,27 +197,44 @@ static class PhysicsTests
             check(new SpringRig().MaxAngle == 0 && new SpringRig().Inflate == 0 && SpringRigs.Of("jasper", ChainKind.Skirt).MaxAngle == 0, "physics: the pilot's skirt keeps no swing limit and no inflate (unchanged)");
         }
 
-        // 4. cost: a full-budget hero (48 joints) against a full body set (16 shapes + ground), and a whole battle
+        // 4. cost: a full-budget hero (48 joints) against a full body set (16 shapes + ground), and a whole battle.
+        //    Machine-relative (L035): CI's shared runner differs from a dev box, so the solver is timed against a fixed
+        //    scalar reference workload in the same process (interleaved batches, median, after a JIT warm-up), and the
+        //    budget is in reference units: RefUs = what the reference costs on the reference machine (CI class, 4 cores),
+        //    so "150 us" still means 150 us there. Allocation-free is checked exactly, not timed.
         {
-            var rig = ChainKinds.Defaults(ChainKind.Cape); var s = Sheet(16, rig);
+            var dbg = (DebuggableAttribute)Attribute.GetCustomAttribute(typeof(SpringSolver).Assembly, typeof(DebuggableAttribute));
+            check(dbg == null || !dbg.IsJITOptimizerDisabled, "physics: the game core is timed as optimised code (Tests~ builds with Optimize=true; unoptimised IL runs the solver ~9x slower than any player build - L035)");
+            var rig = ChainKinds.Defaults(ChainKind.Cape); var s = Sheet(16, rig); var sk = Sheet(16, rig);
             var caps = new SCapsule[17]; var ar = new[] { SQuat.Identity }; var ap = new[] { new SVec(0, 1.3f, 0) };
             for (int i = 0; i < 16; i++) caps[i] = new SCapsule { A = new SVec(-0.2f + 0.025f * i, 0.2f + 0.08f * i, 0), B = new SVec(-0.2f + 0.025f * i, 0.3f + 0.08f * i, 0.05f), R = 0.08f };
             caps[16] = ChainKinds.Ground();
             check(s.Joints == ChainKinds.MaxJointsPerHero, $"physics: cost rig has {s.Joints} joints");
-            for (int f = 0; f < 200; f++) { ap[0] = new SVec(0.1f * (float)Math.Sin(f * 0.1), 1.3f, 0); s.Update(1 / 60f, ar, ap, caps, 17, false); }
-            double us = double.MaxValue;
-            for (int rep = 0; rep < 3; rep++)
+            var refW = RefInputs(caps); int fd = 0, fk = 0; float sink = 0;
+            // warm-up: long enough for tiered JIT to promote Update/Solve to optimised code (the first ~0.1 s is tier 0, ~2.5x slower)
+            var warm = Stopwatch.StartNew();
+            while (warm.ElapsedMilliseconds < 400) { Frames(s, ar, ap, caps, 200, false, ref fd); Frames(sk, ar, ap, caps, 200, true, ref fk); sink += RefFrames(refW, 200); }
+            long a0 = GC.GetAllocatedBytesForCurrentThread();
+            Frames(s, ar, ap, caps, 1000, false, ref fd); Frames(sk, ar, ap, caps, 1000, true, ref fk);
+            long alloc = GC.GetAllocatedBytesForCurrentThread() - a0;
+            check(alloc == 0, $"physics: the spring solver allocates nothing per step ({alloc} bytes over 2000 updates)");
+            const int Batches = 9, N = 1000;
+            var rs = new double[Batches]; var ds = new double[Batches]; var ks = new double[Batches]; var ratio = new double[Batches]; var kr = new double[Batches];
+            for (int b = 0; b < Batches; b++)
             {
-                var sw = Stopwatch.StartNew();
-                for (int f = 0; f < 5000; f++) { ap[0] = new SVec(0.1f * (float)Math.Sin(f * 0.1), 1.3f, 0); s.Update(1 / 60f, ar, ap, caps, 17, false); }
-                sw.Stop(); us = Math.Min(us, sw.Elapsed.TotalMilliseconds * 1000 / 5000);
+                long t0 = Stopwatch.GetTimestamp(); sink += RefFrames(refW, N);
+                long t1 = Stopwatch.GetTimestamp(); Frames(s, ar, ap, caps, N, false, ref fd);
+                long t2 = Stopwatch.GetTimestamp(); Frames(sk, ar, ap, caps, N, true, ref fk);
+                long t3 = Stopwatch.GetTimestamp();
+                double us(long x, long y) => (y - x) * 1e6 / Stopwatch.Frequency / N;
+                rs[b] = us(t0, t1); ds[b] = us(t1, t2); ks[b] = us(t2, t3); ratio[b] = ds[b] / rs[b]; kr[b] = ks[b] / ds[b];
             }
-            double battle = us * ChainKinds.BattleBudget / ChainKinds.MaxJointsPerHero;
-            check(us < 150, $"physics: one full-budget hero (48 joints x 17 colliders) costs {us:0.0} us per frame here (budget 150 us)");
-            check(battle < 1500, $"physics: a full battle at the budget ({ChainKinds.BattleBudget} joints) costs {battle / 1000:0.00} ms per frame here (budget 1.5 ms; a phone core is ~4x slower, Low quality runs kinematic)");
-            var sk = Sheet(16, rig); double ukin = double.MaxValue;
-            for (int rep = 0; rep < 3; rep++) { var sw = Stopwatch.StartNew(); for (int f = 0; f < 5000; f++) sk.Update(1 / 60f, ar, ap, caps, 17, true); sw.Stop(); ukin = Math.Min(ukin, sw.Elapsed.TotalMilliseconds * 1000 / 5000); }
-            check(ukin <= us * 1.2 && sk.StepsTaken == 0, $"physics: Low quality (kinematic) costs {ukin:0.0} us, no simulation steps");
+            double refUs = Median(rs), heroUs = Median(ds), kinUs = Median(ks), units = Median(ratio);
+            double battleUnits = units * ChainKinds.BattleBudget / ChainKinds.MaxJointsPerHero;
+            const double HeroBudget = 150 / RefUs, BattleBudget = 1500 / RefUs;   // 12 and 120 reference units
+            check(units < HeroBudget, $"physics: one full-budget hero (48 joints x 17 colliders) costs {units:0.00} reference units per frame (budget {HeroBudget:0} = 150 us on the reference machine; here {heroUs:0.0} us, reference {refUs:0.0} us, median of {Batches})");
+            check(battleUnits < BattleBudget, $"physics: a full battle at the budget ({ChainKinds.BattleBudget} joints) costs {battleUnits:0.0} reference units per frame (budget {BattleBudget:0} = 1.5 ms on the reference machine; here {heroUs * ChainKinds.BattleBudget / ChainKinds.MaxJointsPerHero / 1000:0.00} ms; a phone core is ~4x slower, Low quality runs kinematic)");
+            check(Median(kr) <= 1.2 && sk.StepsTaken == 0 && !float.IsNaN(sink), $"physics: Low quality (kinematic) costs {kinUs:0.0} us ({Median(kr):0.00}x dynamic), no simulation steps");
         }
 
         // 5. Low quality: no history (the pose depends on this frame only) with the body set

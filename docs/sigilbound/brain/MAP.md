@@ -6,13 +6,13 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 |---|---|---|
 | hero-models | GLBs, rigs, weights, meshes, materials | L002 L003 L004 L008 L010 L018 L019 L022 L023 L033 L034 |
 | animation | clips, retargeting, Animation/Animator | L002 L003 L022 L031 |
-| rig-runtime | RigExtras, DigitigradeLegs, SpringBones, CreatureRig, HumanoidRig, BodyPhysics | L002 L003 L015 L022 L031 L033 |
+| rig-runtime | RigExtras, DigitigradeLegs, SpringBones, CreatureRig, HumanoidRig, BodyPhysics | L002 L003 L015 L022 L031 L033 L035 |
 | titan | Titan model, clips, TitanSpec, TitanBody | L003 L022 |
 | art-pipeline | Gemini, cut-out, fal TRELLIS, artgen | L009 L012 L033 L034 |
 | character-td | per-frame visual review method | L008 L018 L019 L033 L034 |
 | build-pipeline | prepare-models, compress, credits | L001 L007 L010 |
-| tests | Tests~, CompileCheck, gates | L001 L013 L026 L028 |
-| ci | workflow, smoke gate, queue, artifacts | L004 L005 L016 L024 L027 L031 L032 |
+| tests | Tests~, CompileCheck, gates | L001 L013 L026 L028 L035 |
+| ci | workflow, smoke gate, queue, artifacts | L004 L005 L016 L024 L027 L031 L032 L035 |
 | qa | in-house tester, checklists | L004 L016 L024 L025 L026 L027 L028 L032 |
 | scenes | campaign scenery, cameras | L004 |
 | balance | curves, pools, roles, probes | L006 L020 |
@@ -30,6 +30,8 @@ graph LR
   L018 --> L033[L033 physics standard]
   L031 --> L033
   L033 --> L034[L034 classifier limits]
+  L001 --> L035[L035 timing measured the build config]
+  L033 --> L035
   L002[L002 exploded legs] --> L016[L016 pose guard]
   L003[L003 mangled Titan] --> L016
   L002 --> L022[L022 skeleton library]

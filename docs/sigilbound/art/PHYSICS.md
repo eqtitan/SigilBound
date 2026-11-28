@@ -75,8 +75,15 @@ parts (armour as skirt, robes as tails) - treat their proposals as hints and che
 
 - At most `ChainKinds.MaxJointsPerHero` = 48 spring joints per hero (physics_rig refuses more; tests check every
   shipped hero), `ChainKinds.BattleBudget` = 480 simulated joints per battle: heroes enabled after the budget is
-  full run kinematic. Measured (PhysicsTests): a 48-joint hero with 17 colliders ~21 us per frame on the CI machine,
-  a full battle at budget ~0.2 ms.
+  full run kinematic. Measured (PhysicsTests): a 48-joint hero with 17 colliders ~21-23 us per frame on a CI-class
+  machine (optimised .NET 8), a full battle at budget ~0.2 ms; the solver allocates nothing per step.
+- Cost budgets are machine-relative (L035): PhysicsTests times the solver against a fixed scalar reference workload
+  in the same process (JIT warm-up, 9 interleaved batches, median) and checks reference units. `RefUs` = 12.5 us is
+  the reference's cost on the reference machine (CI class, ubuntu-latest 4 vCPU), so the budgets keep their meaning:
+  12 units = 150 us per hero, 120 units = 1.5 ms per battle (measured: ~1.6-1.8 units per hero). The numbers did not
+  change. Zero allocations per step is asserted exactly, and the test fails if the core is built unoptimised:
+  Tests~ sets `Optimize=true` because CI runs `dotnet run` in Debug, where the solver's struct math is ~9x slower
+  (CI run 46143425817: 229.7 us per hero, 2.30 ms per battle) - a cost no player build has.
 - Low quality: kinematic (no swing, no history, cloth still pushed out of the body and above the ground).
 - Batch 1 capes: 15-20 joints per hero.
 
