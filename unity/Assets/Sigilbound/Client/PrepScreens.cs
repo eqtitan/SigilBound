@@ -131,7 +131,7 @@ namespace Sigilbound.Client
                 bool open = hard ? G.HardOpen(idx) : idx <= G.S.cleared;
                 bool clear = hard ? idx < G.S.hardCleared : idx < G.S.cleared;
                 bool next = hard ? idx == G.S.hardCleared : idx == G.S.cleared;
-                Ui.Round(row, next ? Palette.Hex("#3a2f22") : Palette.Hex("#1a1522"), next ? Palette.Gold : Palette.Bronze, 8);
+                Ui.Round(row, next ? Palette.Hex("#3a2f22") : Palette.CardAlt, next ? Palette.Gold : Palette.Bronze, 8);
                 // Label (stage number, Boss tag, the route stop's name) and status.
                 float lw = Mathf.Clamp(row.width * 0.25f, 112, 170);
                 Ui.Text(new Rect(row.x + 8, row.y + 2, lw - 26, row.height * 0.5f), $"{(Game.IsBossStage(idx) ? Ui.ColorTag("Boss ", Palette.Gold) : "")}{Game.StageLabel(idx)}", 13, open ? Palette.Text : Palette.Hex("#cfc5b2"), FontStyle.Bold, TextAnchor.LowerLeft);
@@ -210,7 +210,7 @@ namespace Sigilbound.Client
                 if (i < team.Count)
                 {
                     var h = team[i]; var t = Hero(h.id);
-                    Ui.Round(slot, Palette.Hex("#2a2230"), Palette.Rarity(t.Rarity), 10);
+                    Ui.Round(slot, Palette.Panel2, Palette.Rarity(t.Rarity), 10);
                     Ui.RarityTab(slot, t.Rarity, 15); // rarity as a letter too, not only the frame colour (UX review #4)
                     Icons.Draw(new Rect(slot.x + 6, slot.y + 6, 16, 16), Icons.ForElement(t.Element), Palette.Element(t.Element));
                     Ui.Text(new Rect(slot.x + 24, slot.y + 4, slot.width - 28, 20), t.ShortName, 12, Palette.Text, FontStyle.Bold);
@@ -340,7 +340,7 @@ namespace Sigilbound.Client
             {
                 var p = P(e); var node = new Rect(p.x - n / 2, p.y - n / 2, n, n);
                 Color ring = mine.Contains(e) && theirs.Contains(e) ? Palette.TrimHi : mine.Contains(e) ? Palette.Gold : theirs.Contains(e) ? Palette.Bad : Palette.Bronze;
-                Ui.Round(node, Palette.Hex("#1d1726"), ring, Mathf.RoundToInt(n / 2));
+                Ui.Round(node, Palette.Card, ring, Mathf.RoundToInt(n / 2));
                 Icons.Draw(new Rect(node.x + n * 0.2f, node.y + n * 0.2f, n * 0.6f, n * 0.6f), Icons.ForElement(e), Palette.Element(e));
             }
         }
