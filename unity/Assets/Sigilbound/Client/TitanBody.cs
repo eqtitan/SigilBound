@@ -51,6 +51,8 @@ namespace Sigilbound.Client
         }
         // Where the fists are (their centre), for impacts that land where they actually hit.
         public Vector3? Fists => FistL != null && FistR != null ? (FistL.position + FistR.position) * 0.5f : (Vector3?)null;
+        // The lower fist (the one raking the ground in a one-arm sweep).
+        public Vector3? LowFist => FistL != null && FistR != null ? (FistL.position.y < FistR.position.y ? FistL.position : FistR.position) : (Vector3?)null;
 
         // Wind-up: ramp the seam, core and ridge glow toward `level` (0-1) with time constant `tc` seconds.
         public void Charge(float level, float tc) { _chargeTo = Mathf.Clamp01(level); _chargeTc = Mathf.Max(0.02f, tc); }

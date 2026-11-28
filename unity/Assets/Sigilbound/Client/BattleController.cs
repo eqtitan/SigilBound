@@ -350,7 +350,7 @@ namespace Sigilbound.Client
             m.SetFrozen(false); Time.timeScale = Mathf.Max(1f, speed);
             m.PlayFrom(clip, top, own ? 1.6f : 2.2f);
             for (float w = 0; w < 1.5f && m.CurrentNormalized < contact; w += Time.unscaledDeltaTime) { arena.Override(eye, T + Vector3.up * H * 0.8f, 44f, 1f); yield return null; }
-            var hit = body != null && body.Fists is Vector3 fp ? new Vector3(fp.x, 0, fp.z) : T + toTeam * Mathf.Min(dist * 0.62f, 5.5f); hit.y = 0;
+            var hit = body != null && body.LowFist is Vector3 fp ? new Vector3(fp.x, 0, fp.z) : T + toTeam * Mathf.Min(dist * 0.62f, 5.5f); hit.y = 0;
             var fx = SkillFx.I;
             if (fx != null) { fx.Cracks(hit, u.El, 5f); fx.TitanSlam(hit, u.El); fx.Shockwave(hit, u.El, 6f); fx.CritFlash(u.El); }
             ArenaEvents.RaiseShock(hit, 1.6f, true); body?.Pulse(); body?.Charge(0, 0.6f);
