@@ -104,7 +104,7 @@ namespace Sigilbound.Client
             {
                 var grp = RigPhysics.Group(_body.Bodies[i].Name);
                 if ((grp & mask) == 0) continue;
-                float r = grp == BodyGroup.Thighs && rig.ThighR > 0 ? rig.ThighR : grp == BodyGroup.Calves && rig.CalfR > 0 ? rig.CalfR : -1f;
+                float r = grp == BodyGroup.Thighs && rig.ThighR > 0 ? rig.ThighR : grp == BodyGroup.Calves && rig.CalfR > 0 ? rig.CalfR : _body.Bodies[i].R + rig.Inflate;
                 shape.Add(i); rr.Add(r);
             }
             g.Shape = shape.ToArray(); g.R = rr.ToArray();
@@ -150,7 +150,7 @@ namespace Sigilbound.Client
                 for (int i = 0; i < g.Shape.Length; i++)
                 {
                     var b = _body.Bodies[g.Shape[i]];
-                    g.Caps[n++] = new SCapsule { A = V(_space.InverseTransformPoint(b.A.position)), B = V(_space.InverseTransformPoint(b.B.position)), R = g.R[i] > 0 ? g.R[i] : b.R };
+                    g.Caps[n++] = new SCapsule { A = V(_space.InverseTransformPoint(b.A.position)), B = V(_space.InverseTransformPoint(b.B.position)), R = g.R[i] };
                 }
                 for (int i = 0; i < g.ExtraR.Length; i++)
                     g.Caps[n++] = new SCapsule { A = V(_space.InverseTransformPoint(g.Extra[i, 0].position)), B = V(_space.InverseTransformPoint(g.Extra[i, 1].position)), R = g.ExtraR[i] };

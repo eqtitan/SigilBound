@@ -217,7 +217,7 @@ static class PhysicsTests
                     foreach (var sh in set)
                     {
                         if ((sh.G & mask) == 0) continue;
-                        float r = sh.G == BodyGroup.Thighs && rig.ThighR > 0 ? rig.ThighR : sh.G == BodyGroup.Calves && rig.CalfR > 0 ? rig.CalfR : sh.R;
+                        float r = sh.G == BodyGroup.Thighs && rig.ThighR > 0 ? rig.ThighR : sh.G == BodyGroup.Calves && rig.CalfR > 0 ? rig.CalfR : sh.R + rig.Inflate;
                         float gap = SegDist(p, rest.Pos[sh.A], rest.Pos[sh.B]) - r - rig.JointRadius;
                         if (gap < worst) { worst = gap; where = $"{bones[k]} in {sh.Name}"; }
                     }

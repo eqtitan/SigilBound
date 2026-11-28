@@ -19,6 +19,7 @@ from glb_io import write_acc, save
 import physics_classify as pc
 
 MAX_JOINTS = 48  # ChainKinds.MaxJointsPerHero
+INFLATE = {"cape": 0.045}  # ChainKinds.Defaults Inflate
 JOINT_R = {"cape": 0.025, "tail": 0.04, "hair": 0.02, "flap": 0.02, "skirt": 0.03, "ear": 0.015, "wing": 0.03}  # ChainKinds.Defaults
 
 
@@ -45,7 +46,7 @@ class Builder:
 
     def push_out(self, pts, kind):
         """Chain joints at rest must sit outside the colliders their kind collides with, by the kind's joint radius."""
-        mask = pc.KIND_MASK[kind]; jr = JOINT_R[kind] + 0.005; out = []
+        mask = pc.KIND_MASK[kind]; jr = JOINT_R[kind] + INFLATE.get(kind, 0.0) + 0.005; out = []
         for p in pts:
             p = np.array(p, float)
             for _ in range(3):
@@ -132,7 +133,7 @@ class Builder:
         m = self.whole_islands(part["mask"]); anchor = o.get("anchor", "spine_03")
         ytop = o.get("top", float(self.pos(anchor)[1]))
         width = float(np.percentile(self.P[m, 0], 96) - np.percentile(self.P[m, 0], 4))
-        K = o.get("K", int(np.clip(round(width / 0.08), 4, 7))); J = o.get("J", 3)
+        K = o.get("K", int(np.clip(round(width / 0.07), 5, 7))); J = o.get("J", 4)
         return self.sheet("cape", m, anchor, 20, K, J, ytop)
 
     def hair(self, part, o):

@@ -20,6 +20,7 @@ namespace Sigilbound.Core
         public float CalfR = 0f;         // calf capsule radius (m)
         public float FootR = 0f;         // extra capsule foot -> ball (toes under a hem), 0 = none
         public float HipR = 0f;          // extra sphere at the pelvis joint (m), 0 = none
+        public float Inflate = 0f;       // added to every body collider's radius for this chain (m): cloth over armour and boots
         public int Mask = 0;             // BodyGroup bits this chain kind collides with, 0 = ChainKinds.Mask(kind)
     }
 

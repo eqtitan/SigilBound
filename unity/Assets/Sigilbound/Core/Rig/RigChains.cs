@@ -42,7 +42,7 @@ namespace Sigilbound.Core
         // Default motion per kind (UniVRM terms; a hero's SpringRigs entry overrides).
         public static SpringRig Defaults(ChainKind c) => c switch
         {
-            ChainKind.Cape => new SpringRig { Stiffness = 2.2f, Drag = 0.55f, Gravity = 0.3f, JointRadius = 0.025f, MaxAngle = 20f },
+            ChainKind.Cape => new SpringRig { Stiffness = 2.2f, Drag = 0.55f, Gravity = 0f, JointRadius = 0.025f, MaxAngle = 12f, Inflate = 0.045f },
             ChainKind.Tail => new SpringRig { Stiffness = 2.0f, Drag = 0.35f, Gravity = 0f, JointRadius = 0.04f },
             ChainKind.SoftWings => new SpringRig { Stiffness = 3.0f, Drag = 0.5f, Gravity = 0f, JointRadius = 0.03f },
             ChainKind.Hair => new SpringRig { Stiffness = 2.5f, Drag = 0.5f, Gravity = 0.1f, JointRadius = 0.02f, MaxAngle = 35f },
