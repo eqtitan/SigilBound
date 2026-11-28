@@ -2,6 +2,7 @@
 // is testable outside Unity. Coordinates here are Unity's (left-handed, +Z away from the default
 // camera): the web's three.js (x, y, z) maps to (x, y, -z), which keeps the same picture on screen.
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Sigilbound.Core
@@ -47,6 +48,20 @@ namespace Sigilbound.Core
             double half = n <= 1 ? 0 : Math.Min(70 * Math.PI / 180, step * (n - 1) / 2);
             double t = n <= 1 ? 0 : -half + i * (2 * half / (n - 1));
             double a = ally ? t : Math.PI - t;               // 0 = near side (camera), PI = far side
+            return new V3(RimCx + Math.Sin(a) * RimRx, 0, RimCz - Math.Cos(a) * RimRz);
+        }
+
+        // As Slot, with per-unit widths (Creatures.SlotWidth: a spider-folk takes more room): each gap is
+        // Spacing x the mean width of its two neighbours, the row stays centred and within the same 140 degrees.
+        public static V3 Slot(bool ally, int i, IList<double> widths)
+        {
+            int n = widths.Count;
+            if (n <= 1) return Slot(ally, 0, 1);
+            double step = Spacing / ((RimRx + RimRz) / 2), total = 0; var at = new double[n];
+            for (int k = 1; k < n; k++) { total += step * (widths[k - 1] + widths[k]) / 2; at[k] = total; }
+            double half = total / 2, scale = Math.Min(1.0, 70 * Math.PI / 180 / Math.Max(1e-6, half));
+            double t = (at[i] - half) * scale;
+            double a = ally ? t : Math.PI - t;
             return new V3(RimCx + Math.Sin(a) * RimRx, 0, RimCz - Math.Cos(a) * RimRz);
         }
 

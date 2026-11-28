@@ -57,6 +57,7 @@ def gown_spec(c):
     s = {"length": "floor", "flare": 0.55 + (h % 7) * 0.04, "layers": 1, "slit": False, "open": None, "train": 0.0,
          "hem": "trim", "sleeves": False, "belt": "sash", "stiff": False, "tails": False}
     if _has(txt, "tabard"): s.update(length="knee", flare=0.25, open="sides", hem="trim")
+    if _has(txt, "greatcoat", "frock coat", "long coat"): s.update(length="calf", flare=0.35, open="front", hem="trim", belt="leather", stiff=True)
     if _has(txt, "apron", "apron-skirt"): s.update(length="knee", flare=0.2, open="back", hem="plain", belt="leather", stiff=True)
     if _has(txt, "dancer", "wrap"): s.update(length="calf", flare=1.0, slit=True)
     if _has(txt, "armour dress", "scale-armour", "plate"): s.update(length="calf" if "dress" in txt else "floor", flare=0.4, stiff=True)
@@ -75,7 +76,7 @@ def gown_spec(c):
 
 def needs_gown(c, text):
     o = c.get("outfit", {}) or {}
-    return _has(text, "robe", "skirt", "dress", "gown", "habit", "tabard") or str(o.get("legs", "")).startswith("none")
+    return _has(text, "robe", "skirt", "dress", "gown", "habit", "tabard", "greatcoat", "frock coat", "long coat") or str(o.get("legs", "")).startswith("none")
 
 
 # ---------------------------------------------------------------- weights from the body
@@ -216,6 +217,8 @@ def simulate_gown(c, arm, mat, trim_mat, spec=None, bvh=None, colliders_extra=()
         if spec["slit"] and t > 0.35 and angdist(a, front + 0.35) < 0.12: dead.add(f)
         if spec["open"] == "sides" and t > 0.12 and (angdist(a, 0) < 0.35 or angdist(a, math.pi) < 0.35): dead.add(f)
         if spec["open"] == "back" and angdist(a, back) < 1.25: dead.add(f)
+        if spec["open"] == "front" and t > 0.04 and angdist(a, front) < 0.32 + 0.25 * t: dead.add(f)   # a coat: open down the front, wider at the hem
+        if spec["open"] == "front" and t > 0.5 and angdist(a, back) < 0.05: dead.add(f)                 # ...with a vent between the tails
         if spec["hem"] == "tendrils" and t > 0.62:
             seg = (math.degrees(a) % 360) / 360 * 14
             k = seg - math.floor(seg)                      # 0..1 across one tendril sector
@@ -706,7 +709,7 @@ def feathered_wing(root, sx, mats_list, scale=1.0, folded=False, glow=False):
     return o
 
 
-def insect_wing(root, sx, mats_list, petal=False, spots=True):
+def insect_wing(root, sx, mats_list, petal=False, spots=True, ragged=False):
     """Moth or petal wings: a large rounded forewing and a smaller hindwing, flat with raised veins,
     and an eye spot on each forewing (moth)."""
     pieces = []
@@ -716,6 +719,8 @@ def insect_wing(root, sx, mats_list, petal=False, spots=True):
         for i in range(n + 1):
             t = i / n; a = math.pi * t
             r = L * (math.sin(a) ** (0.7 if not petal else 1.4))
+            if ragged:   # torn notches and ragged tongues along the outer edge
+                r *= 1 - 0.3 * max(0.0, math.sin(t * 7 * math.pi + skew * 3)) ** 4 - 0.14 * max(0.0, math.sin(t * 17 * math.pi + 0.7)) ** 6 - 0.06 * max(0.0, math.sin(t * 31 * math.pi)) ** 8
             x = W * math.cos(a) * (1 + skew * (1 - t)) * (0.6 if petal else 1.0)
             vs.append(Vector((x * 0.5, 0, r * 0.95 + L * 0.05 * math.sin(2 * a))))
         fs = [(0, i, i + 1) for i in range(1, n + 1)]
@@ -724,11 +729,16 @@ def insect_wing(root, sx, mats_list, petal=False, spots=True):
     s = 0.6 if petal else 1.0
     Rf = lobe(Vector((0.8 * sx, 0.25, 0.55)).normalized(), 0.5 * s, 0.42 * s, 0.4, 0)
     lobe(Vector((0.7 * sx, 0.3, -0.6)).normalized(), 0.33 * s, 0.32 * s, -0.2, 0)
-    if spots and not petal:   # eye spot: a ring and a dot on the forewing, slightly in front of it
-        c0 = root + Rf @ Vector((0, -0.004, 0.3 * s))
-        for (r_, mi) in ((0.06, 1), (0.03, 0)):
-            n = 16; vs = [c0 - normal * 0.002 * (2 - mi)] + [c0 - normal * 0.002 * (2 - mi) + Rf @ Vector((math.cos(i / n * 2 * math.pi) * r_, 0, math.sin(i / n * 2 * math.pi) * r_)) for i in range(n)]
-            pieces.append((vs, [(0, i, i % n + 1) for i in range(1, n + 1)], mi))
+    if spots and not petal:   # eye spots: a ring and a dot on each wing, on BOTH faces (seen from front and back)
+        Rh = _frame(Vector((0.7 * sx, 0.3, -0.6)).normalized(), normal)
+        for R_, at, sc in ((Rf, 0.3, 1.0), (Rf, 0.17, 0.6), (Rh, 0.18, 0.75)):
+            c0 = root + R_ @ Vector((0, 0, at * s))
+            for face in (-1, 1):
+                for (r_, mi) in ((0.06 * sc, 1), (0.03 * sc, 0)):
+                    off = normal * (0.0045 + 0.002 * (1 - mi)) * face
+                    n = 16; ring = [c0 + off + R_ @ Vector((math.cos(i / n * 2 * math.pi) * r_, 0, math.sin(i / n * 2 * math.pi) * r_)) for i in range(n)]
+                    fs = [(0, i, i % n + 1) for i in range(1, n + 1)] if face < 0 else [(0, i % n + 1, i) for i in range(1, n + 1)]
+                    pieces.append(([c0 + off] + ring, fs, mi))
     o = _assemble("Kit_Wing", pieces, None, mats_list)
     _thicken(o, 0.003)
     return o
@@ -795,7 +805,7 @@ def make_wings(c, arm, mats, bind, head_box):
     for kind, phrase in kinds:
         glow = _has(phrase, "flame", "fire", "light", "radiant", "gold light")
         main = mats["glow"] if glow else mats["main"]
-        trim = mats["acc"]
+        trim = mats["glow"] if _has(phrase, "glowing violet eye", "glowing eye") else mats["acc"]   # moth eye spots that glow
         if kind == "head":
             hb = head_box
             metal = _has(phrase, "helm", "visor", "armet", "storm")
@@ -824,7 +834,7 @@ def make_wings(c, arm, mats, bind, head_box):
             if kind in ("feather", "folded"):
                 o = feathered_wing(root, sx, [main, trim], folded=kind == "folded", glow=glow)
             elif kind == "insect":
-                o = insect_wing(root, sx, [main, trim], petal=_has(phrase, "petal"), spots=_has(phrase, "moth", "eye"))
+                o = insect_wing(root, sx, [main, trim], petal=_has(phrase, "petal"), spots=_has(phrase, "moth", "eye"), ragged=_has(phrase, "tattered", "ragged", "torn"))
             elif kind == "membrane":
                 o = membrane_wing(root, sx, [main, trim], ragged=_has(phrase, "ragged", "wraith", "tattered"),
                                   scale=1.15 if _has(phrase, "large") else 1.0)
@@ -832,5 +842,6 @@ def make_wings(c, arm, mats, bind, head_box):
                 o = membrane_wing(root - Vector((0.07 * sx, 0, 0)), sx, [main, trim], glider=True,
                                   scale=1.25 if _has(phrase, "twice", "wide", "big") or "width" in phrase else 1.0)
             o.name = "Kit_Wing"
-            out.append(bind(o, arm, {"spine_03": 1.0}))
+            wb = ("wing_l" if sx > 0 else "wing_r")
+            out.append(bind(o, arm, {wb: 1.0} if wb in arm.data.bones else {"spine_03": 1.0}))
     return out

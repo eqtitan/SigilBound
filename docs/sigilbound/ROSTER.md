@@ -210,7 +210,7 @@ They are tested in `unity/Tests~/MechanicsTests.cs`. They are Unity only: the we
 4. Phase 3 mechanics, then phase 3 (5 batches).
 5. Campaign act 2 (chapters 11 to 15), then phase 4 (5 batches).
 
-## 7. Phase H: 50 new heroes (owner-approved concepts, 2026-11-26)
+## 7. Phase H: 56 new heroes (owner-approved concepts, 2026-11-26; the last 6 from the owner's Grok concept sheets, 2026-11-27, pending approval)
 
 Designs: `docs/sigilbound/concepts/new_heroes.json` and `NEW_HEROES.md`. Brought into the game by `docs/sigilbound/newheroes.py`, 10 per step, each balanced against the classic hero(es) of its rarity and role.
 
@@ -266,3 +266,17 @@ Designs: `docs/sigilbound/concepts/new_heroes.json` and `NEW_HEROES.md`. Brought
 | `lune` | Lune Duskfeather | Epic | Shadow | Support | owl-folk | An owl-folk night nurse of Hollow Deep's infirmary who moves without a sound. |
 | `aldric` | Sir Aldric Twinshade | Legendary | Shadow | Defense | human | In Wraithmoor he fought a Hollow knight for a night and a day, until his shadow rose to help him. |
 | `ondessa` | Ondessa Mirebloom | Legendary | Shadow | Hp | fen dryad (living plant) | The fen-folk whisper of a drowned thing that learned to walk. |
+| `vorgrim` | Vorgrim Ashscale | Legendary | Flame | Attack | drake-folk (dragonborn) | The last of the drake-lords of Ashgrave, Vorgrim slept under the pass for a hundred years. |
+| `talvo` | Talvo Brassfang | Epic | Flame | Attack | drake-folk (dragonkin) | Talvo keeps the Saltreach docks honest the old way: a challenge, a bow, and a blade that leaves the loser's coat smouldering. |
+| `wystan` | Wystan Quillmere | Epic | Gale | Support | owl-folk | Wystan has catalogued every scroll in the Thornwick archive twice. |
+| `crusk` | Crusk Brineclaw | Epic | Tide | Defense | crab-folk | Crusk has guarded the Saltreach breakwater since before the harbour had a name. |
+| `hartwin` | Hartwin Sunhorn | Legendary | Light | Hp | stag-folk | The bells of Bellspire fell silent a century ago, but the white stag still walks the ruins, his antlers hung with the last of them. |
+| `nyssa` | Nyssa Duskwing | Legendary | Shadow | Attack | human | The barrow-folk of Wraithmoor say the moths there carry the dreams of the dead. |
+
+## Creature heroes
+
+Heroes on their own creature rigs (`Core/Kit/Creatures.cs`, built by `unity/Tools~/blenderforge/creature.py` from `docs/sigilbound/concepts/creatures.json`).
+
+| Id | Name | Rarity | Element | Role | Species | Lore |
+|---|---|---|---|---|---|---|
+| `vessa` | Vessa Silkmourne | Legendary | Shadow | Attack | spider-folk (elf upper body, eight legs) | The barrows of Wraithmoor hold more than dead kings. Vessa weaves the silk that binds the Hollow in their graves, and lately she has had to weave faster. |

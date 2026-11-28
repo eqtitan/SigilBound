@@ -356,6 +356,7 @@ namespace Sigilbound.Client
         // Battle positions: on the rune circle's rim, allies along the near arc and enemies along
         // the far arc, 2.2 m apart; everyone idles facing the centre.
         public static Vector3 Slot(bool ally, int index, int count) => ToUnity(BattleLayout.Slot(ally, index, count));
+        public static Vector3 Slot(bool ally, int index, System.Collections.Generic.IList<double> widths) => ToUnity(BattleLayout.Slot(ally, index, widths));
         public static float FacingYaw(Vector3 p) => (float)BattleLayout.FacingCentreYaw(new V3(p.x, p.y, p.z));
     }
 }
