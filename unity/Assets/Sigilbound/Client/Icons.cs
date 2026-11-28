@@ -67,6 +67,25 @@ namespace Sigilbound.Client
         public static bool PaintedElement(Rect r, Element e) =>
             Mathf.Min(r.width, r.height) >= 22 && Painted(r, e.ToString().ToLowerInvariant());
 
+        // One picture per item wherever it shows (UI/UX consistency review #12): the owner's painted coin, shard
+        // crystals, essence and tome when the skin is on, the tinted vector icon otherwise. The top bar, results,
+        // the stage list and the Climb Summary all draw through here.
+        public enum Cur { Gold, WornShard, MysticShard, RadiantShard, Essence, Tome }
+        public static Color CurColor(Cur c) => c switch
+        {
+            Cur.Gold => Palette.Gold, Cur.WornShard => Palette.Hex("#c9a37b"), Cur.MysticShard => Palette.Blue,
+            Cur.RadiantShard => Palette.Hex("#ffb02e"), Cur.Essence => Palette.Hex("#8fd8ff"), _ => Palette.Gold,
+        };
+        static readonly string[] _curPainted = { "coin", "shard_worn", "shard_mystic", "shard_radiant", "essence", "tome" };
+        public static void Currency(Rect r, Cur c)
+        {
+            // The painted art has a little air around it: drawn a touch larger than the vector glyph.
+            var pr = new Rect(r.x - r.width * 0.2f, r.y - r.height * 0.2f, r.width * 1.4f, r.height * 1.4f);
+            if (Painted(pr, _curPainted[(int)c])) return;
+            Draw(r, c == Cur.Gold ? Icon.Coin : c == Cur.Essence ? Icon.Essence : c == Cur.Tome ? Icon.Tome : Icon.Shard, CurColor(c));
+        }
+        public static Cur ShardCur(GameData.Shard s) => s == GameData.Shard.Common ? Cur.WornShard : s == GameData.Shard.Mystic ? Cur.MysticShard : Cur.RadiantShard;
+
         public static Icon ForElement(Element e) => e switch
         {
             Element.Flame => Icon.Flame, Element.Gale => Icon.Gale, Element.Tide => Icon.Tide, Element.Light => Icon.Light, _ => Icon.Shadow,

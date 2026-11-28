@@ -56,7 +56,8 @@ namespace Sigilbound.Core
         // Room in the menu and gallery lineups (Home, the hero gallery shots): a creature's SlotWidth, or a width for
         // humanoid heroes whose wings, tails, big shields or long blades reach past a normal hero (in-house report,
         // 2026-11-28: Vorgrim's sword and wings ran through Talvo; Wystan, Crusk, Hartwin and Nyssa overlapped).
-        // Battles keep SlotWidth: their 2.2 m spacing already clears these.
+        // Battles use it too (BattleController.UnitWidth, BattleLayout.Slot): it widens their gaps and keeps those heroes'
+        // footprints inside the rune circle (art review M1).
         public static readonly Dictionary<string, double> WideHeroes = new Dictionary<string, double>
         {
             ["vorgrim"] = 1.35, ["talvo"] = 1.2, ["wystan"] = 1.15, ["crusk"] = 1.3, ["hartwin"] = 1.2, ["nyssa"] = 1.35,

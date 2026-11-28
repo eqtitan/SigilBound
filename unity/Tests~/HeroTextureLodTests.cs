@@ -1,4 +1,4 @@
-// GPU-compressed hero textures and LOD1 meshes (PLAN step 119, PMO P2-1 / P2-2; performance review #1.4, #3).
+// GPU-compressed hero textures and LOD1 meshes (PLAN step 121, PMO P2-1 / P2-2; performance review #1.4, #3).
 // prepare-models.mjs ships every high-detail hero's maps as KTX2 (Basis Universal, transcoded on the device) and,
 // where the mesh simplifies, a LOD1 ("SBL1", Core/HdLod.cs) over the shipped mesh. These checks read what it wrote:
 // the KTX2 files are valid, mip-mapped and the only maps that ship; every LOD1 parses, matches its full mesh (vertex

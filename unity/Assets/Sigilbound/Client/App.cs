@@ -40,10 +40,11 @@ namespace Sigilbound.Client
         string _lineupKey = "";
 
         // modal + toasts
-        string _modalTitle; Action<Rect> _modalBody; float _modalHeight = 260, _modalMaxW = ModalW;
+        string _modalTitle; Action<Rect> _modalBody; float _modalHeight = 260, _modalMaxW = ModalW; bool _modalClosable;
         // Modals keep a readable width on wide screens (UX review #10: they stretched to about 1040 units);
-        // the results screens get more room for their hero columns.
-        public const float ModalW = 560, WideModalW = 900;
+        // the results screens get more room for their hero columns. The width comes from the safe screen, not
+        // from the screen behind (UI/UX consistency review #7: the same dialog was 560 over Home, 358 over Heroes).
+        public const float ModalW = UiLayout.ModalW, WideModalW = UiLayout.WideModalW;
         float _modalClosedAt = -10f;
         readonly List<(string text, float until)> _toasts = new List<(string, float)>();
 
@@ -137,7 +138,7 @@ namespace Sigilbound.Client
                 Modal("Save restored from backup", 230, b =>
                 {
                     Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), "Your save couldn't be read, so the backup from just before your last save was loaded. A copy of the damaged save is kept on this device.", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                    if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "OK")) CloseModal();
+                    if (Ui.ButtonRow(new Rect(b.x, b.yMax - Mathf.Max(44, Ui.Tap), b.width, Mathf.Max(44, Ui.Tap)), new[] { ("OK", UiRole.Primary, true) }) == 0) CloseModal();
                 });
                 return;
             }
@@ -145,10 +146,10 @@ namespace Sigilbound.Client
             Modal("Your save couldn't be read", 330, b =>
             {
                 Ui.Text(new Rect(b.x, b.y, b.width, 150), "Your progress is kept safe on this device and nothing will be saved over it.\n\nIf you have a save code, load it in Settings. Or copy the damaged save to send with a bug report. Starting a new game keeps the damaged copy too.", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                float bw = (b.width - 10) / 2;
-                if (Ui.Button(new Rect(b.x, b.yMax - 96, bw, 44), "Load a save code", Ui.Kind.Secondary)) OpenSettings();
-                if (Ui.Button(new Rect(b.x + bw + 10, b.yMax - 96, bw, 44), "Copy damaged save", Ui.Kind.Secondary)) { GUIUtility.systemCopyBuffer = Store.CorruptText; Toast("Copied"); }
-                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Start a new game", Ui.Kind.Red)) { Store.AcceptFresh(); CloseModal(); }
+                float bw = (b.width - 10) / 2, t = Mathf.Max(44, Ui.Tap);
+                if (Ui.Button(new Rect(b.x, b.yMax - 2 * t - 6, bw, t), "Load a save code", Ui.Kind.Secondary)) OpenSettings();
+                if (Ui.Button(new Rect(b.x + bw + 10, b.yMax - 2 * t - 6, bw, t), "Copy damaged save", Ui.Kind.Secondary)) { GUIUtility.systemCopyBuffer = Store.CorruptText; Toast("Copied"); }
+                if (Ui.Button(new Rect(b.x, b.yMax - t, b.width, t), "Start a new game", Ui.Kind.Danger)) { Store.AcceptFresh(); CloseModal(); }
             });
         }
 
@@ -173,13 +174,26 @@ namespace Sigilbound.Client
         void OnApplicationQuit() => Save();
 
         public void Toast(string text) => _toasts.Add((text, Time.unscaledTime + 2.4f));
-        public void Modal(string title, float height, Action<Rect> body, float maxWidth = ModalW) { _modalTitle = title; _modalHeight = height; _modalBody = body; _modalMaxW = maxWidth; ModalSerial++; }
+        public void Modal(string title, float height, Action<Rect> body, float maxWidth = ModalW) { _modalTitle = title; _modalHeight = height; _modalBody = body; _modalMaxW = maxWidth; _modalClosable = false; ModalSerial++; }
+        // An information modal (tips, help, the status legend, What's New): a 48 dp close X in its corner and a tap
+        // outside closes it too. Confirms and results stay plain Modals (they need an answer). Design rule 6.
+        public void InfoModal(string title, float height, Action<Rect> body, float maxWidth = ModalW) { Modal(title, height, body, maxWidth); _modalClosable = true; }
+        // The one footer for an info modal: a single Primary button across the bottom.
+        public bool ModalFooter(Rect b, string label = "Got it") { float t = Mathf.Max(44, Ui.Tap); return Ui.Button(new Rect(b.x, b.yMax - t, b.width, t), label, Ui.Kind.Primary); }
         public int ModalSerial { get; private set; } // counts modals opened: Auto Climb notices one that isn't its results screen
         public void CloseModal() { if (_modalBody != null) _modalClosedAt = Time.unscaledTime; _modalBody = null; _modalTitle = null; }
         public bool ModalOpen => _modalBody != null;
 
+        // Where a screen with more than one way in was opened from (UI/UX consistency review #10: Back from the Titan,
+        // dungeons or arena always went to Trials, even when they were opened from the Battle tab).
+        readonly Dictionary<ScreenId, ScreenId> _cameFrom = new Dictionary<ScreenId, ScreenId>();
+        static bool TabRoot(ScreenId s) => s == ScreenId.Home || s == ScreenId.Modes || s == ScreenId.Heroes || s == ScreenId.Summon || s == ScreenId.Trials || s == ScreenId.Friends;
+        static bool ManyWaysIn(ScreenId s) => s == ScreenId.Titan || s == ScreenId.Dungeon || s == ScreenId.ArenaPvp || s == ScreenId.Campaign || s == ScreenId.Achievements;
+        ScreenId CameFrom(ScreenId s, ScreenId otherwise) => _cameFrom.TryGetValue(s, out var f) ? f : otherwise;
+
         public void Go(ScreenId s)
         {
+            if (s != Screen && ManyWaysIn(s) && TabRoot(Screen)) _cameFrom[s] = Screen;
             if (s != Screen) HeroModels.TrimSoon(); // let go of hero models the new screen doesn't show
             Screen = s; _scroll = Vector2.zero; CloseModal();
             _rp = RosterPanel.None; // a roster panel closes when you go anywhere (RosterUi.cs)
@@ -210,10 +224,17 @@ namespace Sigilbound.Client
         {
             if (Screen == ScreenId.Battle) { Battle.BackPressed(); return; }
             if (ModalOpen) { CloseModal(); return; }
+            GoBack();
+        }
+
+        // Every Back button and the Android back key: the screen the player came from.
+        public void GoBack()
+        {
             if (RosterBack()) return; // Release Heroes / Rank Up panels step back inside the Heroes screen
             switch (Screen)
             {
-                case ScreenId.Titan: case ScreenId.Dungeon: case ScreenId.ArenaPvp: Go(ScreenId.Trials); break;
+                case ScreenId.Titan: case ScreenId.Dungeon: case ScreenId.ArenaPvp: Go(CameFrom(Screen, ScreenId.Trials)); break;
+                case ScreenId.Achievements: case ScreenId.Campaign: Go(CameFrom(Screen, ScreenId.Home)); break;
                 case ScreenId.Hero: Go(ScreenId.Heroes); break;
                 case ScreenId.Equip: Go(ScreenId.Hero); break;
                 case ScreenId.Prep: Go(_prepBack); break;
@@ -256,10 +277,14 @@ namespace Sigilbound.Client
                     var tip = Tips.Next(G, Screen == ScreenId.Home, inBattle);
                     if (tip == null) break;
                     Save();
-                    Modal(tip.Title, 300, b =>
+                    // Height from the text (the tip box was about half empty: UI/UX review #18).
+                    // (estimated here: this runs in Update, outside OnGUI, where text can't be measured)
+                    int lines = Mathf.CeilToInt(tip.Body.Length * 6.8f * Ui.TextGrow / (ModalW - 32)) + tip.Body.Split('\n').Length;
+                    float tipH = 56 + 16 + Mathf.Max(60, lines * 18f) + 12 + Mathf.Max(44, Ui.Tap);
+                    InfoModal(tip.Title, Mathf.Min(tipH, 340), b =>
                     {
-                        Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), tip.Body, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
-                        if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Got it")) CloseModal();
+                        Ui.Text(new Rect(b.x, b.y, b.width, b.height - Mathf.Max(44, Ui.Tap) - 8), tip.Body, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                        if (ModalFooter(b)) CloseModal();
                     });
                     break;
             }
@@ -414,20 +439,21 @@ namespace Sigilbound.Client
             var bar = r;
             r = new Rect(r.x, r.y + (r.height - 44) / 2, r.width, 44); // chips stay centred when the bar is taller (the campaign map)
             // Currency chips: a drawn icon (Icons.cs) plus the amount.
-            void Chip(Icon icon, string text, Color c, string painted = null)
+            void Chip(Icons.Cur cur, long amount)
             {
+                string text = Ui.Fmt(amount); var c = Icons.CurColor(cur);
                 var w = Mathf.Max(48, text.Length * 7.4f + 30);
                 Ui.Panel(new Rect(x, r.y + 8, w, 28), Palette.Well, Palette.Bronze, 13);
-                // The owner's painted coin / essence / one painted crystal per shard kind (worn, mystic, radiant) when the skin is on.
-                if (painted == null || !Icons.Painted(new Rect(x + 3, r.y + 10, 24, 24), painted)) Icons.Draw(new Rect(x + 8, r.y + 15, 14, 14), icon, c);
+                // The same picture as everywhere else for this item (Icons.Currency: painted, vector fallback).
+                Icons.Currency(new Rect(x + 7, r.y + 14, 16, 16), cur);
                 Ui.Text(new Rect(x + 24, r.y + 8, w - 30, 28), text, 12, c, FontStyle.Bold, TextAnchor.MiddleCenter);
                 x += w + 5;
             }
-            Chip(Icon.Coin, Ui.Fmt(G.S.gold), Palette.Gold, "coin");
-            Chip(Icon.Shard, G.S.shardCommon.ToString(), Palette.Hex("#c9a37b"), "shard_worn");
-            Chip(Icon.Shard, G.S.shardMystic.ToString(), Palette.Blue, "shard_mystic");
-            Chip(Icon.Shard, G.S.shardRadiant.ToString(), Palette.Hex("#ffb02e"), "shard_radiant");
-            Chip(Icon.Essence, G.S.essence.ToString(), Palette.Hex("#8fd8ff"), "essence");
+            Chip(Icons.Cur.Gold, G.S.gold);
+            Chip(Icons.Cur.WornShard, G.S.shardCommon);
+            Chip(Icons.Cur.MysticShard, G.S.shardMystic);
+            Chip(Icons.Cur.RadiantShard, G.S.shardRadiant);
+            Chip(Icons.Cur.Essence, G.S.essence);
             // The menu button: 44 wide and the bar's full height to tap, the plate as before.
             float mx1 = Ui.Landscape ? sc.xMax : Mathf.Min(Ui.W - 8, sc.xMax);
             var menu = new Rect(mx1 - 38, r.y + 6, 38, 32);
@@ -458,7 +484,7 @@ namespace Sigilbound.Client
                 var cell = NavCell(i, r.y); float w = cell.width;
                 var it = items[i];
                 bool on = Screen == it.id || (it.id == ScreenId.Home && Screen == ScreenId.Achievements) || (it.id == ScreenId.Modes && (Screen == ScreenId.Campaign || Screen == ScreenId.Prep)) || (it.id == ScreenId.Heroes && (Screen == ScreenId.Hero || Screen == ScreenId.Equip))
-                    || (it.id == ScreenId.Trials && (Screen == ScreenId.Titan || Screen == ScreenId.Dungeon || Screen == ScreenId.ArenaPvp))
+                    || ((Screen == ScreenId.Titan || Screen == ScreenId.Dungeon || Screen == ScreenId.ArenaPvp) && it.id == CameFrom(Screen, ScreenId.Trials)) // the tab it was opened from
                     || (it.id == ScreenId.Friends && (Screen == ScreenId.FriendProfile || Screen == ScreenId.Chat || Screen == ScreenId.Blocked));
                 if (Ui.Button(cell, "", Ui.Kind.Ghost)) { if (it.id == ScreenId.Friends) OpenFriends(); else Go(it.id); }
                 if (on) { Ui.Round(new Rect(cell.x + 6, r.y + 4, w - 12, 56), new Color(0.95f, 0.77f, 0.36f, 0.12f), null, 12); Ui.GoldRule(new Rect(cell.x + w * 0.22f, r.y + 1, w * 0.56f, 2)); }
@@ -466,15 +492,10 @@ namespace Sigilbound.Client
                 // Painted nav icons (dimmed when not selected) with the skin on; drawn ones without.
                 string pn = it.id == ScreenId.Home ? "home" : it.id == ScreenId.Modes ? "sword" : it.id == ScreenId.Heroes ? "helm" : it.id == ScreenId.Summon ? "portal" : it.id == ScreenId.Trials ? "tower" : "heart";
                 if (!Icons.Painted(new Rect(cell.x + w / 2 - 15, r.y + 4, 30, 30), pn, on ? 1f : 0.55f)) Icons.Draw(new Rect(cell.x + w / 2 - 12, r.y + 8, 24, 24), it.icon, tint);
-                Ui.Text(new Rect(cell.x, r.y + 34, w, 22), it.label, 12, tint, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+                Ui.FitText(new Rect(cell.x + 1, r.y + 34, w - 2, 22), it.label, 12, tint); // shrinks to its cell at any text size
                 int badge = it.id == ScreenId.Home ? HomeBadge() : it.id == ScreenId.Trials ? G.TrialsBadge()
                     : it.id == ScreenId.Friends && Online.SignedIn ? Online.Unread.messages + Online.Unread.requests : 0;
-                if (badge > 0)
-                {
-                    var b = new Rect(cell.x + w / 2 + 14, r.y + 8, 18, 18);
-                    Ui.Round(b, it.id == ScreenId.Trials ? Palette.Blue : Palette.Bad, null, 9);
-                    Ui.Text(b, badge.ToString(), 11, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
-                }
+                Ui.Badge(new Vector2(cell.x + w / 2 + 22, r.y + 16), badge); // the one red badge (blue on Trials before)
             }
         }
         int HomeBadge()
@@ -487,22 +508,36 @@ namespace Sigilbound.Client
         void DrawModalAndToasts()
         {
             GUI.enabled = true;
+            // Modals and toasts are laid out across the whole safe screen, whatever the screen behind used (a 390
+            // column or the full width), so a dialog is the same size everywhere (design rule 6).
+            Ui.Begin(true);
+            var safe = Ui.SafeContent();
             if (ModalOpen)
             {
                 GUI.DrawTexture(Ui.Screen01, Ui.Solid(new Color(0, 0, 0, 0.7f)));
-                float mx0 = Mathf.Max(16, Ui.Safe.x + 16), mx1 = Mathf.Min(Ui.W - 16, Ui.Safe.xMax - 16); // inside the safe area
-                float mw = Mathf.Min(mx1 - mx0, _modalMaxW); // centred, at most ModalW (or WideModalW) wide
-                var box = new Rect((mx0 + mx1) / 2 - mw / 2, Mathf.Max(Ui.Safe.y + 20, (Ui.H - _modalHeight) / 2), mw, _modalHeight);
+                float mw = UiLayout.ModalWidth(safe.width, _modalMaxW); // centred, at most ModalW (or WideModalW) wide
+                var box = new Rect(safe.center.x - mw / 2, Mathf.Max(Ui.Safe.y + 20, (Ui.H - _modalHeight) / 2), mw, _modalHeight);
                 Ui.Card(box, true); // the web's framed .mbox
-                if (!string.IsNullOrEmpty(_modalTitle)) Ui.Heading(new Rect(box.x, box.y + 14, box.width, 34), _modalTitle, 24, TextAnchor.MiddleCenter);
+                float xw = _modalClosable ? Mathf.Max(44, Ui.Tap) + 8 : 0;
+                if (!string.IsNullOrEmpty(_modalTitle)) Ui.Heading(new Rect(box.x + xw, box.y + 14, box.width - 2 * xw, 34), _modalTitle, 24, TextAnchor.MiddleCenter);
+                if (_modalClosable)
+                {
+                    // Info modals: the close X (48 dp) in the corner, and a tap outside the box closes it.
+                    float t = Mathf.Max(44, Ui.Tap);
+                    var x = new Rect(box.xMax - t - 4, box.y + 4, t, t);
+                    if (Ui.Button(x, "", Ui.Kind.Ghost)) { CloseModal(); return; }
+                    Icons.Draw(new Rect(x.center.x - 9, x.center.y - 9, 18, 18), Icon.Close, Palette.Text);
+                    var e = Event.current;
+                    if (e.type == EventType.MouseDown && !box.Contains(e.mousePosition)) { CloseModal(); e.Use(); return; }
+                }
                 _modalBody?.Invoke(new Rect(box.x + 16, box.y + 56, box.width - 32, box.height - 72));
             }
             _toasts.RemoveAll(t => t.until < Time.unscaledTime);
             float y = Ui.Safe.yMax - 120;
             for (int i = _toasts.Count - 1; i >= 0; i--)
             {
-                float tw = Mathf.Min(Ui.W - 60, 620);
-                var r = new Rect(Ui.W / 2 - tw / 2, y, tw, 36);
+                float tw = UiLayout.ToastWidth(safe.width);
+                var r = new Rect(safe.center.x - tw / 2, y, tw, 36);
                 Ui.Panel(r, new Color(0, 0, 0, 0.85f), Palette.Line, 10);
                 Ui.Text(r, _toasts[i].text, 13, Palette.Text, FontStyle.Normal, TextAnchor.MiddleCenter, true);
                 y -= 42;

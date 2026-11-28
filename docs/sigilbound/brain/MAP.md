@@ -4,15 +4,15 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 
 | System | What it covers | Lessons |
 |---|---|---|
-| hero-models | GLBs, rigs, weights, meshes, materials | L002 L003 L004 L008 L010 L018 L019 L022 L023 L024 L025 |
+| hero-models | GLBs, rigs, weights, meshes, materials | L002 L003 L004 L008 L010 L018 L019 L022 L023 L024 L025 L026 |
 | animation | clips, retargeting, Animation/Animator | L002 L003 L022 |
 | rig-runtime | RigExtras, DigitigradeLegs, SpringBones, CreatureRig | L002 L003 L015 L022 |
 | titan | Titan model, clips, TitanSpec, TitanBody | L003 L022 |
 | art-pipeline | Gemini, cut-out, fal TRELLIS, artgen | L009 L012 |
 | character-td | per-frame visual review method | L008 L018 L019 |
-| build-pipeline | prepare-models, compress, credits, KTX2, LOD1 | L001 L007 L010 L023 L024 L025 |
+| build-pipeline | prepare-models, compress, credits, KTX2, LOD1 | L001 L007 L010 L024 L025 L026 |
 | tests | Tests~, CompileCheck, gates | L001 L013 |
-| ci | workflow, smoke gate, queue, artifacts | L004 L005 L016 L025 |
+| ci | workflow, smoke gate, queue, artifacts | L004 L005 L016 L026 |
 | qa | in-house tester, checklists | L004 L016 |
 | scenes | campaign scenery, cameras | L004 |
 | balance | curves, pools, roles, probes | L006 L020 |
@@ -20,7 +20,7 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 | ui | IMGUI, shared components, overlays | L011 L017 |
 | arena | ArenaReactor, effects | L015 |
 | platform | Windows/Android specifics | L021 |
-| licensing | credits, licences | L007 L025 |
+| licensing | credits, licences | L007 L026 |
 | docs | changelog, PLAN, roadmap | L013 |
 | process | who pushes, approvals | L014 |
 | tooling | keys, scripts | L012 |
@@ -37,9 +37,10 @@ graph LR
   L003 --> L004
   L001[L001 stale models] --> L007[L007 credits overwrite]
   L001 --> L010[L010 mesh fix not in game]
-  L016 --> L023[L023 glTFast skin is vertex data]
-  L023 --> L024[L024 LOD1 as kept vertices]
-  L001 --> L025[L025 KTX2 textures]
+  L010 --> L023[L023 missing maps fall back to shader defaults]
+  L016 --> L024[L024 glTFast skin is vertex data]
+  L024 --> L025[L025 LOD1 as kept vertices]
+  L023 --> L026[L026 KTX2 textures]
   L006[L006 Act II pool] --> L020[L020 balance ripples]
   L008[L008 frames vs averages] --> L019[L019 tight face locks]
   L008 --> L018

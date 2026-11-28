@@ -33,8 +33,9 @@ static class RenderTests
         // Layout: allies on the near arc, enemies on the far arc, 2.2 m apart, facing the centre.
         var allies = Enumerable.Range(0, 4).Select(i => BattleLayout.Slot(true, i, 4)).ToArray();
         var foes = Enumerable.Range(0, 3).Select(i => BattleLayout.Slot(false, i, 3)).ToArray();
-        bool rim = allies.Concat(foes).All(p => Math.Abs(Math.Pow((p.X - BattleLayout.RimCx) / BattleLayout.RimRx, 2) + Math.Pow((p.Z - BattleLayout.RimCz) / BattleLayout.RimRz, 2) - 1) < 1e-9);
-        check(rim && allies.All(p => p.Z < BattleLayout.RimCz) && foes.All(p => p.Z > BattleLayout.RimCz), "units stand on the rune-circle rim: allies near side, enemies far side");
+        // Inside the rim now (art review M1): each footprint wholly within the circle (BattleVisualsTests covers every size).
+        bool rim = allies.Concat(foes).All(p => BattleLayout.InsideRim(p, BattleLayout.FootR));
+        check(rim && allies.All(p => p.Z < BattleLayout.RimCz) && foes.All(p => p.Z > BattleLayout.RimCz), "units stand inside the rune circle: allies near side, enemies far side");
         double gap = (allies[1] - allies[0]).Length;
         check(gap > 2.1 && gap < 2.3 && Math.Abs(allies[0].X + allies[3].X) < 1e-9, $"neighbours ~2.2 m apart along the arc (chord {gap:0.00} m), rows centred");
         double yaw = BattleLayout.FacingCentreYaw(BattleLayout.Slot(true, 0, 1));

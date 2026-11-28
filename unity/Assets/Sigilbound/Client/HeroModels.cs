@@ -610,6 +610,8 @@ namespace Sigilbound.Client
         static float _lastUnload = -100f;
 
         // On every high-detail figure: tells the cache when the figure is gone.
+        // True for a high-detail hero instance (built by BuildHd).
+        public static bool IsHd(Transform holder) => holder != null && holder.GetComponentInChildren<HdRef>(true) != null;
         sealed class HdRef : MonoBehaviour
         {
             public string Key;
@@ -803,9 +805,18 @@ namespace Sigilbound.Client
             // Metal reflection for the accessory metal maps (hd_materials.py); never on the Titan (its mask R is the
             // crystal ridges), off on Low quality (SetLowDetail).
             if (mat.HasProperty("_EnvStrength")) mat.SetFloat("_EnvStrength", titan || _lowDetail ? 0f : EnvStrength);
-            // The Hollow look (half desaturated, pulled halfway toward deep violet) is the shader's _Hollow switch: it used
-            // to be a 1M-pixel loop over a readable copy of the albedo, which a GPU-compressed map doesn't have.
-            if (hollow) { mat.name += "_Hollow"; if (mat.HasProperty("_Hollow")) mat.SetFloat("_Hollow", 1f); }
+            if (hollow)
+            {
+                mat.name += "_Hollow";
+                // The Hollow look (half desaturated, pulled halfway toward deep violet) is the shader's _Hollow switch: it used
+                // to be a 1M-pixel loop over a readable copy of the albedo, which a GPU-compressed map doesn't have.
+                if (mat.HasProperty("_Hollow")) mat.SetFloat("_Hollow", 1f);
+                // The speckles (art review M2): the hero's glow mask and its normal map, recoloured red on a near-black
+                // body, broke into scattered pink pixels. A Hollow copy has no glow mask and smooth normals (so its red
+                // rim is one soft band); HollowLook adds the outline and eyes instead.
+                if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", Color.black);
+                if (mat.HasProperty("_BumpScale")) mat.SetFloat("_BumpScale", 0f);
+            }
             NormalMapOn(mat);
             return mat;
         }
@@ -928,6 +939,14 @@ namespace Sigilbound.Client
                         if (mask != null) { maskTex = new Texture2D(gw, gh, TextureFormat.RGBA32, true, true); maskTex.SetPixels32(mask); maskTex.Apply(true, true); }
                         tMask = sw.Elapsed.TotalMilliseconds;
                     }
+                }
+                // No glow and no metal map (30 image-to-3D heroes): still a mask. Without one the shader's default _MaskMap
+                // is white = metal 1, smoothness 1 everywhere, which drew those heroes dark and metallic with sparkling
+                // specks on fur and cloth (in-house report build 190: Fennick, Brega, Holt).
+                if (maskTex == null && albTex != null)
+                {
+                    maskTex = new Texture2D(4, 4, TextureFormat.RGBA32, false, true);
+                    maskTex.SetPixels32(MaskFromGlow(null, 4, 4)); maskTex.Apply(false, true);
                 }
                 if (albTex == null) { Debug.LogWarning($"Sigilbound: the high-detail {id} has no albedo"); gltf.Dispose(); foreach (var t in new[] { nrmTex, maskTex }) if (t != null) UnityEngine.Object.Destroy(t); yield break; }
                 Mesh full = null, lodMesh = null;
@@ -1199,7 +1218,11 @@ namespace Sigilbound.Client
             anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
             // Creature rig extensions (tail, jaw, longer neck, digitigrade legs, wing bones; kit_rig.py):
             // re-apply this hero's rest-pose changes over the humanoid clips and drive the extra bones.
-            bool rigExt = RigExtras.Needed(holder);
+            // Not on a Titan with its own clips (titan_moves.py): they are authored on its own rest pose and its aliases
+            // cover every clip the battle asks for, so there is nothing to re-express; the rest fix running in the frames
+            // before its first clip (or on bones its clips don't key) only bent it (in-house build 190: a mangled Titan).
+            bool ownTitanClips = spec != null && spec.Clips == "embedded" && bk.Gltf.GetAnimationClips() is AnimationClip[] tc && tc.Length > 0;
+            bool rigExt = RigExtras.Needed(holder) && !ownTitanClips;
             if (rigExt) root.AddComponent<RigExtras>().Init(holder, lib.Prototype, anim);
             // Digitigrade legs (animal-folk; blenderforge/i3d_legs.py): the hero's own baked leg clips, layered
             // over the shared clips of the same name on the legs only.

@@ -86,6 +86,24 @@ namespace Sigilbound.Client
                 Go(s);
                 yield return Shot(s.ToString().ToLowerInvariant());
             }
+            // Sub-screens the UI/UX consistency review could only read from code: hero detail, equip, the Titan,
+            // dungeons, the arena and its team setup (the arena opens at stage 12: pretend for these shots).
+            if (G.S.heroes.Count > 0)
+            {
+                _heroUid = G.S.heroes[0].uid; Go(ScreenId.Hero);
+                yield return Shot("hero");
+                _slot = GameData.Slot.Weapon; Go(ScreenId.Equip);
+                yield return Shot("equip");
+            }
+            int keepTrials = G.S.cleared; G.S.cleared = System.Math.Max(G.S.cleared, Trials.ArenaUnlock);
+            foreach (var s in new[] { ScreenId.Titan, ScreenId.Dungeon, ScreenId.ArenaPvp })
+            {
+                Go(ScreenId.Trials); Go(s);
+                yield return Shot(s == ScreenId.ArenaPvp ? "arena" : s.ToString().ToLowerInvariant());
+            }
+            var shotRivals = G.CurrentRivals();
+            if (shotRivals.Count > 0) { OpenArenaPrep(shotRivals[0]); yield return Shot("prep-arena"); }
+            G.S.cleared = keepTrials;
             // The campaign map with chapter 1's stage list open (stop names, enemy chips, the gear chance).
             Go(ScreenId.Campaign); _chapterOpen = 0;
             yield return Shot("campaign-stages");
@@ -226,9 +244,9 @@ namespace Sigilbound.Client
             G.S.settings.auto = true; G.S.settings.speed = 1;
             Battle.Begin(BattleSpec.TitanPractice());
             yield return new WaitForSecondsRealtime(1.6f);
-            yield return Shot("titan-intro");
+            yield return Shot("titan-intro"); LogTitanBounds("titan-intro");
             yield return new WaitForSecondsRealtime(4f);
-            for (int i = 1; i <= 6 && Battle.InProgress; i++) { yield return Shot($"titan-{i}"); LogBudget($"titan-{i}"); yield return new WaitForSecondsRealtime(3.2f); }
+            for (int i = 1; i <= 6 && Battle.InProgress; i++) { yield return Shot($"titan-{i}"); LogBudget($"titan-{i}"); LogTitanBounds($"titan-{i}"); yield return new WaitForSecondsRealtime(3.2f); }
 
             ShotLog($"DONE {_shotCount}");
             Application.Quit(0);
@@ -356,6 +374,33 @@ namespace Sigilbound.Client
                            : top > 1.8f ? "stretched up" : wide > 2.8f ? "stretched sideways" : null;
                 ShotLog($"SBBOUNDS {id} head={hy:0.00}/{hx:0.00} top={top:0.00} tall={tall:0.00} wide={wide:0.00} " + (why == null ? "ok" : "BAD " + why));
             }
+        }
+
+        // The Titan's pose in each Titan shot (in-house report on build 190: its limbs stretched into sheets and it
+        // hovered spread-eagled while skinned>0 still passed). "SBBOUNDS titan-<shot> ..." in units of its head height
+        // (TitanSpec.Head), measured from the figure's feet (it flies with them in a leap). Its own clips, baked and
+        // measured in titan_moves.py, keep the head 0.59-1.08 high and within 0.47 sideways, the mesh top under 1.74
+        // and its width under 1.85; the bind (T) pose is 2.65 wide. BAD past head 0.4-1.3 / 0.8, top 2.3 or wide 2.6.
+        void LogTitanBounds(string shot)
+        {
+            var v = Battle != null ? Battle.TitanView : null;
+            if (v == null || v.Hero == null || v.Hero.Root == null) { ShotLog($"SBBOUNDS {shot} BAD no Titan figure"); return; }
+            var root = v.Hero.Root.transform; var feet = v.transform.position;
+            float H = Mathf.Max(0.5f, (float)TitanSpec.Current.Head);
+            bool any = false; var bb = new Bounds(feet, Vector3.zero);
+            foreach (var r in root.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if (!r.enabled) continue;
+                if (!any) { bb = r.bounds; any = true; } else bb.Encapsulate(r.bounds);
+            }
+            if (!any) { ShotLog($"SBBOUNDS {shot} BAD no skinned mesh"); return; }
+            var head = BodyShaper.Find(root, TitanSpec.Current.HeadBone);
+            float hy = head != null ? (head.position.y - feet.y) / H : 0.8f;
+            float hx = head != null ? new Vector2(head.position.x - feet.x, head.position.z - feet.z).magnitude / H : 0f;
+            float top = (bb.max.y - feet.y) / H, wide = Mathf.Max(bb.size.x, bb.size.z) / H;
+            string why = hy < 0.4f ? "head on the ground" : hy > 1.3f ? "head too high" : hx > 0.8f ? "head off the body"
+                       : top > 2.3f ? "stretched up" : wide > 2.6f ? "stretched sideways or bind pose" : null;
+            ShotLog($"SBBOUNDS {shot} head={hy:0.00}/{hx:0.00} top={top:0.00} wide={wide:0.00} " + (why == null ? "ok" : "BAD " + why));
         }
 
         IEnumerator Shot(string name)

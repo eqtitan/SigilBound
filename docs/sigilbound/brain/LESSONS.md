@@ -23,15 +23,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Evidence: commits 411e789, 4fd5a8a; docs/sigilbound/qa/inhouse-2026-11-28-f7ddd6b.md; RIGGING.md "Runtime pitfall (build 180)"
 
 ## L003 - Titan mangled by its own clips (build 190)
-- Status: open
+- Status: solved
 - Systems: titan, animation, rig-runtime
 - Symptom: limbs stretched into sheets/spikes in every Titan shot; 42 Titan tests and the smoke gate passed.
-- Cause: suspected same family as L002 (own clips + shared clips + RigExtras); confirm in a real build.
-- Fix: in progress (fix/titan-runtime); fallback = shared clip set.
-- Prevention: add the Titan to the SBBOUNDS guard; the skeleton-library rebuild (L022) removes the patch layer.
+- Cause: the L002 family. The Titan carries the `rest_fit` marker, so it got RigExtras, whose rest fix re-expresses shared clips for moved joints. Its own clips (blenderforge/titan_moves.py) are authored on its own rest pose and need no fix; run in the frames before its first clip (BuildHd yields between RigExtras.Init and the first Play) and on bones its clips don't key, the fix compounded every frame. glTFast pre-adding the GLB's clips (L002) was in play too. Not isolated: main's 108bacd build (ClearClips + the LastR guard alone) was cancelled by the queue, so it's unproven whether that alone was enough.
+- Fix: fix/titan-runtime (58ae756, on top of 108bacd): HeroModels gives a Titan with its own clips no RigExtras at all (`ownTitanClips`). Run 203 (dispatch of the branch): all 7 Titan shots compact and hunched, SBBOUNDS titan-* all ok (head 0.97-1.05, top <= 1.82, wide <= 2.02).
+- Prevention: SBBOUNDS titan-<shot> in ShotsMode (intro + 6 shots; BAD past head 0.4-1.3 / 0.8 sideways, top 2.3 or wide 2.6: the baked clips stay under 1.85 wide, the bind pose is 2.65) and unity-smoke-check.sh fails on a BAD line or a missing Titan check; TitanMechanicsTests asserts the RigExtras skip and the guard. The skeleton-library rebuild (L022) removes the patch layer.
 - Related: L002, L004, L016, L022
-- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md
-
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; run 46114432755 (#203) sigilbound-unity-smoke 78-titan-intro..84-titan-6
 ## L004 - Offline previews are not the game
 - Status: solved
 - Systems: ci, qa, hero-models, scenes
@@ -93,14 +92,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Evidence: odo/marrow/poppy redos
 
 ## L010 - In-place mesh fixes didn't reach the game
-- Status: open
-- Systems: hero-models, build-pipeline
-- Symptom: specks around Fennick, Brega, Holt and Nell still visible in build 190 after the "removed" fix shipped.
-- Cause: unknown - investigate whether prepare-models/compress-hd re-derives from another source or another file is loaded.
-- Fix: in progress (fix/ctd-roster-3).
-- Prevention: verify mesh fixes in a real build's gallery shots, not only on the patched file.
-- Related: L001, L004
-- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md
+- Status: solved
+- Systems: hero-models, build-pipeline, materials
+- Symptom: specks around Fennick, Brega, Holt and Nell still visible in build 190 after the "removed" fix shipped; a "stray prop" in front of Tansy.
+- Cause: the mesh fix DID ship (the shipped GLBs carry 117/299/204/175 degenerate triangles where the islands were), but the islands were not what the tester saw. (1) The specks were material: heroes with no _glow PNG and no _mat PNG got no mask texture, so the shader's default white _MaskMap made them metal 1 / smoothness 1 everywhere - dark, metallic, sparkling on noisy fur (30 image-to-3D heroes). (2) Nell's "loose piece" is her own scythe blade resting on the ground in the crouching idle. (3) The prop in front of Tansy is Obrecht's 1.7 m pick, held mid-haft and pointing forward from the next gallery slot.
+- Fix: HeroModels always builds a mask (neutral when there is no glow/metal map); Obrecht's pick turned in the hand (blenderforge/prop_turn.py); Nell idles with Idle_Loop. fix/ctd-roster-3.
+- Prevention: before fixing a tester's visual report, reproduce it in a real build's gallery shot (CI smoke artifact) and identify the exact pixels; offline previews must use the game's material inputs (mask defaults included). See L004.
+- Related: L001, L004, L023
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; CI smoke artifact of run 46107643548 (gallery-10); scratchpad ctd/smoke190/maskproof.png
 
 ## L011 - GUI.depth across scripts is unreliable
 - Status: solved
@@ -222,32 +221,42 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Related: L002, L003, L018
 - Evidence: owner message 2026-11-28
 
-## L023 - glTFast skin weights are vertex data, not BoneWeight1
+## L023 - Missing texture inputs fall back to shader defaults
+- Status: solved
+- Systems: materials, hero-models
+- Symptom: some heroes looked dark, metallic and speckled; others with the same shader looked fine.
+- Cause: optional per-hero maps (_glow, _mat) were only turned into a mask when present; with neither, the material kept the shader's default "white" _MaskMap = full metal and smoothness. Every new optional input needs a neutral fallback.
+- Fix: neutral mask always built (metal 0, AO 1, glow 0, smoothness 90/255).
+- Prevention: when adding a map or shader property, check what the default texture means for heroes that lack the file.
+- Related: L010
+- Evidence: fix/ctd-roster-3 commit c52e108
+
+## L024 - glTFast skin weights are vertex data, not BoneWeight1
 - Status: solved
 - Systems: hero-models, build-pipeline
 - Symptom: first LOD1 build: LOD1 heroes lay flat and Hollow enemies vanished in the smoke tour (run 195); tests, compile checks and "skinned>0" all passed.
 - Cause: HeroModels.BuildLodMesh rebuilt the mesh with GetBonesPerVertex/GetAllBoneWeights, which returned nothing for glTFast meshes (glTFast writes BlendWeight/BlendIndices into the vertex buffer), so the LOD mesh had bind poses but no skin and drew in the rig's unrotated space.
 - Fix: copy each kept vertex's raw bytes stream by stream with Mesh.AcquireReadOnlyMeshData / AllocateWritableMeshData in the full mesh's own layout; refuse a result without BlendIndices (commit 8e4b8b1).
 - Prevention: never rebuild a glTFast mesh attribute by attribute; copy vertex streams. Judge LOD/mesh changes from real smoke frames (L004); the SBBOUNDS guard (L016) covers gallery heroes at Ultra (full mesh), not LOD1 Hollow enemies, so look at a battle shot too.
-- Related: L004, L016, L024
+- Related: L004, L016, L025
 - Evidence: runs 46111046415 (broken, shot 61-battle-mid) and the rerun after 8e4b8b1; docs/sigilbound/APK_SIZE.md
 
-## L024 - A full LOD1 GLB per hero does not fit the APK; triangle soups don't simplify
+## L025 - A full LOD1 GLB per hero does not fit the APK; triangle soups don't simplify
 - Status: decision
 - Systems: hero-models, build-pipeline
 - Symptom: meshoptimizer LOD1 at 45% triangles still gzipped to ~63% of the full GLB (~45 MB for 158 heroes, APK over 190 MB); 38 image-to-3D heroes stayed at 100% triangles.
 - Cause: vertex data dominates the GLB and LOD1 keeps ~57% of the vertices; the image-to-3D meshes are flat-shaded triangle soups (no shared vertices), so every edge is an attribute seam meshopt won't collapse without Permissive (which would put other faces' normals/UVs on triangles).
 - Fix: ship LOD1 as kept-vertex ids plus new triangles over the shipped mesh ("SBL1", Core/HdLod.cs, ~60 KB per hero, 6.8 MB total), built at load from the full mesh; soups and the Titan keep the full mesh (index_lod1.txt lists who has one).
 - Prevention: HeroTextureLodTests checks every LOD1 against its full mesh (counts, first triangle, skin) and the triangle ratio (30-60%); LOD must be computed from the snapped mesh that ships.
-- Related: L023, L001
+- Related: L024, L001
 - Evidence: commit 6a7b51a; docs/sigilbound/APK_SIZE.md "Hero textures as KTX2 and LOD1 meshes"
 
-## L025 - KTX2 hero textures: sizes, encode time and measuring them
+## L026 - KTX2 hero textures: sizes, encode time and measuring them
 - Status: solved
 - Systems: build-pipeline, ci, hero-models
 - Symptom: GPU-compressed hero maps were assumed to cost +65 MB of APK (ASTC estimate) and were never shipped; a first timing of the KTX load showed ~0 ms because the work runs in async continuations.
 - Cause: raw ASTC/ETC is ~4x a JPEG, but Basis ETC1S (supercompressed) is JPEG-sized (albedo +6%, normals +7%, prebuilt UASTC mask +0.2 MB); the WASM encoder takes ~3.5 min for 414 maps on 4 threads; KTX for Unity creates and uploads the texture in a continuation outside the caller's stopwatch.
-- Fix: prepare-models encodes with ktx2-encoder (MIT; Basis Apache-2.0) on worker threads, cached by input hash in Tools~/models/.ktx-cache (CI actions/cache, restore-keys so only changed maps re-encode); runtime KTX for Unity 3.7.1 (Apache-2.0) via SB_KTX; main-thread time measured with a SynchronizationContext wrapper (HeroModels.TimedContext). 768 px maps are fine (multiple of 4, not power of two). Hollow tint moved to the shader (_Hollow), since compressed maps have no CPU pixels.
+- Fix: prepare-models encodes with ktx2-encoder (MIT; Basis Apache-2.0) on worker threads, cached by input hash in Tools~/models/.ktx-cache (CI actions/cache, restore-keys so only changed maps re-encode); runtime KTX for Unity 3.7.1 (Apache-2.0) via SB_KTX; main-thread time measured with a SynchronizationContext wrapper (HeroModels.TimedContext). 768 px maps are fine (multiple of 4, not power of two). Hollow tint moved to the shader (_Hollow), since compressed maps have no CPU pixels. Heroes with no glow or metal map ship no mask file and get the neutral 4x4 mask at load (L023).
 - Prevention: HeroTextureLodTests (valid KTX2, full mips, no JPEG/PNG shipped); the smoke check fails on "KTX2 map not loaded" or a refused LOD1; SBPERF hd lines name the GPU formats and MB per hero.
-- Related: L001, L005, L007
+- Related: L001, L005, L007, L023
 - Evidence: commit 6a7b51a; smoke run 46111046415 (192 KTX2 loads, ETC2_RGB / ETC_RGB4 / ASTC_4x4, 1.38 MB per hero)

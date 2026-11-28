@@ -42,8 +42,7 @@ namespace Sigilbound.Client
             float content = _relH; // measured on the previous frame
             _rpScroll = Scroller.Begin(view, _rpScroll, content);
             float y = 8;
-            if (Ui.Button(new Rect(Pad, y, RosterLayout.BackW, T), "‹ Heroes", Ui.Kind.Secondary, 13)) OpenPanel(RosterPanel.None);
-            Ui.Banner(new Rect(Pad + RosterLayout.BackW + 8, y, RW - RosterLayout.BackW - 8, T), "Release Heroes", 18);
+            if (Ui.ScreenHeader(new Rect(Pad, y, RW, T), "Release Heroes")) OpenPanel(RosterPanel.None);
             y += T + 6;
             Ui.Text(new Rect(Pad, y, RW, 34), "Pick a preset or set your own. Locked heroes and your team are never picked.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             y += 38;
@@ -144,12 +143,15 @@ namespace Sigilbound.Client
             Ui.Text(new Rect(x, y, 40, T), label, 12, Palette.Dim);
             x += 40;
             int i = System.Array.FindLastIndex(LevelSteps, s => s <= value);
-            if (Ui.Button(new Rect(x, y, T, T), "−", Ui.Kind.Secondary, 18, value > lo)) value = Mathf.Max(lo, i > 0 && LevelSteps[i] == value ? LevelSteps[i - 1] : LevelSteps[Mathf.Max(0, i)]);
+            // Drawn minus and plus (no glyphs in labels: design rule 10).
+            if (Ui.Button(new Rect(x, y, T, T), "", Ui.Kind.Secondary, 18, value > lo)) value = Mathf.Max(lo, i > 0 && LevelSteps[i] == value ? LevelSteps[i - 1] : LevelSteps[Mathf.Max(0, i)]);
+            Icons.Draw(new Rect(x + T / 2 - 8, y + T / 2 - 8, 16, 16), Icon.Minus, value > lo ? Palette.Hex("#f3e3c3") : Ui.DisabledText);
             x += T;
             Ui.Panel(new Rect(x + 2, y + 4, T - 4, T - 8), Palette.Well, Palette.Bronze, 8);
             Ui.Text(new Rect(x, y, T, T), value.ToString(), 14, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
             x += T;
-            if (Ui.Button(new Rect(x, y, T, T), "+", Ui.Kind.Secondary, 18, value < hi)) value = Mathf.Min(hi, i + 1 < LevelSteps.Length ? LevelSteps[i + 1] : hi);
+            if (Ui.Button(new Rect(x, y, T, T), "", Ui.Kind.Secondary, 18, value < hi)) value = Mathf.Min(hi, i + 1 < LevelSteps.Length ? LevelSteps[i + 1] : hi);
+            Icons.Draw(new Rect(x + T / 2 - 8, y + T / 2 - 8, 16, 16), Icon.Plus, value < hi ? Palette.Hex("#f3e3c3") : Ui.DisabledText);
             x += T;
             return value;
         }
@@ -186,7 +188,7 @@ namespace Sigilbound.Client
                 else AskPresetName();
             }
             bool any = plan.Release.Count > 0;
-            if (Ui.Button(new Rect(Pad + sw + 8, by, RW - sw - 8, T), any ? $"Review {plan.Release.Count} ›" : "Nothing matches", Ui.Kind.Primary, 15, any)) { OpenPanel(RosterPanel.Review); }
+            if (Ui.Button(new Rect(Pad + sw + 8, by, RW - sw - 8, T), any ? $"Review {plan.Release.Count} \u25B6" : "Nothing matches", Ui.Kind.Primary, 15, any)) { OpenPanel(RosterPanel.Review); }
         }
 
         void SavePresetInto(int idx, string name)
@@ -223,7 +225,7 @@ namespace Sigilbound.Client
                 float T = RosterLayout.Tap;
                 Ui.Text(new Rect(b.x, b.y, b.width, 40), $"\"{name}\" will be removed. Safe clean-up becomes the active preset.", 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
                 if (Ui.Button(new Rect(b.x, b.yMax - T, b.width / 2 - 5, T), "Cancel", Ui.Kind.Secondary)) CloseModal();
-                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - T, b.width / 2 - 5, T), "Delete", Ui.Kind.Red))
+                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - T, b.width / 2 - 5, T), "Delete", Ui.Kind.Danger))
                 {
                     var prefs = G.S.roster;
                     if (idx < prefs.presets.Count) prefs.presets.RemoveAt(idx);
@@ -248,8 +250,7 @@ namespace Sigilbound.Client
             var view = new Rect(area.x, area.y, area.width, area.height - footH);
             _rpScroll = Scroller.Begin(view, _rpScroll, content);
             float y = 8;
-            if (Ui.Button(new Rect(Pad, y, RosterLayout.BackW, T), "‹ Filters", Ui.Kind.Secondary, 13)) OpenPanel(RosterPanel.Release);
-            Ui.Banner(new Rect(Pad + RosterLayout.BackW + 8, y, RW - RosterLayout.BackW - 8, T), "Review", 18);
+            if (Ui.ScreenHeader(new Rect(Pad, y, RW, T), "Review")) OpenPanel(RosterPanel.Release);
             y += T + 8;
 
             // What you get, before anything happens.
@@ -290,7 +291,7 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(Pad, by, bw, T), "Back", Ui.Kind.Secondary, 14)) OpenPanel(RosterPanel.Release);
             var rr = new Rect(Pad + bw + 8, by, RW - bw - 8, T);
             bool any = plan.Release.Count > 0;
-            bool go = plan.Risky ? HoldButton(rr, $"Hold to release {plan.Release.Count}", "release", any) : Ui.Button(rr, $"Release {plan.Release.Count}", Ui.Kind.Red, 15, any);
+            bool go = plan.Risky ? HoldButton(rr, $"Hold to release {plan.Release.Count}", "release", any) : Ui.Button(rr, $"Release {plan.Release.Count}", Ui.Kind.Danger, 15, any);
             if (go) DoRelease(plan);
         }
 
