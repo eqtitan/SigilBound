@@ -84,9 +84,10 @@ namespace Sigilbound.Client
 
             // Level range: steppers (a slider thumb is too small to drag on a phone).
             Section(new Rect(Pad, y, RW, RosterLayout.LabelH), $"Level  ·  Lv {_relF.minLevel} – {_relF.maxLevel}"); y += RosterLayout.LabelH;
+            // Both steppers on one row when they fit (40 + 3 taps each); with big phone taps "To" goes below.
             float x = Pad;
             _relF.minLevel = Stepper(ref x, y, "From", _relF.minLevel, 1, _relF.maxLevel);
-            x += 12;
+            if (2 * (40 + 3 * T) + 12 <= RW) x += 12; else { x = Pad; y += T + G6; }
             _relF.maxLevel = Stepper(ref x, y, "To", _relF.maxLevel, _relF.minLevel, ReleaseFilter.MaxLevelAll);
             y += T + RosterLayout.RowGap;
 
