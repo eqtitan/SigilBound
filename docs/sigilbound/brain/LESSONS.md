@@ -7,7 +7,7 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Systems: build-pipeline, tests
 - Symptom: model-pack test failed locally ("snapping moves vertices 1780/16384") right after a merge; a script pushed anyway.
 - Cause: StreamingAssets/Models held models prepared before the merge; tests compare prepared files with sources. The push was chained on a grep's exit code, not on the test result.
-- Fix: run `cd unity/Tools~/models && node prepare-models.mjs` before tests; push only when the LAST test line is exactly "All checks passed." and every CompileCheck says 0 errors.
+- Fix: run `cd unity/Tools~/models && node prepare-models.mjs` before tests; push only when the LAST test line is exactly "All checks passed." and every CompileCheck says 0 errors.; in a fresh checkout run `npm ci --no-audit --no-fund` in unity/Tools~/models first (prepare-models fails with ERR_MODULE_NOT_FOUND otherwise), and check the APK-budget test no longer says "not prepared here (skipped)"
 - Prevention: every agent brief and the in-house tester require prepare-models first and a last-line check.
 - Related: L007
 - Evidence: commit b5a8401 (merge), re-run showed all checks passed
@@ -30,7 +30,7 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Fix: fix/titan-runtime (58ae756, on top of 108bacd): HeroModels gives a Titan with its own clips no RigExtras at all (`ownTitanClips`). Run 203 (dispatch of the branch): all 7 Titan shots compact and hunched, SBBOUNDS titan-* all ok (head 0.97-1.05, top <= 1.82, wide <= 2.02).
 - Prevention: SBBOUNDS titan-<shot> in ShotsMode (intro + 6 shots; BAD past head 0.4-1.3 / 0.8 sideways, top 2.3 or wide 2.6: the baked clips stay under 1.85 wide, the bind pose is 2.65) and unity-smoke-check.sh fails on a BAD line or a missing Titan check; TitanMechanicsTests asserts the RigExtras skip and the guard. The skeleton-library rebuild (L022) removes the patch layer.
 - Related: L002, L004, L016, L022
-- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; run 46114432755 (#203) sigilbound-unity-smoke 78-titan-intro..84-titan-6
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; run 46114432755 (#203) sigilbound-unity-smoke 78-titan-intro..84-titan-6; build 207 (8610b2b) tours at 1280x720, 2400x1080, 1080x2400, 1024x768 show a coherent Titan in every shot (docs/sigilbound/qa/evidence/8610b2b/titan-now-2400-1024.jpg) - likely fixed by the L002 clip-clearing; keep open until confirmed on a phone and the Titan is in the SBBOUNDS guard
 ## L004 - Offline previews are not the game
 - Status: solved
 - Systems: ci, qa, hero-models, scenes
@@ -92,14 +92,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Evidence: odo/marrow/poppy redos
 
 ## L010 - In-place mesh fixes didn't reach the game
-- Status: open
-- Systems: hero-models, build-pipeline
-- Symptom: specks around Fennick, Brega, Holt and Nell still visible in build 190 after the "removed" fix shipped.
-- Cause: unknown - investigate whether prepare-models/compress-hd re-derives from another source or another file is loaded.
-- Fix: in progress (fix/ctd-roster-3).
-- Prevention: verify mesh fixes in a real build's gallery shots, not only on the patched file.
-- Related: L001, L004
-- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md
+- Status: solved
+- Systems: hero-models, build-pipeline, materials
+- Symptom: specks around Fennick, Brega, Holt and Nell still visible in build 190 after the "removed" fix shipped; a "stray prop" in front of Tansy.
+- Cause: the mesh fix DID ship (the shipped GLBs carry 117/299/204/175 degenerate triangles where the islands were), but the islands were not what the tester saw. (1) The specks were material: heroes with no _glow PNG and no _mat PNG got no mask texture, so the shader's default white _MaskMap made them metal 1 / smoothness 1 everywhere - dark, metallic, sparkling on noisy fur (30 image-to-3D heroes). (2) Nell's "loose piece" is her own scythe blade resting on the ground in the crouching idle. (3) The prop in front of Tansy is Obrecht's 1.7 m pick, held mid-haft and pointing forward from the next gallery slot.
+- Fix: HeroModels always builds a mask (neutral when there is no glow/metal map); Obrecht's pick turned in the hand (blenderforge/prop_turn.py); Nell idles with Idle_Loop. fix/ctd-roster-3.
+- Prevention: before fixing a tester's visual report, reproduce it in a real build's gallery shot (CI smoke artifact) and identify the exact pixels; offline previews must use the game's material inputs (mask defaults included). See L004.
+- Related: L001, L004, L023
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; CI smoke artifact of run 46107643548 (gallery-10); scratchpad ctd/smoke190/maskproof.png; still visible in build 207 (8610b2b): Nell piece, Holt speck, Fennick specks (docs/sigilbound/qa/evidence/8610b2b/fragments-nell-fennick-holt-brega.jpg)
 
 ## L011 - GUI.depth across scripts is unreliable
 - Status: solved
@@ -221,7 +221,67 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Related: L002, L003, L018
 - Evidence: owner message 2026-11-28
 
-## L023 - Humanoid retargeting works with glTFast heroes: bake in the editor, avatar at runtime
+## L023 - Missing texture inputs fall back to shader defaults
+- Status: solved
+- Systems: materials, hero-models
+- Symptom: some heroes looked dark, metallic and speckled; others with the same shader looked fine.
+- Cause: optional per-hero maps (_glow, _mat) were only turned into a mask when present; with neither, the material kept the shader's default "white" _MaskMap = full metal and smoothness. Every new optional input needs a neutral fallback.
+- Fix: neutral mask always built (metal 0, AO 1, glow 0, smoothness 90/255).
+- Prevention: when adding a map or shader property, check what the default texture means for heroes that lack the file.
+- Related: L010
+- Evidence: fix/ctd-roster-3 commit c52e108
+
+## L024 - A green main run can publish no APK
+- Status: solved
+- Systems: ci, qa
+- Symptom: run 207 (8610b2b) showed linux-preview and windows green and unity-preview updated, but the android job was cancelled after 3 minutes and publish-android skipped; testers stayed on build 190.
+- Cause: queue concurrency (L005) cancelled the waiting android job when newer pushes and dispatches arrived; the preview job still ran.
+- Fix: the tester checks publish-android's result and the unity-latest build number, not only "the preview names the commit".
+- Prevention: in-house reports state which APK build testers actually have; the lead re-runs or waits for the next main build before announcing.
+- Related: L005, L016
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-8610b2b.md, run 207 jobs
+
+## L025 - Headless tours run at 96 dpi
+- Status: solved
+- Systems: qa, ui
+- Symptom: a 56 dp "Larger tap targets" overflow in the portrait battle row (build 190) never showed in any tour, even with the option seeded.
+- Cause: Ui.Dp scales by Screen.dpi/160; the xvfb player reports 96 dpi, so every dp size sits at its unit floor and density bugs are invisible.
+- Fix: check dp layouts by arithmetic at real densities (1080 px wide, 400-480 dpi, 390-unit portrait canvas) when reading the code; the portrait row now wraps (8610b2b).
+- Prevention: tester definition 5c; a rule test that lays out the HUD rows at 56 dp and 480 dpi would catch it for good.
+- Related: L016, L017
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md (bug 4)
+
+## L026 - Tours share one PlayerPrefs file
+- Status: solved
+- Systems: qa, tests
+- Symptom: tours were not independent (changelog-seen and Act II intro flags carried over); accessibility options had no tour switch.
+- Cause: the Linux player keeps PlayerPrefs in ~/.config/unity3d/unknown/unknown/prefs, shared by every run on the machine; the tour only resets the save.
+- Fix: for a settings tour, back up the file, add sb.textSize, sb.palette (base64 string), sb.flash, sb.reduceMotion, sb.bigTaps, run tools/unity-shots.sh, restore the file.
+- Prevention: a -sbPrefs flag or a seeding option in tools/unity-shots.sh (suggested); until then the tester restores the file after every seeded run.
+- Related: L004, L025
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md, docs/sigilbound/qa/inhouse-2026-11-28-8610b2b.md (a11y-1080x2400 tours)
+
+## L027 - The preview can change between tour sizes
+- Status: solved
+- Systems: qa, ci
+- Symptom: the f7ddd6b portrait tour would have downloaded a newer commit's preview; three sizes take about 20 minutes and main moves faster.
+- Cause: tools/unity-shots.sh downloads unity-preview at the start of each run and every main build replaces it.
+- Fix: re-read the preview notes before each size and stop if they changed; a newer commit that only touches unity/Tools~ (not built) is the same game and may stand in, said so in the report.
+- Prevention: the tester's tour loop checks the notes per size (tours/<sha>/run-*.txt record it).
+- Related: L005, L024
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-f7ddd6b.md (portrait run on 35ea51d)
+
+## L028 - Painted plates hide card text after shared-skin changes
+- Status: open
+- Systems: ui, qa
+- Symptom: build 207 team-setup hero cards (prep and arena prep, every landscape size and 1024x768) have the painted chip frame drawn over the name, level and power; the stage row button reads "TEA / M".
+- Cause: the shared selected/chip skin and 48 dp sizing (UI consistency pass) are applied to cards and short buttons whose text area is smaller than the plate's painted border.
+- Fix: open - give cards a plain panel with the gold rim, or inset text by the plate's border; allow one-line labels to shrink-to-fit.
+- Prevention: UxRulesTests check sizes, not paint; keep a tour shot of prep and the stage list in every gate and compare with the last report.
+- Related: L017, L011
+- Evidence: docs/sigilbound/qa/evidence/8610b2b/prep-card-frames-cover-text.jpg
+
+## L029 - Humanoid retargeting works with glTFast heroes: bake in the editor, avatar at runtime
 - Status: solved
 - Systems: animation, rig-runtime, hero-models, ci
 - Symptom: the skeleton-library plan needed Humanoid (muscle-space) clips for heroes loaded at runtime by glTFast, with no FBX pipeline and no AnimatorController authoring at runtime.
@@ -231,12 +291,12 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Related: L022, L002, L004
 - Evidence: run 208 (player.log SBHUMAN lines), feat/skeleton-library commits c483bc0, docs/sigilbound/art/SKELETON_LIBRARY.md
 
-## L024 - A screenshot tour step inherits the previous step's running battle
+## L030 - A screenshot tour step inherits the previous step's running battle
 - Status: solved
 - Systems: ci, qa
 - Symptom: the first pilot tour (run 208) photographed the Titan practice fight 600 times instead of the pilot heroes, and the smoke check still passed.
 - Cause: ShotsMode's Titan step leaves its practice battle running (the loop ends on a shot count, not on Battle.End); the battle camera and its cinematics overrode the tour's camera, and the tour's heroes stood off-screen.
 - Fix: the pilot tour calls Battle.End first and re-applies its camera override before every frame.
 - Prevention: a new tour step starts from a known screen (end any battle, close modals); judge the real frames, not just the log lines (L004, L016).
-- Related: L004, L016
+- Related: L004, L016, L025
 - Evidence: run 208 smoke artifact (pilot-*.jpg), ShotsMode.PilotTour

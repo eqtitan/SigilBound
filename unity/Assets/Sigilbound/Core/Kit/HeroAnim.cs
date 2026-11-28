@@ -47,6 +47,8 @@ namespace Sigilbound.Core
             ["lumen"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
             // tower shield: Punch_Cross sweeps the sword through the shield
             ["hask"] = new ClipOverride { Strike = new[] { "Sword_Attack" } },
+            // big scythe: the crouching idle laid its blade on the ground by her feet (in-house report build 190)
+            ["nell"] = new ClipOverride { Idle = "Idle_Loop" },
         };
         public static IDictionary<string, string> HdAliasesFor(string heroId)
         {

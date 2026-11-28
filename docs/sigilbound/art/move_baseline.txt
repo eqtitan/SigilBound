@@ -1,0 +1,2 @@
+# Accepted per-move findings (ShotsMode.MoveChecks, tools/unity-smoke-check.sh): "<hero> <clip>" per line.
+# Add a line only after looking at the frames and deciding the move is right as it is (say why in a comment).
