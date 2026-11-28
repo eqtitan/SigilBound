@@ -76,8 +76,10 @@ namespace Sigilbound.Client
             Sound.Create(this);
             Battle = gameObject.AddComponent<BattleController>();
             Battle.App = this;
-            Online = gameObject.AddComponent<Online>();
+#if !SB_STORE
+            Online = gameObject.AddComponent<Online>(); // Friends and chat (not in Play Store builds for v1)
             Online.App = this;
+#endif
             Screen = G.S.started ? ScreenId.Home : ScreenId.Intro;
             _firstLaunch = !G.S.started; // no save yet: What's New waits for the next update (PopupQueue)
             if (_firstLaunch) MarkChangelogSeen();
@@ -193,6 +195,9 @@ namespace Sigilbound.Client
 
         public void Go(ScreenId s)
         {
+#if SB_STORE
+            if (FriendsScreen(s)) s = ScreenId.Home; // no Friends screens in Play Store builds (v1)
+#endif
             if (s != Screen && ManyWaysIn(s) && TabRoot(Screen)) _cameFrom[s] = Screen;
             if (s != Screen) HeroModels.TrimSoon(); // let go of hero models the new screen doesn't show
             Screen = s; _scroll = Vector2.zero; CloseModal();
@@ -204,6 +209,7 @@ namespace Sigilbound.Client
             Scroller.Tick();
             if (Input.GetKeyDown(KeyCode.Escape)) Back(); // Android back button
             if (Screen != ScreenId.Battle) UpdateLineup();
+            if (Arena != null) Arena.MenuShift = Screen == ScreenId.Home && Ui.Landscape && !_shotNoUi && _shotLineup == null ? _homeShiftX : 0f;
             if (Screen == ScreenId.Hero && !ModalOpen) UpdateHeroViewer();
             CheckPopups();
             UpdatePower();
@@ -306,11 +312,13 @@ namespace Sigilbound.Client
                     want = h == null ? new List<(HeroDef, Element)>() : new List<(HeroDef, Element)> { (GameData.Hero(h.id), GameData.Hero(h.id).Element) };
                     gear = new List<GearLook> { G.GearLookOf(h) };
                     scale = 1.5f; single = true; break;
+#if !SB_STORE
                 case ScreenId.FriendProfile:
                     var fr = Online.Friend(_friendId);
                     want = fr?.profile?.heroes == null ? new List<(HeroDef, Element)>()
                         : fr.profile.heroes.Where(x => GameData.Hero(x.id) != null).Take(4).Select(x => (GameData.Hero(x.id), GameData.Hero(x.id).Element)).ToList();
                     break;
+#endif
                 case ScreenId.Chat: case ScreenId.Blocked:
                     want = new List<(HeroDef, Element)>(); break;
                 case ScreenId.Intro:
@@ -418,10 +426,12 @@ namespace Sigilbound.Client
                 case ScreenId.Trials: DrawTrials(content); break;
                 case ScreenId.Dungeon: DrawDungeon(content); break;
                 case ScreenId.ArenaPvp: DrawArenaPvp(content); break;
+#if !SB_STORE
                 case ScreenId.Friends: DrawFriends(content); break;
                 case ScreenId.FriendProfile: DrawFriendProfile(content); break;
                 case ScreenId.Chat: DrawChat(content); break;
                 case ScreenId.Blocked: DrawBlocked(content); break;
+#endif
             }
             DrawNav(new Rect(0, bottom - 64, Ui.W, 64 + (Ui.H - bottom)));
             Tutorial.Draw(this, bottom - 64); // first-time guide (new saves only)
@@ -464,13 +474,51 @@ namespace Sigilbound.Client
             if (Screen == ScreenId.Campaign && Ui.Landscape) DrawCampaignSwitches(new Rect(x + 12, bar.y + 4, menuHit.x - x - 24, bar.height - 8));
         }
 
+        // The bottom nav's tabs, in order (the tutorial points at Home 0, Battle 1, Heroes 2 and Summon 3). Play Store
+        // builds (SB_STORE) have no Friends tab for v1 (owner decision 2026-11-28: the server isn't live); the other
+        // five share the band (UiLayout.NavCell), in both orientations.
+        public static readonly (ScreenId id, string label, Icon icon)[] NavItems =
+        {
+            (ScreenId.Home, "Home", Icon.Home), (ScreenId.Modes, "Battle", Icon.Sword), (ScreenId.Heroes, "Heroes", Icon.Helm),
+            (ScreenId.Summon, "Summon", Icon.Portal), (ScreenId.Trials, "Trials", Icon.Tower),
+#if !SB_STORE
+            (ScreenId.Friends, "Friends", Icon.Friends),
+#endif
+        };
+        public static bool FriendsScreen(ScreenId s) => s == ScreenId.Friends || s == ScreenId.FriendProfile || s == ScreenId.Chat || s == ScreenId.Blocked;
+
         // Cells of the bottom nav: a centred band (at most 560 wide) inside the safe area, the same on every screen.
         public static Rect NavCell(int i, float top)
         {
             var sc = Ui.SafeContent(8);
             float w = Ui.Landscape ? Mathf.Min(sc.width, 560) : Ui.W;
             float x0 = Ui.Landscape ? sc.center.x - w / 2 : 0;
-            return new Rect(x0 + i * w / 6f, top, w / 6f, 64);
+            var b = UiLayout.NavCell(i, NavItems.Length, x0, w, top);
+            return new Rect(b.X, b.Y, b.W, b.H);
+        }
+
+        // Friends: the profile push after a win, the tab's tap and badge. Nothing in Play Store builds.
+        public void PushProfile()
+        {
+#if !SB_STORE
+            Online.PushProfile();
+#endif
+        }
+        void NavGo(ScreenId id)
+        {
+#if !SB_STORE
+            if (id == ScreenId.Friends) { OpenFriends(); return; }
+#endif
+            Go(id);
+        }
+        int NavBadge(ScreenId id)
+        {
+            if (id == ScreenId.Home) return HomeBadge();
+            if (id == ScreenId.Trials) return G.TrialsBadge();
+#if !SB_STORE
+            if (id == ScreenId.Friends && Online.SignedIn) return Online.Unread.messages + Online.Unread.requests;
+#endif
+            return 0;
         }
 
         void DrawNav(Rect r)
@@ -478,23 +526,22 @@ namespace Sigilbound.Client
             // Stone bar with a gold edge and a glowing active tab (style.css .nav).
             GUI.DrawTexture(new Rect(Ui.Left, r.y, Ui.FullW, r.height), Ui.GradientTex(Palette.CardAlt, Palette.Well, null, 2));
             Ui.GoldRule(new Rect(Ui.Left, r.y, Ui.FullW, 1));
-            var items = new (ScreenId id, string label, Icon icon)[] { (ScreenId.Home, "Home", Icon.Home), (ScreenId.Modes, "Battle", Icon.Sword), (ScreenId.Heroes, "Heroes", Icon.Helm), (ScreenId.Summon, "Summon", Icon.Portal), (ScreenId.Trials, "Trials", Icon.Tower), (ScreenId.Friends, "Friends", Icon.Friends) };
+            var items = NavItems;
             for (int i = 0; i < items.Length; i++)
             {
                 var cell = NavCell(i, r.y); float w = cell.width;
                 var it = items[i];
                 bool on = Screen == it.id || (it.id == ScreenId.Home && Screen == ScreenId.Achievements) || (it.id == ScreenId.Modes && (Screen == ScreenId.Campaign || Screen == ScreenId.Prep)) || (it.id == ScreenId.Heroes && (Screen == ScreenId.Hero || Screen == ScreenId.Equip))
                     || ((Screen == ScreenId.Titan || Screen == ScreenId.Dungeon || Screen == ScreenId.ArenaPvp) && it.id == CameFrom(Screen, ScreenId.Trials)) // the tab it was opened from
-                    || (it.id == ScreenId.Friends && (Screen == ScreenId.FriendProfile || Screen == ScreenId.Chat || Screen == ScreenId.Blocked));
-                if (Ui.Button(cell, "", Ui.Kind.Ghost)) { if (it.id == ScreenId.Friends) OpenFriends(); else Go(it.id); }
+                    || (it.id == ScreenId.Friends && FriendsScreen(Screen));
+                if (Ui.Button(cell, "", Ui.Kind.Ghost)) NavGo(it.id);
                 if (on) { Ui.Round(new Rect(cell.x + 6, r.y + 4, w - 12, 56), new Color(0.95f, 0.77f, 0.36f, 0.12f), null, 12); Ui.GoldRule(new Rect(cell.x + w * 0.22f, r.y + 1, w * 0.56f, 2)); }
                 var tint = on ? Palette.Gold : Palette.Hex("#c4b89f"); // inactive labels 9:1 on the bar (art review H5: they were under 3:1 at phone size)
                 // Painted nav icons (dimmed when not selected) with the skin on; drawn ones without.
                 string pn = it.id == ScreenId.Home ? "home" : it.id == ScreenId.Modes ? "sword" : it.id == ScreenId.Heroes ? "helm" : it.id == ScreenId.Summon ? "portal" : it.id == ScreenId.Trials ? "tower" : "heart";
                 if (!Icons.Painted(new Rect(cell.x + w / 2 - 15, r.y + 4, 30, 30), pn, on ? 1f : 0.55f)) Icons.Draw(new Rect(cell.x + w / 2 - 12, r.y + 8, 24, 24), it.icon, tint);
                 Ui.FitText(new Rect(cell.x + 1, r.y + 34, w - 2, 22), it.label, 12, tint); // shrinks to its cell at any text size
-                int badge = it.id == ScreenId.Home ? HomeBadge() : it.id == ScreenId.Trials ? G.TrialsBadge()
-                    : it.id == ScreenId.Friends && Online.SignedIn ? Online.Unread.messages + Online.Unread.requests : 0;
+                int badge = NavBadge(it.id);
                 Ui.Badge(new Vector2(cell.x + w / 2 + 22, r.y + 16), badge); // the one red badge (blue on Trials before)
             }
         }

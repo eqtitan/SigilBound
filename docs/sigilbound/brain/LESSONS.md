@@ -272,14 +272,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Evidence: docs/sigilbound/qa/inhouse-2026-11-28-f7ddd6b.md (portrait run on 35ea51d)
 
 ## L028 - Painted plates hide card text after shared-skin changes
-- Status: open
+- Status: solved
 - Systems: ui, qa
-- Symptom: build 207 team-setup hero cards (prep and arena prep, every landscape size and 1024x768) have the painted chip frame drawn over the name, level and power; the stage row button reads "TEA / M".
-- Cause: the shared selected/chip skin and 48 dp sizing (UI consistency pass) are applied to cards and short buttons whose text area is smaller than the plate's painted border.
-- Fix: open - give cards a plain panel with the gold rim, or inset text by the plate's border; allow one-line labels to shrink-to-fit.
-- Prevention: UxRulesTests check sizes, not paint; keep a tour shot of prep and the stage list in every gate and compare with the last report.
-- Related: L017, L011
-- Evidence: docs/sigilbound/qa/evidence/8610b2b/prep-card-frames-cover-text.jpg
+- Symptom: build 207 team-setup hero cards (prep and arena prep, every landscape size, 1024x768 and portrait) have the painted chip frame drawn over the name, level and power; the stage row button reads "TEA / M".
+- Cause: (1) the UI consistency pass gave in-team cards the ChipOn look via `Ui.Plate`, which paints the `button_chipon` art as a 9-slice scaled to the card's height; that art's crown ornaments sit in the stretched middle column (outside the declared 33/36 px borders), so on a 48-unit card they smear into gold bands across the top and bottom thirds, exactly where the two text lines were placed at fixed offsets (r.y+2, r.y+24) with no reference to the frame. The preset chips had the same two-line problem. (2) "TEAM ▶": the 88-unit button left a 28-unit label room after the plate inset and the arrow, `ButtonPx` never shrinks at the Default text size (top == floor), and the button style had word wrap on, so Unity broke inside the word.
+- Fix: branch fix/ui-regressions (PLAN 122). Cards use the small card frame (`Ui.CardFrame`, `UiLayout.CardFrameK`) plus the shared selected mark, and lay out from `UiLayout.HeroCard` inside `UiLayout.FrameInner` (skin.txt 9-slice borders x `UiLayout.FrameScale`, which `Skin.DrawFrame` now uses too). One-word and arrow labels are drawn without wrap and shrink to fit (`Ui.OneLinePx`: to 11 points, then sans); the stage Team button is 108 wide. Same pass: compact Home (camera shift, full-height column) and gear rows (name on its own line).
+- Prevention: lay text out against the frame's content rect from Core arithmetic, never at fixed offsets from the outer rect; chip plates only for one-line labels; UxRulesTests "L028" checks card text inside the inner rect at 640/1067/1422 and portrait, one-line labels and the Team button's label room. Keep a tour shot of prep and the stage list in every gate and compare with the last report (UxRulesTests check sizes, not paint).
+- Related: L017, L011, L025
+- Evidence: docs/sigilbound/qa/evidence/8610b2b/prep-card-frames-cover-text.jpg, docs/sigilbound/qa/inhouse-2026-11-28-8610b2b.md (bugs 1-4), branch fix/ui-regressions
 
 ## L029 - Parallel branches take the same lesson and PLAN step ids
 - Status: solved
@@ -300,7 +300,17 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Prevention: agents push a WIP branch as soon as they start (push their own branch only, L014); PMO checks `gh run list -w "Sigilbound Unity" -b main` for the last completed main build before reporting what testers have; after a hotfix for a NO-GO build, hold other merges and dispatches until main's build publishes.
 - Related: L005, L014
 - Evidence: git ls-remote --heads origin (2026-11-28 07:00); Actions runs 191-208 cancelled, 209/210 running
-## L031 - Humanoid retargeting works with glTFast heroes: bake in the editor, avatar at runtime
+
+## L031 - The recommended store package name was already one of our app ids
+- Status: open
+- Systems: platform, process
+- Symptom: READINESS and ROADMAP recommended `com.sigilbound.game` for the Play app "so it sits beside the tester app", and the owner chose it; only while wiring it did the comment in ProjectSetup.cs show it is also the old Capacitor web-wrapper app's id (`mobile/`, release `android-latest`, signed with the committed test key).
+- Cause: the review compared the store id only with the Unity tester id (`com.sigilbound.unity`) and never grepped the repo for other apps (`mobile/android/app/build.gradle`, `capacitor.config.json`). Android refuses to install an app over one with the same id and a different signing key.
+- Fix: kept the owner's permanent choice (feat/store-config, PLAN step 123); READINESS item 5, PLAY_CONSOLE and ROADMAP now say to uninstall the old Capacitor app before installing from Play, and suggest retiring or re-iding `android-latest` before the closed test.
+- Prevention: before recommending an app id, grep the whole repo (`grep -rn "com\.sigilbound\." --include=*.gradle --include=*.json --include=*.cs`) and list every app that already uses it.
+- Related: L030
+- Evidence: mobile/android/app/build.gradle (applicationId "com.sigilbound.game"); unity/Assets/Sigilbound/Editor/ProjectSetup.cs; docs/sigilbound/store/READINESS.md item 5
+## L032 - Humanoid retargeting works with glTFast heroes: bake in the editor, avatar at runtime
 - Status: solved
 - Systems: animation, rig-runtime, hero-models, ci
 - Symptom: the skeleton-library plan needed Humanoid (muscle-space) clips for heroes loaded at runtime by glTFast, with no FBX pipeline and no AnimatorController authoring at runtime.
@@ -310,7 +320,7 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Related: L022, L002, L004
 - Evidence: run 208 (player.log SBHUMAN lines), feat/skeleton-library commits c483bc0, docs/sigilbound/art/SKELETON_LIBRARY.md
 
-## L032 - A screenshot tour step inherits the previous step's running battle
+## L033 - A screenshot tour step inherits the previous step's running battle
 - Status: solved
 - Systems: ci, qa
 - Symptom: the first pilot tour (run 208) photographed the Titan practice fight 600 times instead of the pilot heroes, and the smoke check still passed.

@@ -64,6 +64,7 @@ namespace Sigilbound.Client
         // ready count); a tab opens its card in a sheet under the team's feet; the button stays pinned above the nav.
         public static Rect HomeCta; // where "Continue Campaign" is (the tutorial points at it)
         Vector2 _homeLeftScroll, _homeSheetScroll;
+        float _homeShiftX; // compact landscape Home: the menu camera's sideways shift (Arena.MenuShift)
         int _homeTab = -1; // portrait: the open card (0 login, 1 quests, 2 achievements), -1 none
 
         static Rect R(URect r) => new Rect((float)r.X, (float)r.Y, (float)r.W, (float)r.H);
@@ -142,16 +143,19 @@ namespace Sigilbound.Client
             var cta = Ui.ToRect(L.Cta);
             HomeContinue(cta);
             float chipsH = Mathf.Max(44, Ui.Tap);
+            // Compact: the menu camera slides so the team stands in the space left of the column (Core/HomeLayout).
+            _homeShiftX = L.Compact ? (float)HomeLayout.ShiftFor((L.Team.CenterX - Ui.Left) / Ui.FullW, Ui.FullW / Ui.H) : 0f;
             if (L.Compact)
             {
-                // Everything in one scrolling column above the pinned button.
+                // One full-height column on the right edge: login, achievements, quests, the help chips (it scrolls
+                // only on screens shorter than a 1024x768 window).
                 var col = Ui.ToRect(L.Left);
-                float content = 74 + QuestsHeight + 10 + 68 + chipsH + 8;
+                float content = UiLayout.HomeColumnH(DailyQuests.Length, chipsH);
                 _homeLeftScroll = Scroller.Begin(col, _homeLeftScroll, content);
-                float cy = 0;
-                LoginCard(new Rect(0, cy, col.width, 64)); cy += 74;
-                QuestsCard(new Rect(0, cy, col.width, QuestsHeight)); cy += QuestsHeight + 10;
-                AchievementsCard(new Rect(0, cy, col.width, 58)); cy += 68;
+                float cy = 0, g = UiLayout.HomeGap;
+                LoginCard(new Rect(0, cy, col.width, UiLayout.LoginH)); cy += UiLayout.LoginH + g;
+                AchievementsCard(new Rect(0, cy, col.width, UiLayout.AchievementsH)); cy += UiLayout.AchievementsH + g;
+                QuestsCard(new Rect(0, cy, col.width, QuestsHeight)); cy += QuestsHeight + g;
                 HomeChips(new Rect(0, cy, col.width, chipsH));
                 Scroller.End();
                 if (content > col.height + 1) ScrollFade(col, _homeLeftScroll.y, content);
@@ -176,7 +180,7 @@ namespace Sigilbound.Client
         }
 
         string HomeSubtitle() => $"Campaign {G.S.cleared}/{TotalStages} · {G.S.heroes.Count} heroes · {G.S.wins} wins";
-        float QuestsHeight => 40 + DailyQuests.Length * 50;
+        float QuestsHeight => UiLayout.QuestsH(DailyQuests.Length);
 
         void HomeContinue(Rect r)
         {
@@ -213,7 +217,7 @@ namespace Sigilbound.Client
                 string label = claimed ? "Done" : done ? "Claim" : $"{p}/{q.Goal}";
                 if (Ui.Button(new Rect(r.xMax - bw - 12, qy + 24 - bh / 2, bw, bh), label, Ui.Kind.Primary, 13, done && !claimed))
                 { var rw = G.ClaimQuest(q.Id); if (rw != null) { Save(); Sound.I?.Play("coin"); Toast("Quest complete: " + rw); } }
-                qy += 50;
+                qy += UiLayout.QuestRowH;
             }
         }
 
@@ -300,7 +304,8 @@ namespace Sigilbound.Client
             var heroes = SortedHeroes().Where(h => _prepFilter == null || Hero(h.id).Element == _prepFilter).ToList();
             float tap = Mathf.Max(44, Ui.Tap);
             float wavesH = waves == null ? 0 : waves.Count * 40 + 4;
-            float content = 300 + wavesH + tap * 2 + 70 + Mathf.Ceil(heroes.Count / 2f) * 58;
+            float cardH = UiLayout.CardH(tap);
+            float content = 300 + wavesH + tap * 2 + 70 + Mathf.Ceil(heroes.Count / 2f) * (cardH + 8);
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;
             if (Ui.ScreenHeader(new Rect(Pad, y, Ui.W - Pad * 2, tap), PrepTitle())) GoBack();
@@ -343,13 +348,9 @@ namespace Sigilbound.Client
             for (int i = 0; i < heroes.Count; i++)
             {
                 var h = heroes[i]; var t = Hero(h.id);
-                var r = new Rect(Pad + (i % 2) * (cw + 8), y + (i / 2) * 58, cw, 50);
+                var r = new Rect(Pad + (i % 2) * (cw + 8), y + (i / 2) * (cardH + 8), cw, cardH);
                 bool inTeam = G.S.team.Contains(h.uid);
-                TeamPickCard(r, inTeam);
-                Ui.RarityTab(r, t.Rarity, 14); // rarity as a letter too, not only the frame colour (UX review #4)
-                float px = Portraits.Thumb(new Rect(r.x + 6, r.y + 6, 38, 38), t.Id, Palette.Rarity(t.Rarity)) ? 46 : 0; // the face, when there is one
-                Ui.Text(new Rect(r.x + px + 10, r.y + 4, r.width - px - 20, 22), t.ShortName + (inTeam ? $"  #{G.S.team.IndexOf(h.uid) + 1}" : ""), 14, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + px + 10, r.y + 26, r.width - px - 20, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv {h.level} · {t.Element}", 12, Palette.Hex("#c9bda6"));
+                HeroPickCard(r, t, inTeam, inTeam ? G.S.team.IndexOf(h.uid) : -1, $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv {h.level} · {Ui.Fmt(G.Power(h))}");
                 if (Ui.Button(r, "", Ui.Kind.Ghost))
                 {
                     if (inTeam) G.S.team.Remove(h.uid);
@@ -361,12 +362,19 @@ namespace Sigilbound.Client
             Scroller.End();
         }
 
-        // A hero card in a team picker: in the team it takes the one "selected" look (gold rim, wash, underline and
-        // check: Ui.Kind.ChipOn), out of it the small painted card. Design rule 4.
-        static void TeamPickCard(Rect r, bool inTeam)
+        // A hero card in a team picker (landscape and portrait team setup): the small card frame, in the team the one
+        // "selected" mark (gold rim and wash, underline, check; design rule 4), and the face, element, name and the
+        // stars, level and power line inside the frame's content rect (Core/UiLayout.HeroCard; L028: the chip plate
+        // used before drew its crown ornaments over the name and power).
+        static void HeroPickCard(Rect r, HeroDef t, bool inTeam, int slot, string line)
         {
-            if (inTeam) Ui.Plate(r, Ui.Kind.ChipOn);
-            else Ui.SmallCard(r, Palette.Panel2, Palette.Bronze, 10);
+            Ui.CardFrame(r, inTeam, Palette.Rarity(t.Rarity));
+            Ui.RarityTab(r, t.Rarity, 14); // rarity as a letter too, not only the frame colour (UX review #4)
+            var c = Ui.HeroCardRects(r, Portraits.Get(t.Id) != null);
+            if (c.Face.W > 0) Portraits.Thumb(Ui.ToRect(c.Face), t.Id, Palette.Rarity(t.Rarity));
+            Ui.ElementBadge(Ui.ToRect(c.Badge), t.Element);
+            Ui.Text(Ui.ToRect(c.Name), t.ShortName + (slot >= 0 ? $"  #{slot + 1}" : ""), 13, Palette.Text, FontStyle.Bold);
+            Ui.Text(Ui.ToRect(c.Line), line, 11, Palette.Hex("#c9bda6"));
         }
 
         // ---------- heroes ----------
@@ -493,7 +501,7 @@ namespace Sigilbound.Client
             var h = G.HeroByUid(_heroUid);
             if (h == null) { Go(ScreenId.Heroes); return; }
             var list = G.S.gear.Where(g => g.Slot == _slot).OrderByDescending(Game.GearScore).ToList();
-            float tap = Mathf.Max(44, Ui.Tap), rowH = 2 * tap + 14;
+            float tap = Mathf.Max(44, Ui.Tap), rowH = UiLayout.GearRowH(tap);
             float content = 80 + tap * 2 + list.Count * (rowH + 8) + 40;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;
@@ -508,21 +516,21 @@ namespace Sigilbound.Client
             if (list.Count == 0) Ui.Text(Row(ref y, 40), "Nothing for this slot yet. Clear campaign stages to find gear.", 13, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleLeft, true);
             foreach (var g in list)
             {
-                // Two 48 dp button rows on the right: Lock and Upgrade, then Sell and Equip (the Primary, last).
+                // Core/UiLayout.GearRow: the name on its own line across the row (at 1024x768 it ran under Lock), then
+                // the stats on the left beside two 48 dp button rows: Lock and Upgrade, Sell and Equip (the Primary, last).
                 var r = Row(ref y, rowH, 8);
                 var owner = G.GearOwner(g);
-                Ui.SmallCard(r, Palette.Panel2, Palette.GearRarity(g.rarity), 12);
-                float bw1 = 64, bw2 = 104, bx2 = r.xMax - bw2 - 8, bx1 = bx2 - bw1 - 6, tx = r.width - (bw1 + bw2 + 34);
-                Ui.Text(new Rect(r.x + 12, r.y + 6, tx, 20), $"{Ui.ColorTag(GearRarityNames[g.rarity], Palette.GearRarity(g.rarity))} {g.Set} {g.Slot} +{g.level}", 14, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + 12, r.y + 26, tx, 18), $"{SlotMainStat(g.Slot).ToString().ToUpper()} +{Game.GearMainValue(g)}", 13, Palette.Text);
-                Ui.Text(new Rect(r.x + 12, r.y + 44, tx, r.height - 48), string.Join(" · ", g.subs.Select(s => SkillText.StatName((Stat)s.stat, s.val))) + (owner != null ? $"\nOn {Hero(owner.id).ShortName}" : ""), 11, Palette.Hex("#c9bda6"), FontStyle.Normal, TextAnchor.UpperLeft, true);
+                Ui.CardFrame(r, false, Palette.GearRarity(g.rarity));
+                var L = UiLayout.GearRow(Ui.ToBox(r), Ui.CardBorder, tap);
+                Ui.Text(Ui.ToRect(L.Name), $"{Ui.ColorTag(GearRarityNames[g.rarity], Palette.GearRarity(g.rarity))} {g.Set} {g.Slot} +{g.level}", 14, Palette.Text, FontStyle.Bold);
+                Ui.Text(Ui.ToRect(L.Main), $"{SlotMainStat(g.Slot).ToString().ToUpper()} +{Game.GearMainValue(g)}", 13, Palette.Text);
+                Ui.Text(Ui.ToRect(L.Subs), string.Join(" · ", g.subs.Select(s => SkillText.StatName((Stat)s.stat, s.val))) + (owner != null ? $"\nOn {Hero(owner.id).ShortName}" : ""), 11, Palette.Hex("#c9bda6"), FontStyle.Normal, TextAnchor.UpperLeft, true);
                 int cost = Game.GearUpgradeCost(g);
-                float r1 = r.y + 5, r2 = r.y + 9 + tap;
-                if (g.level < GearMaxLevel && Ui.Button(new Rect(bx2, r1, bw2, tap), $"Up · {Ui.Fmt(cost)}", Ui.Kind.Secondary, 12, G.S.gold >= cost)) { if (G.UpgradeGear(g)) { Save(); Toast($"Upgraded to +{g.level}"); } }
-                if (Ui.Button(new Rect(bx1, r1, bw1, tap), g.locked ? "Locked" : "Lock", g.locked ? Ui.Kind.ChipOn : Ui.Kind.Chip, 11)) { g.locked = !g.locked; Save(); }
-                if (owner == null && !g.locked && Ui.Button(new Rect(bx1, r2, bw1, tap), "Sell", Ui.Kind.Danger, 11)) { int v = Game.GearSellValue(g); G.SellGear(g); Save(); Toast($"Sold for {Ui.Fmt(v)} gold"); }
-                if (owner != h && Ui.Button(new Rect(bx2, r2, bw2, tap), "Equip", Ui.Kind.Primary, 13)) { G.Equip(h, g); Save(); Go(ScreenId.Hero); }
-                else if (owner == h) Ui.Text(new Rect(bx2, r2, bw2, tap), "Equipped", 12, Palette.Good, FontStyle.Bold, TextAnchor.MiddleCenter);
+                if (g.level < GearMaxLevel && Ui.Button(Ui.ToRect(L.Up), $"Up · {Ui.Fmt(cost)}", Ui.Kind.Secondary, 12, G.S.gold >= cost)) { if (G.UpgradeGear(g)) { Save(); Toast($"Upgraded to +{g.level}"); } }
+                if (Ui.Button(Ui.ToRect(L.Lock), g.locked ? "Locked" : "Lock", g.locked ? Ui.Kind.ChipOn : Ui.Kind.Chip, 11)) { g.locked = !g.locked; Save(); }
+                if (owner == null && !g.locked && Ui.Button(Ui.ToRect(L.Sell), "Sell", Ui.Kind.Danger, 11)) { int v = Game.GearSellValue(g); G.SellGear(g); Save(); Toast($"Sold for {Ui.Fmt(v)} gold"); }
+                if (owner != h && Ui.Button(Ui.ToRect(L.Equip), "Equip", Ui.Kind.Primary, 13)) { G.Equip(h, g); Save(); Go(ScreenId.Hero); }
+                else if (owner == h) Ui.Text(Ui.ToRect(L.Equip), "Equipped", 12, Palette.Good, FontStyle.Bold, TextAnchor.MiddleCenter);
             }
             Scroller.End();
         }

@@ -40,6 +40,17 @@ namespace Sigilbound.Core
         public static float ModalWidth(float safeW, float max) => Math.Max(0, Math.Min(safeW - 32, max));
         public static float ToastWidth(float safeW) => Math.Max(0, Math.Min(safeW - 60, ToastMaxW));
 
+        // ---------- bottom nav ----------
+        // The tabs share the nav band equally, however many there are: six in tester builds, five in the Play Store
+        // build (no Friends for v1, SB_STORE). App.NavCell passes the band (portrait: the whole width; landscape:
+        // at most 560, centred in the safe area).
+        public const float NavH = 64;
+        public static Box NavCell(int i, int count, float bandX, float bandW, float top)
+        {
+            float w = count <= 0 ? 0 : bandW / count;
+            return new Box(bandX + i * w, top, w, NavH);
+        }
+
         // ---------- button rows (rule 3) ----------
         // Display order: Secondary and Danger in the order given, the Primary last.
         public static int[] RowOrder(IList<UiRole> roles)
@@ -137,21 +148,111 @@ namespace Sigilbound.Core
             return t;
         }
 
+        // ---------- painted card frames (L028) ----------
+        // A 9-slice frame's border widths in texture pixels (Resources/Skin/skin.txt: "name left top right bottom").
+        public readonly struct Border9
+        {
+            public readonly float L, T, R, B;
+            public Border9(float l, float t, float r, float b) { L = l; T = t; R = r; B = b; }
+        }
+        // The scale Skin.DrawFrame paints a frame's borders at in rect w x h: at most maxK, and shrunk on small rects
+        // so the corners never fold over each other. The client draws with this, the checks below measure with it.
+        public static float FrameScale(float w, float h, Border9 b, float maxK) =>
+            Math.Max(0, Math.Min(maxK, Math.Min(w / Math.Max(1, b.L + b.R), h / Math.Max(1, b.T + b.B)) * 0.85f));
+        // The content rect inside a frame drawn in r (around = false): r inset by the painted borders. Text and faces
+        // go in here, never on the border (build 207: the chip plate's crown ornaments covered the name and power).
+        public static Box FrameInner(Box r, Border9 b, float maxK)
+        {
+            float k = FrameScale(r.W, r.H, b, maxK);
+            float l = b.L * k, t = b.T * k, rr = b.R * k, bt = b.B * k;
+            return new Box(r.X + l, r.Y + t, Math.Max(0, r.W - l - rr), Math.Max(0, r.H - t - bt));
+        }
+        // Hero and preset cards use the small card frame (skin "card_small") at this scale: about a 9-unit border.
+        // The chip plates (button_chip, button_chipon) are for one-line labels only: their crown ornaments sit in the
+        // stretched middle column, so two lines of text always land on them.
+        public const float CardFrameK = 0.14f;
+        public static readonly Border9 CardSmallFallback = new Border9(64, 64, 64, 64);
+        public static float CardH(float tap) => Math.Max(56, tap + 8);
+
+        // A hero card in a team picker: the face at the left of the content rect, the element badge and the name on
+        // the first line, stars, level and power (or element) on the second; all inside the frame's content rect.
+        public struct CardRects { public Box Frame, Inner, Face, Badge, Name, Line; }
+        public const float RarityTabW = 16;
+        public static CardRects HeroCard(Box r, Border9 frame, bool face)
+        {
+            var c = new CardRects { Frame = r, Inner = FrameInner(r, frame, CardFrameK) };
+            var i = c.Inner;
+            // The face keeps 2 units clear inside the content rect (its rarity rim is drawn 2 units outside it).
+            float fs = face ? Math.Max(0, Math.Min(i.H - 4, 44)) : 0;
+            c.Face = new Box(i.X + 2, i.Y + (i.H - fs) / 2, fs, fs);
+            float x = i.X + (face ? fs + 8 : 2), lh = i.H / 2;
+            c.Badge = new Box(x, i.Y + (lh - 15) / 2, 15, 15);
+            // The rarity letter sits on the frame's top-right corner; the name keeps clear of it.
+            float nx = c.Badge.XMax + 4;
+            c.Name = new Box(nx, i.Y, Math.Max(0, Math.Min(i.XMax, r.XMax - RarityTabW - 4) - nx), lh);
+            c.Line = new Box(x, i.Y + lh, Math.Max(0, i.XMax - x), i.H - lh);
+            return c;
+        }
+        // The hero picker under the filter and sort chips (landscape team setup): two columns of cards when each
+        // keeps 160 units, else one.
+        public struct PickerGrid { public Box View; public int Cols; public float CardW, CardH, Gap; public Box Cell(int i) => new Box((i % Cols) * (CardW + Gap), (i / Cols) * (CardH + Gap), CardW, CardH); }
+        public const float PickCardMinW = 160;
+        public static PickerGrid Picker(Box picker, float tap)
+        {
+            float fy = picker.Y + 8 + tap + 4; // the filter chips, then the sort chips
+            var g = new PickerGrid { Gap = 6, View = new Box(picker.X + 6, fy + tap + 6, picker.W - 12, Math.Max(0, picker.YMax - fy - tap - 12)) };
+            g.Cols = (g.View.W - g.Gap) / 2 >= PickCardMinW ? 2 : 1;
+            g.CardW = (g.View.W - g.Gap * (g.Cols - 1)) / g.Cols;
+            g.CardH = CardH(tap);
+            return g;
+        }
+
+        // ---------- buttons: the label's room ----------
+        // How far a label keeps from a button's sides: the style's 6-unit padding plus the painted plate's rounded
+        // end (Ghost buttons have no plate). A trailing icon (" ▶") takes its size and a 4-unit gap.
+        public static float ButtonInset(float h, bool ghost = false) => ghost ? 6 : 6 + Math.Min(18, h * 0.3f);
+        public static float LabelRoom(Box button, bool tailIcon) => Math.Max(0, button.W - 2 * ButtonInset(button.H) - (tailIcon ? Math.Min(16, button.H * 0.36f) + 4 : 0));
+
+        // ---------- equipment rows ----------
+        // The item's name on its own line across the row (at 1024x768 the name ran under Lock), then the main stat
+        // and the sub-stats on the left beside two button rows on the right: Lock and Upgrade, Sell and Equip.
+        public struct GearRowRects { public Box Inner, Name, Main, Subs, Lock, Up, Sell, Equip; }
+        public const float GearNameH = 22, GearLockW = 64, GearUpW = 104;
+        public static float GearRowH(float tap) => GearNameH + 2 * tap + 4 + 2 + 2 * 10;
+        public static GearRowRects GearRow(Box r, Border9 frame, float tap)
+        {
+            var g = new GearRowRects { Inner = FrameInner(r, frame, CardFrameK) };
+            var i = g.Inner;
+            g.Name = new Box(i.X + 4, i.Y, Math.Max(0, i.W - 8), GearNameH);
+            float by = g.Name.YMax + 2, ux = i.XMax - GearUpW, lx = ux - GearLockW - 6;
+            g.Up = new Box(ux, by, GearUpW, tap); g.Lock = new Box(lx, by, GearLockW, tap);
+            g.Equip = new Box(ux, by + tap + 4, GearUpW, tap); g.Sell = new Box(lx, by + tap + 4, GearLockW, tap);
+            float tw = Math.Max(0, lx - 8 - (i.X + 4));
+            g.Main = new Box(i.X + 4, by + 2, tw, 18);
+            g.Subs = new Box(i.X + 4, g.Main.YMax + 2, tw, Math.Max(0, i.YMax - (g.Main.YMax + 2)));
+            return g;
+        }
+
         // ---------- Home (landscape) ----------
-        public struct HomeRects { public bool Compact; public Box Left, Right, Cta, Title; }
-        // Wide: quests on the left, login and the Continue button on the right, the team in 3D between. Compact:
-        // one column on the right with everything (Continue pinned at its foot), the title and team on the left.
+        public struct HomeRects { public bool Compact; public Box Left, Right, Cta, Title, Team; }
+        // Wide: quests on the left, login and the Continue button on the right, the team in 3D between. Compact
+        // (4:3 tablets, a 1024x768 window; in-house report build 207: the 360-unit column covered the third hero
+        // and Continue hid the Achievements card): one card column on the right edge (login, achievements, quests,
+        // the help chips) using the full height, the title, the team and Continue in the space on its left. The
+        // menu camera slides sideways so the team stands in that space (HomeLayout.ShiftFor).
         public static HomeRects Home(Box area, float tap, float fullW)
         {
             var h = new HomeRects { Compact = Compact(fullW) };
             float gap = 24, ctaH = Math.Max(60, tap + 10);
             if (h.Compact)
             {
-                float cw = Math.Min(360, area.W * 0.52f);
-                h.Right = new Box(area.XMax - gap - cw, area.Y + 20, cw, area.H - 28);
-                h.Cta = new Box(h.Right.X, h.Right.YMax - ctaH, cw, ctaH);
-                h.Left = new Box(h.Right.X, h.Right.Y, cw, h.Cta.Y - 10 - h.Right.Y);
-                h.Title = new Box(area.X + 8, area.Y + 4, h.Right.X - 16 - area.X, 40);
+                float cw = Math.Min(320, Math.Max(260, area.W * 0.4f));
+                h.Right = new Box(area.XMax - 16 - cw, area.Y + 8, cw, area.H - 12);
+                h.Left = h.Right; // the one scrolling column
+                h.Team = new Box(area.X, area.Y, Math.Max(0, h.Right.X - 12 - area.X), area.H);
+                float bw = Math.Min(360, h.Team.W - 32);
+                h.Cta = new Box(h.Team.CenterX - bw / 2, area.YMax - 8 - ctaH, bw, ctaH);
+                h.Title = new Box(area.X + 8, area.Y + 4, h.Team.W - 16, 40);
                 return h;
             }
             float colW = Math.Max(230, Math.Min(320, (area.W - 350) / 2));
@@ -159,10 +260,18 @@ namespace Sigilbound.Core
             h.Right = new Box(area.XMax - gap - colW, area.Y + 20, colW, area.H - 28);
             h.Cta = new Box(h.Right.X, h.Right.YMax - ctaH, colW, ctaH);
             h.Title = new Box(h.Left.XMax + 8, area.Y + 4, h.Right.X - h.Left.XMax - 16, 40);
+            h.Team = new Box(h.Left.XMax, area.Y, h.Right.X - h.Left.XMax, area.H);
             return h;
         }
+        // Home's cards: login 64 tall, achievements 58, quests 40 plus a 48-unit row each, 8 apart.
+        public const float LoginH = 64, AchievementsH = 58, QuestRowH = 48, HomeGap = 8;
+        public static float QuestsH(int quests) => 40 + quests * QuestRowH;
+        // The compact column's content: login, achievements, quests, then the help chips.
+        public static float HomeColumnH(int quests, float chipsH) => LoginH + HomeGap + AchievementsH + HomeGap + QuestsH(quests) + HomeGap + chipsH;
 
         // ---------- stage list row ----------
+        // The Team button fits "TEAM" and its arrow on one line (build 207 wrapped it to "TEA / M" at 88).
+        public const float StageButtonW = 108;
         public struct StageRowRects { public Box Label, Enemies, Gold, Shard, Gear, Button; public float EnemyW; }
         // Right to left: the Team button, the drops (gold, shards, then the gear chance if it fits), and the
         // enemies in what is left after the label, so the drops never run under the button.
@@ -171,7 +280,7 @@ namespace Sigilbound.Core
             var s = new StageRowRects();
             float lw = Math.Max(112, Math.Min(170, row.W * 0.25f));
             s.Label = new Box(row.X + 8, row.Y, lw - 8, row.H);
-            s.Button = new Box(row.XMax - 92, row.Y + 3, 88, row.H - 6);
+            s.Button = new Box(row.XMax - StageButtonW - 4, row.Y + 3, StageButtonW, row.H - 6);
             float right = s.Button.X - 6;
             if (shards) { s.Shard = new Box(right - 40, row.Y, 40, row.H); right = s.Shard.X - 4; }
             s.Gold = new Box(right - 60, row.Y, 60, row.H); right = s.Gold.X - 4;

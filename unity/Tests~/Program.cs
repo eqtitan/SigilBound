@@ -155,6 +155,7 @@ static class Program
         DigitigradeTests.Run(Check);
         RigLibraryTests.Run(Check);
         UpdaterTests.Run(Check);
+        StoreBuildTests.Run(Check);
         FrameRateTests.Run(Check);
         QuitRuleTests.Run(Check);
         UxTests.Run(Check);

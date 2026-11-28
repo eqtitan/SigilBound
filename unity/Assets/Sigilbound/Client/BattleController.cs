@@ -948,7 +948,7 @@ namespace Sigilbound.Client
             {
                 int stage = _spec.Stage;
                 var res = G.CompleteStage(stage); App.Save();
-                App.Online.PushProfile();
+                App.PushProfile();
                 if (ClimbResult(true, res.Reward, res.Gear != null ? 1 : 0, res.LevelUps)) return; // Auto Climb: the summary, or a countdown on the results
                 bool canNext = stage + 1 < TotalStages && G.S.cleared > stage;
                 bool replay = G.S.settings.autoReplay;
@@ -1009,7 +1009,7 @@ namespace Sigilbound.Client
                 return;
             }
             var res = G.CompleteHard(idx); App.Save();
-            App.Online.PushProfile();
+            App.PushProfile();
             if (ClimbResult(true, res.Reward, res.Gear != null ? 1 : 0, res.LevelUps)) return;
             int next = idx + 1; bool canNext = G.HardOpen(next);
             var spec = new ResultsSpec { Win = true, Mvp = true, Where = where, Reward = res.Reward, First = res.FirstClear, FirstText = "First Hard clear!", Ups = UpsOf(res.LevelUps) };

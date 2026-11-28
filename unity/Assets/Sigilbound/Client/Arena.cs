@@ -75,6 +75,7 @@ namespace Sigilbound.Client
         public Vector3 PosePosition => _posePos;
         public Quaternion PoseRotation => _poseRot;
 
+        public float MenuShift; float _menuShift; // metres, x right
         void ComposeCamera()
         {
             // Breathing tilt: eases toward the target in ~0.35 s (time-based, frame-rate independent).
@@ -82,6 +83,12 @@ namespace Sigilbound.Client
             float b = Mathf.SmoothStep(0, 1, _breath) * MotionScale;
             var pos = _posePos + Vector3.down * 0.7f * b - (_poseRot * Vector3.forward) * 0.6f * b;
             if (pos.y < 0.4f) pos.y = 0.4f;
+            // Compact landscape Home: the menu view slides sideways (eye and aim together) so the team stands clear of
+            // the card column (App sets MenuShift from Core/HomeLayout.ShiftFor; in-house report build 207).
+            // A battle view snaps back at once; Reduce motion snaps instead of sliding.
+            if (_framedBattle || _framedTitan) _menuShift = 0f;
+            else _menuShift = Access.ReduceMotion ? MenuShift : Mathf.MoveTowards(_menuShift, MenuShift, Time.deltaTime * 10f);
+            pos += Vector3.right * _menuShift;
             var rot = b > 0 && BreathFocus != Vector3.zero ? Quaternion.Slerp(_poseRot, Quaternion.LookRotation(BreathFocus - pos), 0.3f * b) : _poseRot;
             float fov = _poseFov;
             if (Access.ReduceMotion) ReducedOverride(ref pos, ref rot, ref fov);

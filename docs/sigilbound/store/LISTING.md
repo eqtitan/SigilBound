@@ -18,17 +18,16 @@ The Sigil has shattered. Gather a team of champions and fight to restore it.
 - **A story campaign**: two acts and 15 chapters, each a journey through its own place (a drowned mill, a leaning bell tower, glass deserts, a storm coast), stage by stage to the boss's lair. Every lair is revealed with a cinematic arrival and reacts to the fight: bells toll, pyres roar, lightning strikes the Hollow King's throne.
 - **Real battle sound and music**: armour that clangs like armour, stereo hits, a growling Titan, and battle, boss and coastal themes.
 - **More to play**: Hard mode at night, Dungeons, Arena rivals, daily quests and achievements.
-- **Friends and chat**: add friends by code, compare teams and chat. Optional.
 - **Plays offline**. No ads. No purchases.
 
 ## Content rating (IARC questionnaire answers)
 - Violence: fantasy violence against fantasy characters, no blood or gore. Expected rating: PEGI 7 / ESRB Everyone 10+.
-- Users can interact (chat with friends added by code); messages can be reported and players blocked.
+- Users can't interact: the store build has no Friends or chat for v1 (owner decision 2026-11-28). Answer yes, with reporting and blocking, once Friends ships.
 - No gambling with real money. Summoning uses in-game shards only (no purchases).
-- No location sharing, no personal information requested beyond a chosen player name.
+- No location sharing, no personal information requested.
 
 ## Data safety form (matches PRIVACY.md)
-- Data collected (only when Friends is used): **User IDs** (player name, friend code), **Messages** (in-app chat), **App activity** (public profile: stages cleared, power, best Titan damage, heroes). Purpose: app functionality. Not shared. Encrypted in transit: yes. Users can request deletion: yes (in-app account delete).
+- **No data collected or shared** in the store build (Friends and chat aren't in it for v1; READINESS.md item 8 has the full answers and what changes when Friends ships).
 - No location, contacts, photos, financial or health data. No ads ID.
 
 ## Graphics
