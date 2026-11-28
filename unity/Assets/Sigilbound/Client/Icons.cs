@@ -60,6 +60,12 @@ namespace Sigilbound.Client
             GUI.color = was;
         }
 
+        // The painted element medallion (Resources/Skin/icons/<element>.png, Tools~/skin/element_icons.py) when the
+        // skin is on and the spot is big enough for it to read (>= 22 px); false otherwise, so callers draw the
+        // vector glyph. The medallion is gold on violet, so callers keep an element-coloured ring around it.
+        public static bool PaintedElement(Rect r, Element e) =>
+            Mathf.Min(r.width, r.height) >= 22 && Painted(r, e.ToString().ToLowerInvariant());
+
         public static Icon ForElement(Element e) => e switch
         {
             Element.Flame => Icon.Flame, Element.Gale => Icon.Gale, Element.Tide => Icon.Tide, Element.Light => Icon.Light, _ => Icon.Shadow,

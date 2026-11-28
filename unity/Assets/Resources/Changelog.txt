@@ -11,6 +11,7 @@ change: The Titan's arena is now a caldera with lava veins and a crater rim.
 fix: The Titan's arrival is filmed from behind your heroes looking up at its face, its jump keeps the ground in view, and its name tag clears its horns.
 change: Brannoc, Vex and Aurex have new 3D models that match their portraits.
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
+change: Painted icons for the Gale, Light and Shadow elements on the campaign map, and each shard type has its own coloured crystal.
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 new: Release Heroes: filter by rarity, stars, element, role and level, keep the best copies, save presets, review before you release, and undo within 2 minutes.

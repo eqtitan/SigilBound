@@ -106,6 +106,7 @@ namespace Sigilbound.Client
         {
             int rad = Mathf.RoundToInt(Mathf.Min(r.width, r.height) / 2);
             Round(r, Color.Lerp(Palette.Element(e), Color.black, 0.6f), ring ?? Palette.Element(e), rad);
+            if (Icons.PaintedElement(new Rect(r.x + 2, r.y + 2, r.width - 4, r.height - 4), e)) return; // element ring stays visible
             float k = Mathf.Min(r.width, r.height) * 0.64f;
             Icons.Draw(new Rect(r.center.x - k / 2, r.center.y - k / 2, k, k), Icons.ForElement(e), Color.Lerp(Palette.Element(e), Color.white, 0.35f));
         }

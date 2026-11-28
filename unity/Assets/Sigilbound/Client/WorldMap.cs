@@ -103,7 +103,14 @@ namespace Sigilbound.Client
                 if (c == current && !locked) Ui.Round(new Rect(m.x - 10, m.y - 10, s + 20, s + 20), new Color(1f, 0.85f, 0.4f, 0.28f), null, 35);
                 var el = Game.ChapterElement(c);
                 Ui.Round(m, locked ? Palette.Hex("#2a2430") : Palette.Hex("#1d1726"), _chapterOpen == c ? Palette.TrimHi : locked ? Palette.Bronze : Palette.Trim, 25);
-                Icons.Draw(new Rect(m.x + 9, m.y + 7, s - 18, s - 18), locked ? Icon.Lock : Icons.ForElement(el), locked ? Palette.Dim : Palette.Element(el));
+                // Open chapters show the painted element medallion inside a ring of the element's colour.
+                bool medal = false;
+                if (!locked)
+                {
+                    Ui.Round(new Rect(m.x + 2, m.y + 2, s - 4, s - 4), Palette.Hex("#1d1726"), Palette.Element(el), 23);
+                    medal = Icons.PaintedElement(new Rect(m.x + 5, m.y + 4, s - 10, s - 10), el);
+                }
+                if (!medal) Icons.Draw(new Rect(m.x + 9, m.y + 7, s - 18, s - 18), locked ? Icon.Lock : Icons.ForElement(el), locked ? Palette.Dim : Palette.Element(el));
                 Ui.Text(new Rect(m.x, m.yMax - 18, s, 14), (c + 1).ToString(), 11, locked ? Palette.Dim : Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter);
                 // Six pips: stages cleared in this chapter.
                 for (int q = 0; q < StagesPerChapter; q++)
