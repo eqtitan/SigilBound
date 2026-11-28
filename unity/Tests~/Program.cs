@@ -145,6 +145,7 @@ static class Program
         TitanMechanicsTests.Run(Check);
         StoryScenesTests.Run(Check);
         SpringTests.Run(Check);
+        PhysicsTests.Run(Check);
         LairRevealTests.Run(Check);
         SceneGenTests.Run(Check);
         SaveSafetyTests.Run(Check);

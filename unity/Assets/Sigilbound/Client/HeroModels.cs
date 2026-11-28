@@ -1037,8 +1037,11 @@ namespace Sigilbound.Client
             // Digitigrade legs (animal-folk; blenderforge/i3d_legs.py): the hero's own baked leg clips, layered
             // over the shared clips of the same name on the legs only.
             if (DigitigradeLegs.Needed(holder)) root.AddComponent<DigitigradeLegs>().Init(holder, anim, bk.Gltf.GetAnimationClips());
-            // Spring bones (skirts, robes, coat tails; Core/SpringSolver.cs): simulated after the clip, off the legs.
-            if (SpringBones.Needed(holder)) root.AddComponent<SpringBones>().Init(holder, id);
+            // Physics standard (docs/sigilbound/art/PHYSICS.md): every hero gets its body collider set (Core/Physics/
+            // ColliderSet.cs, bound here at rest by bone name); spring chains (capes, skirts, tails, hair; Core/SpringSolver.cs)
+            // are simulated after the clip against it.
+            var bodyCols = root.AddComponent<BodyColliders>(); bodyCols.Init(holder, id);
+            if (SpringBones.Needed(holder)) root.AddComponent<SpringBones>().Init(holder, id, bodyCols);
             if (titan)
             {
                 root.AddComponent<HandGrip>(); ApplyGlowCut(holder);

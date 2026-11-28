@@ -1,0 +1,60 @@
+{
+ "_doc": "Per-hero physics overrides (docs/sigilbound/art/PHYSICS.md). chains: the classified kinds that get spring chains (blenderforge/physics_rig.py); per kind optional K (chains across), J (bones per chain), anchor, top. verdict: the frame-sweep verdict that shipped it. Heroes not listed keep no chains (only the body collider set).",
+ "jasper": {
+  "chains": [
+   "skirt"
+  ],
+  "tool": "spring_rig.py",
+  "verdict": "SHIP WITH NOTE (pilot)"
+ },
+ "wick": {
+  "chains": [
+   "cape"
+  ]
+ },
+ "nocturne": {
+  "chains": [
+   "cape"
+  ]
+ },
+ "imogen": {
+  "chains": [
+   "cape"
+  ]
+ },
+ "sprig": {
+  "chains": [
+   "cape"
+  ]
+ },
+ "aurelia": {
+  "chains": [
+   "cape"
+  ]
+ },
+ "tallow": {
+  "chains": [
+   "cape"
+  ]
+ },
+ "dunstan": {
+  "chains": [
+   "cape"
+  ]
+ },
+ "kaija": {
+  "chains": [
+   "cape"
+  ]
+ },
+ "hilde": {
+  "chains": [
+   "cape"
+  ]
+ },
+ "bastian": {
+  "chains": [
+   "cape"
+  ]
+ }
+}

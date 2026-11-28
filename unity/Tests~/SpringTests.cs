@@ -157,13 +157,15 @@ static class SpringTests
             using var d = JsonDocument.Parse(System.Text.Encoding.UTF8.GetString(bytes, 20, n));
             var names = d.RootElement.GetProperty("nodes").EnumerateArray().Select(x => x.TryGetProperty("name", out var nm) ? nm.GetString() : "").ToList();
             var sb = names.Where(x => x.StartsWith("sb_")).ToList();
-            if (sb.Count == 0) { if (SpringRigs.ById.ContainsKey(id)) check(false, $"spring: {id} has settings but no chains"); continue; }
+            if (sb.Count == 0) { if (SpringRigs.Has(id)) check(false, $"spring: {id} has settings but no chains"); continue; }
             rigged.Add(id);
             var chains = sb.GroupBy(x => x.Split('_')[1]).ToList();
             int joints = d.RootElement.GetProperty("skins")[0].GetProperty("joints").GetArrayLength();
             bool ok = chains.All(g => g.Count() >= 3 && g.Select(x => int.Parse(x.Split('_')[2])).OrderBy(x => x).SequenceEqual(Enumerable.Range(0, g.Count())));
-            check(ok && joints <= 255 && SpringRigs.ById.ContainsKey(id), $"spring: {id} {chains.Count} chains, {joints} joints, settings {(SpringRigs.ById.ContainsKey(id) ? "found" : "MISSING")}");
+            // settings: a SpringRigs entry, or the kind defaults for a hero the physics standard rigged (models/physics/overrides.json)
+            bool settings = SpringRigs.Has(id) || PhysicsTests.Overrides(models).ContainsKey(id);
+            check(ok && joints <= 255 && settings, $"spring: {id} {chains.Count} chains, {joints} joints, settings {(settings ? "found" : "MISSING")}");
         }
-        check(SpringRigs.ById.Keys.All(rigged.Contains), $"spring: every SpringRigs entry is rigged ({string.Join(",", rigged)})");
+        check(SpringRigs.ById.Keys.Select(SpringRigs.HeroOf).All(rigged.Contains), $"spring: every SpringRigs entry is rigged ({string.Join(",", rigged)})");
     }
 }

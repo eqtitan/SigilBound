@@ -110,6 +110,7 @@ namespace Sigilbound.Core
         void Solve(SQuat[] anchorRot, SVec[] anchorPos, SCapsule[] caps, int nCaps, float dt, bool kinematic)
         {
             float drag = Rig.Drag, stiff = Rig.Stiffness * dt, grav = Rig.Gravity * dt, jr = Rig.JointRadius;
+            float cosMax = Rig.MaxAngle > 0 ? (float)Math.Cos(Rig.MaxAngle * Math.PI / 180.0) : -2f;
             for (int i = 0; i < _parent.Length; i++)
             {
                 SQuat pr; SVec pp;
@@ -123,6 +124,16 @@ namespace Sigilbound.Core
                 if (kinematic || !_started) next = head + restDir;
                 else next = _cur[i] + (_cur[i] - _prev[i]) * (1f - drag) + restDir * (stiff / L) + new SVec(0, -grav, 0);
                 next = head + (next - head).Normalized * L;
+                if (cosMax > -1.5f)
+                {   // swing limit (physics standard): a teleporting clip root (a dash) can't whip the chain past MaxAngle
+                    var d = (next - head) * (1f / L); var r = restDir * (1f / L); float c = SVec.Dot(d, r);
+                    if (c < cosMax)
+                    {
+                        var perp = (d - r * c).Normalized; float sin = (float)Math.Sqrt(Math.Max(0f, 1f - cosMax * cosMax));
+                        if (perp.Length < 0.5f) perp = SVec.Cross(r, new SVec(1, 0, 0)).Normalized;
+                        next = head + (r * cosMax + perp * sin) * L;
+                    }
+                }
                 for (int it = 0; it < CollisionPasses; it++)
                 for (int k = 0; k < nCaps; k++)
                 {
