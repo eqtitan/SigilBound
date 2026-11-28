@@ -1,0 +1,43 @@
+Campaign probe (40 runs a stage). f7ddd6b has the same battle code as 648aa4b (git diff 648aa4b f7ddd6b -- unity/Assets/Sigilbound/Core is empty), so 648aa4b's run stands for it.
+Columns: stage, 902e814 mid, 902e814 strong, f7ddd6b mid, f7ddd6b strong (stages that changed)
+2-6 93% 100% 100% 100%
+4-6 73% 98% 85% 100%
+5-5 100% 100% 95% 100%
+5-6 38% 100% 70% 100%
+6-2 100% 100% 98% 100%
+7-5 98% 100% 90% 100%
+7-6 90% 100% 88% 100%
+8-6 83% 100% 90% 100%
+10-1 65% 100% 88% 100%
+10-6 63% 98% 83% 100%
+11-2 100% 100% 95% 100%
+11-3 98% 100% 100% 100%
+11-6 95% 100% 100% 100%
+12-5 100% 100% 88% 90%
+12-6 3% 100% 80% 100%
+13-1 100% 100% 80% 100%
+13-3 100% 100% 100% 98%
+13-5 50% 100% 95% 93%
+13-6 43% 75% 43% 60%
+14-1 98% 100% 100% 100%
+14-2 35% 100% 78% 90%
+14-3 98% 100% 100% 100%
+14-4 80% 100% 88% 98%
+14-5 88% 98% 95% 100%
+14-6 0% 93% 100% 100%
+15-1 90% 100% 95% 98%
+15-3 70% 100% 95% 98%
+15-4 65% 100% 95% 100%
+15-5 23% 83% 65% 88%
+15-6 3% 98% 35% 68%
+
+902e814:
+GROUP Act I Light/Shadow   stages 24: mid 93.1%  strong 99.8%  mid under 50%: 1
+GROUP Act I triangle       stages 36: mid 98.8%  strong 100.0%  mid under 50%: 0
+GROUP Act II Light/Shadow  stages 12: mid 62.3%  strong 97.5%  mid under 50%: 4
+GROUP Act II triangle      stages 18: mid 88.2%  strong 98.6%  mid under 50%: 2
+f7ddd6b:
+GROUP Act I Light/Shadow   stages 24: mid 96.6%  strong 100.0%  mid under 50%: 0
+GROUP Act I triangle       stages 36: mid 98.9%  strong 100.0%  mid under 50%: 0
+GROUP Act II Light/Shadow  stages 12: mid 87.1%  strong 94.8%  mid under 50%: 1
+GROUP Act II triangle      stages 18: mid 93.3%  strong 96.7%  mid under 50%: 1
