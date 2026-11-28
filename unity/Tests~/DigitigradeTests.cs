@@ -65,7 +65,8 @@ static class DigitigradeTests
             bool hasAnims = d.RootElement.TryGetProperty("animations", out var anims) && anims.GetArrayLength() > 0;
             if (!hasMeta)
             {
-                if (hasAnims) check(false, $"digitigrade: {id} carries animations but no metatarsal bones");
+                // Creature heroes (Vessa) ship their own baked clips on their own rig; only humanoid heroes are checked.
+                if (hasAnims && !Sigilbound.Core.Creatures.Is(id)) check(false, $"digitigrade: {id} carries animations but no metatarsal bones");
                 continue;
             }
             digi.Add(id);
