@@ -150,7 +150,7 @@ namespace Sigilbound.Core.Physics
         public static BodyGroup Mask(ChainKind c) => c switch
         {
             ChainKind.Skirt => BodyGroup.Hips | BodyGroup.Thighs | BodyGroup.Calves | BodyGroup.Ground,
-            ChainKind.Cape => BodyGroup.Torso | BodyGroup.Hips | BodyGroup.Thighs | BodyGroup.Calves | BodyGroup.Extra | BodyGroup.Ground,
+            ChainKind.Cape => BodyGroup.Torso | BodyGroup.Hips | BodyGroup.Thighs | BodyGroup.Calves | BodyGroup.Extra, // no ground: a hero lying on its cape squeezed it between back and floor (stretched; L026)
             ChainKind.Tail => BodyGroup.Hips | BodyGroup.Thighs | BodyGroup.Calves | BodyGroup.Ground,
             ChainKind.Wing => BodyGroup.Torso | BodyGroup.Arms | BodyGroup.Head,
             ChainKind.Hair => BodyGroup.Head | BodyGroup.Neck | BodyGroup.Torso | BodyGroup.Arms | BodyGroup.Ground,
