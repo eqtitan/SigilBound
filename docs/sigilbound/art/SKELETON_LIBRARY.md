@@ -322,5 +322,5 @@ built from those real frames. Results are recorded below per build.
   Resources); all five pilots loaded as `rig humanoid` in the player (52 human bones each; Corran
   BipedDigitigrade, Titan Brute), no exceptions, smoke passed, every gallery `SBBOUNDS` ok, APK 172.7 MB (budget 190).
   Gallery and Titan-fight shots show the pilots on the new path (scratchpad `skel_pilot/stage1/`). The pilot tour
-  itself photographed the still-running Titan practice fight instead of the pilots (L030); fixed in ba8fde8.
+  itself photographed the still-running Titan practice fight instead of the pilots (L032); fixed in ba8fde8.
 - **Run 211** (ba8fde8, with the physics standard and the tour fix): cancelled to free the queue for main.
