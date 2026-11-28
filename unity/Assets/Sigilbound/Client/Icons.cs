@@ -13,6 +13,7 @@ namespace Sigilbound.Client
         Coin, Shard, Essence, Tome, Star, StarEmpty, Menu, Back, Next, Close, Play, Check, Lock,
         Sword, Shield, Clock, Crown, Skull, Home, Map, Helm, Portal, Tower, Friends, Trophy, Heart,
         Bolt, Pause, Speed, Auto, Camera, Loop, Filter, Sort, Flame, Gale, Tide, Light, Shadow, Plus, Minus, Info,
+        Climb, // Auto Climb: two chevrons going up
     }
 
     public static class Icons
@@ -65,6 +66,25 @@ namespace Sigilbound.Client
         // vector glyph. The medallion is gold on violet, so callers keep an element-coloured ring around it.
         public static bool PaintedElement(Rect r, Element e) =>
             Mathf.Min(r.width, r.height) >= 22 && Painted(r, e.ToString().ToLowerInvariant());
+
+        // One picture per item wherever it shows (UI/UX consistency review #12): the owner's painted coin, shard
+        // crystals, essence and tome when the skin is on, the tinted vector icon otherwise. The top bar, results,
+        // the stage list and the Climb Summary all draw through here.
+        public enum Cur { Gold, WornShard, MysticShard, RadiantShard, Essence, Tome }
+        public static Color CurColor(Cur c) => c switch
+        {
+            Cur.Gold => Palette.Gold, Cur.WornShard => Palette.Hex("#c9a37b"), Cur.MysticShard => Palette.Blue,
+            Cur.RadiantShard => Palette.Hex("#ffb02e"), Cur.Essence => Palette.Hex("#8fd8ff"), _ => Palette.Gold,
+        };
+        static readonly string[] _curPainted = { "coin", "shard_worn", "shard_mystic", "shard_radiant", "essence", "tome" };
+        public static void Currency(Rect r, Cur c)
+        {
+            // The painted art has a little air around it: drawn a touch larger than the vector glyph.
+            var pr = new Rect(r.x - r.width * 0.2f, r.y - r.height * 0.2f, r.width * 1.4f, r.height * 1.4f);
+            if (Painted(pr, _curPainted[(int)c])) return;
+            Draw(r, c == Cur.Gold ? Icon.Coin : c == Cur.Essence ? Icon.Essence : c == Cur.Tome ? Icon.Tome : Icon.Shard, CurColor(c));
+        }
+        public static Cur ShardCur(GameData.Shard s) => s == GameData.Shard.Common ? Cur.WornShard : s == GameData.Shard.Mystic ? Cur.MysticShard : Cur.RadiantShard;
 
         public static Icon ForElement(Element e) => e switch
         {
@@ -159,6 +179,8 @@ namespace Sigilbound.Client
                 case Icon.Shadow: return p => Cut(Circle(p, Vector2.zero, 0.75f), Circle(p, V(0.35f, 0.25f), 0.6f));
                 case Icon.Plus: return p => U(Box(p, Vector2.zero, V(0.7f, 0.12f), 0.05f), Box(p, Vector2.zero, V(0.12f, 0.7f), 0.05f));
                 case Icon.Minus: return p => Box(p, Vector2.zero, V(0.7f, 0.12f), 0.05f);
+                case Icon.Climb: return p => U(U(Seg(p, V(-0.62f, 0.05f), V(0, 0.65f), 0.14f), Seg(p, V(0, 0.65f), V(0.62f, 0.05f), 0.14f)),
+                                                U(Seg(p, V(-0.62f, -0.6f), V(0, 0f), 0.14f), Seg(p, V(0, 0f), V(0.62f, -0.6f), 0.14f)));
                 default: return p => U(Ring(p, Vector2.zero, 0.78f, 0.1f), U(Box(p, V(0, -0.15f), V(0.09f, 0.35f)), Circle(p, V(0, 0.4f), 0.11f))); // Info
             }
         }

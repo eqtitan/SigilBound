@@ -46,9 +46,8 @@ namespace Sigilbound.Client
             if (h != null && _slots.Count != h.stars) FillSlots(h, false);
             _rpScroll = Scroller.Begin(area, _rpScroll, _rankH);
             float y = 8;
-            string back = h != null && _rpBack == ScreenId.Hero ? "‹ " + Hero(h.id).ShortName : "‹ Heroes";
-            if (Ui.Button(new Rect(Pad, y, RosterLayout.BackW, T), back, Ui.Kind.Secondary, 13)) RosterBack();
-            Ui.Banner(new Rect(Pad + RosterLayout.BackW + 8, y, RW - RosterLayout.BackW - 8, T), h != null ? "Rank Up" : "Rank Up All", 18);
+            // The shared sub-screen header (Back returns where you came from: the hero or the list).
+            if (Ui.ScreenHeader(new Rect(Pad, y, RW, T), h != null ? "Rank Up" : "Rank Up All")) RosterBack();
             y += T + 10;
             if (h != null) y = DrawRankTarget(y, h);
             y = DrawRankAll(y, h != null);
@@ -59,7 +58,7 @@ namespace Sigilbound.Client
 
         float DrawRankTarget(float y, HeroSave h)
         {
-            float T = RosterLayout.Tap, G6 = RosterLayout.Gap;
+            float T = RosterLayout.Tap;
             var t = Hero(h.id);
             int cap = MaxLevelFor(h.stars); bool atCap = h.level >= cap, maxed = h.stars >= MaxStars;
             // Target card.
@@ -73,10 +72,10 @@ namespace Sigilbound.Client
             else
             {
                 Ui.Text(new Rect(tx, c.y + 34, tw, 26), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)}  →  {Ui.ColorTag(Ui.Stars(h.stars + 1), Palette.Gold)}", 18, Palette.Text);
-                Ui.Text(new Rect(tx, c.y + 62, tw, 20), $"Lv {h.level}/{cap}  →  cap {MaxLevelFor(h.stars + 1)}", 12, atCap ? Palette.Dim : Palette.Bad);
+                Ui.Text(new Rect(tx, c.y + 62, tw, 20), $"Lv {h.level}/{cap}  →  cap {MaxLevelFor(h.stars + 1)}", 12, atCap ? Palette.Dim : Palette.Gold);
                 int p0 = G.Power(h); h.stars++; int p1 = G.Power(h); h.stars--;
                 Ui.Text(new Rect(tx, c.y + 82, tw, 20), Ui.ColorTag("Stats +15%", Palette.Good) + $"  ·  Power {Ui.Fmt(p0)} → {Ui.Fmt(p1)}", 12, Palette.Dim);
-                if (!atCap) Ui.Text(new Rect(tx, c.y + 102, tw, 20), $"Reach Lv{cap} first (Train on the hero screen)", 11, Palette.Bad);
+                if (!atCap) Ui.Text(new Rect(tx, c.y + 102, tw, 20), $"Reach Lv {cap} first (Train on the hero screen)", 11, Palette.Gold); // a hint, not a danger: gold, not red
             }
             y += c.height + 12;
             if (maxed) return y;
@@ -101,7 +100,7 @@ namespace Sigilbound.Client
                 }
                 else
                 {
-                    Ui.Panel(r, Palette.Hex("#120e19"), Palette.Bronze, 10);
+                    Ui.Panel(r, Palette.WellFocus, Palette.Bronze, 10);
                     Ui.Text(r, "+ Pick", 14, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
                 if (Ui.Button(r, "", Ui.Kind.Ghost)) { _slotPick = i; OpenPanel(RosterPanel.RankPick); }
@@ -150,7 +149,7 @@ namespace Sigilbound.Client
             HeroFace(new Rect(r.center.x - fs / 2, r.y + 10, fs, fs), t);
             Ui.Text(new Rect(r.x + 2, r.y + 58, r.width - 4, 20), t.ShortName, 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
             Ui.Text(new Rect(r.x + 2, r.y + 76, r.width - 4, 18), $"{Ui.ColorTag(Ui.Stars(f.stars), Palette.Gold)} Lv{f.level} · {Ui.ColorTag(RarityShort(t.Rarity), Palette.Rarity(t.Rarity))}", 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
-            if (warn != null) Ui.Text(new Rect(r.x + 2, r.y + 94, r.width - 4, 18), warn, 10, border, FontStyle.Bold, TextAnchor.MiddleCenter);
+            if (warn != null) Ui.Text(new Rect(r.x + 2, r.y + 94, r.width - 4, 18), warn, 11, border, FontStyle.Bold, TextAnchor.MiddleCenter);
         }
 
         void DoRankUp(HeroSave h)
@@ -177,8 +176,7 @@ namespace Sigilbound.Client
             float content = top + list.Count * (rh + 6) + 20;
             _rpScroll = Scroller.Begin(area, _rpScroll, content);
             float y = 8;
-            if (Ui.Button(new Rect(Pad, y, RosterLayout.BackW, T), "‹ Rank Up", Ui.Kind.Secondary, 13)) OpenPanel(RosterPanel.RankUp);
-            Ui.Banner(new Rect(Pad + RosterLayout.BackW + 8, y, RW - RosterLayout.BackW - 8, T), $"Pick a {h.stars}★ hero", 17);
+            if (Ui.ScreenHeader(new Rect(Pad, y, RW, T), $"Pick a {h.stars}-star hero")) OpenPanel(RosterPanel.RankUp);
             y += T + 8;
             Ui.Text(new Rect(Pad, y, RW, 46), list.Count == 0 ? $"No {h.stars}★ heroes can be used. Locked heroes and your team never can." : "Marked heroes are ones Auto-fill skips; you can still pick them. Locked heroes and your team can't be used.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             y = top;
@@ -192,7 +190,7 @@ namespace Sigilbound.Client
                 Ui.SmallCard(r, Palette.Panel, danger ? Palette.Bad : warn != null ? Palette.Hex("#e8b45a") : Palette.Rarity(t.Rarity), 12);
                 HeroFace(new Rect(r.x + 10, r.y + (rh - 42) / 2, 42, 42), t);
                 Ui.Text(new Rect(r.x + 62, r.y + 6, r.width - 180, 24), $"{Ui.ColorTag(Ui.Stars(f.stars), Palette.Gold)} {t.ShortName}  {Ui.ColorTag("Lv" + f.level, Palette.Dim)}", 14, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + 62, r.y + 30, r.width - 180, 20), $"{Ui.ColorTag(t.Rarity.ToString(), Palette.Rarity(t.Rarity))} · {t.Element} · {t.Role}" + (G.CopiesOf(f.id) > 1 ? $" · ×{G.CopiesOf(f.id)}" : ""), 11, Palette.Dim);
+                Ui.Text(new Rect(r.x + 62, r.y + 30, r.width - 180, 20), $"{Ui.ColorTag(t.Rarity.ToString(), Palette.Rarity(t.Rarity))} · {t.Element} · {GameData.RoleName(t.Role)}" + (G.CopiesOf(f.id) > 1 ? $" · ×{G.CopiesOf(f.id)}" : ""), 11, Palette.Dim);
                 Ui.Text(new Rect(r.xMax - 118, r.y, 108, rh), warn ?? "Safe pick", 12, danger ? Palette.Bad : warn != null ? Palette.Hex("#e8b45a") : Palette.Good, FontStyle.Bold, TextAnchor.MiddleRight, true);
                 if (Ui.Button(r, "", Ui.Kind.Ghost))
                 {
@@ -218,7 +216,7 @@ namespace Sigilbound.Client
         {
             float T = RosterLayout.Tap, G6 = RosterLayout.Gap;
             var prefs = G.S.roster;
-            if (sub) { Ui.Heading(new Rect(Pad, y, RW, 28), "Rank up all", 18); y += 30; }
+            if (sub) { Ui.Heading(new Rect(Pad, y, RW, 28), "Rank Up All", 18); y += 30; }
             Ui.Text(new Rect(Pad, y, RW, 34), "Promote every eligible hero at max level, cheapest safe fodder first. Strongest heroes get fodder first.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             y += 38;
             Section(new Rect(Pad, y, RW, RosterLayout.LabelH), "Target"); y += RosterLayout.LabelH;
@@ -245,7 +243,7 @@ namespace Sigilbound.Client
             }
             Ui.Text(new Rect(Pad, y, RW, 54), preview, 12, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
             y += 58;
-            if (Ui.Button(new Rect(Pad, y, RW, Mathf.Max(T, 48)), "Rank up all ›", Ui.Kind.Primary, 15, plan.Steps.Count > 0)) AskRankAll(plan);
+            if (Ui.Button(new Rect(Pad, y, RW, Mathf.Max(T, 48)), "Rank Up All \u25B6", Ui.Kind.Primary, 15, plan.Steps.Count > 0)) AskRankAll(plan);
             return y + Mathf.Max(T, 48) + 8;
         }
 
@@ -254,14 +252,14 @@ namespace Sigilbound.Client
             var lines = plan.Steps.Select(s => $"{Ui.ColorTag(Hero(s.Hero.id).ShortName, Palette.Text)} {s.From}★→{s.To}★ · {string.Join(", ", s.Fodder.Select(f => Hero(f.id).ShortName))} · {Ui.Fmt(s.Gold + s.TrainGold)}").ToList();
             int shown = Mathf.Min(lines.Count, 8);
             float h = 170 + shown * 20 + (lines.Count > shown ? 20 : 0);
-            Modal("Rank up all?", h, b =>
+            Modal("Rank Up All?", h, b =>
             {
                 float T = RosterLayout.Tap;
                 Ui.Text(new Rect(b.x, b.y, b.width, 22), $"{plan.Steps.Count} rank-ups · {plan.FodderUsed} fodder used up · {Ui.Fmt(plan.Gold)} gold", 13, Palette.Gold, FontStyle.Bold);
                 for (int i = 0; i < shown; i++) Ui.Text(new Rect(b.x, b.y + 26 + i * 20, b.width, 20), lines[i], 11, Palette.Dim);
                 if (lines.Count > shown) Ui.Text(new Rect(b.x, b.y + 26 + shown * 20, b.width, 20), $"+{lines.Count - shown} more", 11, Palette.Dim);
                 if (Ui.Button(new Rect(b.x, b.yMax - T, b.width / 2 - 5, T), "Cancel", Ui.Kind.Secondary)) CloseModal();
-                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - T, b.width / 2 - 5, T), "Rank up all", Ui.Kind.Primary))
+                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - T, b.width / 2 - 5, T), "Rank Up All", Ui.Kind.Primary))
                 {
                     int done = G.ApplyRankAll(plan);
                     Save(); CloseModal(); _rankPlan = null;

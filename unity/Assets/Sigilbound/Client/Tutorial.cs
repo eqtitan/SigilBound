@@ -16,6 +16,9 @@ namespace Sigilbound.Client
             set { PlayerPrefs.SetInt("sb.tutorial", value); PlayerPrefs.Save(); }
         }
         public static bool Active => Step > 0;
+        // Its coach panel is (or is about to be) on screen: other pop-ups wait (Core/PopupQueue). Step 9 is the
+        // free play in the first battle, with no panel.
+        public static bool Blocking => Active && Step != 9;
         public static void Start() { if (!PlayerPrefs.HasKey("sb.tutorialDone")) Step = 1; }
         public static void Finish() { Step = 0; PlayerPrefs.SetInt("sb.tutorialDone", 1); PlayerPrefs.Save(); }
 
@@ -87,18 +90,26 @@ namespace Sigilbound.Client
                 Ui.Round(new Rect(ring.x - 2, ring.y - 2, ring.width + 4, ring.height + 4), new Color(0, 0, 0, 0), new Color(c.r, c.g, c.b, c.a * 0.5f), 14);
                 bool below = target.center.y < Ui.H * 0.5f;
                 float ay = below ? ring.yMax + 6 + pulse * 6 : ring.y - 30 - pulse * 6;
-                Ui.Text(new Rect(target.center.x - 20, ay, 40, 24), below ? "▲" : "▼", 22, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter);
+                // A drawn arrow (no glyph: fonts on the owner's devices lacked them), turned to point at the target.
+                var keep = GUI.matrix;
+                var ar = new Rect(target.center.x - 11, ay + 1, 22, 22);
+                GUIUtility.RotateAroundPivot(below ? -90 : 90, ar.center);
+                Icons.Draw(ar, Icon.Next, Palette.Gold);
+                GUI.matrix = keep;
             }
-            float w = Mathf.Min(Ui.W - 24, 520), h = 126;
+            // Auto height from the text (long steps wrapped into the buttons: UI/UX review #26); 48 dp buttons.
+            float w = Mathf.Min(Ui.W - 24, 520), tap = Mathf.Max(44, Ui.Tap);
+            float textH = Mathf.Max(40, Ui.Label(13, null, FontStyle.Normal, TextAnchor.UpperLeft, true).CalcHeight(new GUIContent(text), w - 28));
+            float h = 30 + textH + 10 + tap + 10;
             bool low = target.width <= 0 || target.center.y < Ui.H * 0.5f;
             var r = new Rect((Ui.W - w) / 2, low ? Ui.Safe.yMax - 64 - h - 70 : Ui.Safe.y + 60, w, h);
             Ui.Card(r, true);
             Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 28, 22), title, 15, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
-            Ui.Text(new Rect(r.x + 14, r.y + 30, r.width - 28, 46), text, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+            Ui.Text(new Rect(r.x + 14, r.y + 30, r.width - 28, textH + 4), text, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
             var was = GUI.enabled; GUI.enabled = true;
-            // 44-unit buttons; "Skip" is a framed chip, not bare small text (UX review #13).
-            if (Ui.Button(new Rect(r.x + 14, r.yMax - 50, 126, 42), "Skip tutorial", Ui.Kind.Chip, 12)) Finish();
-            if (next && Ui.Button(new Rect(r.xMax - 118, r.yMax - 50, 104, 42), nextLabel, Ui.Kind.Primary, 14)) { if (Step >= 10) Finish(); else Step = Step + 1; }
+            // 48 dp buttons; "Skip" a Secondary, Next/Done the Primary on the right (rule 3).
+            if (Ui.Button(new Rect(r.x + 14, r.yMax - tap - 8, 132, tap), "Skip tutorial", Ui.Kind.Secondary, 12)) Finish();
+            if (next && Ui.Button(new Rect(r.xMax - 124, r.yMax - tap - 8, 110, tap), nextLabel, Ui.Kind.Primary, 14)) { if (Step >= 10) Finish(); else Step = Step + 1; }
             GUI.enabled = was;
         }
     }

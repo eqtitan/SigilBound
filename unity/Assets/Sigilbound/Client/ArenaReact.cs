@@ -186,6 +186,10 @@ namespace Sigilbound.Client
         // ---------- sway: a damped spring per tree, pushed away from the blow ----------
         void Push(Vector3 p, float s)
         {
+            // Events can arrive between OnEnable (subscribed) and Start (arrays built): a shock from an ultimate or a
+            // boss blow in that gap threw a NullReferenceException and killed the battle's action loop (in-house report,
+            // build 190). Until Start has run there is nothing to push.
+            if (_w == null || _cw == null || _w.Length != Sway.Count || _cw.Length != Cloths.Count) return;
             for (int i = 0; i < Sway.Count; i++)
             {
                 if (!Sway[i]) continue;
@@ -224,7 +228,8 @@ namespace Sigilbound.Client
             }
             // brazier flare: the lights jump and settle
             _brazierFlare = Mathf.MoveTowards(_brazierFlare, 0, dt * 1.2f);
-            for (int i = 0; i < _lights.Count; i++) if (_lights[i]) _lights[i].intensity = 1.2f + 3.2f * _brazierFlare + Mathf.PerlinNoise(t * 6f, i) * 0.4f;
+            float flare = 3.2f * Mathf.Max(0.25f, Access.FlashScale); // Settings > Flash effects: a gentler jump
+            for (int i = 0; i < _lights.Count; i++) if (_lights[i]) _lights[i].intensity = 1.2f + flare * _brazierFlare + Mathf.PerlinNoise(t * 6f, i) * 0.4f;
             _cdGeyser -= dt; _cdDebris -= dt; _cdBolt -= dt;
             UpdateRocks(dt);
             UpdateLair(dt, t);
@@ -233,14 +238,15 @@ namespace Sigilbound.Client
             if (_flash > 0 || _boltT > 0)
             {
                 _flash = Mathf.Max(0, _flash - dt * 5f);
-                float f = _flash * Arena.MotionScale; // Settings > Screen shake off: no flashing
+                float f = _flash * Access.FlashScale; // Settings > Accessibility > Flash effects
                 if (Sun != null) Sun.intensity = _sunBase * (1 + 1.6f * f);
                 RenderSettings.ambientLight = _ambBase * (1 + 1.2f * f);
                 _lit = f > 0;
                 if (_bolt != null)
                 {
                     _boltT -= dt;
-                    _bolt.enabled = _boltT > 0 && (_boltT > 0.12f || _boltT % 0.06f > 0.03f);
+                    // the bolt flickers as it fades; with flashes limited it shows steady (Reduced) or not at all (Off)
+                    _bolt.enabled = _boltT > 0 && Access.Flash < 2 && (_boltT > 0.12f || Access.Flash == 1 || _boltT % 0.06f > 0.03f);
                 }
             }
             if (Storm && t > _nextStrike) { Lightning(); _nextStrike = t + Random.Range(7f, 14f); }
@@ -296,10 +302,12 @@ namespace Sigilbound.Client
 
         ParticleSystem MakeFlame(Transform brazier)
         {
-            var ps = MakeBurst("Flame", new Color(1f, 0.6f, 0.2f, 1), true, 0.35f, 0.8f, 1.4f, -0.3f);
-            ps.transform.SetParent(brazier, false); ps.transform.localPosition = new Vector3(0, 1.05f, 0); ps.transform.localRotation = Quaternion.Euler(-90, 0, 0);
-            var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Cone; sh.angle = 8; sh.radius = 0.18f;
-            var em = ps.emission; em.rateOverTime = Tier == 0 ? 6 : 14;
+            // A small flame with a soft glow over the embers (art review M3), dim enough to stay under the bloom
+            // threshold at rest; the kill flare still lifts it (and the light) for a moment.
+            var ps = MakeBurst("Flame", new Color(0.85f, 0.42f, 0.14f, 0.8f), true, 0.26f, 0.7f, 1.1f, -0.25f);
+            ps.transform.SetParent(brazier, false); ps.transform.localPosition = new Vector3(0, 0.95f, 0); ps.transform.localRotation = Quaternion.Euler(-90, 0, 0);
+            var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Cone; sh.angle = 6; sh.radius = 0.14f;
+            var em = ps.emission; em.rateOverTime = Tier == 0 ? 5 : 11;
             ps.Play();
             return ps;
         }

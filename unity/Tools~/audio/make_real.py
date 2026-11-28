@@ -272,7 +272,7 @@ def titan():
                       (lp(S("booms-and-bass/bass-rumble-long"), 160), 0.2, 0.8)])
         v.append(verb(x, 3.8, 0.32, 2200, predelay=0.03, seed=530 + i, lowmult=1.6))
     out["earthsplit"] = v
-    v = []   # Meteor Leap: crouch-launch boom, then a rising roar of air and fire
+    v = []   # Faultline Leap: crouch-launch boom, then a rising roar of air and fire
     for i in range(2):
         rise = lp(resample(to_mono(load(f"{SK}reverse-whooshes/reverse-whoosh-long-strong.wav", 2)), 0.8), 4000)
         air = whoosh("slow-hard", 0.55 + 0.05 * i, -0.5, 0.5, hpf=40)
@@ -281,7 +281,7 @@ def titan():
         x = mix(2.4, [(launch, 0, 0.9), (st(rise, -0.2), 0.0, 0.5), (air, 0.1, 0.9), (fr, 0.15, 0.35), (debris(610 + i, 0.6, 10), 0, 0.5)])
         v.append(verb(x, 2.2, 0.25, 3000, seed=620 + i))
     out["meteor"] = v
-    v = []   # Cinder Breath: a torrent of fire sweeping left to right across the team
+    v = []   # Heartfire Torrent: a torrent of fire sweeping left to right across the team
     for i in range(2):
         L = 3.4; n = N(L)
         fr = fire_roar(L, seed=700 + i, body=500, hiss=3000)

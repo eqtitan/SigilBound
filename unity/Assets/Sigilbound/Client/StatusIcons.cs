@@ -39,25 +39,25 @@ namespace Sigilbound.Client
             float bsz = Mathf.Max(12, size * 0.62f), gap = 2 + bsz * 0.35f, sw = size * 1.3f;
             float w = -gap; foreach (var e in effects) w += size + gap + (e.Stacks > 1 ? sw : 0);
             float x0 = centre ? x - w / 2 : x, cx = x0;
-            int fs = Mathf.Max(10, Mathf.RoundToInt(size * 0.72f));
+            int fs = Mathf.Max(Ui.MinText, Mathf.RoundToInt(size * 0.72f));
             for (int i = 0; i < effects.Count; i++)
             {
                 var e = effects[i]; var r = new Rect(cx, y, size, size);
                 cx += size + gap + (e.Stacks > 1 ? sw : 0);
                 var t = Get(e.Type);
                 if (t != null) GUI.DrawTexture(r, t);
-                else Ui.Text(r, SkillText.EffectShort(e.Type), 9, FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff"), FontStyle.Bold, TextAnchor.MiddleCenter);
+                else Ui.Text(r, SkillText.EffectShort(e.Type), 11, FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff"), FontStyle.Bold, TextAnchor.MiddleCenter);
                 if (e.Stacks > 1)
                 {
                     var sr = new Rect(r.xMax + 1, r.y, sw, size);
-                    Ui.Text(new Rect(sr.x + 1, sr.y + 1, sr.width, sr.height), "\u00d7" + e.Stacks, fs, new Color(0, 0, 0, 0.85f), FontStyle.Bold, TextAnchor.MiddleLeft);
-                    Ui.Text(sr, "\u00d7" + e.Stacks, fs, new Color(1f, 0.85f, 0.45f), FontStyle.Bold, TextAnchor.MiddleLeft);
+                    Ui.Text(new Rect(sr.x + 1, sr.y + 1, sr.width, sr.height), NumText.Times(e.Stacks), fs, new Color(0, 0, 0, 0.85f), FontStyle.Bold, TextAnchor.MiddleLeft);
+                    Ui.Text(sr, NumText.Times(e.Stacks), fs, new Color(1f, 0.85f, 0.45f), FontStyle.Bold, TextAnchor.MiddleLeft);
                 }
                 if (e.Turns > 0 && e.Type != FxType.Shield)
                 {
                     var n = new Rect(r.xMax - bsz * 0.65f, r.yMax - bsz * 0.65f, bsz, bsz);
                     Ui.Round(n, new Color(0.07f, 0.05f, 0.09f, 0.95f), FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#a05ae0"), Mathf.RoundToInt(bsz / 2));
-                    Ui.Text(n, e.Turns.ToString(), Mathf.Max(10, Mathf.RoundToInt(bsz * 0.8f)), Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+                    Ui.Text(n, NumText.Of(e.Turns), Mathf.Max(Ui.MinText, Mathf.RoundToInt(bsz * 0.8f)), Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
             }
             return new Rect(x0, y, Mathf.Max(0, w), size);
@@ -67,7 +67,8 @@ namespace Sigilbound.Client
         public static void ShowLegend(App app)
         {
             int rows = (Legend.Length + 1) / 2;
-            app.Modal("Status icons", 70 + rows * 40, b =>
+            float t = Mathf.Max(44, Ui.Tap);
+            app.InfoModal("Status icons", 70 + rows * 40 + t, b =>
             {
                 float cw = b.width / 2;
                 for (int i = 0; i < Legend.Length; i++)
@@ -78,7 +79,7 @@ namespace Sigilbound.Client
                     Ui.Text(new Rect(x + 40, y, cw - 44, 18), name, 13, Palette.Text, FontStyle.Bold);
                     Ui.Text(new Rect(x + 40, y + 17, cw - 44, 18), what, 11, Palette.Dim);
                 }
-                if (Ui.Button(new Rect(b.x, b.yMax - 44, b.width, 42), "Close", Ui.Kind.Secondary)) app.CloseModal();
+                if (app.ModalFooter(b, "Close")) app.CloseModal(); // the one info-modal footer, 48 dp
             });
         }
     }

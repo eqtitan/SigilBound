@@ -192,7 +192,12 @@ namespace Sigilbound.Client
         }
         public void Hit(bool big)
         {
-            if (Style.Titan) { Play(Has("HitReact") ? "HitReact" : "Idle", false, 0.1f); return; }
+            if (Style.Titan)
+            {
+                // The HD Titan's own flinch and heavy stagger; the old stand-in's single HitReact.
+                var own = (big ? Style.BigHit : Style.Hit).FirstOrDefault(Has);
+                Play(own ?? (Has("HitReact") ? "HitReact" : "Idle"), false, 0.1f); return;
+            }
             var list = big ? Style.BigHit : Style.Hit;
             Play(list.FirstOrDefault(Has) ?? "HitRecieve", false, 0.08f);
         }
@@ -242,20 +247,37 @@ namespace Sigilbound.Client
                 yield return ReadRaw(file + "z", b => gz = b, false);
                 if (gz != null)
                 {
+                    // Inflate and unpack on a worker thread (plain byte work, about 1.4 MB out per hero): on the
+                    // main thread it was one of the steps behind the team-screen hitches (performance review #4).
                     byte[] plain = null;
-                    try
-                    {
-                        using (var src = new MemoryStream(gz))
-                        using (var unzip = new System.IO.Compression.GZipStream(src, System.IO.Compression.CompressionMode.Decompress))
-                        using (var dst = new MemoryStream(gz.Length * 3))
-                        { unzip.CopyTo(dst); plain = dst.ToArray(); }
-                        plain = ModelPack.Unpack(plain); // "SBZ1" byte-transposed buffers (prepare-models.mjs): back to the exact GLB
-                    }
-                    catch (Exception e) { Debug.LogWarning($"Sigilbound: couldn't unzip {file}z: {e.Message}"); }
+                    var job = System.Threading.Tasks.Task.Run(() => Inflate(gz));
+                    while (!job.IsCompleted) yield return null;
+                    if (job.IsFaulted) Debug.LogWarning($"Sigilbound: couldn't unzip {file}z: {job.Exception?.GetBaseException().Message}");
+                    else plain = job.Result;
                     if (plain != null) { Trace($"read {file}z: {gz.Length} -> {plain.Length} bytes"); done(plain); yield break; }
                 }
             }
             yield return ReadRaw(file, done, true);
+        }
+
+        static byte[] Inflate(byte[] gz)
+        {
+            byte[] plain;
+            using (var src = new MemoryStream(gz))
+            using (var unzip = new System.IO.Compression.GZipStream(src, System.IO.Compression.CompressionMode.Decompress))
+            using (var dst = new MemoryStream(gz.Length * 3))
+            { unzip.CopyTo(dst); plain = dst.ToArray(); }
+            return ModelPack.Unpack(plain); // "SBZ1" byte-transposed buffers (prepare-models.mjs): back to the exact GLB
+        }
+
+        // At most one heavy main-thread step (an image decode or a texture upload) per frame across every
+        // loader. A team, a stage's Hollow enemies and the Titan preload together; their decodes used to land
+        // in the same frame after the glTF parses finished (performance review #4: 0.1-0.2 s per hero).
+        static int _heavyFrame = -1;
+        static IEnumerator HeavySlot()
+        {
+            while (_heavyFrame == Time.frameCount) yield return null;
+            _heavyFrame = Time.frameCount;
         }
 
         static IEnumerator ReadRaw(string file, Action<byte[]> done, bool trace)
@@ -511,9 +533,11 @@ namespace Sigilbound.Client
 
             var holder = new GameObject("Model").transform;
             holder.SetParent(parent, false);
+            holder.localPosition = BuildAway; // out of sight while it instantiates (no bind pose on screen; see Reveal)
             var inst = lib.Gltf.InstantiateMainSceneAsync(holder);
             while (!inst.IsCompleted) yield return null;
             if (inst.IsFaulted || !inst.Result || holder == null) { Trace($"build {id}: instantiate failed {inst.Exception?.GetBaseException().Message}"); if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
+            holder.localPosition = Vector3.zero;
 
             var bones = new Dictionary<string, Transform>();
             foreach (var t in holder.GetComponentsInChildren<Transform>(true)) if (!bones.ContainsKey(t.name)) bones[t.name] = t;
@@ -558,11 +582,11 @@ namespace Sigilbound.Client
                 foreach (var c in lib.Ual) anim.AddClip(c, c.name);
             }
             Trace($"build {id}: done, anim={(anim != null ? anim.GetClipCount() + " clips" : "none")}");
-            done(new HeroModel(holder.gameObject, anim, (titan ? 4.7f : 2.3f) * (float)body.H, titan ? AnimStyle.TitanStyle : AnimStyle.For(id)));
+            done(Reveal(holder, new HeroModel(holder.gameObject, anim, (titan ? 4.7f : 2.3f) * (float)body.H, titan ? AnimStyle.TitanStyle : AnimStyle.For(id))));
         }
 
         // ---------- high-detail heroes (phase F) ----------
-        static HashSet<string> _hd, _hdLod1;
+        static HashSet<string> _hd, _hdLod1, _hdMat;
 
         // The parsed high-detail models, by cache key (hero id, "|hollow" for enemy copies, "titan|<element>",
         // and "|lo" on the Low tier, which loads no normal map and the LOD1 mesh where one ships).
@@ -584,6 +608,8 @@ namespace Sigilbound.Client
         static float _lastUnload = -100f;
 
         // On every high-detail figure: tells the cache when the figure is gone.
+        // True for a high-detail hero instance (built by BuildHd).
+        public static bool IsHd(Transform holder) => holder != null && holder.GetComponentInChildren<HdRef>(true) != null;
         sealed class HdRef : MonoBehaviour
         {
             public string Key;
@@ -683,22 +709,55 @@ namespace Sigilbound.Client
                 foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
                     if (line.Trim().Length > 0) lod.Add(line.Trim());
             _hdLod1 = lod;
+            // Heroes with a metal/smoothness map (SB_Hero_<id>_HD_mat.png): only these are asked for one.
+            var mats = new HashSet<string>(); bytes = null;
+            yield return ReadRaw(Path.Combine("heroes_hd", "index_mat.txt"), b => bytes = b, false);
+            if (bytes != null)
+                foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
+                    if (line.Trim().Length > 0) mats.Add(line.Trim());
+            _hdMat = mats;
         }
 
         // The painted-character material for the baked atlas: albedo, tangent normal, and a mask whose
         // blue channel is the glow (from the _glow PNG) so the eyes, runes and auras light up.
         // The Hollow look on a painted albedo (as Recolour does for the old models): half desaturated and
         // pulled halfway toward deep violet, so enemy copies read as shadows of the hero.
-        static void Hollowed(Texture2D t)
+        // Pixel loops only (no Unity calls), so they run on a worker thread: 1M pixels for the tint, 262k for the mask.
+        static void HollowTint(Color32[] px)
         {
-            var px = t.GetPixels32(); var v = new Color32(0x2e, 0x1f, 0x33, 255);
+            var v = new Color32(0x2e, 0x1f, 0x33, 255);
             for (int i = 0; i < px.Length; i++)
             {
                 var c = px[i]; int g = (c.r * 3 + c.g * 6 + c.b) / 10;
                 int r = (c.r + g) / 2, gg = (c.g + g) / 2, b = (c.b + g) / 2;
                 px[i] = new Color32((byte)((r + v.r) / 2), (byte)((gg + v.g) / 2), (byte)((b + v.b) / 2), c.a);
             }
-            t.SetPixels32(px); t.Apply(true, true); // upload, then drop the CPU copy
+        }
+        // The mask's blue channel is the glow (eyes, runes, auras), from the _glow PNG's brightness. Metal (R) and
+        // smoothness (A) come from the hero's _mat PNG (R metal, G smoothness; blenderforge/hd_materials.py: blades,
+        // shield rims, helmets and crowns), sampled at the mask's size; without one everything is matte (metal 0, smooth 90).
+        // The Titan's PNG also carries its crystal ridges in the alpha (255 - ridge; blenderforge/titan_moves.py): they go to the
+        // red channel instead of metal, which its material reads as the ridge glow (_RidgeColor) and a little sheen.
+        static Color32[] MaskFromGlow(Color32[] g, int w, int h, Color32[] mat = null, int mw = 0, int mh = 0, bool ridges = false)
+        {
+            var mask = new Color32[w * h];
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    int i = y * w + x;
+                    byte lum = g == null ? (byte)0 : (byte)Math.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2);
+                    byte metal = 0, smooth = 90;
+                    if (mat != null) { var m = mat[(y * mh / h) * mw + (x * mw / w)]; metal = m.r; smooth = (byte)Math.Max(90, (int)m.g); }
+                    if (ridges && g != null) metal = (byte)(255 - g[i].a);
+                    mask[i] = new Color32(metal, 255, lum, smooth);
+                }
+            return mask;
+        }
+        static IEnumerator OnWorker(Action work)
+        {
+            var job = System.Threading.Tasks.Task.Run(work);
+            while (!job.IsCompleted) yield return null;
+            if (job.IsFaulted) Debug.LogWarning("Sigilbound: hero texture work failed: " + job.Exception?.GetBaseException().Message);
         }
 
         // Low quality: the high-detail heroes' normal maps off (on again above Low). Applies to every loaded
@@ -707,17 +766,21 @@ namespace Sigilbound.Client
         public static void SetLowDetail(bool low)
         {
             _lowDetail = low;
-            foreach (var kv in _hdLibs) NormalMapOn(kv.Value.Mat);
+            foreach (var kv in _hdLibs)
+            {
+                NormalMapOn(kv.Value.Mat);
+                if (!kv.Key.StartsWith("titan|") && kv.Value.Mat != null && kv.Value.Mat.HasProperty("_EnvStrength")) kv.Value.Mat.SetFloat("_EnvStrength", low ? 0f : EnvStrength);
+            }
         }
+        const float EnvStrength = 2.2f; // checked in previews (scratchpad ctd/mat3): steel and gold props read as metal, wood and paint stay matte
         static void NormalMapOn(Material m)
         {
             if (m == null || !m.HasProperty("_BumpMap")) return;
             if (!_lowDetail && m.GetTexture("_BumpMap") != null) m.EnableKeyword("_NORMALMAP"); else m.DisableKeyword("_NORMALMAP");
         }
 
-        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D glow, Element el, bool hollow, out Texture2D maskTex, bool titan = false)
+        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D maskTex, Element el, bool hollow, bool titan = false)
         {
-            maskTex = null;
             var sh = Shader.Find("Sigilbound/CharacterPainted");
             var tmpl = Resources.Load<Material>("SigilMaterials/HeroPainted");
             Material mat = tmpl != null ? new Material(tmpl) : sh != null ? new Material(sh) : new Material(Materials.Lit(Color.white, 0, 0.3f));
@@ -725,19 +788,29 @@ namespace Sigilbound.Client
             if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", alb);
             mat.mainTexture = alb;
             if (nrm != null && mat.HasProperty("_BumpMap")) { mat.SetTexture("_BumpMap", nrm); mat.EnableKeyword("_NORMALMAP"); }
-            if (mat.HasProperty("_MaskMap") && glow != null)
+            if (mat.HasProperty("_MaskMap") && maskTex != null)
             {
-                var g = glow.GetPixels32(); var mask = new Color32[g.Length];
-                for (int i = 0; i < g.Length; i++) { byte lum = (byte)Mathf.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2); mask[i] = new Color32(0, 255, lum, 90); }
-                var mt = new Texture2D(glow.width, glow.height, TextureFormat.RGBA32, true, true); mt.SetPixels32(mask); mt.Apply(true, true);
-                mat.SetTexture("_MaskMap", mt); maskTex = mt;
+                mat.SetTexture("_MaskMap", maskTex);
                 if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", titan ? TitanSeam(el) * (float)TitanSpec.Current.GlowGain : (hollow ? Palette.Hex("#ff3355") : Palette.Element(el)) * 2.2f);
             }
             if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", titan ? TitanSeam(el) : hollow ? Palette.Hex("#ff3355") : Palette.Element(el));
             // The Titan's seams and visor glow only on front faces (art review H3): single-sided, whatever the
             // template says, so no glow island can show through the far side of a plate.
             if (titan && mat.HasProperty("_Cull")) mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back);
-            if (hollow) mat.name += "_Hollow";
+            // The crystal ridges (mask red): dark until it attacks (TitanBody ramps _RidgeColor), with a little sheen.
+            if (titan && mat.HasProperty("_RidgeColor")) { mat.SetColor("_RidgeColor", Color.black); mat.SetFloat("_Metallic", 0.35f); }
+            // Metal reflection for the accessory metal maps (hd_materials.py); never on the Titan (its mask R is the
+            // crystal ridges), off on Low quality (SetLowDetail).
+            if (mat.HasProperty("_EnvStrength")) mat.SetFloat("_EnvStrength", titan || _lowDetail ? 0f : EnvStrength);
+            if (hollow)
+            {
+                mat.name += "_Hollow";
+                // The speckles (art review M2): the hero's glow mask and its normal map, recoloured red on a near-black
+                // body, broke into scattered pink pixels. A Hollow copy has no glow mask and smooth normals (so its red
+                // rim is one soft band); HollowLook adds the outline and eyes instead.
+                if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", Color.black);
+                if (mat.HasProperty("_BumpScale")) mat.SetFloat("_BumpScale", 0f);
+            }
             NormalMapOn(mat);
             return mat;
         }
@@ -797,6 +870,8 @@ namespace Sigilbound.Client
                     if (nrm == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.png"), b => nrm = b);
                 }
                 yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_glow.png"), b => glow = b);
+                byte[] matb = null;
+                if (_hdMat != null && _hdMat.Contains(id)) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_mat.png"), b => matb = b);
                 if (glb == null || alb == null) { yield break; }
                 var gltf = new GLTFast.GltfImport(null, null, new SigilMaterialGenerator());
                 var load = gltf.LoadGltfBinary(glb, null, new GLTFast.ImportSettings { AnimationMethod = GLTFast.AnimationMethod.Legacy, GenerateMipMaps = false });
@@ -804,13 +879,55 @@ namespace Sigilbound.Client
                 if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the high-detail {id}"); gltf.Dispose(); yield break; }
                 // GPU copies only: the albedo stays readable just long enough for the Hollow tint, and the glow
                 // map only until the mask is built (it used to stay in memory, unused).
+                // Spread over frames (performance review #4): each decode or upload takes its own HeavySlot frame
+                // and the pixel loops run on a worker, where all of it used to run in the one frame after the parse
+                // (estimated 100-200 ms per hero on a mid-range phone). SBPERF lines log each step's main-thread time.
+                var sw = System.Diagnostics.Stopwatch.StartNew(); double tAlb, tTint = 0, tNrm, tGlow, tMask = 0;
+                yield return HeavySlot(); sw.Restart();
                 var albTex = LoadPng(alb, false, hollow);
-                if (hollow && albTex != null) Hollowed(albTex);
+                tAlb = sw.Elapsed.TotalMilliseconds;
+                if (hollow && albTex != null)
+                {
+                    var px = albTex.GetPixels32();
+                    yield return OnWorker(() => HollowTint(px));
+                    yield return HeavySlot(); sw.Restart();
+                    if (albTex != null) { albTex.SetPixels32(px); albTex.Apply(true, true); } // upload, then drop the CPU copy
+                    tTint = sw.Elapsed.TotalMilliseconds;
+                }
+                yield return HeavySlot(); sw.Restart();
                 var nrmTex = LoadPng(nrm, true, false);
+                tNrm = sw.Elapsed.TotalMilliseconds;
+                yield return HeavySlot(); sw.Restart();
                 var glowTex = LoadPng(glow, false, true);
+                Color32[] glowPx = null; int gw = 0, gh = 0;
+                if (glowTex != null) { glowPx = glowTex.GetPixels32(); gw = glowTex.width; gh = glowTex.height; UnityEngine.Object.Destroy(glowTex); }
+                var matTex = LoadPng(matb, false, true);
+                Color32[] matPx = null; int mw = 0, mh = 0;
+                if (matTex != null) { matPx = matTex.GetPixels32(); mw = matTex.width; mh = matTex.height; UnityEngine.Object.Destroy(matTex); }
+                if (glowPx == null && matPx != null) { gw = mw; gh = mh; }
+                // No glow PNG and no metal map (30 image-to-3D heroes): still build a mask. Without one the shader's
+                // default _MaskMap is white = metal 1, smoothness 1 everywhere, which drew those heroes dark and
+                // metallic with sparkling specks on fur and cloth (in-house report build 190: Fennick, Brega, Holt).
+                if (glowPx == null && matPx == null) { gw = gh = 4; }
+                tGlow = sw.Elapsed.TotalMilliseconds;
+                Texture2D maskTex = null;
+                {
+                    Color32[] mask = null;
+                    bool ridges = cacheKey.StartsWith("titan|");
+                    yield return OnWorker(() => mask = MaskFromGlow(glowPx, gw, gh, matPx, mw, mh, ridges));
+                    yield return HeavySlot(); sw.Restart();
+                    if (mask != null) { maskTex = new Texture2D(gw, gh, TextureFormat.RGBA32, true, true); maskTex.SetPixels32(mask); maskTex.Apply(true, true); }
+                    tMask = sw.Elapsed.TotalMilliseconds;
+                }
+                double longest = Math.Max(Math.Max(tAlb, tTint), Math.Max(tNrm, Math.Max(tGlow, tMask)));
+                Debug.Log($"SBPERF hd {cacheKey}: main thread albedo {tAlb:0.0} ms, tint {tTint:0.0}, normal {tNrm:0.0}, glow {tGlow:0.0}, mask {tMask:0.0}; longest frame step {longest:0.0} ms of {tAlb + tTint + tNrm + tGlow + tMask:0.0} ms (inflate and pixel loops on a worker)");
+                if (_hdLibs.ContainsKey(cacheKey)) // loaded meanwhile by another job: keep that one
+                {
+                    gltf.Dispose(); foreach (var t in new[] { albTex, nrmTex, maskTex }) if (t != null) UnityEngine.Object.Destroy(t);
+                    yield break;
+                }
                 var e = new HdEntry { Gltf = gltf, Used = Time.unscaledTime };
-                e.Mat = HdMaterial(id, albTex, nrmTex, glowTex, el, hollow, out var maskTex, cacheKey.StartsWith("titan|"));
-                if (glowTex != null) UnityEngine.Object.Destroy(glowTex);
+                e.Mat = HdMaterial(id, albTex, nrmTex, maskTex, el, hollow, cacheKey.StartsWith("titan|"));
                 e.Tex.Add(albTex); e.Tex.Add(nrmTex); e.Tex.Add(maskTex);
                 _hdLibs[cacheKey] = e;
                 EvictIdle();
@@ -848,6 +965,16 @@ namespace Sigilbound.Client
             _loader.StartCoroutine(RunJob(key, work()));
         }
 
+        // Removes every clip from an Animation (glTFast's auto-added ones) and its default clip.
+        public static void ClearClips(Animation anim)
+        {
+            if (anim == null) return;
+            var names = new List<string>();
+            foreach (AnimationState st in anim) if (st != null) names.Add(st.name);
+            foreach (var n in names) anim.RemoveClip(n);
+            anim.clip = null;
+        }
+
         static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done, string hdId = null, bool hollow = false, bool titan = false)
         {
             string id = hdId ?? unit.Template.Id;
@@ -862,11 +989,17 @@ namespace Sigilbound.Client
             holder.SetParent(parent, false);
             bk.Live++; bk.Used = Time.unscaledTime;
             holder.gameObject.AddComponent<HdRef>().Key = cacheKey; // released when the figure is destroyed
+            // Never seen in its bind (T) pose: the instance is built far below the arena, then kept unrendered until
+            // its clips are on and the idle is sampled (in-house report 2026-11-28: Home at 2400x1080 caught the
+            // heroes with their arms straight out while EnsureHdBodies was still loading). See Reveal.
+            holder.localPosition = BuildAway;
             var inst = bk.Gltf.InstantiateMainSceneAsync(holder);
             while (!inst.IsCompleted) yield return null;
             if (inst.IsFaulted || !inst.Result || holder == null || holder.childCount == 0) { if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
+            holder.localPosition = Vector3.zero;
             foreach (var r in holder.GetComponentsInChildren<Renderer>(true))
             {
+                r.forceRenderingOff = true;
                 var mats = r.sharedMaterials;
                 for (int i = 0; i < mats.Length; i++) mats[i] = bk.Mat;
                 r.sharedMaterials = mats;
@@ -880,8 +1013,15 @@ namespace Sigilbound.Client
             var root = holder.Find("Armature") != null ? holder.gameObject : holder.GetChild(0).gameObject;
             // Creature heroes (Core/Kit/Creatures.cs): their own clips, fixed scale, planted feet (CreatureRig).
             var creature = Creatures.Of(id);
-            if (creature != null) { done(CreatureRig.Setup(holder.gameObject, root, bk.Gltf.GetAnimationClips(), creature)); yield break; }
+            if (creature != null) { done(Reveal(holder, CreatureRig.Setup(holder.gameObject, root, bk.Gltf.GetAnimationClips(), creature))); yield break; }
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
+            // glTFast already put the model's own clips on this Animation (it adds one for any file with clips),
+            // under their file names: a digitigrade hero's baked leg clips carry the shared clips' names. Left
+            // there, they took the shared clips' place (the GetClip check below skips names that exist), no clip
+            // moved the body and RigExtras' rest fix compounded every frame (build 180: Tansy and Corran
+            // exploded). Start empty; the model's clips go back where they belong (an embedded Titan's below,
+            // DigitigradeLegs' layered "~legs" twins).
+            ClearClips(anim);
             var spec = titan ? TitanSpec.Current : null;
             // A separately rigged Titan brings its own clips ("clips": "embedded"); the shared UAL set is added
             // too, and only clips whose names the model doesn't have.
@@ -891,9 +1031,26 @@ namespace Sigilbound.Client
             anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
             // Creature rig extensions (tail, jaw, longer neck, digitigrade legs, wing bones; kit_rig.py):
             // re-apply this hero's rest-pose changes over the humanoid clips and drive the extra bones.
-            bool rigExt = RigExtras.Needed(holder);
+            // Not on a Titan with its own clips (titan_moves.py): they are authored on its own rest pose and its aliases
+            // cover every clip the battle asks for, so there is nothing to re-express; the rest fix running in the frames
+            // before its first clip (or on bones its clips don't key) only bent it (in-house build 190: a mangled Titan).
+            bool ownTitanClips = spec != null && spec.Clips == "embedded" && bk.Gltf.GetAnimationClips() is AnimationClip[] tc && tc.Length > 0;
+            bool rigExt = RigExtras.Needed(holder) && !ownTitanClips;
             if (rigExt) root.AddComponent<RigExtras>().Init(holder, lib.Prototype, anim);
-            if (titan) { root.AddComponent<HandGrip>(); ApplyGlowCut(holder); }
+            // Digitigrade legs (animal-folk; blenderforge/i3d_legs.py): the hero's own baked leg clips, layered
+            // over the shared clips of the same name on the legs only.
+            if (DigitigradeLegs.Needed(holder)) root.AddComponent<DigitigradeLegs>().Init(holder, anim, bk.Gltf.GetAnimationClips());
+            // Spring bones (skirts, robes, coat tails; Core/SpringSolver.cs): simulated after the clip, off the legs.
+            if (SpringBones.Needed(holder)) root.AddComponent<SpringBones>().Init(holder, id);
+            if (titan)
+            {
+                root.AddComponent<HandGrip>(); ApplyGlowCut(holder);
+                // Its own clips are authored on its own rest pose: RigExtras must not re-express them (only shared ones).
+                if (spec.Clips == "embedded" && root.GetComponent<RigExtras>() is RigExtras rx)
+                    foreach (var c in bk.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null) rx.Own.Add(c.name);
+                // Seams and core flaring in wind-ups, the breathing core, ridge glow and the crystals breaking off.
+                root.AddComponent<TitanBody>().Init(holder, unit.El, anim);
+            }
             else if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
             float headY = 1.6f;
@@ -921,8 +1078,20 @@ namespace Sigilbound.Client
                 if (spec.AutoGround) { float low = MeshBottom(holder); if (!float.IsNaN(low)) lift -= low; }
                 holder.localPosition += Vector3.up * lift / Mathf.Max(0.01f, holder.parent != null ? holder.parent.lossyScale.y : 1f);
             }
-            done(titan ? new HeroModel(holder.gameObject, anim, (float)(spec.HornWorld / spec.ViewScale), AnimStyle.TitanHd, TitanAliases())
-                       : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliases));
+            done(Reveal(holder, titan ? new HeroModel(holder.gameObject, anim, (float)(spec.HornWorld / spec.ViewScale), AnimStyle.TitanHd, TitanAliases())
+                                      : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliasesFor(id))));
+        }
+
+        // Where a model is instantiated (out of every camera) until its instance is complete.
+        static readonly Vector3 BuildAway = new Vector3(0, -1000, 0);
+        // Shows a built model: its idle (started by the HeroModel) sampled now, then its renderers on, so the first
+        // frame it is drawn is already the idle pose, not the bind pose.
+        static HeroModel Reveal(Transform holder, HeroModel m)
+        {
+            if (holder == null) return m;
+            if (m != null && m.Anim != null) m.Anim.Sample();
+            foreach (var r in holder.GetComponentsInChildren<Renderer>(true)) r.forceRenderingOff = false;
+            return m;
         }
 
         static Dictionary<string, string> TitanAliases()
@@ -1017,9 +1186,11 @@ namespace Sigilbound.Client
             }
             var holder = new GameObject("Model").transform;
             holder.SetParent(parent, false);
+            holder.localPosition = BuildAway; // out of sight while it instantiates (see Reveal)
             var inst = bk.gltf.InstantiateMainSceneAsync(holder);
             while (!inst.IsCompleted) yield return null;
             if (inst.IsFaulted || !inst.Result || holder == null || holder.childCount == 0) { Trace($"baked {id}: instantiate failed {inst.Exception?.GetBaseException().Message}"); if (holder) UnityEngine.Object.Destroy(holder.gameObject); done(null); yield break; }
+            holder.localPosition = Vector3.zero;
             foreach (var r in holder.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
@@ -1036,7 +1207,7 @@ namespace Sigilbound.Client
             foreach (var c in lib.Ual) anim.AddClip(c, c.name);
             float k = 1.85f / Mathf.Max(0.1f, lib.HeadY) * (float)body.H;
             holder.localScale = Vector3.one * k;
-            done(new HeroModel(holder.gameObject, anim, 2.3f * (float)body.H, AnimStyle.For(id)));
+            done(Reveal(holder, new HeroModel(holder.gameObject, anim, 2.3f * (float)body.H, AnimStyle.For(id))));
         }
 
         // Applies the hero's colour roles (three3d.mjs buildRigged recolour), trims hair for shaved

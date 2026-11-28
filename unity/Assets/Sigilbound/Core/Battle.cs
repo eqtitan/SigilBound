@@ -19,10 +19,10 @@ namespace Sigilbound.Core
         public bool Boss, Titan; public int HeroUid;
         public int[] SkillLv = new int[0]; // Skill Tome upgrades per skill (allies)
         public int SkillLevel(int i) => i < SkillLv.Length ? SkillLv[i] : 0;
-        public bool Has(FxType t) => Effects.Any(e => e.Type == t);
+        public bool Has(FxType t) { for (int i = 0; i < Effects.Count; i++) if (Effects[i].Type == t) return true; return false; } // a loop: the HUD asks this per unit per GUI event (no closure garbage)
         // Weakness break (PLAN step 98): hits from the element that beats this unit fill the meter; full = Broken.
         public double Break; public int BreakGuard;
-        public Effect Shield => Effects.FirstOrDefault(e => e.Type == FxType.Shield);
+        public Effect Shield { get { for (int i = 0; i < Effects.Count; i++) if (Effects[i].Type == FxType.Shield) return Effects[i]; return null; } }
     }
 
     public enum EvType { Skill, Damage, Heal, Absorb, Status, Text, Death }
@@ -33,6 +33,17 @@ namespace Sigilbound.Core
     }
 
     public enum BattleResult { None, Victory, Defeat, Timeout }
+
+    // Enemy intent (Battle.PreviewAction): the icon over a foe. Ultimate = its third skill is ready and chosen
+    // (Does then says what that skill does); Stunned = the coming turn is lost.
+    public enum IntentKind { None, Attack, AoE, Heal, Buff, Debuff, Ultimate, Stunned }
+    public sealed class Intent
+    {
+        public static readonly Intent None = new Intent();
+        public Unit Unit; public int Skill = -1; public Unit Target; public IntentKind Kind; public IntentKind Does;
+        public bool Debuffs; // it also lays a debuff on foes (a small mark on the attack icon: no roster skill is a pure debuff)
+        public SkillDef SkillDef => Unit != null && Skill >= 0 ? Unit.Template.Skills[Skill] : null;
+    }
 
     public sealed class Battle
     {
@@ -64,10 +75,19 @@ namespace Sigilbound.Core
 
         public Battle(List<Unit> allies, List<List<Unit>> waves, Random rng, bool titan = false, int turnLimit = 0)
         {
-            Allies = allies; Waves = waves; _rng = rng; IsTitan = titan; TurnLimit = turnLimit;
+            // Empty sides (code review L1): data-driven waves (dungeons, rivals) could hand over an empty wave or
+            // none at all. Empty waves are dropped; a battle with no foes at all, or no heroes, ends at once
+            // (no heroes: a defeat; no foes: Over with no result, so nothing is rewarded).
+            Allies = allies ?? new List<Unit>();
+            Waves = (waves ?? new List<List<Unit>>()).Where(w => w != null && w.Count > 0).ToList();
+            bool noFoes = Waves.Count == 0;
+            if (noFoes) Waves.Add(new List<Unit>());
+            _rng = rng; IsTitan = titan; TurnLimit = turnLimit;
             foreach (var u in Units) u.Tm = StartTm(u);
-            foreach (var w in waves.Skip(1)) foreach (var u in w) u.Tm = StartTm(u);
+            foreach (var w in Waves.Skip(1)) foreach (var u in w) u.Tm = StartTm(u);
             StartWaveClock();
+            if (Living(Allies).Count == 0) Finish(BattleResult.Defeat);
+            else if (noFoes) Over = true;
         }
 
         // Speed-based head start (PLAN step 98): the fastest unit usually acts first, with a little luck.
@@ -140,7 +160,10 @@ namespace Sigilbound.Core
         public IEnumerable<Unit> Units => Allies.Concat(Enemies);
         public static List<Unit> Living(IEnumerable<Unit> list) => list.Where(u => u.Alive).ToList();
         public List<Unit> Side(Unit u, bool own) => (u.Ally == own) ? Allies : Enemies;
-        public double Speed(Unit u) => u.Spd * (1 + (u.Has(FxType.SpdUp) ? 0.3 : 0) - (u.Has(FxType.Slow) ? 0.3 : 0));
+        // Slow and SpdUp size (PLAN step 109, mechanics review #6): at 0.3 they were the biggest single levers
+        // in the game (Tests~ "speed" measures it).
+        public const double SpeedFx = 0.2;
+        public double Speed(Unit u) => u.Spd * (1 + (u.Has(FxType.SpdUp) ? SpeedFx : 0) - (u.Has(FxType.Slow) ? SpeedFx : 0));
         double AtkOf(Unit u) => u.Atk * (1 + (u.Has(FxType.AtkUp) ? 0.4 : 0) - (u.Has(FxType.AtkDown) ? 0.4 : 0));
         double DefOf(Unit u) => u.Def * (1 + (u.Has(FxType.DefUp) ? 0.5 : 0) - (u.Has(FxType.DefDown) ? 0.5 : 0));
         public List<int> Usable(Unit u) => Enumerable.Range(0, u.Cds.Length).Where(i => u.Cds[i] == 0).ToList();
@@ -170,6 +193,17 @@ namespace Sigilbound.Core
             }
         }
 
+        // Element matchup of a damaging skill on a target, for the target picker (UX review #5): +1 when the
+        // attacker's element beats the target's ("Weak"), -1 when the target resists, 0 otherwise or for skills
+        // that don't hit foes.
+        public static int Matchup(Unit attacker, SkillDef sk, Unit target)
+        {
+            if (attacker == null || target == null || sk == null || attacker.Ally == target.Ally || sk.Mult <= 0) return 0;
+            if (sk.Target != Target.Enemy && sk.Target != Target.AllEnemies) return 0;
+            double m = ElementMultiplier(attacker.El, target.El);
+            return m > 1 ? 1 : m < 1 ? -1 : 0;
+        }
+
         // ---------- turn flow ----------
         public Unit NextActor()
         {
@@ -195,7 +229,7 @@ namespace Sigilbound.Core
                 for (int i = 0; i < sim.Count; i++)
                     if (tms[i] >= TmFull && (best < 0 || tms[i] > tms[best] || (tms[i] == tms[best] && sim[i].spd > sim[best].spd))) best = i;
                 if (best >= 0) { output.Add(sim[best].u); tms[best] = 0; continue; }
-                for (int i = 0; i < sim.Count; i++) tms[i] += sim[i].spd * 0.7;
+                for (int i = 0; i < sim.Count; i++) tms[i] += sim[i].spd * 0.07 * 10; // the same step as NextActor (code review L8)
             }
             return output;
         }
@@ -227,6 +261,16 @@ namespace Sigilbound.Core
                 _enrageShown = EnrageStacks;
                 ev.Add(new BattleEvent { Type = EvType.Text, Unit = u, Text = _enrageShown == 1 ? "Enrage! Damage up, healing down" : $"Enrage x{_enrageShown}" });
             }
+            bool stunned = TurnStart(u, ev);
+            if (stunned) ev.Add(new BattleEvent { Type = EvType.Text, Unit = u, Text = u.Has(FxType.Broken) ? "Broken!" : "Stunned!" });
+            _currentSkips = stunned;
+            return (ev, stunned || !u.Alive);
+        }
+
+        // The state changes at the start of a unit's turn: cooldowns tick, Poison/Burn/Regen apply. No RNG, so
+        // PreviewAction can run it on the live state and roll it back. Returns whether the turn is lost (Stun or Broken).
+        bool TurnStart(Unit u, List<BattleEvent> ev)
+        {
             for (int i = 0; i < u.Cds.Length; i++) u.Cds[i] = Math.Max(0, u.Cds[i] - 1);
             foreach (var e in u.Effects.ToList())
             {
@@ -238,11 +282,7 @@ namespace Sigilbound.Core
                 }
                 else if (e.Type == FxType.Regen) HealUnit(u, u.MaxHp * 0.08, ev, u);
             }
-            bool broken = u.Alive && u.Has(FxType.Broken);
-            bool stunned = u.Alive && (u.Has(FxType.Stun) || broken);
-            if (stunned) ev.Add(new BattleEvent { Type = EvType.Text, Unit = u, Text = broken ? "Broken!" : "Stunned!" });
-            _currentSkips = stunned;
-            return (ev, stunned || !u.Alive);
+            return u.Alive && (u.Has(FxType.Stun) || u.Has(FxType.Broken));
         }
 
         public BattleResult EndTurn(Unit u, out bool newWave)
@@ -299,6 +339,67 @@ namespace Sigilbound.Core
                 if (score > bestScore) { bestScore = score; best = i; }
             }
             return (best, PickTarget(u, best));
+        }
+
+        // ---------- enemy intent (UX review #5/#9, PLAN P2-15) ----------
+        // What `u` will do when its next turn starts, if that turn came now: the turn-start ticks (cooldowns,
+        // Poison/Burn/Regen, Stun/Broken) are applied to the live state, AiChoose runs, and everything is rolled
+        // back. Neither touches the RNG, so the preview is exactly the AI's choice right after BeginTurn (Tests~
+        // IntentTests runs it against the real choice in many seeded battles). Other units acting first can
+        // still change it: the HUD asks again after every turn.
+        public Intent PreviewAction(Unit u)
+        {
+            if (u == null || !u.Alive || Over || u.Template?.Skills == null || u.Template.Skills.Length == 0) return Intent.None;
+            var units = new List<Unit>(Allies.Count + Enemies.Count); units.AddRange(Allies); units.AddRange(Enemies);
+            if (!units.Contains(u)) units.Add(u);
+            var saved = new List<(Unit u, int hp, bool alive, double brk, List<Effect> fx, (int turns, int val, int stacks, bool fresh)[] fv)>(units.Count);
+            foreach (var x in units)
+            {
+                var fv = new (int, int, int, bool)[x.Effects.Count];
+                for (int i = 0; i < fv.Length; i++) { var e = x.Effects[i]; fv[i] = (e.Turns, e.Val, e.Stacks, e.Fresh); }
+                saved.Add((x, x.Hp, x.Alive, x.Break, new List<Effect>(x.Effects), fv));
+            }
+            var cds = (int[])u.Cds.Clone(); long titanDmg = TitanDamage;
+            try
+            {
+                bool skips = TurnStart(u, new List<BattleEvent>());
+                if (!u.Alive) return Intent.None;
+                if (skips) return new Intent { Unit = u, Skill = -1, Kind = IntentKind.Stunned, Does = IntentKind.Stunned };
+                var (skill, target) = AiChoose(u);
+                var sk = u.Template.Skills[skill];
+                var does = Classify(sk);
+                bool ult = skill == 2 && u.Template.Skills.Length > 2;
+                return new Intent { Unit = u, Skill = skill, Target = sk.Target == Target.Enemy || sk.Target == Target.Ally ? target : null, Kind = ult ? IntentKind.Ultimate : does, Does = does, Debuffs = Debuffs(sk) };
+            }
+            finally
+            {
+                foreach (var (x, hp, alive, brk, fx, fv) in saved)
+                {
+                    x.Hp = hp; x.Alive = alive; x.Break = brk;
+                    x.Effects.Clear(); x.Effects.AddRange(fx);
+                    for (int i = 0; i < fv.Length; i++) { var e = fx[i]; (e.Turns, e.Val, e.Stacks, e.Fresh) = fv[i]; }
+                }
+                Array.Copy(cds, u.Cds, cds.Length); TitanDamage = titanDmg;
+            }
+        }
+
+        // What a skill does, for the intent icon: damage to one foe or all of them, healing, or (no damage) a
+        // debuff on foes or a buff on its own side.
+        public static IntentKind Classify(SkillDef sk)
+        {
+            if (sk == null) return IntentKind.None;
+            if (sk.Mult > 0) return sk.Target == Target.AllEnemies ? IntentKind.AoE : IntentKind.Attack;
+            if (sk.Fx.Any(f => f.Type == FxType.Heal || f.Type == FxType.Regen)) return IntentKind.Heal;
+            bool atFoes = sk.Target == Target.Enemy || sk.Target == Target.AllEnemies;
+            if (sk.Fx.Any(f => f.To == FxTo.Enemies || (f.To == FxTo.Target && atFoes)) || atFoes) return IntentKind.Debuff;
+            return IntentKind.Buff;
+        }
+        // Whether a skill lays a harmful effect on foes (Stun, Slow, DefDown, Strip, Poison, turn-meter drain...).
+        public static bool Debuffs(SkillDef sk)
+        {
+            if (sk == null) return false;
+            bool atFoes = sk.Target == Target.Enemy || sk.Target == Target.AllEnemies;
+            return sk.Fx.Any(f => (f.To == FxTo.Enemies || (f.To == FxTo.Target && atFoes)) && (!FxDef.IsBuff(f.Type) || f.Type == FxType.Strip) && f.Type != FxType.Heal && f.Type != FxType.Tm && f.Type != FxType.Cleanse);
         }
 
         // Whether any effect of a utility skill would change something.
@@ -559,6 +660,7 @@ namespace Sigilbound.Core
             for (int n = 0; !Over && n < maxTurns; n++)
             {
                 var u = NextActor();
+                if (u == null) break; // nobody can act (no living units, or no speed): stop instead of crashing
                 var (_, skip) = BeginTurn(u);
                 if (!skip) { var c = AiChoose(u); Act(u, c.skill, c.target); }
                 EndTurn(u, out _);

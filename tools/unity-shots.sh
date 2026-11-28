@@ -3,6 +3,7 @@
 # publishes to the "unity-preview" release, run headless under xvfb with software OpenGL.
 # Usage: tools/unity-shots.sh [out-dir] [width] [height]
 #   out-dir defaults to ./unity-shots; size defaults to 1280x720 (landscape).
+#   SB_SHOTS_SCENES=1 adds the campaign scene tour (-sbShotsScenes; several minutes more).
 # Needs: curl, unzip, xvfb-run (and Mesa's software GL, which xvfb uses).
 # Prints the PNG paths at the end. See docs/sigilbound/PLAN.md (step 3) and Client/ShotsMode.cs.
 set -euo pipefail
@@ -20,11 +21,12 @@ BIN="$(find "$WORK" -name 'Sigilbound.x86_64' | head -n 1)"
 chmod +x "$BIN"
 
 rm -rf "$OUT" && mkdir -p "$OUT"
+LIMIT=1500; [ -n "${SB_SHOTS_SCENES:-}" ] && LIMIT=3000
 echo "== running the screenshot mode (${W}x${H})"
 # Software GL (llvmpipe) is slow but enough for screenshots. -force-glcore avoids Vulkan.
-LIBGL_ALWAYS_SOFTWARE=1 timeout 1500 xvfb-run -a -s "-screen 0 ${W}x${H}x24" \
+LIBGL_ALWAYS_SOFTWARE=1 timeout "$LIMIT" xvfb-run -a -s "-screen 0 ${W}x${H}x24" \
   "$BIN" -screen-fullscreen 0 -screen-width "$W" -screen-height "$H" -force-glcore \
-  -logFile "$OUT/player.log" -sbShots="$OUT" || true
+  -logFile "$OUT/player.log" -sbShots="$OUT" ${SB_SHOTS_SCENES:+-sbShotsScenes} || true
 
 if grep -q "^DONE" "$OUT/shots.log" 2>/dev/null; then
   echo "== done: $(grep '^DONE' "$OUT/shots.log")"

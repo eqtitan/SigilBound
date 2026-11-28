@@ -56,6 +56,54 @@ namespace Sigilbound.Core
             FxType.Burn => "BRN", FxType.Counter => "CTR", FxType.Revive => "RVV", _ => "",
         };
 
+        // Short captions for the battle skill buttons (UX review #5: they read "A1 / A2 / A3"). A name that fits
+        // stays whole; otherwise the longest run of whole words from the start that fits, else from the end
+        // ("Radiant Judgment" -> "Radiant", "Storm of Blades" -> "Blades"), else cut with an ellipsis. Captions
+        // stay distinct within one hero's skills.
+        public const int ShortMax = 11;
+        public static string[] ShortNames(IList<SkillDef> skills, int max = ShortMax)
+        {
+            var outp = new string[skills.Count];
+            for (int i = 0; i < skills.Count; i++)
+            {
+                var cands = Candidates(skills[i].Name ?? "", max);
+                string pick = cands[0];
+                foreach (var c in cands)
+                {
+                    bool clash = false;
+                    for (int j = 0; j < i; j++) if (outp[j] == c) clash = true;
+                    if (!clash) { pick = c; break; }
+                }
+                outp[i] = pick;
+            }
+            return outp;
+        }
+        public static string Short(string name, int max = ShortMax) => Candidates(name ?? "", max)[0];
+
+        static List<string> Candidates(string name, int max)
+        {
+            var res = new List<string>();
+            name = name.Trim();
+            if (name.Length <= max) { res.Add(name); return res; }
+            var words = name.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+            bool Minor(string w) => w == "of" || w == "the" || w == "and" || w == "a" || w == "to";
+            // Leading words (dropping a dangling "of"/"the"), then trailing words.
+            for (int n = words.Length - 1; n >= 1; n--)
+            {
+                int k = n; while (k > 1 && Minor(words[k - 1].ToLowerInvariant())) k--;
+                var head = string.Join(" ", words, 0, k);
+                if (head.Length <= max && !Minor(head.ToLowerInvariant()) && !res.Contains(head)) { res.Add(head); break; }
+            }
+            for (int n = 1; n < words.Length; n++)
+            {
+                var tail = string.Join(" ", words, n, words.Length - n);
+                if (tail.Length <= max && !Minor(words[n].ToLowerInvariant()) && !res.Contains(tail)) { res.Add(tail); break; }
+            }
+            var cut = name.Substring(0, System.Math.Max(1, max - 1)).TrimEnd() + "\u2026";
+            if (!res.Contains(cut)) res.Add(cut);
+            return res;
+        }
+
         // A hero's passive, or null (Unity-only roster heroes).
         public static string Passive(HeroDef h) =>
             h != null && h.FallHeal > 0 ? $"Last Light: when an ally falls, heals all allies {h.FallHeal * 100:0}% HP" : null;

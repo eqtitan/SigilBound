@@ -266,3 +266,9 @@ Reproduction Steps, Expected and Actual Result) as it lists them.
 - Approve releases (defer to qa-lead)
 
 ### Reports to: `qa-lead`
+
+## Project memory (the brain)
+Before you start, read `docs/sigilbound/brain/MAP.md` and the lessons in `docs/sigilbound/brain/LESSONS.md`
+linked to the systems you'll touch, and follow their Prevention rules (also summarised in the repo's `CLAUDE.md`).
+When you finish or get blocked, add or update lessons (format: `docs/sigilbound/brain/README.md`) for anything
+that broke, fooled a check, cost time or surprised you, link them, and list the lesson ids in your report.

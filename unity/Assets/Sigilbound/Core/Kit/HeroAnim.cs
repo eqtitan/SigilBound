@@ -27,6 +27,35 @@ namespace Sigilbound.Core
             ["Run"] = "Jog_Fwd_Loop", ["Run_Back"] = "Jog_Fwd_Loop", ["HitRecieve"] = "Hit_Chest", ["HitRecieve_2"] = "Hit_Head",
             ["Death"] = "Death01", ["Wave"] = "Interact", ["Idle"] = "Idle_Loop",
         };
+        // Per-hero clip overrides (character TD pilot 2026-11-28): where a hero's gown, robe or prop can't follow a shared
+        // clip on every frame, that hero plays a gentler one. Run replaces the move clip (alias "Run"/"Run_Back").
+        public sealed class ClipOverride { public string Idle, Run; public string[] BigHit, Strike; }
+        public static readonly Dictionary<string, ClipOverride> HdOverrides = new Dictionary<string, ClipOverride>
+        {
+            // full gown: the jog's knees and the kneel's trailing leg cut through the skirt; a formal walk and a head hit stay inside it
+            ["kaelith"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            // the same for the other full-gown kit heroes checked frame by frame (roster batch 1)
+            ["solenne"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["aelira"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["ember"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["azura"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["morwenna"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["kasimir"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["sable"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["vaelith"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["rhea"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            ["lumen"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
+            // tower shield: Punch_Cross sweeps the sword through the shield
+            ["hask"] = new ClipOverride { Strike = new[] { "Sword_Attack" } },
+            // big scythe: the crouching idle laid its blade on the ground by her feet (in-house report build 190)
+            ["nell"] = new ClipOverride { Idle = "Idle_Loop" },
+        };
+        public static IDictionary<string, string> HdAliasesFor(string heroId)
+        {
+            if (heroId == null || !HdOverrides.TryGetValue(heroId, out var o) || o.Run == null) return HdAliases;
+            var d = new Dictionary<string, string>(HdAliases) { ["Run"] = o.Run, ["Run_Back"] = o.Run };
+            return d;
+        }
         public static bool HdGrips(string heroId)
         {
             string p = Looks.Of(heroId).Prop;
@@ -72,6 +101,12 @@ namespace Sigilbound.Core
             // Desync: breathing speed varies +/-8% by hero id, so a lineup never breathes in sync.
             int hsh = 17; foreach (char ch in heroId) hsh = hsh * 31 + ch;
             st.IdleSpeed = 0.92f + (System.Math.Abs(hsh) % 1000) / 1000f * 0.16f;
+            if (HdOverrides.TryGetValue(heroId, out var ov))
+            {
+                if (ov.Idle != null) { if (st.Ready == st.Idle) st.Ready = ov.Idle; st.Idle = ov.Idle; }
+                if (ov.BigHit != null) st.BigHit = ov.BigHit;
+                if (ov.Strike != null) st.Strike = ov.Strike;
+            }
             return st;
         }
 

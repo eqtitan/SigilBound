@@ -23,15 +23,33 @@ namespace Sigilbound.Client
             return _changelog;
         }
 
-        // Called from the home screen: once per launch, opens the window if there are unseen entries.
-        void MaybeShowWhatsNew()
+        // Once per launch after an update, on the home screen, when the pop-up queue says it's its turn
+        // (App.CheckPopups). Never on the very first launch: that marks every note seen instead.
+        List<ChangelogEntry> _unseenNotes;
+        bool WhatsNewPending()
         {
-            if (_whatsNewChecked || ModalOpen || NoSave) return;
+            if (_whatsNewChecked || NoSave) return false;
+            _unseenNotes ??= Changelog.Unseen(ChangelogAll(), PlayerPrefs.GetString(SeenPref, ""));
+            if (PopupQueue.WhatsNewOwed(_firstLaunch, _unseenNotes.Count)) return true;
+            if (_firstLaunch) MarkChangelogSeen();
             _whatsNewChecked = true;
-            var all = ChangelogAll();
-            var unseen = Changelog.Unseen(all, PlayerPrefs.GetString(SeenPref, ""));
-            if (all.Count > 0) { PlayerPrefs.SetString(SeenPref, all[0].Key); PlayerPrefs.Save(); }
+            return false;
+        }
+
+        void ShowWhatsNewOnce()
+        {
+            if (_whatsNewChecked) return;
+            _whatsNewChecked = true;
+            var unseen = _unseenNotes ?? Changelog.Unseen(ChangelogAll(), PlayerPrefs.GetString(SeenPref, ""));
+            MarkChangelogSeen();
             if (unseen.Count > 0) OpenWhatsNew(unseen, "What's New");
+        }
+
+        void MarkChangelogSeen()
+        {
+            if (NoSave) return;
+            var all = ChangelogAll();
+            if (all.Count > 0) { PlayerPrefs.SetString(SeenPref, all[0].Key); PlayerPrefs.Save(); }
         }
 
         void OpenWhatsNew() => OpenWhatsNew(ChangelogAll(), "Update History");
@@ -39,14 +57,14 @@ namespace Sigilbound.Client
         void OpenWhatsNew(List<ChangelogEntry> entries, string title)
         {
             _whatsNewScroll = Vector2.zero;
-            Modal(title, Mathf.Min(Ui.Safe.height - 40, 620), b =>
+            InfoModal(title, Mathf.Min(Ui.Safe.height - 40, 620), b =>
             {
                 var view = new Rect(b.x, b.y, b.width, b.height - 56);
                 float contentH = Layout(entries, view.width, null);
                 _whatsNewScroll = Scroller.Begin(view, _whatsNewScroll, contentH);
                 Layout(entries, view.width - 1, new Vector2(0, 0));
                 Scroller.End();
-                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Continue")) CloseModal();
+                if (ModalFooter(b, "Continue")) CloseModal();
             });
         }
 

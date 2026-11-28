@@ -117,6 +117,11 @@ namespace Sigilbound.Core
             };
         }
 
+        // Most SPD gear can add (flat, substats, and the share of % bonuses it adds), PLAN step 109. Speed is the
+        // strongest stat (Tests~ "speed": +10 SPD on every hero wins like +10% HP, and a speed-stacked Haste set,
+        // about +110, beat the same heroes in ordinary +40 gear 99.8% of the time). At +50 a speed build keeps an
+        // edge about the size of +10% of another stat (68%), and 8 in 10 random Mythic +10 sets never reach it.
+        public static int GearSpdCap = 50;
         public Stats HeroStats(HeroSave h)
         {
             var t = Hero(h.id);
@@ -150,6 +155,7 @@ namespace Sigilbound.Core
             st.Atk = Js.RoundInt((atk + fAtk) * (1 + pAtk / 100));
             st.Def = Js.RoundInt((def + fDef) * (1 + pDef / 100));
             st.Spd = Js.RoundInt((spd + fSpd) * (1 + pSpd / 100));
+            if (GearSpdCap > 0) st.Spd = Math.Min(st.Spd, Js.RoundInt(spd) + GearSpdCap);
             st.Crit = (int)Math.Min(100, crit); st.Cdmg = (int)cdmg;
             return st;
         }
@@ -353,13 +359,23 @@ namespace Sigilbound.Core
             return f;
         }
 
-        public static List<List<EnemySpec>> StageWaves(int idx)
+        public static List<List<EnemySpec>> StageWaves(int idx) => StageWaves(idx, Heroes);
+        // Act 1 draws enemies from the web game's 24 heroes (identical stages); act 2 from the frozen
+        // Act2EnemyIds list. Both are fixed whatever else joins the roster (the overload lets the tests
+        // check that by passing a bigger roster).
+        public static HeroDef[] EnemyPool(int idx, IReadOnlyList<HeroDef> roster)
+        {
+            if (ReferenceEquals(roster, Heroes)) return idx < ClassicStages ? Classic : Act2Pool;
+            if (idx < ClassicStages) return roster.Take(Classic.Length).ToArray();
+            var byId = roster.ToDictionary(h => h.Id);
+            return Act2EnemyIds.Select(id => byId[id]).ToArray();
+        }
+        public static List<List<EnemySpec>> StageWaves(int idx, IReadOnlyList<HeroDef> roster)
         {
             var rng = new Seeded(idx + 7);
             var g = Grade(idx);
             g.Mul *= CampaignEase(idx);
-            // Act 1 draws enemies from the web game's 24 heroes (identical stages); act 2 from every hero.
-            var pool = idx < ClassicStages ? Classic : Heroes;
+            var pool = EnemyPool(idx, roster);
             var chapterEl = ChapterElement(ChapterOf(idx));
             var waves = new List<List<EnemySpec>>();
             int waveCount = IsBossStage(idx) ? 3 : 2;

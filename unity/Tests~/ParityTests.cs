@@ -141,20 +141,24 @@ static class ParityTests
     {
         var bad = new List<string>();
         void Same(bool ok, string what) { if (!ok) bad.Add(what); }
-        void Skills(SkillDef[] mine, List<object> theirs, string who)
+        var tunedSeen = new List<string>();
+        void Skills(SkillDef[] mine, List<object> theirs, string who, bool tuned = false, bool ownNames = false)
         {
             Same(mine.Length == theirs.Count, who + " skill count");
             for (int i = 0; i < Math.Min(mine.Length, theirs.Count); i++)
             {
                 var a = mine[i]; var b = theirs[i]; string w = $"{who}.{Json.Str(b, "name")}";
-                Same(a.Name == Json.Str(b, "name") && Camel(a.Target.ToString()) == Json.Str(b, "target") && a.Mult == N(b, "mult") && a.Cooldown == N(b, "cd")
+                // Unity-tuned classic heroes (GameData.UnityTuned) keep everything but the numbers that scale power.
+                bool sized(FxDef f) => f.Type == FxType.Heal || f.Type == FxType.Shield;
+                if (tuned && (a.Mult != N(b, "mult") || a.Fx.Where(sized).Select(f => f.Pct).Zip(Json.Arr(b, "fx").Where(o => Json.Str(o, "t") == "heal" || Json.Str(o, "t") == "shield").Select(o => N(o, "pct")), (x, y) => x != y).Any(d => d)) && !tunedSeen.Contains(who)) tunedSeen.Add(who);
+                Same((ownNames || a.Name == Json.Str(b, "name")) && Camel(a.Target.ToString()) == Json.Str(b, "target") && (tuned || a.Mult == N(b, "mult")) && a.Cooldown == N(b, "cd")
                     && a.Hits == N(b, "hits") && Camel(a.Scale.ToString()) == Json.Str(b, "scale"), w);
                 var fx = Json.Arr(b, "fx");
                 Same(a.Fx.Length == fx.Count, w + " fx count");
                 for (int k = 0; k < Math.Min(a.Fx.Length, fx.Count); k++)
                 {
                     var f = a.Fx[k]; var o = fx[k];
-                    Same(Camel(f.Type.ToString()) == Json.Str(o, "t") && f.Chance == Json.Num(o, "chance", -1) && f.Pct == N(o, "pct") && f.Val == N(o, "val")
+                    Same(Camel(f.Type.ToString()) == Json.Str(o, "t") && f.Chance == Json.Num(o, "chance", -1) && (f.Pct == N(o, "pct") || tuned && sized(f)) && f.Val == N(o, "val")
                         && Camel(f.To.ToString()) == Json.Str(o, "to", "target") && (!Json.Has(o, "turns") || f.Turns == N(o, "turns")), $"{w} fx {k}");
                 }
             }
@@ -166,10 +170,13 @@ static class ParityTests
             var h = Hero(Json.Str(o, "id"));
             if (h == null) { bad.Add("missing hero " + Json.Str(o, "id")); continue; }
             Same(h.Name == Json.Str(o, "name") && Camel(h.Rarity.ToString()) == Json.Str(o, "rarity") && Camel(h.Element.ToString()) == Json.Str(o, "el") && Camel(h.Role.ToString()) == Json.Str(o, "role"), h.Id);
-            Skills(h.Skills, Json.Arr(o, "skills"), h.Id);
+            Skills(h.Skills, Json.Arr(o, "skills"), h.Id, UnityTuned.Contains(h.Id));
         }
+        // The list is exact: every hero on it really differs, so it can't grow stale or hide a slip.
+        Check(tunedSeen.OrderBy(x => x).SequenceEqual(UnityTuned.OrderBy(x => x)), $"Unity-tuned classic heroes differ from data.js only in skill power: {string.Join(", ", UnityTuned)}" + (tunedSeen.Count != UnityTuned.Length ? $" (differing: {string.Join(", ", tunedSeen)})" : ""));
         Same(Titan.Name == Json.Str(Json.Obj(data, "titan"), "name"), "titan name");
-        Skills(Titan.Skills, Json.Arr(Json.Obj(data, "titan"), "skills"), "titan");
+        // The Titan's move names are Unity's own since its remodel (owner request 2026-11-28); everything else matches.
+        Skills(Titan.Skills, Json.Arr(Json.Obj(data, "titan"), "skills"), "titan", false, true);
         var tiers = Json.Arr(data, "titanTiers");
         for (int i = 0; i < tiers.Count; i++)
         {

@@ -17,7 +17,7 @@ namespace Sigilbound.Client
         public const float Gap = 6;         // between chips in a row
         public const float RowGap = 10;     // between rows
         public const float LabelH = 22;     // section label
-        public const float BackW = 104;     // "‹ Heroes" chip
+        public const float BackW = UiLayout.BackW; // the shared Back button (Ui.BackButton)
         public const float CheckBox = 26;   // the box of a check row
         public const float ReleaseFooterH = 112;
         public const float ReviewFooterH = 64;
@@ -26,7 +26,7 @@ namespace Sigilbound.Client
         public const float SlotH = 116, SlotGap = 8;
         public const int SlotCols = 3;
         public static float PickRowH => Mathf.Max(58, Ui.Tap + 10);
-        public const float HoldSeconds = 1f;
+        public static float HoldSeconds => Access.HoldSeconds; // Settings > Accessibility > Hold to confirm (1 s by default)
         public static float UndoBarH => Ui.Tap + 8;
     }
 
@@ -60,7 +60,7 @@ namespace Sigilbound.Client
             y += T + G6;
             if (Ui.Button(new Rect(Pad, y, w2, T), "Release…", Ui.Kind.Secondary, 13)) OpenRelease();
             var ra = new Rect(Pad + w2 + G6, y, w2, T);
-            if (Ui.Button(ra, "Rank up all", Ui.Kind.Secondary, 13)) OpenRankAll();
+            if (Ui.Button(ra, "Rank Up All", Ui.Kind.Secondary, 13)) OpenRankAll();
             int ready = RankReadyCount();
             if (ready > 0) Badge(new Rect(ra.xMax - 24, ra.y - 6, 22, 22), ready);
             y += T + 12;
@@ -139,7 +139,7 @@ namespace Sigilbound.Client
             var box = new Rect(r.x + 2, r.y + (r.height - b) / 2, b, b);
             var c = color ?? Palette.Text;
             if (!enabled) c = new Color(c.r, c.g, c.b, 0.6f);
-            Ui.Round(box, on ? Palette.Hex("#3d3020") : Palette.Hex("#120e19"), on ? (color ?? Palette.Gold) : Palette.Bronze, 5);
+            Ui.Round(box, on ? Palette.Hex("#3d3020") : Palette.WellFocus, on ? (color ?? Palette.Gold) : Palette.Bronze, 5);
             if (on) Ui.Text(box, "✓", 17, color ?? Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter);
             Ui.Text(new Rect(box.xMax + 10, r.y, r.width - b - 14, r.height), label + (enabled ? "" : "  (always)"), size, c);
             if (enabled && Ui.Button(r, "", Ui.Kind.Ghost)) return !on;
@@ -161,7 +161,7 @@ namespace Sigilbound.Client
         string _holdKey; float _holdStart;
         bool HoldButton(Rect r, string text, string key, bool enabled)
         {
-            Ui.Button(r, text, Ui.Kind.Red, 15, enabled);
+            Ui.Button(r, text, Ui.Kind.Danger, 15, enabled);
             bool down = enabled && GUI.enabled && Input.GetMouseButton(0) && r.Contains(Event.current.mousePosition) && !Scroller.WasDragging;
             string done = "done:" + key;
             if (!down) { if ((_holdKey == key || _holdKey == done) && Event.current.type == EventType.Repaint) _holdKey = null; return false; }

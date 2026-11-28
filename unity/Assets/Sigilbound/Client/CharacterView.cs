@@ -16,6 +16,9 @@ namespace Sigilbound.Client
         public Unit Unit;
         public GearLook Gear;             // equipped gear shown on the model (rarity and set)
         public HeroModel Hero => _model;
+        // True from the start of a model load until HeroModels.Build has revealed it (or the block stand-in shows):
+        // the menus draw a soft placeholder there meanwhile (LoadingPlaceholder, in-house report S4), never a gap.
+        public bool AwaitingModel { get; private set; }
         public Vector3 Home => _home;
         // Thrown back from `from` by `dist` metres and back again (Titan finishers): out 0.14 s, hold, back 0.5 s.
         public void Shove(Vector3 from, float dist) { if (!gameObject.activeInHierarchy) return; if (_hitCo != null) { StopCoroutine(_hitCo); _hitCo = null; } StartCoroutine(ShoveRoutine(from, dist)); }
@@ -173,6 +176,7 @@ namespace Sigilbound.Client
             var holder = new GameObject("GLB").transform;
             holder.SetParent(Model, false);
             HeroModel built = null;
+            AwaitingModel = true;
             // The block stand-in stays hidden while the real model loads (owner report 2026-11-26: the menu
             // heroes and the Titan showed the old figures first, then swapped). It only appears if the load
             // is slow or fails, so a unit is never invisible for long.
@@ -180,13 +184,15 @@ namespace Sigilbound.Client
             bool finished = false;
             StartCoroutine(StandInIfSlow(() => finished, giveUp));
             yield return HeroModels.Build(Unit, Gear, holder, m => built = m);
-            finished = true;
+            finished = true; AwaitingModel = false;
             Debug.Log($"SBMODEL view {Unit?.Template?.Id}: {(built != null ? "model shown" : "kept the stand-in")}");
             if (this == null) yield break;
             if (built == null) { if (holder) Destroy(holder.gameObject); ShowStandIn(true); yield break; }
             foreach (Transform child in Model) if (child != holder && child != HeadTop) child.gameObject.SetActive(false);
             StartCoroutine(PopIn(holder));
             _model = built;
+            // Hollow enemies: a red outline and glowing eyes on the dark body (art review M2).
+            if (Unit != null && !Unit.Ally && !Unit.Rival && !Unit.Titan) HollowLook.Apply(holder, transform, HeroModels.IsHd(holder));
             ArmL = ArmR = null;
             // Additive buff/debuff posture over the clips (MECHANICS.md 3.1).
             _posture = built.Root.AddComponent<PostureLayer>();
@@ -212,6 +218,7 @@ namespace Sigilbound.Client
         // The block stand-in (every child of Model except the HeadTop marker and a loaded model).
         void ShowStandIn(bool on)
         {
+            if (on) AwaitingModel = false;
             foreach (Transform child in Model) if (child != HeadTop && child.name != "GLB") child.gameObject.SetActive(on);
         }
         IEnumerator StandInIfSlow(System.Func<bool> finished, float giveUp)
@@ -365,6 +372,25 @@ namespace Sigilbound.Client
                 }
             }
             if (Aura != null) Aura.localScale = new Vector3(1.1f + Mathf.Sin(t * 3f) * 0.05f, 0.005f, 1.1f + Mathf.Sin(t * 3f) * 0.05f) * Model.localScale.x;
+        }
+
+        // The element floor disc steps aside while a cast circle of the same size shows (art review M3: the two
+        // stacked into one big saturated stamp).
+        float _auraBackAt;
+        public void HideAura(float seconds)
+        {
+            if (Aura == null) return;
+            Aura.gameObject.SetActive(false);
+            _auraBackAt = Time.time + seconds;
+            if (!_auraWaiting) StartCoroutine(AuraBack());
+        }
+        bool _auraWaiting;
+        IEnumerator AuraBack()
+        {
+            _auraWaiting = true;
+            while (Time.time < _auraBackAt) yield return null;
+            _auraWaiting = false;
+            if (Aura != null && !_dead) Aura.gameObject.SetActive(true);
         }
 
         public void SetHighlight(Color? c)

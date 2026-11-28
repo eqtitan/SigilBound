@@ -10,7 +10,7 @@ quick framing pass. Shots (frames):
     0-47    rune circle glide, the sigil ring lights up
     48-119  hero cuts with element rim light: Morwenna, Ulfgar, Oriel, Azura, Obrecht (hearth golem)
     120-191 Titan reveal: worm's-eye tilt from its feet to the burning visor, roar
-    192-263 Meteor Leap slow-motion rise, slam and shockwave; a flash of Cinder Breath fire over the team
+    192-263 Faultline Leap slow-motion rise, slam and shockwave; a flash of Heartfire Torrent fire over the team
     264-311 the team fights back: Ulfgar's whirlwind, Morwenna's channelled blast at the Titan
 """
 import bpy, sys, os, math, json
@@ -208,7 +208,7 @@ def frame(f):
         cam(eye + shake, V(0, HOME.y, look_z), lerp(56, 62, ease(k)), lerp(4, 0, k))
         plan[TITAN] = ("Interact", max(0, (k - 0.55) / 0.45)) if k > 0.55 else ("Idle_Loop", k)
         FLASH.location = HOME + V(0, -1.2, TH * 0.95); FLASH.data.energy = 2500 * max(0, (k - 0.6) / 0.4)
-    elif f < 264:   # 4. Meteor Leap: slow-motion rise, slam and shockwave; a flash of Cinder Breath
+    elif f < 264:   # 4. Faultline Leap: slow-motion rise, slam and shockwave; a flash of Heartfire Torrent
         land = TEAMC + V(0, 1.5, 0)
         if f < 228:
             k = (f - 192) / 36.0; kk = 0.5 * (1 - (1 - k) ** 2)
@@ -227,7 +227,7 @@ def frame(f):
             CRACK.location = land + V(0, 0, 0.03); CRACK.scale = (min(1, u * 3) * 4,) * 2 + (1,)
             FLASH.location = land + V(0, 0, 2.5); FLASH.data.energy = 9000 * max(0, 1 - u * 1.2)
             cam(LEAPCAM + V(0, 0, 0.12 * math.sin(u * 30)), land + V(0, 0, TH * 0.55), 60, 6 * math.sin(u * 14))
-        else:           # Cinder Breath flash: over its shoulder, the fire sweeps the team
+        else:           # Heartfire Torrent flash: over its shoulder, the fire sweeps the team
             u = (f - 250) / 14.0; TITAN.arm.location = HOME
             back = (HOME - TEAMC); back.z = 0; back.normalize(); right = V(-back.y, back.x, 0)
             plan[TITAN] = ("Ult_Channel", 0.55 + u * 0.3)

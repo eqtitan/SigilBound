@@ -4,6 +4,7 @@
 //   _MaskMap  R metallic, G ambient occlusion, B glow mask (eyes, runes, gems, trim), A smoothness
 //   _BumpMap  tangent-space normal map (optional; the default "bump" texture is flat)
 //   _GlowColor the glow-mask colour: the hero's glow colour, or red on Hollow enemies (HeroRig)
+//   _RidgeColor the glow on mask R: the Titan's crystal ridges when it attacks (TitanBody); black elsewhere
 //   _Tint     multiplies the albedo (Hollow enemies are tinted dark violet)
 //   _Cutoff   alpha clip for hair cards, feathers and fringes (0 = opaque)
 // No keywords: every map is always sampled, so one variant serves every hero (cheap to warm up).
@@ -21,12 +22,19 @@ Shader "Sigilbound/CharacterPainted"
         _Metallic ("Metallic scale", Range(0, 1)) = 1
         _Smoothness ("Smoothness scale", Range(0, 1)) = 0.5
         _OcclusionStrength ("AO strength", Range(0, 1)) = 1
+        // --- metal reflection (character TD 2026-11-28): a procedural studio environment seen in the reflection,
+        // weighted by mask R (metal) and A (smoothness); 0 = off (Titan, Low quality). ---
+        _EnvStrength ("Metal reflection strength", Range(0, 2)) = 0
+        _EnvSky ("Metal reflection sky", Color) = (1.0, 0.97, 0.9, 1)
+        _EnvGround ("Metal reflection ground", Color) = (0.16, 0.13, 0.12, 1)
+        // --- end metal reflection ---
         _Wrap ("Wrap lighting", Range(0, 1)) = 0.3
         _Ramp ("Painterly ramp", Range(0, 1)) = 0.35
         [HDR] _RimColor ("Rim colour (element)", Color) = (0.62, 0.7, 1, 1)
         _Rim ("Rim strength", Range(0, 2)) = 0.7
         _Sheen ("Cloth sheen", Range(0, 1)) = 0.15
         [HDR] _GlowColor ("Glow mask colour", Color) = (0, 0, 0, 1)
+        [HDR] _RidgeColor ("Ridge glow (mask R, the Titan's crystals)", Color) = (0, 0, 0, 1)
         _Cutoff ("Alpha clip", Range(0, 1)) = 0
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2
     }
@@ -48,6 +56,7 @@ Shader "Sigilbound/CharacterPainted"
             float _BumpScale;
             float _Metallic;
             float _Smoothness;
+            float _EnvStrength; float4 _EnvSky; float4 _EnvGround; // metal reflection
             float _OcclusionStrength;
             float _Wrap;
             float _Ramp;
@@ -55,6 +64,7 @@ Shader "Sigilbound/CharacterPainted"
             float _Rim;
             float _Sheen;
             float4 _GlowColor;
+            float4 _RidgeColor;
             float _Cutoff;
             float _Cull;
         CBUFFER_END
@@ -146,6 +156,17 @@ Shader "Sigilbound/CharacterPainted"
                 float3 specCol = lerp(float3(0.04, 0.04, 0.04), albedo, metal);
                 col += specCol * light.color * spec * atten * saturate(ndl * 4.0);
                 col += albedo * metal * lerp(float3(0.29, 0.23, 0.19), float3(0.81, 0.88, 1.0), n.y * 0.5 + 0.5) * 0.25 * ao;
+                // --- metal reflection: a studio environment in the reflected direction (bright sky, a hot horizon
+                // band, dark ground), tinted by the metal's own colour; cloth and skin (mask R 0) get nothing. ---
+                {
+                    float3 r = reflect(-v, n);
+                    float up = r.y * 0.5 + 0.5;
+                    float3 env = lerp(_EnvGround.rgb, _EnvSky.rgb, smoothstep(0.35, 0.75, up));
+                    env += _EnvSky.rgb * 1.2 * pow(saturate(1.0 - abs(r.y - 0.12) * 4.0), 4.0);
+                    float fres = 0.6 + 0.4 * pow(1.0 - saturate(dot(n, v)), 3.0);
+                    col += lerp(float3(0.04, 0.04, 0.04), albedo, metal) * env * fres * metal * (0.3 + 0.7 * smooth) * _EnvStrength * ao;
+                }
+                // --- end metal reflection ---
 
                 float nv = saturate(dot(n, v));
                 col += albedo * _Sheen * (1.0 - metal) * pow(1.0 - nv, 3.0) * 0.6 * light.color;
@@ -153,6 +174,7 @@ Shader "Sigilbound/CharacterPainted"
                 col += _RimColor.rgb * _Rim * rim;
 
                 col += _GlowColor.rgb * mask.b;
+                col += _RidgeColor.rgb * mask.r;   // the Titan's crystal ridges (black on every other hero: their mask R is 0)
                 col = MixFog(col, i.fogFactor);
                 return half4(col, 1.0);
             }

@@ -56,6 +56,7 @@ namespace Sigilbound.Client
         float _breath, _ovW; public float BreathTarget;   // 0..1: the Titan winding up (BattleController)
         Vector3 _ovPos; Quaternion _ovRot = Quaternion.identity; float _ovFov = 42;
         public Vector3 BreathFocus;                        // where the breathing tilt looks (the Titan's head)
+        // Screen shake (and Reduce motion, which turns it off) also scale the Titan's breathing tilt.
         public static float MotionScale => (Vfx.ShakeSetting?.Invoke() ?? "full") switch { "off" => 0f, "reduced" => 0.4f, _ => 1f };
 
         void SetPose(Vector3 pos, Vector3 target, float fov)
@@ -83,8 +84,9 @@ namespace Sigilbound.Client
             if (pos.y < 0.4f) pos.y = 0.4f;
             var rot = b > 0 && BreathFocus != Vector3.zero ? Quaternion.Slerp(_poseRot, Quaternion.LookRotation(BreathFocus - pos), 0.3f * b) : _poseRot;
             float fov = _poseFov;
-            if (_ovW > 0) { pos = Vector3.Lerp(pos, _ovPos, _ovW); rot = Quaternion.Slerp(rot, _ovRot, _ovW); fov = Mathf.Lerp(fov, _ovFov, _ovW); }
-            // Titan cinematics keep the ground in frame (Meteor Leap, the final blow, Crushing Palm's low shot):
+            if (Access.ReduceMotion) ReducedOverride(ref pos, ref rot, ref fov);
+            else if (_ovW > 0) { pos = Vector3.Lerp(pos, _ovPos, _ovW); rot = Quaternion.Slerp(rot, _ovRot, _ovW); fov = Mathf.Lerp(fov, _ovFov, _ovW); }
+            // Titan cinematics keep the ground in frame (Faultline Leap, the final blow, Bedrock Hammer's low shot):
             // tilt down until the frame's bottom edge meets the ground within BattleLayout.GroundSeen metres.
             if (_framedTitan && _ovW > 0)
             {
@@ -94,6 +96,32 @@ namespace Sigilbound.Client
                 if (pitch > max) rot = Quaternion.AngleAxis((pitch - max) * _ovW, rot * Vector3.right) * rot;
             }
             Cam.transform.position = pos + Vfx.ShakeOffset; Cam.transform.rotation = rot; Cam.fieldOfView = fov;
+        }
+
+        // Settings > Accessibility > Reduce motion: a cinematic (Titan intro and moves, lair reveal) holds one still
+        // shot instead of swinging, zooming or rolling: the pose it has once fully blended in, without the Dutch
+        // roll, entered and left with a cut softened by a short dip (CutDip, drawn by OnGUI under the HUD).
+        bool _held; Vector3 _heldPos; Quaternion _heldRot; float _heldFov;
+        public static float CutDip { get; private set; }
+        void ReducedOverride(ref Vector3 pos, ref Quaternion rot, ref float fov)
+        {
+            bool full = _ovW >= 0.999f;
+            if (full && !_held)
+            {
+                _held = true; _heldPos = _ovPos; _heldFov = _ovFov; CutDip = 1f;
+                var f = _ovRot * Vector3.forward; _heldRot = Quaternion.LookRotation(f, Vector3.up); // level horizon
+            }
+            else if (!full && _held) { _held = false; CutDip = 1f; }
+            if (_held) { pos = _heldPos; rot = _heldRot; fov = _heldFov; }
+            CutDip = Mathf.MoveTowards(CutDip, 0, Time.unscaledDeltaTime / 0.3f);
+        }
+        void OnGUI()
+        {
+            if (CutDip <= 0.01f || Event.current.type != EventType.Repaint) return;
+            GUI.depth = 10; // under the HUD (App draws at depth 0)
+            var keep = GUI.color; GUI.color = new Color(0, 0, 0, 0.55f * CutDip);
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = keep;
         }
 
         // Menu view: the team lineup stands in front of a fixed camera.
@@ -111,7 +139,8 @@ namespace Sigilbound.Client
             _ovW = 0; BreathTarget = 0; // no cinematic override left over from the last fight (code review M4)
             _framedAspect = Cam.aspect;
             double aspect = Mathf.Max(0.2f, Cam.aspect);
-            var v = BattleLayout.View(camKey, aspect, titan); // the usual presets, or a Titan-only view
+            // the usual presets, or a Titan-only view; campaign boss stages tilt up to show the lair (BattleLayout.BossView)
+            var v = BattleLayout.View(camKey, aspect, titan, BossTilt && !titan);
             SetPose(ToUnity(v.Eye), ToUnity(v.Target), (float)v.Fov);
             _viewTarget = ToUnity(v.Target);
             HideOccluders();
@@ -138,7 +167,7 @@ namespace Sigilbound.Client
                 for (int a = 0; a < 16; a++)
                 {
                     float ang = a * Mathf.PI / 8f;
-                    var p = ctr + new Vector3(Mathf.Cos(ang) * (float)BattleLayout.RimRx * k, 0, Mathf.Sin(ang) * (float)BattleLayout.RimRz * k);
+                    var p = ctr + new Vector3(Mathf.Cos(ang) * (float)BattleLayout.Rx * k, 0, Mathf.Sin(ang) * (float)BattleLayout.Rz * k);
                     foreach (float h in new[] { 0.3f, 1.2f, 2.4f }) targets.Add(p + Vector3.up * h);
                 }
             HideBetween(new[] { eye }, targets, null);
@@ -210,12 +239,22 @@ namespace Sigilbound.Client
         // interactive: a campaign boss stage or the Titan; the backdrop answers the fight (ArenaReactor).
         // stage: the stage within the chapter (0-5) for a campaign battle, -1 otherwise: picks the route stop
         // (Core.StoryScenes) and its time of day. hard: Hard mode, the same stops by night.
+        // The generated layout of the arena last built (Core/SceneGen): the lair reveal reads its landmark from it.
+        public SceneLayout Layout { get; private set; }
+
+        // A campaign boss stage (stage 6 of a chapter, Normal and Hard): FrameBattle uses the tilted views.
+        public bool BossTilt { get; private set; }
+
         public void Build(int chapter, bool titan, bool interactive = false, int stage = -1, bool hard = false)
         {
+            BossTilt = !titan && stage == GameData.StagesPerChapter - 1;
             var set = titan || stage < 0 ? null : StoryScenes.Of(chapter, stage);
-            var mood = titan ? Mood.Day : hard ? Mood.Night : set?.Mood ?? Mood.Day;
-            var (moodLight, dusk, fogK) = StoryScenes.MoodOf(mood);
-            bool night = mood == Mood.Night;
+            int tier = Mathf.Clamp(Quality.I == null ? 2 : Quality.I.Tier, 0, 3);
+            // The procedural scene (CAMPAIGN_SCENES_PLAN.md): campaign stops, and the chapter's ground for other modes.
+            Layout = titan ? null : SceneGen.Generate(chapter, stage, hard, tier);
+            var li = SceneGen.LightOf(chapter, stage, hard, titan);
+            var mood = li.Mood; float dusk = li.Dusk, fogK = li.FogK;
+            bool night = li.Night;
             PostFx.SetArena(chapter, titan, true, night); // per-arena colour grade (postfx2 presets), cooler by night
             if (_scenery) Destroy(_scenery);
             _scenery = new GameObject("Scenery");
@@ -233,34 +272,38 @@ namespace Sigilbound.Client
             var (fogNear, fogFar) = Scenery.FogRange(chapter, titan);
             RenderSettings.fogStartDistance = fogNear * fogK; RenderSettings.fogEndDistance = fogFar * fogK;
             bool lair = set != null && stage == GameData.StagesPerChapter - 1;
-            // Night lairs keep more ambient (the throne and crag must read in the dark); other night stops dim it.
-            RenderSettings.ambientLight = Color.Lerp(bottom, Color.white, 0.35f) * 0.55f * (night ? (lair ? 1.0f : 0.85f) : 1f - dusk * 0.25f);
-            // The sun takes a little of the horizon's colour (warm dusks, cold storms); kept close to white so the
-            // heroes' painted look holds. Storms are dimmer.
+            // Hero exposure stays constant (art review M2): the ambient and sun keep a floor on every stop, night included;
+            // the mood darkens the world's albedo (SceneLight.WorldTint, painted into the ground and the ramps) and the sky.
+            RenderSettings.ambientLight = Color.Lerp(bottom, Color.white, 0.35f) * li.Ambient;
             if (Sun != null)
             {
                 Sun.color = Color.Lerp(Color.white, Color.Lerp(bottom, Color.white, 0.4f), 0.35f);
-                Sun.intensity = (Scenery.Stormy(chapter, titan) && !titan ? 0.9f : 1.15f) * (night && lair ? Mathf.Max(moodLight, 0.78f) : moodLight);
+                Sun.intensity = li.Sun;
                 if (night) Sun.color = Color.Lerp(Sun.color, new Color(0.7f, 0.8f, 1f), 0.5f); // moonlight
+                // time of day: the sun drops and swings to the side along the route (the Titan keeps its fixed sun)
+                Sun.transform.rotation = Quaternion.Euler(titan ? 48 : li.SunPitch, titan ? -30 : li.SunYaw, 0);
             }
             // The sky (painted clouds) and the distant ridges are painted arcs built with the scenery.
 
-            // The rune circle: units stand on its rim (BattleLayout.Rim*).
+            // Ground, water or lava, scatter, horizon silhouettes and motes (scenery.mjs themes).
+            // Scatter density by tier; Ultra stays at High's count (budget pass after build 138: ~25k scenery triangles).
+            float density = SceneGen.Density[tier];
+            Scenery.Build(_scenery.transform, chapter, titan, density, bottom, top, interactive, Sun, set, hard, Layout);
+            if (lair && night) LairRim(set, Scenery.ShadowColor(chapter, false));
+            StaticBatch(_scenery);
+            // The rune circle, after the static batch so it can grow with the line-up (SetRing): units stand inside
+            // its rim (BattleLayout.Slot keeps every footprint in), the whole circle scaled about BattleLayout.Centre.
+            _ring = new GameObject("CircleRing").transform; _ring.SetParent(_scenery.transform, false);
+            _ring.position = new Vector3((float)BattleLayout.RimCx, 0, (float)BattleLayout.RimCz);
             var circle = GameObject.CreatePrimitive(PrimitiveType.Cylinder); circle.name = "Circle";
             Destroy(circle.GetComponent<Collider>());
-            circle.transform.SetParent(_scenery.transform);
-            circle.transform.position = new Vector3((float)BattleLayout.RimCx, 0.005f, (float)BattleLayout.RimCz);
+            circle.transform.SetParent(_ring, false);
+            circle.transform.localPosition = new Vector3(0, 0.005f, 0);
             circle.transform.localScale = new Vector3((float)BattleLayout.RimRx * 2, 0.002f, (float)BattleLayout.RimRz * 2);
             circle.GetComponent<Renderer>().sharedMaterial = CharacterView.Unlit(new Color(1, 1, 1, 0.05f));
             RuneRing(1.0f, 0.06f, new Color(1f, 0.81f, 0.42f, 0.55f));
             RuneRing(0.82f, 0.03f, new Color(1f, 0.85f, 0.5f, 0.3f));
-
-            // Ground, water or lava, scatter, horizon silhouettes and motes (scenery.mjs themes).
-            // Scatter density by tier; Ultra stays at High's count (budget pass after build 138: ~25k scenery triangles).
-            float density = Quality.I == null ? 1f : new[] { 0.4f, 0.7f, 1f, 1f }[Quality.I.Tier];
-            Scenery.Build(_scenery.transform, chapter, titan, density, bottom, top, interactive, Sun, set, hard);
-            if (lair && night) LairRim(set, Scenery.ShadowColor(chapter, false));
-            StaticBatch(_scenery);
+            SetRing((float)BattleLayout.Ring);
             HideOccluders(); // a re-built arena under an already framed camera
             Shafts(titan ? Palette.Hex("#ff9a5a") : Color.Lerp(bottom, new Color(1f, 0.95f, 0.8f), 0.7f));
         }
@@ -272,6 +315,8 @@ namespace Sigilbound.Client
             Piece main = null;
             foreach (var p in set.Pieces) if (!p.Far && (main == null || p.R * p.Scale > main.R * main.Scale)) main = p;
             if (main == null) return;
+            var lm = Layout?.Landmark;   // where the generator put it
+            if (lm != null) main = new Piece { X = lm.X, Z = lm.Z, Scale = lm.Scale, R = main.R };
             var l = new GameObject("LairRim").AddComponent<Light>();
             l.transform.SetParent(_scenery.transform, false);
             l.transform.position = new Vector3(main.X * 0.8f, 5.5f * main.Scale + 1.5f, main.Z - main.R - 2.5f);
@@ -335,11 +380,19 @@ namespace Sigilbound.Client
             if (still.Count > 1) StaticBatchingUtility.Combine(still.ToArray(), root);
         }
 
+        // The rune circle's scale (BattleLayout.Ring): the battle sets it from its line-up before framing the camera.
+        Transform _ring;
+        public void SetRing(float k)
+        {
+            if (_ring == null) return;
+            _ring.localScale = new Vector3(k, 1, k);
+        }
+
         // A glowing ellipse on the ground at `k` times the rim size.
         void RuneRing(float k, float width, Color c)
         {
             var go = new GameObject("RuneRing");
-            go.transform.SetParent(_scenery.transform, false);
+            go.transform.SetParent(_ring, false);
             var lr = go.AddComponent<LineRenderer>();
             const int n = 96;
             lr.positionCount = n; lr.loop = true; lr.useWorldSpace = false;
@@ -348,7 +401,7 @@ namespace Sigilbound.Client
             for (int i = 0; i < n; i++)
             {
                 float a = i / (float)n * Mathf.PI * 2;
-                lr.SetPosition(i, new Vector3((float)BattleLayout.RimCx + Mathf.Sin(a) * (float)BattleLayout.RimRx * k, 0.02f, (float)BattleLayout.RimCz + Mathf.Cos(a) * (float)BattleLayout.RimRz * k));
+                lr.SetPosition(i, new Vector3(Mathf.Sin(a) * (float)BattleLayout.RimRx * k, 0.02f, Mathf.Cos(a) * (float)BattleLayout.RimRz * k)); // local to the ring (centred on BattleLayout.Centre)
             }
         }
 
@@ -362,10 +415,10 @@ namespace Sigilbound.Client
             go.GetComponent<Renderer>().sharedMaterial = m;
         }
 
-        // Battle positions: on the rune circle's rim, allies along the near arc and enemies along
-        // the far arc, 2.2 m apart; everyone idles facing the centre.
+        // Battle positions: inside the rune circle, allies along the near arc and enemies along the far arc,
+        // 2.2 m apart (BattleLayout.Slot); everyone idles facing the centre.
         public static Vector3 Slot(bool ally, int index, int count) => ToUnity(BattleLayout.Slot(ally, index, count));
-        public static Vector3 Slot(bool ally, int index, System.Collections.Generic.IList<double> widths) => ToUnity(BattleLayout.Slot(ally, index, widths));
+        public static Vector3 Slot(bool ally, int index, System.Collections.Generic.IList<double> widths, double maxWidth = 0) => ToUnity(BattleLayout.Slot(ally, index, widths, maxWidth));
         public static float FacingYaw(Vector3 p) => (float)BattleLayout.FacingCentreYaw(new V3(p.x, p.y, p.z));
     }
 }

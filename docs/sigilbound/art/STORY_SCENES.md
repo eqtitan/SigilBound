@@ -18,6 +18,8 @@ route through the chapter's world, and stage 6 is the boss's lair.
 
 ## 1. Rules for every chapter
 
+> Since 2026-11-28 the procedural generator ([SCENERY.md](SCENERY.md) section 8) places each stop around the game's cameras: the authored positions below are where a piece wants to stand; the landmark is moved to the legal spot nearest it that is framed in the default view, and any piece that would block the hero lane is moved to the nearest legal spot.
+
 **One palette per chapter.** Each stop keeps the chapter's theme colours (SCENERY.md §3). What changes
 along the route is the time of day and the weather:
 

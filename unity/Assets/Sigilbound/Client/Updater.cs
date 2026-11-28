@@ -37,7 +37,6 @@ namespace Sigilbound.Client
 
         float _lastCheck = -999f;
         bool _busy, _dismissed;
-        GUIStyle _box, _title, _sub, _btn, _close;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -115,43 +114,53 @@ namespace Sigilbound.Client
             }
         }
 
-        void OnGUI()
+        // The banner is drawn by App at the very end of its OnGUI (Overlay), so it is always the last thing
+        // painted and gets clicks first. Relying on GUI.depth across two MonoBehaviours let the screen paint
+        // over it on Windows after a bottom-nav click (owner report 2026-11-28). This OnGUI only runs the
+        // banner when there is no App (e.g. a test scene).
+        static Updater _i;
+        public static void Overlay() { if (_i != null) _i.DrawBanner(); }
+        void Awake() => _i = this;
+        void OnGUI() { if (!App.Running) DrawBanner(); }
+
+        void DrawBanner()
         {
             if (LatestBuild <= 0 || _dismissed) return;
-            GUI.depth = -1000; // above every screen
-            EnsureStyles();
-            float k = Mathf.Max(1f, Screen.dpi > 0 ? Screen.dpi / 160f : 1f);
-            var safe = Screen.safeArea;
+            // One pop-up at a time (QA review #8): the banner waits while a modal, the tutorial, a tip or a
+            // battle is on screen (App.UpdateBannerAllowed, from Core/PopupQueue).
+            if (_app == null) _app = FindAnyObjectByType<App>();
+            if (_app != null && !_app.UpdateBannerAllowed && _installing == null) return;
+            // Drawn in Ui units with the shared panel and buttons (UI/UX review #17: it had its own pixel scale,
+            // 0.42x the UI at 4K, a 36-pixel close and its own button look), below the top bar inside the safe area,
+            // so it no longer covers the currencies and the menu button.
+            Ui.Begin(true);
+            var sc = Ui.SafeContent(16);
+            float tap = Mathf.Max(44, Ui.Tap);
             string sub = _installing != null ? _installing : _failText != null ? _failText : $"v{LatestVersion} · build {LatestBuild} (you have build {MyBuild})";
             bool tall = sub.Length > 60; // long reasons (e.g. the Samsung Auto Blocker hint) wrap onto more lines
-            float h = (tall ? 104 : 64) * k, pad = 10 * k;
-            float w = Mathf.Min(Screen.width - 2 * pad, 560 * k);
-            var r = new Rect((Screen.width - w) / 2f, Screen.height - safe.yMax + pad, w, h);
-            GUI.Box(r, GUIContent.none, _box);
-            _title.fontSize = Mathf.RoundToInt(17 * k); _sub.fontSize = Mathf.RoundToInt(13 * k);
-            _btn.fontSize = Mathf.RoundToInt(15 * k); _close.fontSize = Mathf.RoundToInt(16 * k);
-            float closeW = 36 * k, btnW = 120 * k;
-            GUI.Label(new Rect(r.x + pad, r.y + 8 * k, w - btnW - closeW - 3 * pad, 24 * k), "Update available", _title);
-            _sub.wordWrap = tall;
-            GUI.Label(new Rect(r.x + pad, r.y + 34 * k, w - btnW - closeW - 3 * pad, (tall ? 62 : 20) * k), sub, _sub);
-            var btn = new Rect(r.xMax - btnW - closeW - pad, r.y + 12 * k, btnW, 40 * k);
+            float h = tall ? 108 : Mathf.Max(68, tap + 16), w = Mathf.Min(sc.width, 600);
+            var r = new Rect(sc.center.x - w / 2, Ui.Safe.y + 44 + 8, w, h);
+            Ui.Panel(r, new Color(0.08f, 0.06f, 0.11f, 0.97f), Palette.Gold, 12);
+            float btnW = 136, closeW = tap;
+            var close = new Rect(r.xMax - closeW - 4, r.y + (h - tap) / 2, closeW, tap);
+            var btn = new Rect(close.x - btnW - 8, r.y + (h - tap) / 2, btnW, tap);
+            Ui.Text(new Rect(r.x + 14, r.y + 8, btn.x - r.x - 22, 24), "Update available", 17, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+            Ui.Text(new Rect(r.x + 14, r.y + 34, btn.x - r.x - 22, h - 40), sub, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, tall);
             if (_installing != null)
             {
                 // Download progress bar in place of the button.
-                GUI.Box(btn, GUIContent.none, _box);
-                GUI.DrawTexture(new Rect(btn.x, btn.y, btn.width * Mathf.Clamp01(_progress), btn.height), _btn.normal.background);
+                Ui.Bar(new Rect(btn.x, btn.center.y - 6, btn.width, 12), _progress, Palette.Gold);
             }
-            else if (GUI.Button(btn, _linkMode ? "Download" : "Update now", _btn))
+            else if (Ui.Button(btn, _linkMode ? "Download" : "Update now", Ui.Kind.Primary, 15))
             {
                 if (_linkMode) Application.OpenURL(FileUrl); // the in-game install failed: the browser download still works
                 else if (Application.platform == RuntimePlatform.WindowsPlayer) StartCoroutine(UpdateWindows());
                 else if (Application.platform == RuntimePlatform.Android) StartCoroutine(UpdateAndroid());
                 else Application.OpenURL(FileUrl);
             }
-            var close = new Rect(r.xMax - closeW - pad * 0.5f, r.y + 14 * k, closeW, h - 28 * k);
-            if (GUI.Button(close, "", _close)) _dismissed = true;
-            float ic = Mathf.Min(close.width, close.height) * 0.5f;
-            Icons.Draw(new Rect(close.center.x - ic / 2, close.center.y - ic / 2, ic, ic), Icon.Close, Palette.Dim);
+            if (Ui.Button(close, "", Ui.Kind.Ghost)) _dismissed = true;
+            Icons.Draw(new Rect(close.center.x - 9, close.center.y - 9, 18, 18), Icon.Close, Palette.Text);
+            GUI.matrix = Matrix4x4.identity;
         }
 
         // ---------- Windows: update in place ----------
@@ -382,28 +391,6 @@ namespace Sigilbound.Client
         {
             _installing = null;
             Application.OpenURL(FileUrl);
-        }
-
-        void EnsureStyles()
-        {
-            if (_box != null) return;
-            _box = new GUIStyle { normal = { background = Solid(new Color(0.11f, 0.09f, 0.14f, 0.96f)) }, border = new RectOffset(2, 2, 2, 2) };
-            _title = new GUIStyle { fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip, normal = { textColor = Palette.Gold } };
-            _sub = new GUIStyle { alignment = TextAnchor.MiddleLeft, clipping = TextClipping.Clip, normal = { textColor = Palette.Dim } };
-            _btn = new GUIStyle
-            {
-                fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, clipping = TextClipping.Clip,
-                normal = { background = Solid(Palette.Gold), textColor = new Color(0.16f, 0.1f, 0.02f) },
-                active = { background = Solid(Palette.GoldDark), textColor = new Color(0.16f, 0.1f, 0.02f) },
-            };
-            _close = new GUIStyle { alignment = TextAnchor.MiddleCenter, normal = { textColor = Palette.Dim } };
-        }
-
-        static Texture2D Solid(Color c)
-        {
-            var t = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-            t.SetPixel(0, 0, c); t.Apply();
-            return t;
         }
     }
 }

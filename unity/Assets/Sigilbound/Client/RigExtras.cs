@@ -7,6 +7,7 @@
 //    the UBC reference skeleton (the clip library's prototype); for those that differ the clip value is
 //    re-expressed relative to the new rest: rotation D*q, position T1 + D*(p - T0), D = R1 * R0^-1.
 //    This matches how Blender applies the same clips (rest-relative), so previews and the game agree.
+//    Digitigrade legs (DigitigradeLegs.cs) are skipped: their baked leg clips are already in the hero's rest.
 // 2. Procedural bones no clip names: a tail chain (spring sway that lags body motion and whips on a
 //    strike), a jaw (breathing, opening on an attack), wing bones (a gentle flutter).
 using System.Collections.Generic;
@@ -16,7 +17,10 @@ namespace Sigilbound.Client
 {
     public sealed class RigExtras : MonoBehaviour
     {
-        struct Fix { public Transform T; public Quaternion D; public Vector3 T0, T1; }
+        // Last: what this component wrote last frame. A bone no clip wrote since still holds exactly that, and is
+        // left alone: re-applying the fix to its own output compounded every frame (build 180: a hero whose
+        // shared clips never played had its body flung into the sky and smeared into a sheet).
+        sealed class Fix { public Transform T; public Quaternion D; public Vector3 T0, T1; public Quaternion LastR; public Vector3 LastP; }
         readonly List<Fix> _fix = new List<Fix>();
         Transform[] _tail = new Transform[0]; Quaternion[] _tailRest = new Quaternion[0];
         Transform _jaw; Quaternion _jawRest;
@@ -38,12 +42,14 @@ namespace Sigilbound.Client
             {
                 var refBones = new Dictionary<string, Transform>();
                 foreach (var t in reference.GetComponentsInChildren<Transform>(true)) if (!refBones.ContainsKey(t.name)) refBones[t.name] = t;
+                bool digi = DigitigradeLegs.Needed(model);
                 foreach (var t in model.GetComponentsInChildren<Transform>(true))
                 {
                     if (!refBones.TryGetValue(t.name, out var r) || t == model) continue;
                     if (Quaternion.Angle(t.localRotation, r.localRotation) < 0.5f && (t.localPosition - r.localPosition).sqrMagnitude < 4e-6f) continue;
                     if (t.name == "Armature" || t.name == "root") continue;
-                    _fix.Add(new Fix { T = t, D = t.localRotation * Quaternion.Inverse(r.localRotation), T0 = r.localPosition, T1 = t.localPosition });
+                    if (digi && DigitigradeLegs.LegBone(t.name)) continue; // its own baked leg clips own these bones
+                    _fix.Add(new Fix { T = t, D = t.localRotation * Quaternion.Inverse(r.localRotation), T0 = r.localPosition, T1 = t.localPosition, LastR = t.localRotation, LastP = t.localPosition });
                 }
             }
             var tails = new List<Transform>();
@@ -57,6 +63,20 @@ namespace Sigilbound.Client
         }
 
         public int FixedBones => _fix.Count;
+        // Clips authored on this model's own rest pose (the Titan's, blenderforge/titan_moves.py): while they play the
+        // rest-pose fix is skipped, since it would bend them a second time.
+        public readonly HashSet<string> Own = new HashSet<string>();
+        bool OwnPlaying()
+        {
+            if (Own.Count == 0 || _anim == null) return false;
+            float own = 0, all = 0;
+            foreach (AnimationState s in _anim)
+            {
+                if (!s.enabled || s.weight <= 0) continue;
+                all += s.weight; if (Own.Contains(s.clip != null ? s.clip.name : s.name)) own += s.weight;
+            }
+            return all > 0 && own >= all * 0.5f;
+        }
 
         // An attack is playing: the strike envelope rises while one is active (from the clip names).
         bool Attacking()
@@ -73,11 +93,13 @@ namespace Sigilbound.Client
 
         void LateUpdate()
         {
-            foreach (var f in _fix)
+            if (!OwnPlaying()) foreach (var f in _fix)
             {
                 if (f.T == null) continue;
-                f.T.localRotation = f.D * f.T.localRotation;
-                f.T.localPosition = f.T1 + f.D * (f.T.localPosition - f.T0);
+                var q = f.T.localRotation; var p = f.T.localPosition;
+                if (q.Equals(f.LastR) && p.Equals(f.LastP)) continue;   // no clip wrote it: already in the hero's rest frame
+                f.T.localRotation = f.LastR = f.D * q;
+                f.T.localPosition = f.LastP = f.T1 + f.D * (p - f.T0);
             }
             float dt = Mathf.Max(1e-4f, Time.deltaTime), t = Time.time + _phase;
             _strike = Mathf.MoveTowards(_strike, Attacking() ? 1f : 0f, dt * 4f);

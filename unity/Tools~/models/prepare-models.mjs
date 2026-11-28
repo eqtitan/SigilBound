@@ -152,7 +152,10 @@ function gz(p) {
   if (!fs.existsSync(p)) return;
   if (fs.statSync(p).isDirectory()) { for (const n of fs.readdirSync(p)) gz(path.join(p, n)); return; }
   if (!p.endsWith(".glb")) return;
-  const raw = fs.readFileSync(p), packed = zlib.gzipSync(pack(raw), { level: 9 });
+  // Packed unless the plain GLB gzips smaller (image-to-3D meshes do: their duplicated seam vertices are long
+  // repeats that the byte transpose breaks up); ModelPack.Unpack passes a plain GLB through.
+  const raw = fs.readFileSync(p), pk = zlib.gzipSync(pack(raw), { level: 9 }), pl = zlib.gzipSync(raw, { level: 9 });
+  const packed = pk.length <= pl.length ? pk : pl;
   fs.writeFileSync(p + "z", packed); fs.rmSync(p);
   before += raw.length; after += packed.length;
 }

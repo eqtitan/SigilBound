@@ -1,6 +1,7 @@
 // Import settings for the generated sounds in Assets/Resources/Audio (Tools~/audio/make_real.py):
 //   amb_*.ogg   ambience beds: streamed from disk (never decoded whole into memory), Vorbis 0.35
-//   sfx_*.ogg   one-shots: decompressed on load if short (instant start, no decode cost mid-battle);
+//   sfx_*.ogg   one-shots: decompressed on load if short (instant start, no decode cost mid-battle),
+//               in the background (loadInBackground) so start-up doesn't wait for it;
 //               the long Titan / cinematic / boss-lair ones stay compressed in memory. Vorbis 0.5.
 //   music_*.ogg  music loops: streamed from disk like the beds, Vorbis 0.45; the short
 //               victory sting (played as a one-shot over the music) stays compressed in memory.
@@ -14,7 +15,7 @@ namespace Sigilbound.EditorTools
     public sealed class AudioImportRules : AssetPostprocessor
     {
         const string Dir = "Assets/Resources/Audio/";
-        public override uint GetVersion() => 3;   // bump to reimport with new rules
+        public override uint GetVersion() => 4;   // bump to reimport with new rules
 
         void OnPreprocessAudio()
         {
@@ -30,7 +31,9 @@ namespace Sigilbound.EditorTools
             bool longOne = file.StartsWith("sfx_titan_", StringComparison.Ordinal) || file.StartsWith("sfx_earthsplit", StringComparison.Ordinal) || file.StartsWith("sfx_meteor", StringComparison.Ordinal)
                 || file.StartsWith("sfx_lair_", StringComparison.Ordinal);   // lair set-pieces: long rings and halls
             ai.forceToMono = false;
-            ai.loadInBackground = amb || music;
+            // Every clip loads in the background (performance review #4): the short one-shots are decoded to PCM
+            // on load, which used to stall the main thread for the whole set at start-up (Sound.Warm).
+            ai.loadInBackground = true;
             var s = ai.defaultSampleSettings;
             s.compressionFormat = AudioCompressionFormat.Vorbis;
             s.loadType = sting ? AudioClipLoadType.CompressedInMemory : amb || music ? AudioClipLoadType.Streaming

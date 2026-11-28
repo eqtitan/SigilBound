@@ -88,6 +88,61 @@ namespace Sigilbound.Client
             return d;
         }
 
+        // ---- image-to-3D landmarks (Tools~/scenery/i3d_landmark.py): Resources/Scenery/Landmarks/<name>.bytes, SBL1 ----
+        // A mesh with real UVs plus a gradient-map texture: per texel a material row and a shade, painted at arena build time
+        // from the chapter's ramp (SceneryPaint.LandmarkTexture), so it wears the biome's palette like the procedural props.
+        public sealed class LandmarkData { public Mesh Mesh; public byte[] Shade, Row; public int W, H; }
+        static readonly Dictionary<string, LandmarkData> _landmarks = new Dictionary<string, LandmarkData>();
+        public static LandmarkData Landmark(string name)
+        {
+            if (name == null) return null;
+            if (_landmarks.TryGetValue(name, out var d)) return d;
+            _landmarks[name] = null;
+            var ta = Resources.Load<TextAsset>("Scenery/Landmarks/" + name);
+            if (ta == null) return null;
+            try { _landmarks[name] = d = ParseLandmark(ta.bytes); }
+            catch (System.Exception e) { Debug.LogWarning($"[scenery] landmark {name} failed to load: " + e.Message); }
+            Resources.UnloadAsset(ta);
+            return d;
+        }
+
+        public static LandmarkData ParseLandmark(byte[] bytes)
+        {
+            using var br = new BinaryReader(new MemoryStream(bytes));
+            if (new string(br.ReadChars(4)) != "SBL1") throw new IOException("bad header");
+            string name = new string(br.ReadChars(br.ReadByte()));
+            int vc = br.ReadInt32(), ic = br.ReadInt32();
+            var lo = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+            var sz = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+            var pos = new Vector3[vc]; var nrm = new Vector3[vc]; var uv = new Vector2[vc];
+            for (int i = 0; i < vc; i++)
+            {
+                float qx = (br.ReadInt16() + 32768) / 65535f, qy = (br.ReadInt16() + 32768) / 65535f, qz = (br.ReadInt16() + 32768) / 65535f;
+                pos[i] = new Vector3(lo.x + qx * sz.x, lo.y + qy * sz.y, lo.z + qz * sz.z);
+                nrm[i] = new Vector3(br.ReadSByte(), br.ReadSByte(), br.ReadSByte()).normalized;
+                uv[i] = new Vector2(br.ReadUInt16() / 65535f, br.ReadUInt16() / 65535f);
+            }
+            var idx = new int[ic];
+            for (int i = 0; i < ic; i++) idx[i] = br.ReadUInt16();
+            int w = br.ReadInt16(), h = br.ReadInt16();
+            var d = new LandmarkData { W = w, H = h, Shade = br.ReadBytes(w * h), Row = br.ReadBytes(w * h) };
+            var mesh = new Mesh { name = name };
+            mesh.vertices = pos; mesh.normals = nrm; mesh.uv = uv; mesh.triangles = idx; mesh.RecalculateBounds();
+            d.Mesh = mesh;
+            return d;
+        }
+
+        // A mesh under root with one material (a generated landmark).
+        public static GameObject PlaceMesh(Transform root, Mesh mesh, string name, Vector3 pos, float scale, float yaw, Material m)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(root, false);
+            go.transform.localPosition = pos; go.transform.localScale = Vector3.one * scale; go.transform.localEulerAngles = new Vector3(0, yaw, 0);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = m;
+            return go;
+        }
+
         // The kit's names that start with `prefix` (oak0, oak1 ...).
         public static List<string> Variants(string prefix)
         {

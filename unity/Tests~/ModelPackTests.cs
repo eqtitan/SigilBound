@@ -37,16 +37,18 @@ static class ModelPackTests
         {
             var files = Directory.GetFiles(hdSrc, "*_HD.glb").OrderBy(f => f).ToList();
             files.Add(Path.Combine(root, "Tools~", "models", "ubc_anims.glb"));
-            int exact = 0; long gzPlain = 0, gzPacked = 0;
+            // prepare-models.mjs ships whichever is smaller, packed or plain (image-to-3D meshes gzip better
+            // plain); the sample is every fourth file, so it mixes kit-built and image-to-3D heroes
+            int exact = 0, idx = 0; long gzPlain = 0, gzPacked = 0;
             foreach (var f in files.Where(File.Exists))
             {
                 var raw = File.ReadAllBytes(f);
                 var p = ModelPack.Pack(raw);
                 if (ModelPack.Unpack(p).SequenceEqual(raw)) exact++;
-                if (gzPlain < 6_000_000) { gzPlain += Gz(raw); gzPacked += Gz(p); }
+                if (idx++ % 4 == 0 && gzPlain < 6_000_000) { long g = Gz(raw); gzPlain += g; gzPacked += Math.Min(g, Gz(p)); }
             }
             check(exact == files.Count(File.Exists), $"model pack: all {exact} shipped hero/clip GLBs round-trip exactly");
-            check(gzPacked < gzPlain * 0.97, $"model pack: packing alone makes gzip {100.0 * gzPacked / gzPlain:0}% of plain");
+            check(gzPacked < gzPlain * 0.97, $"model pack: packing (where it helps) makes gzip {100.0 * gzPacked / gzPlain:0.0}% of plain");
         }
 
         // What prepare-models.mjs wrote (CI prepares it before these checks).
@@ -90,8 +92,11 @@ static class ModelPackTests
         check(worstPos < 1.0 / 16384 && worstW <= 2.0 / 256 + 1e-6, $"model pack: snapping moves vertices at most {worstPos * 16384:0.00}/16384 of the model and weights at most {worstW * 256:0.00}/256");
 
         long models = Directory.GetFiles(sa, "*", SearchOption.AllDirectories).Where(f => !f.EndsWith(".meta")).Sum(f => new FileInfo(f).Length);
-        long estimate = models + ApkBaseline;
-        check(estimate <= ApkBudget, $"apk budget: estimated APK {estimate / 1e6:0.0} MB (StreamingAssets/Models {models / 1e6:0.0} MB + {ApkBaseline / 1e6:0} MB) within {ApkBudget / 1e6:0} MB");
+        // the image-to-3D scenery landmarks came after build 169 (Resources/Scenery/Landmarks, counted raw: Unity compresses Resources)
+        string lmDir = Path.Combine(root, "Assets", "Resources", "Scenery", "Landmarks");
+        long landmarks = Directory.Exists(lmDir) ? Directory.GetFiles(lmDir, "*.bytes").Sum(f => new FileInfo(f).Length) : 0;
+        long estimate = models + ApkBaseline + landmarks;
+        check(estimate <= ApkBudget, $"apk budget: estimated APK {estimate / 1e6:0.0} MB (StreamingAssets/Models {models / 1e6:0.0} MB + {ApkBaseline / 1e6:0} MB + landmarks {landmarks / 1e6:0.0} MB) within {ApkBudget / 1e6:0} MB");
     }
 
     static string FindUp(string child)

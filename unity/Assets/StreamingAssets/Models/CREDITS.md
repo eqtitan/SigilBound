@@ -56,7 +56,28 @@ generator (e.g. Hunyuan3D or Tripo) must have its tool, licence and any attribut
 before it ships.
 
 Later meshes (2026-11-27) for Crusk Brineclaw (regenerated), Nyssa Duskwing, Vessa Silkmourne,
-Brannoc, Vex and Aurex (the last three remodelled to match their portraits) and the Titan were generated
-from front images the owner approved through fal.ai's hosted **`fal-ai/trellis`** endpoint, which runs the
+Brannoc, Vex, Aurex, Odo and 27 more roster heroes (remodelled to match their portraits) and the Titan were generated from
+front images the owner approved through fal.ai's hosted **`fal-ai/trellis`** endpoint, which runs the
 same MIT-licensed TRELLIS model as a paid API call; the outputs are the project's own art on the same
 terms as above.
+
+Remodels 2026-11-28: Wystan Quillmere (tunic robe) and Vorgrim Ashscale (half-cloak) from new front images made
+with Google Gemini (owner-approved prompts) and turned into meshes with fal.ai `fal-ai/trellis` (MIT model), same terms.
+
+## Spring bones (code)
+
+Skirts, robes and coat tails on some high-detail heroes swing on spring-bone chains simulated at runtime by
+`Core/SpringSolver.cs`. Its algorithm (Verlet tail, stiffness pull to the animated rest direction, drag, gravity,
+length restore, sphere/capsule push-out, then rotate the bone onto the tail) follows **UniVRM**'s
+`VRMSpringBone` (https://github.com/vrm-c/UniVRM), **MIT licence**, Copyright (c) 2020 VRM Consortium,
+Copyright (c) 2018 Masataka SUMI for MToon. The C# here is our own re-implementation (no UniVRM source files are
+included); the chains and weights are added to the meshes by `unity/Tools~/blenderforge/spring_rig.py`.
+
+## Image-to-3D scenery landmarks (campaign scenes, 2026-11-28)
+
+The 16 campaign landmarks in `unity/Assets/Resources/Scenery/Landmarks/` (drowned mill, cottage, wagon,
+stilt hut, bell tower, Stormcrown crag, lighthouse, sea throne, sunken cathedral, king's barrow, toll
+house, warehouse, chapel, shipwreck, gatehouse, cairn) were made from the project's own concept images
+(Gemini, prompts describing the object only) through fal.ai's hosted **`fal-ai/trellis`** endpoint (the
+MIT-licensed TRELLIS model). They are the project's own art; sources and prompts are in
+`unity/Tools~/models/landmarks/`.
