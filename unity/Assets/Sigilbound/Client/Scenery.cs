@@ -174,6 +174,7 @@ namespace Sigilbound.Client
                 w.GetComponent<Renderer>().receiveShadows = false; // tree shadows popping with the quality tier's shadow distance
                 w.AddComponent<SceneryWave>().Lava = titan;
             }
+            if (titan) Caldera(root, th);
 
             ArenaReactor react = null;
             if (interactive)
@@ -190,7 +191,8 @@ namespace Sigilbound.Client
                 // ---- scatter (kept off the arena ellipse and the camera side) ----
                 var pieces = set?.Pieces ?? new Piece[0];
                 bool UnderPiece(float x, float z) { foreach (var pc in pieces) if ((x - pc.X) * (x - pc.X) + (z - pc.Z) * (z - pc.Z) < (pc.R + 0.6f) * (pc.R + 0.6f)) return true; return false; }
-                bool Clear(float x, float z) => Mathf.Pow(x / 6.2f, 2) + Mathf.Pow((z - 0.6f) / 5.6f, 2) < 1 || z < -7 || (waterZ > 0 && z > waterZ - 0.6f) || UnderPiece(x, z);
+                bool Clear(float x, float z) => Mathf.Pow(x / 6.2f, 2) + Mathf.Pow((z - 0.6f) / 5.6f, 2) < 1 || z < -7 || (waterZ > 0 && z > waterZ - 0.6f) || UnderPiece(x, z)
+                    || (titan && (InCalderaWall(x, z) || OnLavaVein(x, z)));
                 var table = Picks(th);
                 float total = 0; foreach (var p in table) total += p.w;
                 int n = Mathf.RoundToInt(70 * density);
@@ -238,6 +240,105 @@ namespace Sigilbound.Client
 
             // ---- drifting motes ----
             Motes(root, th, density);
+        }
+
+        // ---------- the Titan's caldera (SCENERY.md section 4, art review H3) ----------
+        // A crater ridge: a ring of basalt wall behind and beside the arena, open toward the camera side, with a
+        // thin line of glowing lava at its foot; and two lava-vein strips (the lava lake's crust-and-vein
+        // painting) running in from the flanks to the lake, so the floor isn't a flat slab from the low views.
+        // The wall is built in short chunks so the occluder pass can hide a chunk that blocks a camera.
+        public static readonly Vector3 CalderaCentre = new Vector3(0, 0, 6f);
+        public const float CalderaFoot = 17f, CalderaCrest = 19.5f, CalderaOuter = 22f, CalderaFrom = -15f, CalderaTo = 195f;
+        static bool InCalderaWall(float x, float z)
+        {
+            float dx = x - CalderaCentre.x, dz = z - CalderaCentre.z, r = Mathf.Sqrt(dx * dx + dz * dz);
+            float a = Mathf.Atan2(dz, dx) * Mathf.Rad2Deg; if (a < -90f) a += 360f;
+            return r > CalderaFoot - 0.8f && a > CalderaFrom - 4f && a < CalderaTo + 4f;
+        }
+        static readonly (float x, float z, float yaw)[] LavaVeins = { (-9.6f, 3.2f, -14f), (9.6f, 3.2f, 14f) };
+        const float VeinLen = 15f, VeinWide = 2.2f;
+        static bool OnLavaVein(float x, float z)
+        {
+            foreach (var (vx, vz, yaw) in LavaVeins)
+            {
+                float c = Mathf.Cos(yaw * Mathf.Deg2Rad), sn = Mathf.Sin(yaw * Mathf.Deg2Rad);
+                float lx = (x - vx) * c - (z - vz) * sn, lz = (x - vx) * sn + (z - vz) * c;   // across, along
+                if (Mathf.Abs(lx) < VeinWide * 0.5f + 0.5f && Mathf.Abs(lz) < VeinLen * 0.5f) return true;
+            }
+            return false;
+        }
+        static void Caldera(Transform root, Theme th)
+        {
+            var parent = new GameObject("Caldera").transform; parent.SetParent(root, false);
+            // Lava veins: the lake's material on long narrow planes (u along the vein), just above the ground.
+            foreach (var (vx, vz, yaw) in LavaVeins)
+            {
+                var v = GameObject.CreatePrimitive(PrimitiveType.Plane);
+                Object.Destroy(v.GetComponent<Collider>());
+                v.name = "LavaVein"; v.transform.SetParent(parent, false);
+                v.transform.localPosition = new Vector3(vx, 0.035f, vz);
+                v.transform.localRotation = Quaternion.Euler(0, yaw + 90f, 0);
+                v.transform.localScale = new Vector3(VeinLen / 10f, 1, VeinWide / 10f);
+                var r = v.GetComponent<Renderer>(); r.sharedMaterial = _waterMat; r.receiveShadows = false;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            // Crater ridge: 14 chunks, each a strip of quads across the wall's profile (foot, shoulder, crest, back).
+            var rng = new System.Random(4242);
+            var rock = Materials.Lit(Color.Lerp(D(th.Rock, 0.9f), Palette.Hex(th.Sil), 0.35f), 0, 0.1f);
+            var glow = Materials.Glow(Palette.Hex("#3a1206"), Palette.Hex("#ff6a1a"), 1.2f);
+            const int chunks = 14, per = 5;
+            int n = chunks * per;
+            var crest = new float[n + 1];
+            for (int i = 0; i <= n; i++) crest[i] = 4.2f + 1.6f * (float)rng.NextDouble() + 1.2f * Mathf.Sin(i * 0.37f);
+            for (int c = 0; c < chunks; c++)
+            {
+                var verts = new List<Vector3>(); var tris = new List<int>(); var foot = new List<Vector3>(); var footTris = new List<int>();
+                for (int j = 0; j <= per; j++)
+                {
+                    int i = c * per + j;
+                    float a = Mathf.Lerp(CalderaFrom, CalderaTo, i / (float)n) * Mathf.Deg2Rad, h = crest[i];
+                    var d = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
+                    float jit = ((i * 7919) % 13) / 13f - 0.5f;   // the same for both chunks sharing this edge
+                    verts.Add(CalderaCentre + d * CalderaFoot + Vector3.down * 0.15f);
+                    verts.Add(CalderaCentre + d * (CalderaFoot + 1.1f + jit * 0.4f) + Vector3.up * h * 0.62f);
+                    verts.Add(CalderaCentre + d * (CalderaCrest + jit * 0.5f) + Vector3.up * h);
+                    verts.Add(CalderaCentre + d * CalderaOuter + Vector3.up * h * 0.45f);
+                    foot.Add(CalderaCentre + d * (CalderaFoot - 0.7f) + Vector3.up * 0.04f);
+                    foot.Add(CalderaCentre + d * (CalderaFoot + 0.15f) + Vector3.up * 0.04f);
+                    if (j == 0) continue;
+                    int b0 = (j - 1) * 4, b1 = j * 4;
+                    for (int k = 0; k < 3; k++) { tris.AddRange(new[] { b0 + k, b0 + k + 1, b1 + k }); tris.AddRange(new[] { b1 + k, b0 + k + 1, b1 + k + 1 }); }
+                    int f0 = (j - 1) * 2, f1 = j * 2;
+                    footTris.AddRange(new[] { f0, f0 + 1, f1, f1, f0 + 1, f1 + 1 });
+                }
+                Strip(parent, "CalderaRidge" + c, verts, tris, rock, true);
+                Strip(parent, "LavaFoot" + c, foot, footTris, glow, false);
+            }
+        }
+        static readonly Dictionary<string, Mesh> _calderaMeshes = new Dictionary<string, Mesh>(); // built once (fixed seed)
+        static void Strip(Transform parent, string name, List<Vector3> verts, List<int> tris, Material m, bool shadows)
+        {
+            if (!_calderaMeshes.TryGetValue(name, out var mesh) || mesh == null) _calderaMeshes[name] = mesh = BuildStrip(name, verts, tris);
+            var go = new GameObject(name); go.transform.SetParent(parent, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var r = go.AddComponent<MeshRenderer>(); r.sharedMaterial = m;
+            r.shadowCastingMode = shadows ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = shadows;
+        }
+        static Mesh BuildStrip(string name, List<Vector3> verts, List<int> tris)
+        {
+            var mesh = new Mesh { name = name };
+            mesh.SetVertices(verts); mesh.SetTriangles(tris, 0);
+            // Every face of the wall's profile (and the flat foot glow) looks upward: wind each triangle so its
+            // normal has a positive y (Unity's front face is clockwise seen from the normal's side).
+            var t = mesh.triangles;
+            for (int i = 0; i < t.Length; i += 3)
+            {
+                var p0 = verts[t[i]]; var nrm = Vector3.Cross(verts[t[i + 1]] - p0, verts[t[i + 2]] - p0);
+                if (nrm.y < 0) { int k = t[i + 1]; t[i + 1] = t[i + 2]; t[i + 2] = k; }
+            }
+            mesh.triangles = t; mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            return mesh;
         }
 
         // An unlit painted arc (sky or ridge): no shadows, never hidden as an occluder ("Sky" names).

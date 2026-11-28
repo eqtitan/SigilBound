@@ -99,7 +99,7 @@ namespace Sigilbound.Client
             for (int i = 0; i < units.Count; i++)
             {
                 var u = units[i];
-                float scale = u.Titan ? 1.3f : u.Boss ? 1.35f : 1f;
+                float scale = u.Titan ? (float)TitanSpec.Current.ViewScale : u.Boss ? 1.35f : 1f;
                 var pos = u.Titan ? Arena.ToUnity(BattleLayout.TitanSlot()) : Arena.Slot(ally, i, widths);
                 _views[u] = CharacterView.Create(u, pos, Arena.FacingYaw(pos), scale, G.GearLookOf(u));
             }
@@ -152,14 +152,27 @@ namespace Sigilbound.Client
 
         // ---------- Titan cinematics (owner picks 2026-11-26; presentation only, results unchanged) ----------
         bool _cinema, _skippable;  // HUD hidden while a cinematic plays; the intro can be skipped by a tap
+        // Above the horn tips: from its head bone (follows it as it bows, leaps or strides), the horns'
+        // height over the head (TitanSpec.HornTop) and room for the tag; else a fixed height over its feet.
+        Transform _titanHead; CharacterView _titanHeadOf;
+        Vector3 TitanTagPoint(CharacterView v)
+        {
+            var spec = TitanSpec.Current;
+            if (_titanHeadOf != v) { _titanHeadOf = v; _titanHead = null; }
+            if (_titanHead == null && v.Hero != null && v.Hero.Root != null) _titanHead = BodyShaper.Find(v.Hero.Root.transform, spec.HeadBone);
+            float above = (float)((spec.HornTop - 1) * spec.Head) + 0.6f;
+            return _titanHead != null ? new Vector3(v.transform.position.x, Mathf.Max(_titanHead.position.y + above, v.transform.position.y + 2f), v.transform.position.z)
+                                      : v.transform.position + Vector3.up * (float)BattleLayout.WormHornTop;
+        }
         static bool IsHdTitan(CharacterView v) => v != null && v.Hero != null && v.Hero.Style == AnimStyle.TitanHd;
         // The HD Titan's real head height (model 4.8 m x the view's 1.3 scale); the HeadTop marker sits at 87% of
         // a nominal height and under-read it. The old stand-in Titan keeps its marker.
         float TitanHeight(CharacterView v) => IsHdTitan(v) ? (float)BattleLayout.TitanHead : v != null && v.HeadTop ? Mathf.Max(2f, v.HeadTop.position.y - v.transform.position.y) : (float)BattleLayout.TitanHead;
         static float Ease(float u) => Mathf.SmoothStep(0, 1, Mathf.Clamp01(u));
 
-        // Arrival: from the Titan's feet the camera tilts up its body to the burning visor, it roars, and
-        // the camera pulls back into the battle view. About 3 s; a tap skips it.
+        // Arrival (art review H3): shot from the heroes' side, their backs in the foreground and the Titan facing
+        // the camera. It opens low behind the team on its legs, cranes up its front to its face as it roars
+        // (BattleLayout.TitanIntroKeys), then blends into the battle view. About 3 s; a tap skips it.
         IEnumerator TitanIntro()
         {
             var tu = _views.Keys.FirstOrDefault(k => k.Titan); if (tu == null) yield break;
@@ -168,16 +181,16 @@ namespace Sigilbound.Client
             if (tv == null) yield break;
             var arena = App.Arena; float keepSpeed = Time.timeScale; Time.timeScale = 1;
             _cinema = _skippable = true;
-            var T = tv.transform.position; var toTeam = Arena.ToUnity(BattleLayout.TeamCentre) - T; toTeam.y = 0; toTeam.Normalize();
-            var side = Vector3.Cross(Vector3.up, toTeam);
+            var T = tv.transform.position;
+            var (ka, kb) = BattleLayout.TitanIntroKeys(Mathf.Max(0.2f, arena.Cam.aspect));
+            var eyeA = Arena.ToUnity(ka.Eye); var eyeB = Arena.ToUnity(kb.Eye);
+            var lookA = Arena.ToUnity(ka.Target); var lookB = Arena.ToUnity(kb.Target);
             float H = TitanHeight(tv); bool roared = false; int steps = 0;
             for (float t = 0; t < 3.1f; t += Time.unscaledDeltaTime)
             {
                 if (t > 0.2f && Input.GetMouseButtonDown(0)) break;
                 float u = Ease(t / 1.6f);
-                var eye = T + toTeam * Mathf.Lerp(H * 0.62f, H * 0.95f, u) + side * 0.9f + Vector3.up * Mathf.Lerp(0.45f, 1.3f, u);
-                var look = T + Vector3.up * Mathf.Lerp(0.3f, H * 0.93f, u);
-                arena.Override(eye, look, 52f, t < 2.3f ? 1f : 1f - Ease((t - 2.3f) / 0.8f));
+                arena.Override(Vector3.Lerp(eyeA, eyeB, u), Vector3.Lerp(lookA, lookB, u), Mathf.Lerp((float)ka.Fov, (float)kb.Fov, u), t < 2.3f ? 1f : 1f - Ease((t - 2.3f) / 0.8f));
                 // it shifts its weight as the camera climbs: plates grinding, chains rattling, the ground thudding
                 if (steps < 2 && t >= 0.35f + 0.6f * steps) { steps++; Sound.I?.PlayAt("titanStep", T, 0.8f, 1, 0.04f); }
                 if (!roared && t >= 1.6f)
@@ -344,7 +357,7 @@ namespace Sigilbound.Client
             var m = v.Hero; var arena = App.Arena; _cinema = true; float speed = Time.timeScale;
             var T0 = v.transform.position; var tp = target != null ? target.transform.position : Arena.ToUnity(BattleLayout.TeamCentre);
             float H = TitanHeight(v); var eye0 = arena.PosePosition; float fov0 = arena.Cam.fieldOfView;
-            var to = T0 - tp; to.y = 0; var dir = to.normalized; var dest = tp + dir * 3.6f;
+            var to = T0 - tp; to.y = 0; var dir = to.normalized; var dest = tp + dir * (float)TitanSpec.Current.Reach; // longer arms stop further off
             var side = Vector3.Cross(Vector3.up, dir).normalized;
             arena.BreathTarget = 0;
             // 1. The stride in, side-on.
@@ -416,10 +429,12 @@ namespace Sigilbound.Client
             string clip = m.Has("Ult_Channel") ? "Ult_Channel" : "Interact";
             m.PlayFrom(clip, 0f, 0.55f);
             Sound.I?.Play("titanRoar", 0.8f, 1, 0);
-            // 1. Gather (1.8 s): over the shoulder, a slow push in while fire builds at its chest.
+            // 1. Gather (1.8 s): from behind the heroes, low, looking up at the fire building in its chest (its
+            //    front, facing the camera: art review H3), a slow push in.
+            var front = team - back * 3.2f + Vector3.up * 1.2f; var chest = T + Vector3.up * (float)(TitanSpec.Current.Chest * H);
             for (float t = 0; t < 1.8f; t += Time.deltaTime)
             {
-                arena.Override(ots - back * 0.6f * Ease(t / 1.8f), team + Vector3.up * 0.8f, 52f, Ease(t / 0.3f));
+                arena.Override(front + back * 1.4f * Ease(t / 1.8f), Vector3.Lerp(chest, T + Vector3.up * (float)BattleLayout.TitanFace, 0.35f), 50f, Ease(t / 0.3f));
                 if (fx != null && Mathf.Repeat(t, 0.2f) < Time.deltaTime) fx.Charge(v.transform, Element.Flame, 0.2f);
                 yield return null;
             }
@@ -1021,7 +1036,7 @@ namespace Sigilbound.Client
                 if (v == null) continue;
                 v.SetHighlight(manual && targets.Contains(u) ? (u.Ally ? new Color(0.36f, 0.82f, 0.48f, 0.8f) : new Color(1f, 0.35f, 0.35f, 0.85f)) : (u == _actor ? new Color(1f, 0.81f, 0.35f, 0.7f) : (Color?)null));
                 if (!u.Alive) continue;
-                Vector3 sp = cam.WorldToScreenPoint(u.Titan ? v.transform.position + Vector3.up * (float)BattleLayout.WormHornTop // the Titan's tag sits above its horns
+                Vector3 sp = cam.WorldToScreenPoint(u.Titan ? TitanTagPoint(v) // the Titan's tag sits above its horn tips
                     : v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
                 if (sp.z < 0) continue;
                 float x = Mathf.Clamp(sp.x / Ui.Scale, 46, Ui.W - 46), y = Mathf.Max(safe.y + 114, (Screen.height - sp.y) / Ui.Scale); // tags stay on screen, below the turn bar
@@ -1169,7 +1184,7 @@ namespace Sigilbound.Client
                 if (v == null) continue;
                 v.SetHighlight(manual && targets.Contains(u) ? (u.Ally ? new Color(0.36f, 0.82f, 0.48f, 0.8f) : new Color(1f, 0.35f, 0.35f, 0.85f)) : (u == _actor ? new Color(1f, 0.81f, 0.35f, 0.7f) : (Color?)null));
                 if (!u.Alive) continue;
-                Vector3 sp = cam.WorldToScreenPoint(u.Titan ? v.transform.position + Vector3.up * (float)BattleLayout.WormHornTop // the Titan's tag sits above its horns
+                Vector3 sp = cam.WorldToScreenPoint(u.Titan ? TitanTagPoint(v) // the Titan's tag sits above its horn tips
                     : v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
                 if (sp.z < 0) continue;
                 float w = u.Titan ? 156 : 96;
