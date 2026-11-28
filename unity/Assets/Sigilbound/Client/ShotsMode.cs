@@ -294,6 +294,7 @@ namespace Sigilbound.Client
         IEnumerator PilotTour()
         {
             ShotLog("pilot tour on");
+            if (Battle.InProgress) Battle.End(ScreenId.Home);   // the Titan practice fight before this is still running
             CloseModal();
             _shotLineup = new System.Collections.Generic.List<string>(); _shotNoUi = true; _lineupKey = "";
             Go(ScreenId.Home);
@@ -329,11 +330,50 @@ namespace Sigilbound.Client
                         if (clip == null || !m.Has(clip)) { ShotLog($"pilot {pass} {id} {state}: no clip ({clip})"); continue; }
                         for (int k = 0; k < PilotFrames.Length; k++)
                         {
+                            Arena.Override(camPos, look, 34f, 1f);   // the menu framing clears overrides
                             m.Pose(clip, PilotFrames[k]);
                             yield return null; yield return null;
                             m.Pose(clip, PilotFrames[k]);   // after the arena camera and any LateUpdate settled
                             LogPose(pass, id, state, k, clip, v);
                             yield return ShotCrop($"pilot-{pass}-{id}-{state}-{k}");
+                        }
+                    }
+                    // Physics standard (Core/Rig/RigPhysics.cs): the body colliders drawn over the idle, then the run played
+                    // live so chains (Nyssa's soft wings) swing; frames named pilot-<pass>-<hero>-physics-<k>.
+                    var phys = m.Root.GetComponentInChildren<BodyPhysics>();
+                    var marks = new System.Collections.Generic.List<GameObject>();
+                    if (phys != null)
+                    {
+                        var idleClip = PilotClip(m, id, "idle");
+                        m.Pose(idleClip, 0.3f);
+                        var mat = Materials.Unlit(new Color(0.25f, 1f, 0.45f, 0.38f));
+                        foreach (var b in phys.Bodies)
+                        {
+                            var g = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                            Destroy(g.GetComponent<Collider>());
+                            g.GetComponent<Renderer>().sharedMaterial = mat;
+                            var c = b.Collider; var t = c.transform;
+                            g.transform.SetParent(t, false);
+                            g.transform.localPosition = c.center;
+                            g.transform.localRotation = c.direction == 0 ? Quaternion.Euler(0, 0, 90) : c.direction == 2 ? Quaternion.Euler(90, 0, 0) : Quaternion.identity;
+                            g.transform.localScale = new Vector3(c.radius * 2f, Mathf.Max(c.height, c.radius * 2f) * 0.5f, c.radius * 2f);
+                            marks.Add(g);
+                        }
+                        ShotLog($"pilot {pass} {id}: physics {phys.Bodies.Count} colliders, {phys.ChainJoints} chain joints");
+                    }
+                    Arena.Override(camPos, look, 34f, 1f);
+                    yield return null; yield return null;
+                    yield return ShotCrop($"pilot-{pass}-{id}-physics-0");
+                    foreach (var g in marks) Destroy(g);
+                    var runClip = PilotClip(m, id, "run");
+                    if (runClip != null && m.Has(runClip))
+                    {
+                        m.Play(runClip, true, 0f, 1f);
+                        for (int k = 1; k < 6; k++)
+                        {
+                            float until = Time.realtimeSinceStartup + 0.25f;
+                            while (Time.realtimeSinceStartup < until) { Arena.Override(camPos, look, 34f, 1f); yield return null; }
+                            yield return ShotCrop($"pilot-{pass}-{id}-physics-{k}");
                         }
                     }
                     Arena.ClearOverride();

@@ -48,7 +48,13 @@ namespace Sigilbound.Core
         public readonly List<AddonChain> Addons = new List<AddonChain>();
         public readonly Dictionary<string, string> Bones = new Dictionary<string, string>(); // human bone -> node (overrides the mapper)
         public float GaitAmount = 1f;                       // scales the gait's offsets for this hero
-        public float HockFold = 0f;                         // digitigrade: metatarsal fold per radian of knee bend
+        public float HockFold = 0f;                         // digitigrade: metatarsal fold per degree of knee bend
+        // Physics standard (Core/Rig/RigPhysics.cs): body colliders from the skeleton, chains for what should move,
+        // rigid binding for weapons, shields and headgear.
+        public float Girth = 1f;                            // collider girth on top of the skeleton's (RigPhysics.SkeletonGirth)
+        public readonly List<ChainSpec> Chains = new List<ChainSpec>();
+        public readonly List<RigidSpec> Rigid = new List<RigidSpec>();
+        public List<ColliderSpec> Colliders => RigPhysics.BodySet(Skeleton);
     }
 
     public static class RigProfiles
@@ -133,11 +139,22 @@ namespace Sigilbound.Core
         // wings, and the Titan (brute). Every other hero joins in batches (SKELETON_LIBRARY.md, migration plan).
         public static readonly Dictionary<string, RigProfile> Table = new Dictionary<string, RigProfile>
         {
-            ["ysolde"] = P("ysolde", SkeletonKind.Biped, GaitStyle.Light),
-            ["augustin"] = P("augustin", SkeletonKind.Biped, GaitStyle.Regal, p => p.GaitAmount = 1.2f),
-            ["corran"] = P("corran", SkeletonKind.BipedDigitigrade, GaitStyle.Light, p => { p.HockFold = 0.6f; p.GaitAmount = 0.8f; }),
-            ["nyssa"] = P("nyssa", SkeletonKind.Biped, GaitStyle.Light, p => p.Addons.Add(new AddonChain { Kind = AddonKind.Wings, Bones = new[] { "wing_l", "wing_r" }, Amplitude = 14f, Frequency = 1.4f })),
-            ["titan"] = P("titan", SkeletonKind.Brute, GaitStyle.Heavy, p => { p.ClipSets = new[] { "titan", "biped" }; p.GaitAmount = 0.8f; }),
+            ["ysolde"] = P("ysolde", SkeletonKind.Biped, GaitStyle.Light, p => p.Rigid.Add(new RigidSpec(RigidKind.Weapon, "hand_r"))),
+            ["augustin"] = P("augustin", SkeletonKind.Biped, GaitStyle.Regal, p => { p.GaitAmount = 1.2f; p.Girth = 1.15f; p.Rigid.Add(new RigidSpec(RigidKind.Weapon, "hand_r")); }),
+            ["corran"] = P("corran", SkeletonKind.BipedDigitigrade, GaitStyle.Light, p => { p.HockFold = 0.6f; p.GaitAmount = 0.8f; p.Rigid.Add(new RigidSpec(RigidKind.Weapon, "hand_r")); }),
+            ["nyssa"] = P("nyssa", SkeletonKind.Biped, GaitStyle.Light, p =>
+            {
+                p.Addons.Add(new AddonChain { Kind = AddonKind.Wings, Bones = new[] { "wing_l", "wing_r" }, Amplitude = 14f, Frequency = 1.4f });
+                // soft wings: each wing bone lags and swings on top of its flutter, kept off the body by the colliders
+                p.Chains.Add(new ChainSpec { Kind = ChainKind.SoftWings, Bones = new[] { "wing_l" }, Stiffness = 0.9f, Drag = 0.3f, Gravity = 0.05f, Radius = 0.05f, TipLength = 0.35f });
+                p.Chains.Add(new ChainSpec { Kind = ChainKind.SoftWings, Bones = new[] { "wing_r" }, Stiffness = 0.9f, Drag = 0.3f, Gravity = 0.05f, Radius = 0.05f, TipLength = 0.35f });
+            }),
+            ["titan"] = P("titan", SkeletonKind.Brute, GaitStyle.Heavy, p =>
+            {
+                p.ClipSets = new[] { "titan", "biped" }; p.GaitAmount = 0.8f; p.Girth = 1.1f;
+                // the rock fists and the crystal ridges are stone: rigid on their bones (blenderforge/titan_moves.py)
+                p.Rigid.Add(new RigidSpec(RigidKind.Weapon, "hand_l")); p.Rigid.Add(new RigidSpec(RigidKind.Weapon, "hand_r")); p.Rigid.Add(new RigidSpec(RigidKind.Headgear, "spine_03"));
+            }),
         };
 
         public static RigProfile Of(string id) => id != null && Table.TryGetValue(id, out var p) ? p : null;

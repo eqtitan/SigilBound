@@ -115,6 +115,18 @@ static class RigLibraryTests
             foreach (var a in p.Addons) foreach (var b in a.Bones)
                 check(g.Find(b) >= 0 && !map.Values.Contains(g.Find(b)), $"rig library: {p.Id} add-on {a.Kind} bone {b} exists and is not a human bone");
 
+            // physics standard: the body collider set's bones exist with a real length, chains are extra (non-human)
+            // bones, rigid items sit on bones of this skeleton
+            var cols = p.Colliders;
+            var need = new[] { "head", "neck", "chest", "spine", "hips", "upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r", "thigh_l", "thigh_r", "calf_l", "calf_r" };
+            check(need.All(n => cols.Any(c => c.Name == n)), $"rig library: {p.Id} has the standard body collider set (head, neck, chest, spine, hips, arms, thighs, calves)");
+            var badCol = cols.Where(c => g.Find(c.Bone) < 0 || (c.Tip != null && g.Find(c.Tip) < 0) || c.Radius <= 0 || c.Radius > 1.5f).Select(c => c.Name).ToList();
+            check(badCol.Count == 0, $"rig library: {p.Id} collider bones exist and radii are sane {string.Join(",", badCol)}");
+            var badChain = p.Chains.SelectMany(c => c.Bones).Where(b => g.Find(b) < 0 || map.Values.Contains(g.Find(b))).ToList();
+            check(badChain.Count == 0, $"rig library: {p.Id} physics chains are existing non-human bones {string.Join(",", badChain)}");
+            check(p.Chains.All(c => c.Stiffness > 0 && c.Drag > 0 && c.Drag < 1 && c.TipLength > 0), $"rig library: {p.Id} chain settings sane");
+            check(p.Rigid.All(r => g.Find(r.Bone) >= 0), $"rig library: {p.Id} rigid items sit on its bones");
+
             // every clip of its sets retargets: the source maps every human bone this hero needs, and drives them sanely
             foreach (var set in p.ClipSets)
             {

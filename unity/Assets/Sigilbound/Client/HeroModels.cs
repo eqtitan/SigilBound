@@ -1073,6 +1073,8 @@ namespace Sigilbound.Client
             string profileId = titan ? "titan" : id;
             HumanoidRig hr = RigProfiles.Migrated(profileId) ? HumanoidRig.Setup(root, holder, RigProfiles.Of(profileId)) : null;
             Trace($"{id}: rig {(hr != null ? "humanoid " + hr.Profile.Skeleton : RigProfiles.Of(profileId) != null ? "LEGACY (humanoid setup failed)" : "legacy")}");
+            // Physics standard (Core/Rig/RigPhysics.cs): body colliders and chains on every library rig.
+            if (hr != null) root.AddComponent<BodyPhysics>().Init(holder, hr.Profile);
             Animation anim = null;
             bool rigExt = false;
             var spec = titan ? TitanSpec.Current : null;
