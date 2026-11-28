@@ -5,6 +5,8 @@
 #   - shots.log has the "DONE <n>" line (the tour reached its end),
 #   - the battle-mid and titan-* SBBUDGET lines are there and each reports skinned>0
 #     (hero models actually loaded and animated, not stand-ins),
+#   - every gallery hero's pose is sane: shots.log has SBBOUNDS lines and none says BAD (a body flung
+#     into the sky or smeared into a sheet still counts as a "real model" with skinned>0; build 180),
 #   - player.log has no NullReferenceException / MissingReferenceException /
 #     IndexOutOfRangeException whose message or stack trace is in Sigilbound code.
 set -uo pipefail
@@ -31,6 +33,14 @@ if [ -f "$SHOTS" ]; then
       if [ -z "$n" ] || [ "$n" -le 0 ]; then bad "$l"; else echo "ok: $l"; fi
     done <<<"$lines"
   done
+fi
+
+if [ -f "$SHOTS" ]; then
+  nb=$(grep -c '^SBBOUNDS ' "$SHOTS" || true)
+  badb=$(grep -E '^SBBOUNDS .* BAD' "$SHOTS" || true)
+  if [ "${nb:-0}" -eq 0 ]; then bad "no SBBOUNDS lines in shots.log (gallery pose check did not run)"
+  elif [ -n "$badb" ]; then bad "gallery heroes with broken poses:"; sed 's/^/    /' <<<"$badb"
+  else echo "ok: $nb gallery heroes have sane poses (SBBOUNDS)"; fi
 fi
 
 if [ ! -f "$PLAYER" ]; then

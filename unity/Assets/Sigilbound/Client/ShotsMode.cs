@@ -117,6 +117,7 @@ namespace Sigilbound.Client
                 while (Time.realtimeSinceStartup < wait && !_lineup.All(v => v != null && v.Hero != null)) yield return null;
                 yield return new WaitForSecondsRealtime(1.5f); // let idle clips settle into a pose
                 ShotLog($"gallery {string.Join(",", _shotLineup)}: {_lineup.Count(v => v != null && v.Hero != null)}/{_lineup.Count} real models");
+                LogBounds();
                 yield return Shot($"gallery-{b / 4 + 1}");
             }
             // Act 2 arenas (chapters 11-15): each theme behind a lineup.
@@ -269,6 +270,41 @@ namespace Sigilbound.Client
             foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.enabled && l.gameObject.activeInHierarchy) lights++;
             foreach (var a in FindObjectsByType<AudioSource>(FindObjectsSortMode.None)) if (a.isPlaying) audio++;
             ShotLog($"SBBUDGET {name} tier={QualitySettings.names[QualitySettings.GetQualityLevel()]} renderers={renderers} tris={tris} skinned={skinned} particles={particles} systems={systems} lights={lights} audio={audio}");
+        }
+
+        // Pose sanity per gallery hero (in-house report on build 180: Tansy smeared into a sheet with her head on
+        // the ground, Corran's body flung into the sky, while "4/4 real models" and skinned>0 still passed).
+        // Logged as "SBBOUNDS <id> head=.. top=.. wide=.. ok" or "... BAD <why>"; tools/unity-smoke-check.sh
+        // fails on any BAD line. Measured from the figure's feet, in units of its own height marker
+        // (HeroModel.Height, about 1.25x the standing height): the Head bone stands between 0.25 and 1.1 of it
+        // above the feet and within 0.6 of it sideways, and the skinned meshes' bounds (bone-driven,
+        // updateWhenOffscreen) reach no higher than 1.8 of it and stay under 2.8 wide (long polearms and wings
+        // included). Calibrated on run 186: every sane hero had head 0.42-0.87, top up to 1.44 (Crusk's horns),
+        // wide up to 1.77; the full bounds height is not checked (golems' bounds reach below their feet).
+        void LogBounds()
+        {
+            foreach (var v in _lineup)
+            {
+                if (v == null || v.Hero == null || v.Hero.Root == null || v.Unit == null) continue;
+                var id = v.Unit.Template.Id;
+                if (Creatures.Of(id) != null) continue;   // creature heroes have their own body plan
+                var root = v.Hero.Root.transform; var feet = root.position;
+                float H = Mathf.Max(0.1f, v.Hero.Height * root.lossyScale.y / Mathf.Max(1e-4f, root.localScale.y));
+                bool any = false; var bb = new Bounds(feet, Vector3.zero);
+                foreach (var r in root.GetComponentsInChildren<SkinnedMeshRenderer>())
+                {
+                    if (!r.enabled) continue;
+                    if (!any) { bb = r.bounds; any = true; } else bb.Encapsulate(r.bounds);
+                }
+                if (!any) continue;
+                var head = BodyShaper.Find(root, "Head");
+                float hy = head != null ? (head.position.y - feet.y) / H : 0.6f;
+                float hx = head != null ? new Vector2(head.position.x - feet.x, head.position.z - feet.z).magnitude / H : 0f;
+                float top = (bb.max.y - feet.y) / H, tall = bb.size.y / H, wide = Mathf.Max(bb.size.x, bb.size.z) / H;
+                string why = hy < 0.25f ? "head on the ground" : hy > 1.1f ? "head too high" : hx > 0.6f ? "head off the body"
+                           : top > 1.8f ? "stretched up" : wide > 2.8f ? "stretched sideways" : null;
+                ShotLog($"SBBOUNDS {id} head={hy:0.00}/{hx:0.00} top={top:0.00} tall={tall:0.00} wide={wide:0.00} " + (why == null ? "ok" : "BAD " + why));
+            }
         }
 
         IEnumerator Shot(string name)
