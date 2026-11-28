@@ -45,6 +45,7 @@ namespace Sigilbound.Client
         ParticleSystem _over, _under, _fall, _flame, _smoke, _streaks, _debris, _leaves;
         Texture2D _dot, _ring, _rune, _streak, _hex, _burst, _crack, _glow, _shock, _rays, _flare, _caustic, _foam, _lava, _crust;
         float _mult = 1f; // particle count scale by quality tier (Low 0.35 .. Ultra 1.2)
+        public int Tier { get; private set; } = 2;   // Low 0 .. Ultra 3 (SetTier)
         Renderer _flash; float _flashT = -1, _flashDur;
 
         sealed class Decal { public Transform T; public Renderer R; public MaterialPropertyBlock B; public bool Busy; }
@@ -65,7 +66,7 @@ namespace Sigilbound.Client
         // fewer particles; the heavy systems (flame, smoke) are the ones cut hardest.
         public void SetTier(int tier)
         {
-            tier = Mathf.Clamp(tier, 0, 3);
+            tier = Mathf.Clamp(tier, 0, 3); Tier = tier;
             _mult = new[] { 0.35f, 0.6f, 1f, 1.2f }[tier];
             void Max(ParticleSystem ps, int[] m) { if (ps != null) { var mm = ps.main; mm.maxParticles = m[tier]; } }
             Max(_over, new[] { 500, 900, 1500, 2000 });
@@ -805,17 +806,18 @@ namespace Sigilbound.Client
             }
         }
 
-        // Cinder Breath: a stream of fire from the Titan's mouth toward a point that sweeps from `a` to
-        // `b` over `dur` seconds. Layers: big licking flame tongues along the stream, ember streaks, a
-        // pale heat-haze shimmer above it, dark smoke and molten splashes where it lands, and pools of
-        // lava left behind. All rates are per second (identical at 30 / 60 / 120 fps).
-        public IEnumerator Breath(Vector3 mouth, Vector3 a, Vector3 b, Element el, float dur)
+        // Heartfire Torrent: a stream of molten fire from the Titan's open chest core (`source`, read every frame so
+        // it follows the socket as the body turns) toward a point that sweeps from `a` to `b` over `dur` seconds, in
+        // the day's element. Layers: big licking flame tongues along the stream, ember streaks, a pale heat-haze
+        // shimmer above it, dark smoke and molten splashes where it lands, and pools left behind. On Low only the
+        // embers, the glowing core, the splashes and the pools (TitanSpec.HeavyBreath). All rates are per second.
+        public IEnumerator Breath(System.Func<Vector3> source, Vector3 a, Vector3 b, Element el, float dur)
         {
-            var P = Of(el); var F = Of(Element.Flame);
+            var P = Of(el); var F = P; bool heavy = Sigilbound.Core.TitanSpec.HeavyBreath(Tier);
             float aEmber = 0, aFlame = 0, aHaze = 0, aSmoke = 0, aSplash = 0, nextPool = 0;
             for (float t = 0; t < dur; t += Time.deltaTime)
             {
-                var tgt = Vector3.Lerp(a, b, t / dur);
+                var mouth = source(); var tgt = Vector3.Lerp(a, b, t / dur);
                 float ramp = Mathf.Clamp01(t / 0.2f) * Mathf.Clamp01((dur - t) / 0.25f + 0.3f);
                 Spark(_over, mouth, Vector3.zero, Hdr(F.Core, 1.2f), 0.9f * ramp, Hold); // the glowing maw
                 for (int i = Rate(ref aEmber, 150 * ramp); i > 0; i--)
@@ -824,42 +826,42 @@ namespace Sigilbound.Client
                     var v = to - mouth; float spd = Random.Range(11f, 16f);
                     Streak(mouth + Random.insideUnitSphere * 0.25f, v.normalized * spd + Random.insideUnitSphere * 1.5f, Hdr(i % 3 == 0 ? P.Core : F.Core, 1.3f), Random.Range(0.05f, 0.1f), v.magnitude / spd * Random.Range(0.95f, 1.2f));
                 }
-                for (int i = Rate(ref aFlame, 70 * ramp); i > 0; i--)
+                for (int i = heavy ? Rate(ref aFlame, 70 * ramp) : 0; i > 0; i--)
                 {
                     var to = tgt + Random.insideUnitSphere * 0.7f; var v = to - mouth; float spd = Random.Range(8.5f, 11.5f);
                     FlameAt(mouth + Random.insideUnitSphere * 0.3f, v.normalized * spd + Random.insideUnitSphere * 0.8f + Vector3.up * 0.8f, Hdr(i % 3 == 0 ? F.Core : (i % 3 == 1 ? F.Main : P.Main), 1.0f), Random.Range(1.2f, 2.1f), v.magnitude / spd * Random.Range(0.9f, 1.15f));
                 }
-                for (int i = Rate(ref aHaze, 8 * ramp); i > 0; i--) // heat haze: faint pale puffs rising over the stream
+                for (int i = heavy ? Rate(ref aHaze, 8 * ramp) : 0; i > 0; i--) // heat haze: faint pale puffs rising over the stream
                 {
                     var p = Vector3.Lerp(mouth, tgt, Random.Range(0.3f, 1f)) + Vector3.up * 0.6f;
                     Puff(p, Vector3.up * 1.2f, new Color(1f, 0.92f, 0.82f, 0.07f), Random.Range(1.6f, 2.4f), 0.8f);
                 }
-                for (int i = Rate(ref aSmoke, 7); i > 0; i--) Puff(tgt + Random.insideUnitSphere * 0.5f + Vector3.up * 0.4f, new Vector3(Random.Range(-0.3f, 0.3f), Random.Range(0.8f, 1.4f), Random.Range(-0.3f, 0.3f)), new Color(0.2f, 0.14f, 0.11f, 0.45f), Random.Range(1.4f, 2.2f), Random.Range(1.0f, 1.4f));
+                for (int i = heavy ? Rate(ref aSmoke, 7) : 0; i > 0; i--) Puff(tgt + Random.insideUnitSphere * 0.5f + Vector3.up * 0.4f, new Vector3(Random.Range(-0.3f, 0.3f), Random.Range(0.8f, 1.4f), Random.Range(-0.3f, 0.3f)), new Color(0.2f, 0.14f, 0.11f, 0.45f), Random.Range(1.4f, 2.2f), Random.Range(1.0f, 1.4f));
                 for (int i = Rate(ref aSplash, 26 * ramp); i > 0; i--) // molten splashes where it lands
                 {
                     var d = Random.insideUnitCircle * 2.2f; var g = Ground(tgt, 0.15f) + new Vector3(d.x, 0, d.y) * 0.25f;
                     if (i % 2 == 0) Spark(_fall, g, new Vector3(d.x, Random.Range(2.5f, 4.5f), d.y), Hdr(i % 4 == 0 ? F.Core : F.Main, 1.1f), Random.Range(0.07f, 0.13f), Random.Range(0.55f, 0.85f));
                     else Streak(g, new Vector3(d.x * 1.5f, Random.Range(3f, 5f), d.y * 1.5f), Hdr(F.Core, 1.3f), 0.07f, 0.5f);
                 }
-                if (t >= nextPool) { nextPool = t + 0.32f; LavaPool(tgt); }
+                if (t >= nextPool) { nextPool = t + 0.32f; LavaPool(tgt, el); }
                 yield return null;
             }
         }
         // A pool of lava where the breath lands: molten veins under a crust that forms over them, a red
         // underglow, bubbles that pop (with a flicker of flame and a spit of droplets) and heat smoke, ~3.5 s.
-        public void LavaPool(Vector3 at)
+        public void LavaPool(Vector3 at, Element el = Element.Flame)
         {
-            var F = Of(Element.Flame); var g = Ground(at, 0.035f);
+            var F = Of(el); var g = Ground(at, 0.035f);
             GroundFx(_glow, g, 1.4f, 2.4f, F.Deep, 0.8f, 3.3f);
             GroundFx(_lava, g, 0.5f, 1.8f, F.Main, 1.25f, 3.5f, 0.06f);
             GroundFx(_lava, g, 0.3f, 1.2f, F.Core, 0.6f, 2.2f, -0.1f, 0.1f);
             GroundFxA(_crust, Ground(at, 0.05f), 0.7f, 2.0f, new Color(1, 1, 1, 0.95f), 3.2f, 0, 0.3f);
-            StartCoroutine(Bubbles(g, 3f));
+            if (Tier > 0) StartCoroutine(Bubbles(g, 3f, el));
             Smoke(g, N(2), new Color(0.18f, 0.12f, 0.1f), 0.5f, 0.8f, 1.6f, 0.35f);
         }
-        IEnumerator Bubbles(Vector3 g, float dur)
+        IEnumerator Bubbles(Vector3 g, float dur, Element el = Element.Flame)
         {
-            var F = Of(Element.Flame);
+            var F = Of(el);
             float next = Random.Range(0.15f, 0.4f);
             for (float t = 0; t < dur; t += Time.deltaTime)
             {
@@ -874,9 +876,9 @@ namespace Sigilbound.Client
             }
         }
         // Fire flaring up around a hero caught in the breath: licking tongues, embers, a little smoke.
-        public void FireFlare(Vector3 feet)
+        public void FireFlare(Vector3 feet, Element el = Element.Flame)
         {
-            var F = Of(Element.Flame);
+            var F = Of(el);
             Flames(feet + Vector3.up * 0.1f, N(7), F, 0.4f, 0.9f, 0.6f);
             Embers(feet + Vector3.up * 0.5f, N(6), F, 2f);
             Smoke(feet + Vector3.up * 1.0f, N(1), new Color(0.18f, 0.12f, 0.1f), 0.2f, 0.6f, 1.0f, 0.35f);
@@ -915,7 +917,7 @@ namespace Sigilbound.Client
             Sparks(pos + Vector3.up * 0.2f, N(10), Of(el).Main, 3f, 0.08f, 0.5f, 1.5f);
         }
 
-        // Titan slam (Crushing Palm, Quake): a flash, a double shock ring, a burst, rock chunks hurled up,
+        // Titan slam (Bedrock Hammer, Faultline Leap, the Earthsplitter): a flash, a double shock ring, a burst, rock chunks hurled up,
         // a dust wave, a spray of sparks and a ring of secondary impacts.
         public void TitanSlam(Vector3 pos, Element el)
         {
@@ -929,6 +931,33 @@ namespace Sigilbound.Client
             Sparks(pos + Vector3.up * 0.4f, N(30), P.Core, 8, 0.12f, 0.6f, 2);
             int m = _mult >= 1 ? 6 : 3;
             for (int i = 0; i < m; i++) { float th = i / (float)m * Mathf.PI * 2, r = Random.Range(1.6f, 2.6f); var p = pos + new Vector3(Mathf.Cos(th) * r, 0.4f, Mathf.Sin(th) * r); StartCoroutine(After(0.08f + i * 0.05f, () => Impact(p, el, false))); }
+        }
+
+        // Energy gathering at a point (the Titan's chest core in the Heartfire Torrent's wind-up).
+        public void ChargeAt(Vector3 at, Element el, float dur, float radius = 1f) => StartCoroutine(ChargeAtRoutine(at, el, dur, radius));
+        IEnumerator ChargeAtRoutine(Vector3 at, Element el, float dur, float radius)
+        {
+            var P = Of(el); float acc = 0;
+            for (float t = 0; t < dur; t += Time.deltaTime)
+            {
+                for (int i = Rate(ref acc, 50); i > 0; i--) { var from = at + Random.onUnitSphere * radius; Spark(_over, from, (at - from) * 2.6f, Hdr(P.Core, 1), 0.14f, 0.38f); }
+                yield return null;
+            }
+        }
+        // The Titan's open chest core: one soft glow particle on it this frame (TitanBody; ~1 live particle).
+        public void CoreGlow(Vector3 at, Color seam, float strength, float size) => Spark(_over, at, Vector3.zero, Hdr(seam, Mathf.Clamp(strength, 0, 2.5f)), size, Hold);
+        // A crystal ridge breaking off the Titan: a flash in the seam colour, `n` crystal shards (none on Low) and a
+        // few sparks, thrown along `dir`.
+        public void RidgeShatter(Vector3 at, Vector3 dir, Element el, Color seam, int n)
+        {
+            GroundFx(_glow, at, 0.6f, 2.2f, seam, 1.2f, 0.25f, 0, 0, true);
+            var crystal = new Color(0.62f, 0.64f, 0.7f, 1);
+            for (int i = 0; i < n; i++)
+            {
+                var v = (dir.normalized + Random.insideUnitSphere * 0.45f) * Random.Range(4f, 7f);
+                Emit(_debris, at, v, crystal * Random.Range(0.85f, 1.15f), Random.Range(0.25f, 0.45f), Random.Range(1.1f, 1.6f), Random.Range(0, 360f), Random.Range(-500f, 500f));
+            }
+            if (n > 0) Sparks(at, N(10), Of(el).Core, 5f, 0.1f, 0.5f, 1f);
         }
 
         // Short full-screen flash on crits.

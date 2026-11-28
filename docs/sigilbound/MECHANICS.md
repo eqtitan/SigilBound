@@ -464,6 +464,7 @@ Status column: **pending** until the owner approves, rejects or asks for changes
 - **2026-11-28:** Section 11 (release and rank-up rules, PLAN step 107).
 - **2026-11-28:** Section 9.8 (PLAN step 109): Slow and SpdUp ±20%, gear speed capped at +50, the
   balance band extended to the original 24 heroes, 54 heroes retuned, 13-6 and 15-6 eased.
+- **2026-11-28:** Section 13 (the remodelled Titan's own moves, clips, timings and body effects; PLAN step 114).
 
 
 ## 9. Combat rules (2026-11-27)
@@ -639,3 +640,88 @@ Code: `Core/AutoClimb.cs` (rules, `ClimbLog`), `Client/AutoClimbUi.cs` (switches
 - Story: the one-time Act II intro plays once when a Normal climb crosses into Act II, then the climb continues. Lair reveals play once per session (as without climbing); while climbing, a boss stage cleared before skips its reveal too.
 - Frame rate: 30 fps while climbing (the auto-replay rule). On desktop the climb continues in the background when "keep running" is on.
 - The Climb Summary totals are the sum of each won fight's rewards (gold, XP each, worn/mystic/radiant shards, essence, Skill Tomes, gear pieces); losses add a fight but no rewards.
+
+## 13. The Titan (remodel, 2026-11-28, PLAN step 114)
+
+Owner request: "Since the Titan has been remodelled, his mechanics need to be updated." The new body is a hunched
+basalt colossus: very long arms with rock fists at the knees, short legs, crystal ridges on the back and shoulders, an
+open molten chest core and a small horned head. The three roles and every number stay the same; only the names, the
+clips, the timing and the effects change (`Tests~ titandmg` before and after: average 52,714 over 360 fights; maxed
+team median 127,332, p90 234,594; tier reach 100 / 100 / 81 / 39 / 13 %, identical).
+
+### 13.1 Moves
+
+| Skill | Role (unchanged) | Body move | Clips |
+|---|---|---|---|
+| **Bedrock Hammer** (was Crushing Palm) | one enemy, 130% ATK, basic | knuckle-walks up to one hero, raises both fists over its horns, slams them down | `Titan_Walk`, `Titan_Slam` |
+| **Faultline Leap** (was Quake / the Meteor leap) | all enemies, 80%, Slow (2t, 50%), cooldown 3 | crouches on its knuckles, springs up, lands among the team; three aftershock rings | `Titan_Leap`, `Titan_Land` |
+| **Heartfire Torrent** (was Cinder Breath) | all enemies, 100%, Poison (2t, 50%) and DEF down (2t, 40%), cooldown 4 | rears, the chest core swells, it thrusts its chest forward and the fire pours from the core, sweeping the team and back | `Titan_Breath` |
+| Earthsplitter (any fight-ending blow) | presentation only | one arm cocked far back, then a long sweep raking the ground in front of the team | `Titan_Sweep` |
+| Arrival | | knuckle-walks the last 3 m into its place, then rears and roars | `Titan_Walk`, `Titan_Roar` |
+| Hit reactions | | a flinch on normal hits, a stagger and a braced fist on heavy ones (crit or over 14% of max HP) | `Titan_Hit`, `Titan_HitBig` |
+| End of the fight | | team still standing: it staggers, drops to its knees on its fists, sags, glow dying. Team wiped: it roars | `Titan_Collapse`, `Titan_Roar` |
+
+Names were checked against every hero skill name (no clash). The Titan screen shows each move's description
+(`GameData.TitanMoveLore`) and its generated numbers. The web game keeps its old names (`ParityTests`: Titan move
+names are Unity-only; everything else still matches data.js).
+
+### 13.2 Clips and event times
+
+Baked FK clips on the Titan's own skeleton (`blenderforge/titan_moves.py`: procedural keys, two-bone IK on arms and
+legs, 30 fps, written straight into the rigged GLB so its rest pose stays byte-identical). `titan.json` has
+`"clips": "embedded"`, aliases for every name the battle asks for, and the event times per move. The script measures the
+fist contact windows (fist bottom within 4.5 cm of the floor in model metres, about 19 cm in battle) into
+`titan_clips.json`; `TitanMechanicsTests` checks each event inside its window. Normalized times:
+
+| Clip | Length | Events | Fists on the ground |
+|---|---|---|---|
+| `Titan_Idle` (loop, plays at 0.7x) | 3.0 s | inhale 0.25 (the core glow swells) | never |
+| `Titan_Walk` (loop) | 1.4 s | plant_l 0, plant_r 0.5 (shake, dust, thud) | always one |
+| `Titan_Roar` | 2.6 s | roar 0.327 (sound, long shake, dust) | 0.09-0.21 (the gather) |
+| `Titan_Slam` | 2.8 s | windup 0.089, top 0.375, **impact 0.560** | 0.560-0.893 |
+| `Titan_Sweep` | 3.0 s | top 0.367, **impact 0.478** | 0.456-0.489 |
+| `Titan_Leap` | 1.2 s | crouch 0.458, **takeoff 0.600** | 0.222-0.556 (pushes off) |
+| `Titan_Land` | 1.6 s | **impact 0.104** | 0.104-0.708 |
+| `Titan_Breath` | 6.0 s | **release 0.333**, sweep2 0.633, end 0.900 | never |
+| `Titan_Hit` / `Titan_HitBig` | 0.9 / 1.3 s | | / 0.23-0.77 (braced fist) |
+| `Titan_Collapse` | 2.6 s (holds) | ground 0.462 | 0.436-0.936 |
+
+### 13.3 Timing in the battle (`Client/BattleController.cs`)
+
+- **Damage at the impact.** The cinematics call `impact()` at the contact frame: the numbers, hit reactions, Shove and
+  shake fire then, while the camera keeps filming the aftermath. Heartfire Torrent shows each hero's numbers as the
+  fire's aim passes them (`reached`), the rest after.
+- **Bedrock Hammer:** knuckle-walk 1.5 s to `reach` (3.1 m: the fists land 3.1 m in front of it, measured), shakes on
+  the plant events; the slam at 0.9x, slow motion (0.3x) from `top` until just before `impact`; cracks, shock ring and
+  slam where the fists are (`fist_l`/`fist_r` sockets).
+- **Faultline Leap:** crouch until `takeoff` (0.72 s), rise 0.6 s at 0.4x speed, fall 0.5 s; `Titan_Land` starts
+  `impact x 1.6 s` (0.17 s) before touchdown so its impact frame is the touchdown.
+- **Heartfire Torrent:** gather until `release` (2.0 s), sweep 1.8 s, sweep back 1.6 s (the event spacing; the camera
+  beats keep their lengths), from the `chest_core` socket every frame (it follows the body as it turns).
+- **Earthsplitter:** 0.32x speed, frozen at `top` (arm cocked), then the sweep at 1.6x to `impact`.
+- Battle speed scales all of it as before (Time.timeScale); events are normalized clip time, so 30/60/120 fps agree.
+
+### 13.4 Body effects (`Client/TitanBody.cs`, `SigilCharacterPainted.shader`)
+
+- **Wind-up flare:** `Charge(1, tc)` at the start of each big move ramps the seams and core to `flareGain` (2.2) x
+  `glowGain`, and the crystal ridges to `ridgeGlow` (1.6) x the seam colour; `Pulse()` spikes them at the impact;
+  `Charge(0, ...)` releases. Smoothing `1 - exp(-dt / tc)`.
+- **Breathing core:** the idle's inhale swells the seams (+14%) and a single soft glow particle on the chest core
+  (Medium and up).
+- **Ridges:** the glow PNG's alpha carries the ridge mask (255 - ridge); the game puts it in the mask's red channel,
+  read as `_RidgeColor` (black on every other hero, whose red is 0).
+- **Crystals break with health.** The Titan can't die, so its health is the top damage tier still to deal
+  (`TitanSpec.Health`: 1 - damage / 220k); the bar over it now shows it. At 66% (74,800 damage) the 9 `ridge_*_s1`
+  crystals shatter, at 33% (147,400) the 8 `_s2` ones; 5 stay. A broken crystal shrinks to a stub, flashes and throws
+  shards (none on Low; 3/5/6 on Medium/High/Ultra), with a small shake.
+- **Tint:** all of it, the breath included, in the day's element (`titan.json` seams, the element palette).
+- **Quality:** Low keeps the embers, glow, splashes and pools of the breath but no flame tongues, heat haze or smoke,
+  no lava bubbles, no core sprite and no shards. Material changes use a MaterialPropertyBlock (no new materials).
+
+### 13.5 Approval test
+
+Blender renders of the shipped GLB and clips (`blenderforge/titan_preview.py`, labelled by `titan_gif.py`): one GIF
+per move (wind-up, impact, recovery) from the battle camera with the effects, plus the ridge stages and a contact
+sheet. Owner to judge: do the fists connect when the damage lands, does the fire come from the chest, do the wind-up
+flare and the crystals breaking read at phone size? **Status: awaiting owner review.**
+

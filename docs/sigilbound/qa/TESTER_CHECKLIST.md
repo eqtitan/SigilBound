@@ -51,6 +51,9 @@ A screenshot helps a lot. Settings → Send feedback also copies a report with y
 
 ## 6. The Titan (Trials tab)
 - [ ] The arrival intro, its three moves and the final blow. Practice mode costs no tries.
+- [ ] The Titan's new moves: Bedrock Hammer (it walks up on its fists and slams both down on one hero), Faultline Leap (it crouches, leaps and lands on your team) and Heartfire Torrent (fire pours from its glowing chest, not its mouth). Do the damage numbers pop the moment the fists or the fire land?
+- [ ] Before each big move its seams and chest glow brighter and its back crystals light up. Do crystals break off when its health bar passes 66% and 33%? On Low graphics there should be no flying shards.
+- [ ] If your team survives all 20 turns, does the Titan sink to its knees at the end?
 - [ ] Reward tiers are now 15k / 40k / 80k / 140k / 220k damage. How far does your team get?
 
 ## 7. Heroes

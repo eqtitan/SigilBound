@@ -4,6 +4,7 @@
 //   _MaskMap  R metallic, G ambient occlusion, B glow mask (eyes, runes, gems, trim), A smoothness
 //   _BumpMap  tangent-space normal map (optional; the default "bump" texture is flat)
 //   _GlowColor the glow-mask colour: the hero's glow colour, or red on Hollow enemies (HeroRig)
+//   _RidgeColor the glow on mask R: the Titan's crystal ridges when it attacks (TitanBody); black elsewhere
 //   _Tint     multiplies the albedo (Hollow enemies are tinted dark violet)
 //   _Cutoff   alpha clip for hair cards, feathers and fringes (0 = opaque)
 // No keywords: every map is always sampled, so one variant serves every hero (cheap to warm up).
@@ -27,6 +28,7 @@ Shader "Sigilbound/CharacterPainted"
         _Rim ("Rim strength", Range(0, 2)) = 0.7
         _Sheen ("Cloth sheen", Range(0, 1)) = 0.15
         [HDR] _GlowColor ("Glow mask colour", Color) = (0, 0, 0, 1)
+        [HDR] _RidgeColor ("Ridge glow (mask R, the Titan's crystals)", Color) = (0, 0, 0, 1)
         _Cutoff ("Alpha clip", Range(0, 1)) = 0
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2
     }
@@ -55,6 +57,7 @@ Shader "Sigilbound/CharacterPainted"
             float _Rim;
             float _Sheen;
             float4 _GlowColor;
+            float4 _RidgeColor;
             float _Cutoff;
             float _Cull;
         CBUFFER_END
@@ -153,6 +156,7 @@ Shader "Sigilbound/CharacterPainted"
                 col += _RimColor.rgb * _Rim * rim;
 
                 col += _GlowColor.rgb * mask.b;
+                col += _RidgeColor.rgb * mask.r;   // the Titan's crystal ridges (black on every other hero: their mask R is 0)
                 col = MixFog(col, i.fogFactor);
                 return half4(col, 1.0);
             }

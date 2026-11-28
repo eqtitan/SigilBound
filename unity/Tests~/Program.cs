@@ -107,6 +107,7 @@ static class Program
         SignatureTests.Run(Check);
         SoundTests.Run(Check);
         TitanCameraTests.Run(Check);
+        TitanMechanicsTests.Run(Check);
         StoryScenesTests.Run(Check);
         LairRevealTests.Run(Check);
         SaveSafetyTests.Run(Check);

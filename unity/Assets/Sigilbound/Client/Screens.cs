@@ -485,7 +485,7 @@ namespace Sigilbound.Client
         // ---------- titan ----------
         void DrawTitan(Rect area)
         {
-            float content = 600;
+            float content = 920;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;
             var el = TitanElement(System.DateTime.Now);
@@ -501,6 +501,18 @@ namespace Sigilbound.Client
             // Practice: unlimited Titan fights with no rewards and no try used (try out teams, see the Titan).
             var pr = Row(ref y, 40);
             if (Ui.Button(pr, "Practice (no rewards, no try used)", Ui.Kind.Secondary, 14)) OpenPrep(-1, true, ScreenId.Titan, false, true);
+            // Its moves (owner request 2026-11-28): what each one looks like on the remodelled body, and the numbers.
+            r = Row(ref y, 40 + Titan.Skills.Length * 78);
+            Ui.Card(r);
+            Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 28, 22), "Its moves", 15, Palette.Text, FontStyle.Bold);
+            for (int i = 0; i < Titan.Skills.Length; i++)
+            {
+                var sk = Titan.Skills[i]; float sy = r.y + 34 + i * 78;
+                Ui.Text(new Rect(r.x + 14, sy, r.width - 28, 20), sk.Name + (sk.Cooldown > 0 ? $"  ·  cooldown {sk.Cooldown}" : "  ·  basic"), 13, Palette.Gold, FontStyle.Bold);
+                Ui.Text(new Rect(r.x + 14, sy + 19, r.width - 28, 36), i < TitanMoveLore.Length ? TitanMoveLore[i] : "", 11, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                Ui.Text(new Rect(r.x + 14, sy + 55, r.width - 28, 18), SkillText.Describe(sk), 10, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
+            }
+            Ui.Text(Row(ref y, 36), "Its crystal ridges crack off as you deal damage: the first at 66% of its health bar, more at 33%.", 11, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             r = Row(ref y, 40 + TitanTiers.Length * 30);
             Ui.Card(r);
             Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 28, 22), "Damage rewards (per try)", 15, Palette.Text, FontStyle.Bold);

@@ -142,7 +142,7 @@ static class ParityTests
         var bad = new List<string>();
         void Same(bool ok, string what) { if (!ok) bad.Add(what); }
         var tunedSeen = new List<string>();
-        void Skills(SkillDef[] mine, List<object> theirs, string who, bool tuned = false)
+        void Skills(SkillDef[] mine, List<object> theirs, string who, bool tuned = false, bool ownNames = false)
         {
             Same(mine.Length == theirs.Count, who + " skill count");
             for (int i = 0; i < Math.Min(mine.Length, theirs.Count); i++)
@@ -151,7 +151,7 @@ static class ParityTests
                 // Unity-tuned classic heroes (GameData.UnityTuned) keep everything but the numbers that scale power.
                 bool sized(FxDef f) => f.Type == FxType.Heal || f.Type == FxType.Shield;
                 if (tuned && (a.Mult != N(b, "mult") || a.Fx.Where(sized).Select(f => f.Pct).Zip(Json.Arr(b, "fx").Where(o => Json.Str(o, "t") == "heal" || Json.Str(o, "t") == "shield").Select(o => N(o, "pct")), (x, y) => x != y).Any(d => d)) && !tunedSeen.Contains(who)) tunedSeen.Add(who);
-                Same(a.Name == Json.Str(b, "name") && Camel(a.Target.ToString()) == Json.Str(b, "target") && (tuned || a.Mult == N(b, "mult")) && a.Cooldown == N(b, "cd")
+                Same((ownNames || a.Name == Json.Str(b, "name")) && Camel(a.Target.ToString()) == Json.Str(b, "target") && (tuned || a.Mult == N(b, "mult")) && a.Cooldown == N(b, "cd")
                     && a.Hits == N(b, "hits") && Camel(a.Scale.ToString()) == Json.Str(b, "scale"), w);
                 var fx = Json.Arr(b, "fx");
                 Same(a.Fx.Length == fx.Count, w + " fx count");
@@ -175,7 +175,8 @@ static class ParityTests
         // The list is exact: every hero on it really differs, so it can't grow stale or hide a slip.
         Check(tunedSeen.OrderBy(x => x).SequenceEqual(UnityTuned.OrderBy(x => x)), $"Unity-tuned classic heroes differ from data.js only in skill power: {string.Join(", ", UnityTuned)}" + (tunedSeen.Count != UnityTuned.Length ? $" (differing: {string.Join(", ", tunedSeen)})" : ""));
         Same(Titan.Name == Json.Str(Json.Obj(data, "titan"), "name"), "titan name");
-        Skills(Titan.Skills, Json.Arr(Json.Obj(data, "titan"), "skills"), "titan");
+        // The Titan's move names are Unity's own since its remodel (owner request 2026-11-28); everything else matches.
+        Skills(Titan.Skills, Json.Arr(Json.Obj(data, "titan"), "skills"), "titan", false, true);
         var tiers = Json.Arr(data, "titanTiers");
         for (int i = 0; i < tiers.Count; i++)
         {
