@@ -1054,34 +1054,36 @@ namespace Sigilbound.Client
                     samePos = Mathf.Abs(Mathf.Abs(p.x) - Mathf.Abs(lod.FirstPositions[k * 3])) < 1e-3f && Mathf.Abs(p.y - lod.FirstPositions[k * 3 + 1]) < 1e-3f && Mathf.Abs(Mathf.Abs(p.z) - Mathf.Abs(lod.FirstPositions[k * 3 + 2])) < 1e-3f;
                 }
                 if (!samePos) { Debug.LogWarning($"Sigilbound: LOD1 of {id} doesn't match its mesh's vertex order, using the full mesh"); return null; }
-                var m = new Mesh { name = full.name + "_LOD1" };
-                m.indexFormat = lod.Keep.Length > 65535 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
-                m.SetVertices(lod.Gather(v.ToArray()));
-                if (full.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal)) { var n = new List<Vector3>(); full.GetNormals(n); m.SetNormals(lod.Gather(n.ToArray())); }
-                if (full.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent)) { var t = new List<Vector4>(); full.GetTangents(t); m.SetTangents(lod.Gather(t.ToArray())); }
-                if (full.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color)) { var c = new List<Color32>(); full.GetColors(c); m.SetColors(lod.Gather(c.ToArray())); }
-                for (int ch = 0; ch < 2; ch++)
-                    if (full.HasVertexAttribute(ch == 0 ? UnityEngine.Rendering.VertexAttribute.TexCoord0 : UnityEngine.Rendering.VertexAttribute.TexCoord1)) { var uv = new List<Vector2>(); full.GetUVs(ch, uv); m.SetUVs(ch, lod.Gather(uv.ToArray())); }
-                // Skin: weights per vertex vary in count, so gather each kept vertex's run.
-                var per = full.GetBonesPerVertex(); var all = full.GetAllBoneWeights();
-                if (per.Length == full.vertexCount)
+                // Raw copy of each kept vertex, stream by stream, in the full mesh's own vertex layout: every attribute
+                // keeps its exact format. (glTFast writes the skin as BlendWeight/BlendIndices vertex data, which
+                // GetAllBoneWeights didn't return: the first try left LOD1 heroes unskinned, lying in their rig's space.)
+                var attrs = full.GetVertexAttributes();
+                var outData = Mesh.AllocateWritableMeshData(1);
+                var o = outData[0];
+                using (var inData = Mesh.AcquireReadOnlyMeshData(full))
                 {
-                    var start = new int[per.Length + 1];
-                    for (int i = 0; i < per.Length; i++) start[i + 1] = start[i] + per[i];
-                    int total = 0; foreach (var k in lod.Keep) total += per[k];
-                    var outPer = new Unity.Collections.NativeArray<byte>(lod.Keep.Length, Unity.Collections.Allocator.Temp);
-                    var outW = new Unity.Collections.NativeArray<BoneWeight1>(total, Unity.Collections.Allocator.Temp);
-                    for (int i = 0, o = 0; i < lod.Keep.Length; i++)
+                    var src = inData[0];
+                    o.SetVertexBufferParams(lod.Keep.Length, attrs);
+                    for (int st = 0; st < src.vertexBufferCount; st++)
                     {
-                        int k = lod.Keep[i]; outPer[i] = per[k];
-                        for (int j = start[k]; j < start[k + 1]; j++) outW[o++] = all[j];
+                        var from = src.GetVertexData<byte>(st); var to = o.GetVertexData<byte>(st);
+                        int stride = from.Length / full.vertexCount;
+                        if (stride * lod.Keep.Length != to.Length) throw new InvalidOperationException($"stream {st}: {stride} bytes per vertex, {to.Length} for {lod.Keep.Length}");
+                        for (int i = 0; i < lod.Keep.Length; i++) Unity.Collections.NativeArray<byte>.Copy(from, lod.Keep[i] * stride, to, i * stride, stride);
                     }
-                    m.SetBoneWeights(outPer, outW);
-                    outPer.Dispose(); outW.Dispose();
                 }
+                bool wide = lod.Keep.Length > 65535;
+                o.SetIndexBufferParams(tris.Length, wide ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16);
+                if (wide) { var ix = o.GetIndexData<int>(); for (int i = 0; i < tris.Length; i++) ix[i] = tris[i]; }
+                else { var ix = o.GetIndexData<ushort>(); for (int i = 0; i < tris.Length; i++) ix[i] = (ushort)tris[i]; }
+                o.subMeshCount = 1;
+                o.SetSubMesh(0, new UnityEngine.Rendering.SubMeshDescriptor(0, tris.Length), UnityEngine.Rendering.MeshUpdateFlags.DontRecalculateBounds | UnityEngine.Rendering.MeshUpdateFlags.DontValidateIndices);
+                var m = new Mesh { name = full.name + "_LOD1" };
+                Mesh.ApplyAndDisposeWritableMeshData(outData, m, UnityEngine.Rendering.MeshUpdateFlags.DontRecalculateBounds);
                 m.bindposes = full.bindposes;
-                m.SetTriangles(tris, 0, false);
                 m.bounds = full.bounds;
+                if (full.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.BlendIndices) != m.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.BlendIndices))
+                { UnityEngine.Object.Destroy(m); Debug.LogWarning($"Sigilbound: LOD1 of {id} lost its skin, using the full mesh"); return null; }
                 m.UploadMeshData(true); // GPU copy only: nothing reads a hero mesh's vertices back
                 return m;
             }
