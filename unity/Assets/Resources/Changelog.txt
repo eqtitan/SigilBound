@@ -31,6 +31,10 @@ fix: Hollow enemies have a clean red outline and glowing red eyes instead of pin
 fix: Boss-stage braziers are iron fire bowls with glowing embers and a small flame, not glowing lamp shades.
 
 ## 2026-11-28 | A journey to every lair
+fix: Fennick, Brega, Holt and about 25 other remodelled heroes no longer look dark and metallic with sparkling specks (their shine settings were missing).
+fix: Obrecht holds his pick upright instead of letting it lie on the ground in front of the next hero.
+fix: Nell stands holding her scythe instead of crouching with its blade on the ground.
+fix: Tallow, Saoirse, Hobb and Hask no longer swing their weapons through their own heads: they attack with sword swings and skip the raised guard.
 new: Every campaign stop has its own scene, built around the battle cameras: the road leads toward the chapter's landmark, which draws nearer stop by stop until you fight at its foot.
 new: Hand-painted landmarks: the drowned mill, the leaning bell tower, the Stormcrown crag, the lighthouse, the sea-cliff throne, the sunken cathedral and more.
 fix: Scenery never stands between the camera and your heroes, and each chapter's landmark is now in view behind the enemies instead of cut off at the edge.

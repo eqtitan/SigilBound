@@ -93,14 +93,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Evidence: odo/marrow/poppy redos
 
 ## L010 - In-place mesh fixes didn't reach the game
-- Status: open
-- Systems: hero-models, build-pipeline
-- Symptom: specks around Fennick, Brega, Holt and Nell still visible in build 190 after the "removed" fix shipped.
-- Cause: unknown - investigate whether prepare-models/compress-hd re-derives from another source or another file is loaded.
-- Fix: in progress (fix/ctd-roster-3).
-- Prevention: verify mesh fixes in a real build's gallery shots, not only on the patched file.
-- Related: L001, L004
-- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; fix/ctd-faces: in-place WEIGHTS_0 patches do reach the prepared StreamingAssets .glbz (unpacked and compared, differences only the 1/256 snapping), so prepare-models is not the cause for weight edits
+- Status: solved
+- Systems: hero-models, build-pipeline, materials
+- Symptom: specks around Fennick, Brega, Holt and Nell still visible in build 190 after the "removed" fix shipped; a "stray prop" in front of Tansy.
+- Cause: the mesh fix DID ship (the shipped GLBs carry 117/299/204/175 degenerate triangles where the islands were), but the islands were not what the tester saw. (1) The specks were material: heroes with no _glow PNG and no _mat PNG got no mask texture, so the shader's default white _MaskMap made them metal 1 / smoothness 1 everywhere - dark, metallic, sparkling on noisy fur (30 image-to-3D heroes). (2) Nell's "loose piece" is her own scythe blade resting on the ground in the crouching idle. (3) The prop in front of Tansy is Obrecht's 1.7 m pick, held mid-haft and pointing forward from the next gallery slot.
+- Fix: HeroModels always builds a mask (neutral when there is no glow/metal map); Obrecht's pick turned in the hand (blenderforge/prop_turn.py); Nell idles with Idle_Loop. fix/ctd-roster-3.
+- Prevention: before fixing a tester's visual report, reproduce it in a real build's gallery shot (CI smoke artifact) and identify the exact pixels; offline previews must use the game's material inputs (mask defaults included). See L004.
+- Related: L001, L004, L024
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; CI smoke artifact of run 46107643548 (gallery-10); scratchpad ctd/smoke190/maskproof.png
 
 ## L011 - GUI.depth across scripts is unreliable
 - Status: solved
@@ -181,6 +181,7 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Prevention: character-td notes; RIGGING.md.
 - Related: L008, L009, L022
 - Evidence: fix/ctd-pilot, fix/ctd-roster-1
+- Update (roster batches 1-2): also failed on Lazlo, Neve, Holt (coats hugging the legs / layered meshes), Vorgrim's cloak (chains took leg vertices) and tails weighted to a leg or the pelvis (Nettle tore from its tip). Tails and capes need rig-time landmarks or a remodel with shorter cloth (Wystan/Vorgrim remodels worked).
 
 ## L019 - Face locks must be tight
 - Status: solved
@@ -232,3 +233,12 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Related: L008, L019, L022
 - Evidence: fix/ctd-faces; scratchpad ctd_faces/bscan, ctd_faces/bs_*.png
 
+## L024 - Missing texture inputs fall back to shader defaults
+- Status: solved
+- Systems: materials, hero-models
+- Symptom: some heroes looked dark, metallic and speckled; others with the same shader looked fine.
+- Cause: optional per-hero maps (_glow, _mat) were only turned into a mask when present; with neither, the material kept the shader's default "white" _MaskMap = full metal and smoothness. Every new optional input needs a neutral fallback.
+- Fix: neutral mask always built (metal 0, AO 1, glow 0, smoothness 90/255).
+- Prevention: when adding a map or shader property, check what the default texture means for heroes that lack the file.
+- Related: L010
+- Evidence: fix/ctd-roster-3 commit c52e108
