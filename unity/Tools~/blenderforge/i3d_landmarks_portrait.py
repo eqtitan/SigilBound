@@ -268,6 +268,15 @@ BATCH["augustin"] = {**_STD,
               ("pelvis", lambda p: p.y > 0.35 and 0.75 < p.z < 1.25),                    # the tail tuft
               ("spine_02", lambda p: p.y > 0.15 and 0.65 < p.z < 1.4), ("pelvis", lambda p: p.y > 0.15 and p.z <= 0.65)],   # the cape
     "glow_hue": (400, 400)}
+# separate-accessory pilot (SKELETON_LIBRARY.md 7.3, 2026-11-28): the body generated WITHOUT mace and cape
+# (artgen/prompts/base_body.txt); the mace and cape are their own meshes, attached by accessory_attach.py
+BATCH["augustin_acc"] = {**_STD,
+    "joints": _hum((0.98, 1.08, 1.20, 1.32, 1.44, 1.52, 1.84), (0.27, 1.35),
+                   ((0.39, 0.03, 1.10), (0.40, -0.05, 0.80), (0.37, -0.08, 0.68)), ((-0.40, 0.03, 1.10), (-0.39, -0.05, 0.80), (-0.34, -0.08, 0.66)),
+                   (0.12, 0.90), ((0.20, 0.525), (-0.20, 0.525)), ((0.22, 0.15), (-0.22, 0.15)), ((0.25, -0.20, 0.02), (-0.25, -0.20, 0.02))),
+    "rigid": [("pelvis", lambda p: p.y > 0.08 and p.z < 1.0 and (p.y > 0.13 or p.x < -0.27))],   # the tail
+    "blend": [("pelvis", 0.5, lambda p: abs(p.x) < 0.11 and p.y < -0.05 and 0.4 < p.z < 0.95)],   # the tabard front
+    "glow_hue": (400, 400)}
 BATCH["benedict"] = {**_STD,
     "joints": _hum((0.70, 0.80, 0.95, 1.10, 1.28, 1.32, 1.48), (0.35, 1.20),
                    ((0.48, 1.0), (0.52, 0.80), (0.52, 0.70)), ((-0.48, 0.0, 1.0), (-0.42, -0.25, 0.92), (-0.45, -0.38, 0.92)),

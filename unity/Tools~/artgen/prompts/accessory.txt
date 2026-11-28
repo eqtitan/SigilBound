@@ -3,4 +3,6 @@ colours). Three-quarter view{CAPE_NOTE}, the whole object visible and centred, n
 no other objects. Plain flat light-grey background, no scenery, no floor, no cast shadow, no text, no border. Style:
 clean solid stylized painterly game asset, premium mobile hero-collector game, even soft studio lighting. No glow, no
 particles, no motion blur. Every part solid and attached.
-(For a cape or cloak set CAPE_NOTE to ", laid out flat and seen from behind, as if hanging from the shoulders".)
+(For a cape or cloak set CAPE_NOTE to ", seen straight from behind, laid out flat as an empty piece of cloth, no body or
+mannequin inside, no shoulders, no hanger". "As if hanging from the shoulders" made TRELLIS model a whole wearer inside
+the cape (Augustin pilot); accessory_attach.py strips one anyway, but the cleaner the input the better.)

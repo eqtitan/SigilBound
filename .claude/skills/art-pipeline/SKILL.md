@@ -45,10 +45,13 @@ headgear floated. New heroes and remodels are generated as **separate parts** (d
 2. **One image per accessory** (`prompts/accessory.txt`, one run per item): the single object from the concept, three-
    quarter view, plain background, nothing else in frame; for a cape: laid out flat seen from behind.
 3. Cut out and TRELLIS each image (`cutout.py`, `fal_trellis.py`) -> `<id>_body.glb`, `<id>_<item>.glb`.
-4. Rig the body on the library skeleton (`i3d_rig.py`), then attach each item with
-   `blenderforge/accessory_attach.py BODY.glb ITEM.glb SOCKET OUT.glb [--chain cape]`: rigid items snap to their
-   standard socket (`head_top`, `hand_r`, `hand_l`, `shield_arm`, `back`, `hip_l/r`) and are bound 100% to the socket's
-   bone; cloth items (`--chain`) get a spring chain (`sb_<n>_<k>` nodes) at the socket and are weighted along it.
+4. Rig the body on the library skeleton (`i3d_prep.py`, landmarks, `i3d_rig.py`), then attach the items:
+   `bpyenv/bin/python blenderforge/accessory_attach.py -- rig/SB_Hero_<id>_HD.glb OUT_DIR <id> mace.glb:hand_r cape.glb:back:chain`
+   (up to two items per atlas; `--size ITEM=m`, `--grip ITEM=fraction`, `--chains K --bones J`). Rigid items snap to
+   their standard socket (`head_top`, `hand_r`, `hand_l`, `shield_arm`, `back`, `hip_l/r`) and are bound 100% to its
+   bone; `:chain` cloth is stripped of any wearer TRELLIS invented, hung off the back and weighted to K x J spring
+   chains (`sb_<k>_<j>` nodes, Client/SpringBones.cs; settings in Core/Kit/SpringRigs.cs). Pilot: Augustin, 22c,
+   docs/sigilbound/art/SKELETON_LIBRARY.md 7.3.
 5. Review as usual (every frame, character-td); the profile in `Core/Rig/RigProfiles.cs` lists the chains and rigid items.
 
 ## 2. Owner pick

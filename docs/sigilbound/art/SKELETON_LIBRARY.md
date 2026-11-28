@@ -251,7 +251,24 @@ swing. New flow (`unity/Tools~/artgen`, `.claude/skills/art-pipeline/SKILL.md`):
 3. TRELLIS per image -> separate meshes. The body is rigged on the library skeleton; rigid items are snapped to their
    socket (`head_top`, `hand_r`, `shield_arm`, `back`); cloth items (capes) get a chain at rig time and are weighted
    onto it.
-Pilot candidate: Augustin (body + mace + cape) or Nyssa (body + wings).
+Tool: `unity/Tools~/blenderforge/accessory_attach.py` (one mesh, one atlas: body albedo on the left two thirds, up to
+two accessory textures in the right third, so the HD loader is unchanged).
+
+**Pilot, Augustin (2026-11-28, Blender previews only, not shipped, owner review pending).** Inputs: 4 Gemini images
+(two base bodies, mace, cape; body B picked for its leg gap) + 3 TRELLIS models = 22 US cents. Body rigged as
+`augustin_acc` (`i3d_landmarks_portrait.py`, tail rigid on the pelvis), 10.8k tris; with mace and cape 17.0k tris,
+91 bones (66 + 5x5 cape chain nodes), atlas 1536x1024, GLB 2.7 MB. Findings:
+- The mace is 100% on `hand_r` (every exported mace vertex) and stays in the fist in every clip checked (idle,
+  sword attack, overhead ult, walk, hit): the props-follow-the-legs failure is gone by construction.
+- The cape hangs from `spine_03` on 5 chains x 4 bones, top band blended into the spine, pushed off the back where
+  it met the body. TRELLIS modelled the cape **worn by an invented mannequin** (a whole torso and legs inside) and
+  as a back view; the tool now finds the cape's outer side (the smoothest first-hit surface) and drops every face
+  hidden more than 2 cm behind it, and the cape prompt no longer says "as if hanging from the shoulders".
+- Still open: the cape's inner side shows dark specks where mannequin texture stayed near the edges; the tail pokes
+  out under the cape (it's part of the body mesh); the body itself has the usual image-to-3D armpit/shoulder tears
+  (an i3d_rig landmark issue, not an accessory one). Swing is only visible in game (SpringBones), so the next CI
+  run with this model is the real check; needs a `SpringRigs` entry and the `RigProfiles` rigid/chain lines.
+Frames: scratchpad `acc_pilot/augustin_acc_compare.jpg`, `rev_sheet3.jpg`.
 
 ### 7.4 Twist bones and facial basics (phase 2)
 
