@@ -397,6 +397,8 @@ namespace Sigilbound.Client
             ("upperarm_l", "head"), ("upperarm_r", "head"), ("thigh_l", "thigh_r"), ("calf_l", "calf_r"), ("lowerarm_l", "lowerarm_r"),
         };
 
+        const int FingerMuscles = 55;   // HumanTrait muscle order: 55 body muscles, then the 40 finger muscles
+
         static float SegDist(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2)
         {
             Vector3 d1 = q1 - p1, d2 = q2 - p2, r = p1 - p2;
@@ -443,13 +445,21 @@ namespace Sigilbound.Client
                 int heroBad = 0;
                 foreach (var clip in hr.Library.Keys.OrderBy(k => k))
                 {
-                    float limits = 0, inter = 0; string pair = "-"; bool nan = false;
+                    float limits = 0, inter = 0; string pair = "-", muscle = "-"; bool nan = false;
                     var feet = new System.Collections.Generic.List<(Vector3 l, Vector3 r)>();
                     for (int k = 0; k <= 12; k++)
                     {
                         hr.Pose(clip, k / 12f);
                         handler.GetHumanPose(ref pose);
-                        foreach (var x in pose.muscles) { if (float.IsNaN(x)) nan = true; else limits = Mathf.Max(limits, Mathf.Abs(x)); }
+                        // body muscles only, and the worst one named: run 211 flagged 269 of 306 clips, idles included
+                        // (max |muscle| median 1.84), most likely the fist/grip finger curls; the next run confirms which
+                        for (int mi = 0; mi < pose.muscles.Length; mi++)
+                        {
+                            float x = pose.muscles[mi];
+                            if (float.IsNaN(x)) { nan = true; continue; }
+                            if (mi >= FingerMuscles) continue;
+                            if (Mathf.Abs(x) > limits) { limits = Mathf.Abs(x); muscle = HumanTrait.MuscleName[mi].Replace(' ', '_'); }
+                        }
                         foreach (var (pa, pb) in MovePairs)
                         {
                             if (!bodies.TryGetValue(pa, out var A) || !bodies.TryGetValue(pb, out var B)) continue;
@@ -470,9 +480,9 @@ namespace Sigilbound.Client
                             var planted = pts.Where(p => p.y < low + 0.04f).Select(p => new Vector2(p.x, p.z)).ToList();
                             for (int i = 0; i < planted.Count; i++) for (int j = i + 1; j < planted.Count; j++) slide = Mathf.Max(slide, (planted[i] - planted[j]).magnitude);
                         }
-                    string why = nan ? "NaN muscle" : limits > 1.25f ? "joint past its range" : stance && slide > 0.10f ? "foot sliding" : inter > 0.08f ? "limb through body" : null;
+                    string why = nan ? "NaN muscle" : limits > 1.5f ? "joint past its range" : stance && slide > 0.10f ? "foot sliding" : inter > 0.08f ? "limb through body" : null;
                     total++; if (why != null) { bad++; heroBad++; }
-                    ShotLog($"SBMOVE {id} {clip} limits={limits:0.00} slide={slide * 100:0.0}cm intersect={inter * 100:0.0}cm ({pair}) " + (why == null ? "ok" : "BAD " + why));
+                    ShotLog($"SBMOVE {id} {clip} limits={limits:0.00}({muscle}) slide={slide * 100:0.0}cm intersect={inter * 100:0.0}cm ({pair}) " + (why == null ? "ok" : "BAD " + why));
                 }
                 handler.Dispose();
                 ShotLog($"SBMOVE-SUMMARY {id} clips={hr.Library.Count} bad={heroBad}");

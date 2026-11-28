@@ -324,3 +324,17 @@ built from those real frames. Results are recorded below per build.
   Gallery and Titan-fight shots show the pilots on the new path (scratchpad `skel_pilot/stage1/`). The pilot tour
   itself photographed the still-running Titan practice fight instead of the pilots (L033); fixed in ba8fde8.
 - **Run 211** (ba8fde8, with the physics standard and the tour fix): cancelled to free the queue for main.
+- **Run 46121700973** (cf9e479, stage 2): Android and Windows built; the smoke tour ran to the end (`DONE 750`, all
+  `SBBUDGET`/`SBBOUNDS` ok, no exceptions) and failed only on the new per-move gate (below). The pilot tour now
+  shoots the pilots themselves: 660 frames, five before/after sheets and GIFs (scratchpad `skel_pilot/stage2/`).
+  - Motion: the library matches the legacy path state for state (same clips through the avatar), with one clear
+    gain: Augustin's death falls in place on the library, where the legacy path dropped him out of frame. The
+    mace stays in the fist through attack and physics on both paths.
+  - Physics: frame 1 of each library physics row shows the body colliders (head, chest, spine, hips, arms, legs)
+    sitting on the body for all five, the Titan's around its oversized arms.
+  - SBMOVE, first real run: 306 hero-clip pairs, 272 BAD. 269 are "joint past its range" and not real: idles flag
+    too (max |muscle| median 1.84, max 3.34), so the limit was miscalibrated; the check now looks at body muscles only
+    (finger curls of the grip poses excluded), names the worst muscle and flags above 1.5; the next run confirms it.
+    3 are real candidates: right forearm into the chest in Augustin `Ult_Volley` (8.7 cm), Titan `Titan_Slam`
+    (9.5 cm) and `Titan_Sweep` (21 cm); to look at frame by frame before fixing or listing them in move_baseline.txt.
+    Foot sliding stays under 4.2 cm in every stance clip (limit 10).
