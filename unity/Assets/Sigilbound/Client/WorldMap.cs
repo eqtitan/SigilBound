@@ -56,7 +56,7 @@ namespace Sigilbound.Client
             Modal(Act2Title, 300, b =>
             {
                 Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), Act2Intro, 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
-                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "To Saltreach")) CloseModal();
+                if (ModalFooter(b, "To Saltreach")) CloseModal();
             });
         }
 
@@ -80,15 +80,30 @@ namespace Sigilbound.Client
             var map = new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16 - trackH);
             // An open stage list also covers the reward track (58 more units for its rows: UX review #1).
             var listArea = new Rect(map.x, map.y, map.width, area.yMax - 8 - map.y);
-            if (act == 1 && PaintedMap) GUI.DrawTexture(map, Skin.Tex("bg_campaign"), ScaleMode.StretchToFill); // the painting has its own ornate border
-            else if (act == 2 && PaintedMap2) GUI.DrawTexture(map, Skin.Tex("bg_campaign2"), ScaleMode.StretchToFill);
-            else { GUI.DrawTexture(map, MapTexture(act), ScaleMode.StretchToFill); Ui.Round(map, Color.clear, Palette.Trim, 12); } // gilded frame
+            // The paintings keep their shape (UI/UX review #8: drawn StretchToFill, landmarks widened up to 55% on
+            // 20:9 phones): cropped to fill, or letterboxed on a dark parchment band when cropping would cut off a
+            // chapter. The medallions are placed on the drawn image, so they stay on their landmarks at any aspect.
+            var paint = act == 1 && PaintedMap ? Skin.Tex("bg_campaign") : act == 2 && PaintedMap2 ? Skin.Tex("bg_campaign2") : null;
+            var img = map;
+            if (paint != null)
+            {
+                img = MapImageRect(map, paint.width / (float)paint.height, pts);
+                if (Event.current.type == EventType.Repaint)
+                {
+                    GUI.DrawTexture(map, Ui.Solid(Palette.Hex("#1a140e")));
+                    var vis = Rect.MinMaxRect(Mathf.Max(map.x, img.x), Mathf.Max(map.y, img.y), Mathf.Min(map.xMax, img.xMax), Mathf.Min(map.yMax, img.yMax));
+                    var uv = new Rect((vis.x - img.x) / img.width, 1 - (vis.yMax - img.y) / img.height, vis.width / img.width, vis.height / img.height);
+                    GUI.DrawTextureWithTexCoords(vis, paint, uv);
+                    if (vis.width < map.width - 1 || vis.height < map.height - 1) Ui.Round(map, Color.clear, Palette.Trim, 12);
+                }
+            }
+            else { GUI.DrawTexture(map, MapTexture(act), ScaleMode.StretchToFill); Ui.Round(map, Color.clear, Palette.Trim, 12); } // gilded frame (the drawn map is generated for any shape)
 
             // Road: dashes between consecutive medallions.
             for (int k = 0; k + 1 < cn; k++)
             {
                 int c = c0 + k;
-                Vector2 a = MapPos(map, pts[k]), b = MapPos(map, pts[k + 1]);
+                Vector2 a = MapPos(img, pts[k]), b = MapPos(img, pts[k + 1]);
                 bool walked = (c + 1) * StagesPerChapter <= (hard ? G.S.hardCleared : G.S.cleared);
                 int dashes = Mathf.Max(3, Mathf.RoundToInt(Vector2.Distance(a, b) / 14));
                 for (int d = 0; d < dashes; d += 2)
@@ -109,7 +124,7 @@ namespace Sigilbound.Client
                 int first = c * StagesPerChapter;
                 bool locked = hard ? first > G.S.hardCleared || first >= G.S.cleared : first > G.S.cleared;
                 int done = Mathf.Clamp(progress - first, 0, StagesPerChapter);
-                var p = MapPos(map, pts[k]); float s = 50;
+                var p = MapPos(img, pts[k]); float s = 50;
                 var m = new Rect(p.x - s / 2, p.y - s / 2, s, s);
                 if (c == current && !locked) Ui.Round(new Rect(m.x - 10, m.y - 10, s + 20, s + 20), new Color(1f, 0.85f, 0.4f, 0.28f), null, 35);
                 var el = Game.ChapterElement(c);
@@ -138,7 +153,7 @@ namespace Sigilbound.Client
             }
 
             // Title; the Normal/Hard and Act switches are in the top bar (DrawCampaignSwitches), outside the painting.
-            Ui.Banner(new Rect(map.center.x - 170, map.y + 8, 340, 30), (hard ? "Hard · " : "") + (act == 1 ? "Act I" : "Act II · The Sigil Bearers"), 18);
+            Ui.Banner(new Rect(map.center.x - 170, map.y + 8, 340, 30), (hard ? "Hard · " : "") + (act == 1 ? Act1Title : Act2Title), 18);
             Ui.TextOnArt(new Rect(map.xMax - 190, map.y + 12, 176, 26), hard ? $"Hard {G.S.hardCleared}/{G.S.cleared}" : $"{G.S.cleared}/{TotalStages} stages", 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
 
             if (listOpen)
@@ -180,10 +195,33 @@ namespace Sigilbound.Client
 
         static Vector2 MapPos(Rect map, Vector2 p) => new Vector2(map.x + p.x * map.width, map.y + p.y * map.height);
 
+        // Where a painting of the given aspect is drawn for the map rect: scaled to cover it (cropped), unless the
+        // crop would put a chapter within 34 units of the edge; then fitted inside it (letterboxed).
+        static Rect MapImageRect(Rect map, float aspect, Vector2[] pts)
+        {
+            float k = Mathf.Max(map.width / aspect, map.height); // cover: image height
+            var cover = new Rect(map.center.x - k * aspect / 2, map.center.y - k / 2, k * aspect, k);
+            const float margin = 34;
+            foreach (var pt in pts)
+            {
+                var p = MapPos(cover, pt);
+                if (p.x < map.x + margin || p.x > map.xMax - margin || p.y < map.y + margin || p.y > map.yMax - margin - 30)
+                {
+                    float f = Mathf.Min(map.width / aspect, map.height); // fit
+                    return new Rect(map.center.x - f * aspect / 2, map.center.y - f / 2, f * aspect, f);
+                }
+            }
+            return cover;
+        }
+
         // Boss first-clear rewards per chapter (Game.StageRewards): ticked once claimed.
         void DrawRewardTrack(Rect r, int c0, int cn)
         {
             Ui.Round(r, new Color(0.07f, 0.05f, 0.1f, 0.85f), Palette.Bronze, 10);
+            // Labelled (UI/UX review #8: the track had no name).
+            float lw = 104;
+            Ui.Text(new Rect(r.x + 10, r.y, lw - 10, r.height), "Boss rewards", 12, Palette.Hex("#d6c7a6"), FontStyle.Bold);
+            r = new Rect(r.x + lw, r.y, r.width - lw, r.height);
             float step = r.width / cn;
             for (int k = 0; k < cn; k++)
             {
@@ -195,8 +233,9 @@ namespace Sigilbound.Client
                 if (k > 0) GUI.DrawTexture(new Rect(cx - step + 14, r.center.y - 1, step - 28, 2), Ui.Solid(got ? Palette.Gold : Palette.Bronze));
                 var slot = new Rect(cx - 14, r.center.y - 14, 28, 28);
                 Ui.Round(slot, got ? Palette.Hex("#3a2c14") : Palette.Hex("#1d1726"), got ? Palette.Gold : Palette.Bronze, 14);
-                Icons.Draw(new Rect(slot.x + 6, slot.y + 6, 16, 16), Icon.Shard, rw.Radiant > 0 ? Palette.Hex("#ffb02e") : Palette.Blue);
-                if (rw.Radiant > 0) Ui.Text(new Rect(slot.xMax - 4, slot.y - 6, 20, 14), "+R", 9, Palette.Hex("#ffb02e"), FontStyle.Bold);
+                Icons.Currency(new Rect(slot.x + 6, slot.y + 6, 16, 16), Icons.Cur.MysticShard);
+                // A Radiant Shard as well: its own crystal on the slot's corner (was a 9-point "+R").
+                if (rw.Radiant > 0) Icons.Currency(new Rect(slot.xMax - 6, slot.y - 6, 14, 14), Icons.Cur.RadiantShard);
                 if (got) Icons.Draw(new Rect(slot.xMax - 10, slot.yMax - 10, 12, 12), Icon.Check, Palette.Good);
             }
         }
