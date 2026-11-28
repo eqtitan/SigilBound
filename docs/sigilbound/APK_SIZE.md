@@ -28,15 +28,40 @@ Unity stores StreamingAssets uncompressed in the APK, so whatever prepare-models
 - Result: generated GLBs 96 MB to 66 MB; `StreamingAssets/Models` 148 MB to 117 MB.
   **Estimated APK: about 164 MB** (from 195 MB).
 
-## Why the hero textures are not ASTC
+## Hero textures as KTX2 and LOD1 meshes (PLAN step 116)
 
-The hero textures are loaded at runtime from StreamingAssets, so Unity's texture import rules
-(`PortraitImportRules`-style ASTC) never see them. Moving them into imported assets with ASTC would cut
-their memory about 7 times, but grow the download: ASTC 6x6 at 1024 px with mips is about 0.62 MB per
-albedo against 0.19 MB as JPEG, roughly +65 MB for the albedos alone. The memory side is handled instead by
-uploading the JPEGs non-readable and bounding the model cache (PLAN step 100). The way to get both small
-downloads and GPU-compressed textures is KTX2 (Basis Universal, transcoded to ASTC/ETC2 on the phone)
-through the KtxUnity package and glTFast's KTX support: an M-sized change that needs a device test.
+Prepared with the batch of 158 high-detail heroes on main (2026-11-28): `StreamingAssets/Models` 117.9 MB to
+127.8 MB, **estimated APK 165.9 MB to 175.8 MB** (+9.8 MB; budget 190).
+
+| Part (prepared, 158 heroes) | Before (MB) | After (MB) |
+|---|---|---|
+| Hero GLBs (`*_HD.glbz`) | 72.1 | 72.1 |
+| Albedo: JPEG q82 -> KTX2 ETC1S (quality 160) | 29.3 | 31.1 |
+| Normal maps: JPEG q88 -> KTX2 ETC1S normal-map mode (quality 192) | 10.0 | 10.7 |
+| Glow + metal PNGs -> one prebuilt mask, KTX2 UASTC + zstd | 1.1 | 1.3 |
+| LOD1 (`*_HD_LOD1.sbl`, 119 heroes) | 0 | 7.1 |
+
+- **Textures.** `prepare-models.mjs` encodes every albedo, normal map and mask to KTX2 with the Basis Universal
+  WASM encoder bundled in `ktx2-encoder` (MIT; Basis Universal is Apache-2.0), on all CPU threads (about 3.5 minutes
+  for all 414 maps on 4 threads). Results are cached by a hash of the inputs and settings in
+  `Tools~/models/.ktx-cache` (gitignored; CI restores it with `actions/cache`), so only new or changed maps are
+  encoded. The JPEG/PNG sources stay in `heroes_hd` and do not ship. The game loads the maps with
+  **KTX for Unity** (`com.unity.cloud.ktx` 3.7.1, Apache-2.0, native transcoder for Android, Windows, Linux),
+  which transcodes on a worker thread: ETC1S to ETC2/ETC1 RGB on Android and BC1 on Windows (0.5 byte per pixel),
+  UASTC to ASTC 4x4 / ETC2 RGBA / BC7 (1 byte per pixel). The mask is built at prepare time (`ktx-worker.mjs`
+  `buildMask`, the same rule as `HeroModels.MaskFromGlow`). The Hollow tint is the shader's `_Hollow` switch.
+- **GPU memory per hero's maps** (estimate from formats, with mips): albedo 1024 5.6 -> 0.70 MB, normal 768
+  3.1 -> 0.39 MB, mask 512 1.4 -> 0.35 MB: **10.1 -> 1.44 MB** for a hero with all three (Low, no normal map:
+  7.0 -> 1.05 MB). Averaged over all 158 heroes (some have no normal map or mask): 8.75 -> 1.24 MB.
+- **LOD1.** meshoptimizer simplifies the shipped mesh to about 42% of the triangles (error at most 1% of the
+  model's size; attribute seams kept). No vertex is moved, so the file is just the kept vertex ids and the new
+  triangles (`Core/HdLod.cs`, gzipped, about 60 KB per hero); `HeroModels.BuildLodMesh` builds the Unity mesh from
+  the full one at load (positions, normals, UVs and skin weights copied; bind poses and bones are the same file's)
+  after checking the vertex and index counts and the first triangle. Result: 44% of the triangles and 57% of the
+  vertices on average. Used on Low and Medium and for Hollow enemies on every tier; the LOD is part of the model
+  cache key (`|l1`). A full second GLB per hero would have added about 45 MB. 38 image-to-3D heroes are flat-shaded
+  triangle soups (every edge is a seam, so nothing can collapse without changing their look) and keep the full
+  mesh; they are 6-17k triangles already. The Titan always uses its full mesh.
 
 ## Getting under 150 MB
 
@@ -58,5 +83,5 @@ Not reached with lossless or invisible changes alone. The options, roughly in or
 2. **Texture quality** (art decision): normal maps at 512 px instead of 768 px save about 7 MB; albedo
    re-encoded at JPEG quality 72 instead of 82 saves about 7 MB (a second JPEG generation, so it should be
    judged on a phone first).
-3. **LOD1 meshes** (performance review #3): a 6-8k triangle mesh per hero for Low/Medium and Hollow enemies;
-   shipping LOD1 instead of the full mesh on phones would roughly halve the mesh data again.
+3. **LOD1 only on low-end phones**: LOD1 now ships next to the full mesh (step 116). Shipping only LOD1 in a
+   store build for low-memory devices would cut about 40 MB of mesh data, at a visible cost in the hero viewer.
