@@ -204,6 +204,7 @@ namespace Sigilbound.Client
             Scroller.Tick();
             if (Input.GetKeyDown(KeyCode.Escape)) Back(); // Android back button
             if (Screen != ScreenId.Battle) UpdateLineup();
+            if (Arena != null) Arena.MenuShift = Screen == ScreenId.Home && Ui.Landscape && !_shotNoUi && _shotLineup == null ? _homeShiftX : 0f;
             if (Screen == ScreenId.Hero && !ModalOpen) UpdateHeroViewer();
             CheckPopups();
             UpdatePower();

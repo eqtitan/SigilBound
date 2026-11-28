@@ -251,9 +251,12 @@ namespace Sigilbound.Client
             for (int i = 0; i < Game.TeamPresets; i++)
             {
                 var ph = G.PresetHeroes(i); int k = i; var pr = Ui.ToRect(T.Presets[i]);
-                if (Ui.Button(pr, "", Ui.Kind.Chip)) PresetModal(k);
-                Ui.Text(new Rect(pr.x + 8, pr.y + 3, pr.width - 16, pr.height * 0.5f - 2), $"Team {i + 1}", 12, Palette.Text, FontStyle.Bold, TextAnchor.LowerLeft);
-                Ui.Text(new Rect(pr.x + 8, pr.y + pr.height * 0.5f, pr.width - 16, pr.height * 0.5f - 3), ph.Count == 0 ? "empty" : string.Join(", ", ph.Select(h => Hero(h.id).ShortName)), 11, Palette.Hex("#c9bda6"), FontStyle.Normal, TextAnchor.UpperLeft);
+                // A card, not a chip plate: two lines of text sat on the chip art's crown ornaments (L028). One line
+                // inside the frame's content rect: "Team 2 · Mira, Odo".
+                var pin = Ui.CardFrame(pr, false, Palette.Bronze);
+                string who = ph.Count == 0 ? "empty" : string.Join(", ", ph.Select(h => Hero(h.id).ShortName));
+                Ui.Text(new Rect(pin.x + 3, pin.y, pin.width - 6, pin.height), $"Team {i + 1} {Ui.ColorTag("· " + who, Palette.Hex("#c9bda6"))}", 12, Palette.Text, FontStyle.Bold);
+                if (Ui.Button(pr, "", Ui.Kind.Ghost)) PresetModal(k);
             }
 
             // ---- waves: the wheel and matchup (wide), or the matchup and waves under the team (compact) ----
@@ -323,21 +326,17 @@ namespace Sigilbound.Client
                 sx2 += sw2 + 4;
             }
             var list = SortedHeroes().Where(h => _prepFilter == null || Hero(h.id).Element == _prepFilter).ToList();
-            var view = new Rect(R.x + 6, fy + tap + 6, R.width - 12, R.yMax - fy - tap - 12);
-            float cw = (view.width - 6) / 2, ch = Mathf.Max(48, tap);
-            _pickScroll = Scroller.Begin(view, _pickScroll, Mathf.Ceil(list.Count / 2f) * (ch + 6));
+            // Core/UiLayout.Picker: the grid under the chips (one column when two would be under 160 units each).
+            var grid = UiLayout.Picker(Ui.ToBox(R), tap);
+            var view = Ui.ToRect(grid.View);
+            float pickH = Mathf.Ceil(list.Count / (float)grid.Cols) * (grid.CardH + grid.Gap);
+            _pickScroll = Scroller.Begin(view, _pickScroll, pickH);
             for (int i = 0; i < list.Count; i++)
             {
                 var h = list[i]; var t = Hero(h.id);
-                var r = new Rect((i % 2) * (cw + 6), (i / 2) * (ch + 6), cw, ch);
+                var r = Ui.ToRect(grid.Cell(i));
                 bool inTeam = G.S.team.Contains(h.uid);
-                if (inTeam) Ui.Plate(r, Ui.Kind.ChipOn); else Ui.SmallCard(r, Palette.Panel2, Palette.Rarity(t.Rarity), 9); // in the team: the one "selected" look
-                Ui.RarityTab(r, t.Rarity, 14); // rarity as a letter too, not only the frame colour (UX review #4)
-                // Portrait face at the left when there is one; the element badge sits beside the name.
-                float px = Portraits.Thumb(new Rect(r.x + 6, r.y + 6, ch - 12, ch - 12), t.Id, Palette.Rarity(t.Rarity)) ? ch : 0;
-                Ui.ElementBadge(new Rect(r.x + px + 5, r.y + 5, 15, 15), t.Element);
-                Ui.Text(new Rect(r.x + px + 22, r.y + 2, r.width - px - 26, 20), t.ShortName + (inTeam ? $"  #{G.S.team.IndexOf(h.uid) + 1}" : ""), 12, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + px + 6, r.y + 24, r.width - px - 10, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv {h.level} · {Ui.Fmt(G.Power(h))}", 11, Palette.Hex("#c9bda6"));
+                HeroPickCard(r, t, inTeam, inTeam ? G.S.team.IndexOf(h.uid) : -1, $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv {h.level} · {Ui.Fmt(G.Power(h))}");
                 if (Ui.Button(r, "", Ui.Kind.Ghost))
                 {
                     if (inTeam) G.S.team.Remove(h.uid);
@@ -347,7 +346,6 @@ namespace Sigilbound.Client
                 }
             }
             Scroller.End();
-            float pickH = Mathf.Ceil(list.Count / 2f) * (ch + 6);
             if (pickH > view.height + 1) ScrollFade(view, _pickScroll.y, pickH);
         }
 

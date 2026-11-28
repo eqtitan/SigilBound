@@ -405,7 +405,7 @@ namespace Sigilbound.Client
         }
         // How far a button's label keeps from its sides when fitting: the style's 6-unit padding, plus the painted
         // plates' ornamented ends (about 0.3 of the height, at most 18) on every kind but Ghost.
-        public static float ButtonInset(float height, Kind k = Kind.Primary) => k == Kind.Ghost ? 6 : 6 + Mathf.Min(18, height * 0.3f);
+        public static float ButtonInset(float height, Kind k = Kind.Primary) => UiLayout.ButtonInset(height, k == Kind.Ghost);
         // The same for a button's label (side inset as above, 4-unit top/bottom padding; labels wrap at spaces).
         static int ButtonPx(Rect r, string text, int size, bool serif, Kind k)
         {
@@ -424,6 +424,32 @@ namespace Sigilbound.Client
             }
             if (_fit.Count > 3000) _fit.Clear();
             return _fit[key] = px;
+        }
+        // Labels that must stay on one line: a single word (no space or line break), or any label with a tail icon.
+        public static bool OneLine(string text, bool tail) => tail || (!string.IsNullOrEmpty(text) && text.IndexOf(' ') < 0 && text.IndexOf('\n') < 0);
+        // The size a one-line label fits its button at (UiLayout.LabelRoom: the sides' inset and any tail icon off),
+        // from px down to MinText, then in the sans face if the serif still overflows. serif is updated.
+        static int OneLinePx(Rect lr, string text, int px, ref bool serif, Kind k)
+        {
+            if (string.IsNullOrEmpty(text) || Event.current == null || Event.current.type != EventType.Repaint) return px;
+            bool sf = serif && k != Kind.Ghost;
+            var key = new FitKey(text, lr.width, lr.height, px, 1 << 22 | (sf ? 1 << 13 : 0) | (k == Kind.Ghost ? 1 << 21 : 0));
+            float room = lr.width - 2 * ButtonInset(lr.height, k) + 1; // the inset includes the style's 6-unit padding (RawLabel has none), as ButtonPx
+            _gc.text = text;
+            if (!_fit.TryGetValue(key, out int fit))
+            {
+                int top = px;
+                for (fit = top; fit > MinText; fit--) if (RawLabel(fit, null, FontStyle.Bold, TextAnchor.MiddleCenter, false, sf).CalcSize(_gc).x <= room) break;
+                if (sf && RawLabel(fit, null, FontStyle.Bold, TextAnchor.MiddleCenter, false, true).CalcSize(_gc).x > room)
+                {
+                    for (fit = top; fit > MinText; fit--) if (RawLabel(fit, null, FontStyle.Bold, TextAnchor.MiddleCenter, false, false).CalcSize(_gc).x <= room) break;
+                    fit = -fit; // remembered as "sans"
+                }
+                if (_fit.Count > 3000) _fit.Clear();
+                _fit[key] = fit;
+            }
+            if (fit < 0) { serif = false; return -fit; }
+            return fit;
         }
         readonly struct FitKey : System.IEquatable<FitKey>
         {
@@ -522,6 +548,24 @@ namespace Sigilbound.Client
             else Panel(r, fill, border, radius);
         }
 
+        // A hero or preset card (L028): the small card frame at UiLayout.CardFrameK, its rarity or bronze rim, and in
+        // the team the one "selected" mark (gold rim and wash, underline, check). Content goes inside CardInner(r),
+        // never on the frame: build 207 drew the chip plate's crown ornaments over the name, level and power.
+        public static UiLayout.Border9 CardBorder => Skin.Tex("card_small") != null ? Skin.Border9("card_small") : UiLayout.CardSmallFallback;
+        public static Rect CardInner(Rect r) => ToRect(UiLayout.FrameInner(ToBox(r), CardBorder, UiLayout.CardFrameK));
+        public static UiLayout.CardRects HeroCardRects(Rect r, bool face) => UiLayout.HeroCard(ToBox(r), CardBorder, face);
+        public static Rect CardFrame(Rect r, bool selected, Color rim)
+        {
+            if (Event.current.type == EventType.Repaint)
+            {
+                bool painted = Skin.Tex("card_small") != null;
+                if (painted) { Round(r, new Color(Palette.Panel2.r, Palette.Panel2.g, Palette.Panel2.b, 0.9f), null, 8); Skin.DrawFrame(r, "card_small", UiLayout.CardFrameK, false); }
+                else Panel(r, Palette.Panel2, rim, 9);
+                if (selected) SelectedMark(r, painted);
+            }
+            return CardInner(r);
+        }
+
         // A painted backdrop (skin "bg_*") filling a rect, cropped to fit and darkened for readable text.
         public static bool Backdrop(Rect r, string name, float darken = 0.35f)
         {
@@ -555,14 +599,14 @@ namespace Sigilbound.Client
         // the one "selected" style, rule 4); Ghost is an invisible tap area over drawn content.
         public enum Kind { Primary, Secondary, Danger, Chip, ChipOn, Ghost }
         public static Kind Of(UiRole r) => r == UiRole.Primary ? Kind.Primary : r == UiRole.Danger ? Kind.Danger : Kind.Secondary;
-        static GUIStyle ButtonStyle(Kind k, int size, bool serif = true, bool off = false, bool textOnly = false)
+        static GUIStyle ButtonStyle(Kind k, int size, bool serif = true, bool off = false, bool textOnly = false, bool wrap = true)
         {
-            var key = new UiKey(KButton, x: size, y: (int)k | UiKey.Bits(serif, 4) | UiKey.Bits(off, 5) | UiKey.Bits(textOnly, 6));
-            if (!_kstyles.TryGetValue(key, out var st) || st == null) _kstyles[key] = st = MakeButtonStyle(k, size, serif, off || textOnly, off);
+            var key = new UiKey(KButton, x: size, y: (int)k | UiKey.Bits(serif, 4) | UiKey.Bits(off, 5) | UiKey.Bits(textOnly, 6) | UiKey.Bits(wrap, 7));
+            if (!_kstyles.TryGetValue(key, out var st) || st == null) _kstyles[key] = st = MakeButtonStyle(k, size, serif, off || textOnly, off, wrap);
             return st;
         }
         // noPlate: the style carries only the label (the plate is drawn separately); off: the disabled label colours.
-        static GUIStyle MakeButtonStyle(Kind k, int size, bool serif, bool noPlate, bool off)
+        static GUIStyle MakeButtonStyle(Kind k, int size, bool serif, bool noPlate, bool off, bool wrap = true)
         {
             {
                 // Gilded plates as in style.css: gradient stops top / upper-mid / lower-mid / bottom.
@@ -586,7 +630,7 @@ namespace Sigilbound.Client
                 bool painted = k != Kind.Ghost && Skin.Tex(SkinName(k)) != null;
                 if (painted || noPlate) { s.normal.background = s.active.background = s.hover.background = null; }
                 bool display = serif && k != Kind.Ghost;
-                s.fontSize = size; s.fontStyle = display ? FontStyle.Normal : FontStyle.Bold; s.alignment = TextAnchor.MiddleCenter; s.wordWrap = true; s.richText = true;
+                s.fontSize = size; s.fontStyle = display ? FontStyle.Normal : FontStyle.Bold; s.alignment = TextAnchor.MiddleCenter; s.wordWrap = wrap; s.richText = true;
                 if (off) text = k == Kind.Ghost ? Palette.Dim : DisabledText;
                 // Pressed: the label darkens a touch on light plates and brightens on dark ones.
                 s.normal.textColor = s.hover.textColor = text;
@@ -635,12 +679,16 @@ namespace Sigilbound.Client
             var lr = tail ? new Rect(r.x, r.y, r.width - iconS - 4, r.height) : r; // the label's room, beside the icon
             bool serif = SerifCanDraw(text);
             int px = ButtonPx(lr, text, size, serif && k != Kind.Ghost, k); // the player's text size, shrunk to fit the button (Ghost labels use the sans face)
+            // One word, or a label with a trailing icon, never wraps (build 207: "TEAM ▶" broke into "TEA / M"): it
+            // shrinks to fit on one line, as far as the 11-point floor, then takes the narrower sans face (as FitText).
+            bool oneLine = OneLine(text, tail);
+            if (oneLine) px = OneLinePx(lr, text, px, ref serif, k);
             if (tail && Event.current.type == EventType.Repaint)
             {
-                var st = ButtonStyle(k, px, serif, false, true);
+                var st = ButtonStyle(k, px, serif, false, true, !oneLine);
                 float tw = Mathf.Min(lr.width - 2 * ButtonInset(r.height, k), st.CalcSize(new GUIContent(text)).x - 12);
                 float x0 = r.center.x - (tw + 4 + iconS) / 2;
-                lr = new Rect(x0 - 6, r.y, tw + 12, r.height);
+                lr = new Rect(x0 - 7, r.y, tw + 14, r.height);
                 Color ic = !enabled ? DisabledText : k == Kind.Primary ? Palette.Hex("#2a1a05") : k == Kind.ChipOn ? Palette.Gold : Palette.Hex("#f3e3c3");
                 var icr = new Rect(x0 + tw + 4, r.center.y - iconS / 2, iconS, iconS);
                 // Drawn after the plate below; remember it for then.
@@ -659,7 +707,7 @@ namespace Sigilbound.Client
                         if (!Skin.DrawButton(r, SkinName(k), false)) { GUI.color = keep; GradientBox(r, Palette.Hex("#45414c"), DisabledPlate, Palette.Hex("#5a5560"), 10); }
                         GUI.color = keep;
                     }
-                    ButtonStyle(k, px, serif, true).Draw(lr, new GUIContent(text), false, false, false, false);
+                    ButtonStyle(k, px, serif, true, false, !oneLine).Draw(lr, new GUIContent(text), false, false, false, false);
                     DrawTail();
                 }
                 return false;
@@ -676,7 +724,7 @@ namespace Sigilbound.Client
                     if (k == Kind.ChipOn) SelectedMark(plate, painted);
                 }
                 else PressOverlay(r, held);
-                if (!string.IsNullOrEmpty(text)) ButtonStyle(k, px, serif, false, true).Draw(lr, new GUIContent(text), false, held, false, false);
+                if (!string.IsNullOrEmpty(text)) ButtonStyle(k, px, serif, false, true, !oneLine).Draw(lr, new GUIContent(text), false, held, false, false);
                 DrawTail();
             }
             bool hit = GUI.Button(hitR, GUIContent.none, GUIStyle.none);
