@@ -81,9 +81,10 @@ namespace Sigilbound.Client
 
         void DrawHomeWide(Rect area)
         {
-            float colW = Mathf.Clamp((area.width - 330) / 2, 236, 330), gap = 12;
-            var left = new Rect(area.x + gap, area.y + 8, colW, area.height - 16);
-            var right = new Rect(area.xMax - gap - colW, area.y + 8, colW, area.height - 16);
+            // Inset by the painted frames' outer band (Ui.Card grows its frame about 21 units around the rect).
+            float colW = Mathf.Clamp((area.width - 350) / 2, 230, 320), gap = 24;
+            var left = new Rect(area.x + gap, area.y + 20, colW, area.height - 28);
+            var right = new Rect(area.xMax - gap - colW, area.y + 20, colW, area.height - 28);
             // Title and stats over the scene, between the columns.
             var mid = new Rect(left.xMax + 8, area.y + 4, right.x - left.xMax - 16, 40);
             Ui.Heading(new Rect(mid.x - 40, mid.y, mid.width + 80, 40), "SIGILBOUND", 30, TextAnchor.MiddleCenter);

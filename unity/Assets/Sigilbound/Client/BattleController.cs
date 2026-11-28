@@ -1160,7 +1160,7 @@ namespace Sigilbound.Client
             bool manual = _awaiting && _actor != null && _actor.Ally && !Auto && !_paused;
             var targets = manual ? _b.AffectedBy(_actor, _sel) : new List<Unit>();
             var tags = new List<(Unit u, CharacterView v, Rect r)>();
-            float minY = top + 142 + dy; // name tags stay below the skill banner (top + 82..110 + dy), even the Titan's
+            float minY = top + 168 + dy; // name tags (30 tall, above minY) stay below the round pill and the skill banner (top + 82..132 + dy), even the Titan's
             foreach (var kv in _views)
             {
                 var u = kv.Key; var v = kv.Value;
@@ -1221,7 +1221,7 @@ namespace Sigilbound.Client
 
             // ---- banner, and the skill buttons bottom-right (only on a manual turn) ----
             string banner = _paused ? "Paused" : !string.IsNullOrEmpty(_banner) ? _banner : manual ? $"{_actor.Template.ShortName}'s turn" : "";
-            if (banner.Length > 0) Ui.Text(new Rect(0, top + 82 + dy, Ui.W, 28), banner, 18, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+            if (banner.Length > 0) Ui.Text(new Rect(0, top + 104 + dy, Ui.W, 28), banner, 18, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter, false, true); // under the round pill, not on it
             float bottom = safe.yMax - 8;
             if (manual)
             {
