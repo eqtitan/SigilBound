@@ -113,3 +113,9 @@ Before drafting anything:
 Route each recommendation to the owner of that system: technical-artist for
 rendering optimizations (LOD, occlusion, batching, atlasing), engine-programmer
 for engine systems and hot-path code, and the programmer who owns any other system.
+
+## Project memory (the brain)
+Before you start, read `docs/sigilbound/brain/MAP.md` and the lessons in `docs/sigilbound/brain/LESSONS.md`
+linked to the systems you'll touch, and follow their Prevention rules (also summarised in the repo's `CLAUDE.md`).
+When you finish or get blocked, add or update lessons (format: `docs/sigilbound/brain/README.md`) for anything
+that broke, fooled a check, cost time or surprised you, link them, and list the lesson ids in your report.

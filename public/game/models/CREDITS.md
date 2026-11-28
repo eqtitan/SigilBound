@@ -61,6 +61,9 @@ front images the owner approved through fal.ai's hosted **`fal-ai/trellis`** end
 same MIT-licensed TRELLIS model as a paid API call; the outputs are the project's own art on the same
 terms as above.
 
+Remodels 2026-11-28: Wystan Quillmere (tunic robe) and Vorgrim Ashscale (half-cloak) from new front images made
+with Google Gemini (owner-approved prompts) and turned into meshes with fal.ai `fal-ai/trellis` (MIT model), same terms.
+
 ## Spring bones (code)
 
 Skirts, robes and coat tails on some high-detail heroes swing on spring-bone chains simulated at runtime by
@@ -69,3 +72,22 @@ length restore, sphere/capsule push-out, then rotate the bone onto the tail) fol
 `VRMSpringBone` (https://github.com/vrm-c/UniVRM), **MIT licence**, Copyright (c) 2020 VRM Consortium,
 Copyright (c) 2018 Masataka SUMI for MToon. The C# here is our own re-implementation (no UniVRM source files are
 included); the chains and weights are added to the meshes by `unity/Tools~/blenderforge/spring_rig.py`.
+
+## Hero texture compression (code, 2026-11-28)
+
+The high-detail heroes' textures ship as KTX2 (`*_HD_*.ktx2`), encoded at build time by `prepare-models.mjs`
+with **ktx2-encoder** (https://github.com/gz65555/ktx2-encoder, **MIT licence**), which bundles a WebAssembly build
+of **Basis Universal** (https://github.com/BinomialLLC/basis_universal, **Apache License 2.0**, Copyright (c)
+2016-2026 Binomial LLC; "Basis Universal" is a trademark of Binomial LLC). The game transcodes them with
+**KTX for Unity** (`com.unity.cloud.ktx`, **Apache License 2.0**, Copyright (c) 2023 Unity Technologies and the
+KTX for Unity authors), which includes libktx and the Basis Universal transcoder (Apache License 2.0). The images
+themselves are the heroes' own textures, on the same terms as above.
+
+## Image-to-3D scenery landmarks (campaign scenes, 2026-11-28)
+
+The 16 campaign landmarks in `unity/Assets/Resources/Scenery/Landmarks/` (drowned mill, cottage, wagon,
+stilt hut, bell tower, Stormcrown crag, lighthouse, sea throne, sunken cathedral, king's barrow, toll
+house, warehouse, chapel, shipwreck, gatehouse, cairn) were made from the project's own concept images
+(Gemini, prompts describing the object only) through fal.ai's hosted **`fal-ai/trellis`** endpoint (the
+MIT-licensed TRELLIS model). They are the project's own art; sources and prompts are in
+`unity/Tools~/models/landmarks/`.

@@ -135,7 +135,9 @@ def ridge(layer, style, sil, fog, sun, seed, w=512, h=96):
 
 
 # ---------------- painted ground (mirror of the C# GroundTexture)
-def ground(g1, g2, worn, rock, n=256, extent=45.0, seed=0, flag=False, wet=None, water_z=None, horizon=None):
+def ground(g1, g2, worn, rock, n=256, extent=45.0, seed=0, flag=False, wet=None, water_z=None, horizon=None,
+           path=None, world=1.0, lane=1.0, lift=1.0, spots=None):
+    """Mirror of SceneryPaint.Ground (path, world/lane tint, lift and spots as there)."""
     xs = np.arange(n); X, Y = np.meshgrid(xs, xs)
     wx = -(X / (n - 1) * 2 - 1) * extent; wz = -(Y / (n - 1) * 2 - 1) * extent
     big = fbm(wx * 0.06 + seed, wz * 0.06, 11, 4)
@@ -144,11 +146,26 @@ def ground(g1, g2, worn, rock, n=256, extent=45.0, seed=0, flag=False, wet=None,
     # painted strokes: elongated noise in two directions
     stroke = fbm(wx * 2.2 + wz * 0.6, wz * 0.5 - wx * 0.2, 37, 2)
     c = c * (0.9 + 0.2 * stroke)[..., None]
+    if spots is not None and spots[3] > 0:
+        c = lerp(c, np.array(spots[:3]), smooth(0.62, 0.72, fbm(wx * 0.45 + seed * 0.37, wz * 0.45, 97, 3)) * spots[3])
+    if path is not None and len(path) >= 2:
+        pd = np.full_like(wx, 1e9)
+        for (ax, az), (bx, bz) in zip(path[:-1], path[1:]):
+            dx, dz = bx - ax, bz - az
+            u = np.clip(((wx - ax) * dx + (wz - az) * dz) / max(1e-6, dx * dx + dz * dz), 0, 1)
+            pd = np.minimum(pd, np.sqrt((wx - ax - dx * u) ** 2 + (wz - az - dz * u) ** 2))
+        pd = pd + (fbm(wx * 0.7, wz * 0.7, 101, 2) - 0.5) * 0.7
+        soil = lerp(worn, worn * 0.8, fbm(wx * 1.3, wz * 1.3, 103, 3))
+        k = smooth(1.5, 0.9, pd)
+        c = lerp(c, soil, k * 0.85)
+        rut = np.exp(-((np.abs(pd) - 0.45) / 0.09) ** 2)
+        c = c * (1 - 0.12 * rut * k)[..., None]
     e = np.sqrt((wx / 5.4) ** 2 + ((wz - 0.6) / 5.0) ** 2)
     edge_n = fbm(wx * 0.8, wz * 0.8, 41, 3)
     worn_k = smooth(1.42, 1.0, e + (edge_n - 0.5) * 0.35)
-    soil = lerp(worn, worn * 0.78, fbm(wx * 1.6, wz * 1.6, 53, 3))
+    soil = lerp(worn, worn * 0.78, fbm(wx * 1.6, wz * 1.6, 53, 3)) * lift
     c = lerp(c, soil, worn_k * 0.92)
+    tint = world + (lane - world) * smooth(1.6, 1.0, e)
     rim = np.exp(-((e - 1.05 - (edge_n - 0.5) * 0.3) / 0.07) ** 2)      # darker trodden rim
     c = c * (1 - 0.18 * rim)[..., None]
     pebbles = (fbm(wx * 4.5, wz * 4.5, 61, 2) > 0.7) * worn_k
@@ -161,7 +178,7 @@ def ground(g1, g2, worn, rock, n=256, extent=45.0, seed=0, flag=False, wet=None,
         c = lerp(c, lerp(rock * 0.6, rock * tone[..., None], tile), smooth(1.25, 0.6, e) * 0.85)
     if water_z is not None and wet is not None:
         c = lerp(c, wet, smooth(water_z - 3.0, water_z - 0.5, wz))
-    c = c * (0.94 + 0.12 * fbm(wx * 3, wz * 3, 83, 2))[..., None]
+    c = c * ((0.94 + 0.12 * fbm(wx * 3, wz * 3, 83, 2)) * tint)[..., None]
     if horizon is not None:   # fade into the near ridge card (z 28, x +-30)
         hn = (fbm(wx * 0.3, wz * 0.3, 91, 2) - 0.5) * 3
         c = lerp(c, horizon, np.maximum(smooth(21, 27.5, wz + hn), smooth(23, 29.5, np.abs(wx) + hn)) * 0.75)

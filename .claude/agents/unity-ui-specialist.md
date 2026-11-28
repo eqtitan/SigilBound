@@ -236,3 +236,9 @@ When in doubt, prefer the API documented in the reference files over your traini
 - Work with **unity-addressables-specialist** for UI asset loading
 - Work with **localization-lead** for text fitting and localization
 - Work with **accessibility-specialist** for compliance
+
+## Project memory (the brain)
+Before you start, read `docs/sigilbound/brain/MAP.md` and the lessons in `docs/sigilbound/brain/LESSONS.md`
+linked to the systems you'll touch, and follow their Prevention rules (also summarised in the repo's `CLAUDE.md`).
+When you finish or get blocked, add or update lessons (format: `docs/sigilbound/brain/README.md`) for anything
+that broke, fooled a check, cost time or surprised you, link them, and list the lesson ids in your report.

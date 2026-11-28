@@ -34,6 +34,17 @@ namespace Sigilbound.Core
 
     public enum BattleResult { None, Victory, Defeat, Timeout }
 
+    // Enemy intent (Battle.PreviewAction): the icon over a foe. Ultimate = its third skill is ready and chosen
+    // (Does then says what that skill does); Stunned = the coming turn is lost.
+    public enum IntentKind { None, Attack, AoE, Heal, Buff, Debuff, Ultimate, Stunned }
+    public sealed class Intent
+    {
+        public static readonly Intent None = new Intent();
+        public Unit Unit; public int Skill = -1; public Unit Target; public IntentKind Kind; public IntentKind Does;
+        public bool Debuffs; // it also lays a debuff on foes (a small mark on the attack icon: no roster skill is a pure debuff)
+        public SkillDef SkillDef => Unit != null && Skill >= 0 ? Unit.Template.Skills[Skill] : null;
+    }
+
     public sealed class Battle
     {
         public const double TmFull = 1000;
@@ -250,6 +261,16 @@ namespace Sigilbound.Core
                 _enrageShown = EnrageStacks;
                 ev.Add(new BattleEvent { Type = EvType.Text, Unit = u, Text = _enrageShown == 1 ? "Enrage! Damage up, healing down" : $"Enrage x{_enrageShown}" });
             }
+            bool stunned = TurnStart(u, ev);
+            if (stunned) ev.Add(new BattleEvent { Type = EvType.Text, Unit = u, Text = u.Has(FxType.Broken) ? "Broken!" : "Stunned!" });
+            _currentSkips = stunned;
+            return (ev, stunned || !u.Alive);
+        }
+
+        // The state changes at the start of a unit's turn: cooldowns tick, Poison/Burn/Regen apply. No RNG, so
+        // PreviewAction can run it on the live state and roll it back. Returns whether the turn is lost (Stun or Broken).
+        bool TurnStart(Unit u, List<BattleEvent> ev)
+        {
             for (int i = 0; i < u.Cds.Length; i++) u.Cds[i] = Math.Max(0, u.Cds[i] - 1);
             foreach (var e in u.Effects.ToList())
             {
@@ -261,11 +282,7 @@ namespace Sigilbound.Core
                 }
                 else if (e.Type == FxType.Regen) HealUnit(u, u.MaxHp * 0.08, ev, u);
             }
-            bool broken = u.Alive && u.Has(FxType.Broken);
-            bool stunned = u.Alive && (u.Has(FxType.Stun) || broken);
-            if (stunned) ev.Add(new BattleEvent { Type = EvType.Text, Unit = u, Text = broken ? "Broken!" : "Stunned!" });
-            _currentSkips = stunned;
-            return (ev, stunned || !u.Alive);
+            return u.Alive && (u.Has(FxType.Stun) || u.Has(FxType.Broken));
         }
 
         public BattleResult EndTurn(Unit u, out bool newWave)
@@ -322,6 +339,67 @@ namespace Sigilbound.Core
                 if (score > bestScore) { bestScore = score; best = i; }
             }
             return (best, PickTarget(u, best));
+        }
+
+        // ---------- enemy intent (UX review #5/#9, PLAN P2-15) ----------
+        // What `u` will do when its next turn starts, if that turn came now: the turn-start ticks (cooldowns,
+        // Poison/Burn/Regen, Stun/Broken) are applied to the live state, AiChoose runs, and everything is rolled
+        // back. Neither touches the RNG, so the preview is exactly the AI's choice right after BeginTurn (Tests~
+        // IntentTests runs it against the real choice in many seeded battles). Other units acting first can
+        // still change it: the HUD asks again after every turn.
+        public Intent PreviewAction(Unit u)
+        {
+            if (u == null || !u.Alive || Over || u.Template?.Skills == null || u.Template.Skills.Length == 0) return Intent.None;
+            var units = new List<Unit>(Allies.Count + Enemies.Count); units.AddRange(Allies); units.AddRange(Enemies);
+            if (!units.Contains(u)) units.Add(u);
+            var saved = new List<(Unit u, int hp, bool alive, double brk, List<Effect> fx, (int turns, int val, int stacks, bool fresh)[] fv)>(units.Count);
+            foreach (var x in units)
+            {
+                var fv = new (int, int, int, bool)[x.Effects.Count];
+                for (int i = 0; i < fv.Length; i++) { var e = x.Effects[i]; fv[i] = (e.Turns, e.Val, e.Stacks, e.Fresh); }
+                saved.Add((x, x.Hp, x.Alive, x.Break, new List<Effect>(x.Effects), fv));
+            }
+            var cds = (int[])u.Cds.Clone(); long titanDmg = TitanDamage;
+            try
+            {
+                bool skips = TurnStart(u, new List<BattleEvent>());
+                if (!u.Alive) return Intent.None;
+                if (skips) return new Intent { Unit = u, Skill = -1, Kind = IntentKind.Stunned, Does = IntentKind.Stunned };
+                var (skill, target) = AiChoose(u);
+                var sk = u.Template.Skills[skill];
+                var does = Classify(sk);
+                bool ult = skill == 2 && u.Template.Skills.Length > 2;
+                return new Intent { Unit = u, Skill = skill, Target = sk.Target == Target.Enemy || sk.Target == Target.Ally ? target : null, Kind = ult ? IntentKind.Ultimate : does, Does = does, Debuffs = Debuffs(sk) };
+            }
+            finally
+            {
+                foreach (var (x, hp, alive, brk, fx, fv) in saved)
+                {
+                    x.Hp = hp; x.Alive = alive; x.Break = brk;
+                    x.Effects.Clear(); x.Effects.AddRange(fx);
+                    for (int i = 0; i < fv.Length; i++) { var e = fx[i]; (e.Turns, e.Val, e.Stacks, e.Fresh) = fv[i]; }
+                }
+                Array.Copy(cds, u.Cds, cds.Length); TitanDamage = titanDmg;
+            }
+        }
+
+        // What a skill does, for the intent icon: damage to one foe or all of them, healing, or (no damage) a
+        // debuff on foes or a buff on its own side.
+        public static IntentKind Classify(SkillDef sk)
+        {
+            if (sk == null) return IntentKind.None;
+            if (sk.Mult > 0) return sk.Target == Target.AllEnemies ? IntentKind.AoE : IntentKind.Attack;
+            if (sk.Fx.Any(f => f.Type == FxType.Heal || f.Type == FxType.Regen)) return IntentKind.Heal;
+            bool atFoes = sk.Target == Target.Enemy || sk.Target == Target.AllEnemies;
+            if (sk.Fx.Any(f => f.To == FxTo.Enemies || (f.To == FxTo.Target && atFoes)) || atFoes) return IntentKind.Debuff;
+            return IntentKind.Buff;
+        }
+        // Whether a skill lays a harmful effect on foes (Stun, Slow, DefDown, Strip, Poison, turn-meter drain...).
+        public static bool Debuffs(SkillDef sk)
+        {
+            if (sk == null) return false;
+            bool atFoes = sk.Target == Target.Enemy || sk.Target == Target.AllEnemies;
+            return sk.Fx.Any(f => (f.To == FxTo.Enemies || (f.To == FxTo.Target && atFoes)) && (!FxDef.IsBuff(f.Type) || f.Type == FxType.Strip) && f.Type != FxType.Heal && f.Type != FxType.Tm && f.Type != FxType.Cleanse);
         }
 
         // Whether any effect of a utility skill would change something.

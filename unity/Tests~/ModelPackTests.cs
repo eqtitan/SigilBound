@@ -112,8 +112,11 @@ static class ModelPackTests
         }
 
         long models = Directory.GetFiles(sa, "*", SearchOption.AllDirectories).Where(f => !f.EndsWith(".meta")).Sum(f => new FileInfo(f).Length);
-        long estimate = models + ApkBaseline;
-        check(estimate <= ApkBudget, $"apk budget: estimated APK {estimate / 1e6:0.0} MB (StreamingAssets/Models {models / 1e6:0.0} MB + {ApkBaseline / 1e6:0} MB) within {ApkBudget / 1e6:0} MB");
+        // the image-to-3D scenery landmarks came after build 169 (Resources/Scenery/Landmarks, counted raw: Unity compresses Resources)
+        string lmDir = Path.Combine(root, "Assets", "Resources", "Scenery", "Landmarks");
+        long landmarks = Directory.Exists(lmDir) ? Directory.GetFiles(lmDir, "*.bytes").Sum(f => new FileInfo(f).Length) : 0;
+        long estimate = models + ApkBaseline + landmarks;
+        check(estimate <= ApkBudget, $"apk budget: estimated APK {estimate / 1e6:0.0} MB (StreamingAssets/Models {models / 1e6:0.0} MB + {ApkBaseline / 1e6:0} MB + landmarks {landmarks / 1e6:0.0} MB) within {ApkBudget / 1e6:0} MB");
     }
 
     static string FindUp(string child)

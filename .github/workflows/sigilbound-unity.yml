@@ -55,6 +55,10 @@ on:
         type: choice
         options: ["build-apk", "build-store-aab", "get-license-file"]
         default: "build-apk"
+      scenes:
+        description: "Smoke tour also shoots every campaign scene (stops 1, 3, 6 and the lair reveal of each chapter; adds several minutes)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -206,7 +210,12 @@ jobs:
         id: apk1
         # Gradle downloads the Android build tools from Maven Central on every build; when Maven
         # answers 429 (Too Many Requests), the step fails before our code is built, so it is retried
-        # once after a pause (below).
+        # once after a pause (below), but only for that error (see "Why did the APK build fail?").
+        # "Failed to find package 'platforms;android-0'" (QA review #10, PMO P2-26) is printed on every
+        # build, green ones too: game-ci's SDK update greps a ProjectSettings.asset we don't commit. It is
+        # harmless (the image already has platforms 34-36) and was never the cause of a failure. The target
+        # API itself is pinned in ProjectSetup.cs (BuildScript.TargetSdk = 36). game-ci's
+        # androidTargetSdkVersion input is not used: CLI v0.1.77 passes it to Unity as NaN.
         continue-on-error: true
         # unity-builder v6 runs the game-ci CLI. With UNITY_EMAIL + UNITY_PASSWORD and no
         # UNITY_LICENSE it activates a Personal license through Unity's licensing client
@@ -226,11 +235,24 @@ jobs:
           androidVersionCode: ${{ github.run_number }}
           androidExportType: androidPackage
           allowDirtyBuild: true
-      - name: Wait before retrying the APK build
+      - name: Why did the APK build fail? (retry only on Maven Central's 429)
+        id: why
         if: steps.apk1.outcome == 'failure'
-        run: sleep 180
+        # BuildScript writes the errors Unity logged during a failed build to unity/Builds/build-errors.txt.
+        run: |
+          LOG=unity/Builds/build-errors.txt
+          if [ -f "$LOG" ] && grep -Eq "status code 429|Too Many Requests" "$LOG"; then
+            echo "retry=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::APK build hit a known flake ($(grep -Eom1 "status code 429|Too Many Requests" "$LOG")); retrying once in 3 minutes."
+            sleep 180
+          else
+            echo "retry=false" >> "$GITHUB_OUTPUT"
+            echo "::error::APK build failed for another reason (no retry). First errors:"
+            if [ -f "$LOG" ]; then head -c 3000 "$LOG"; else echo "(no $LOG: Unity stopped before building; see the step log above)"; fi
+            exit 1
+          fi
       - name: Build the APK (retry after a failure)
-        if: steps.apk1.outcome == 'failure'
+        if: steps.why.outputs.retry == 'true'
         # unity-builder v6 runs the game-ci CLI. With UNITY_EMAIL + UNITY_PASSWORD and no
         # UNITY_LICENSE it activates a Personal license through Unity's licensing client
         # ("personal" method); with UNITY_LICENSE it uses the file and falls back to the account.
@@ -348,15 +370,21 @@ jobs:
           command -v xvfb-run
       - name: Smoke tour (screenshot mode, headless; same run as tools/unity-shots.sh)
         id: smoke
-        timeout-minutes: 30
+        # The per-commit tour takes about 5 minutes; with the scene tour (workflow_dispatch input "scenes",
+        # -sbShotsScenes: 15 chapters x 3 stops + reveals + 2 Hard lairs) allow it up to 50.
+        timeout-minutes: 55
+        env:
+          SCENES: ${{ github.event_name == 'workflow_dispatch' && inputs.scenes && 'yes' || '' }}
         run: |
           OUT="$PWD/unity-smoke"; rm -rf "$OUT" && mkdir -p "$OUT"
           BIN="$PWD/Sigilbound-Linux/Sigilbound.x86_64"; chmod +x "$BIN"
           START=$(date +%s)
+          EXTRA=(); LIMIT=1500
+          if [ -n "$SCENES" ]; then EXTRA=(-sbShotsScenes); LIMIT=3000; echo "Scene tour on"; fi
           # Software GL (llvmpipe) is slow but enough for the tour. -force-glcore avoids Vulkan.
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 1500 xvfb-run -a -s "-screen 0 1280x720x24" \
+          LIBGL_ALWAYS_SOFTWARE=1 timeout "$LIMIT" xvfb-run -a -s "-screen 0 1280x720x24" \
             "$BIN" -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -force-glcore \
-            -logFile "$OUT/player.log" -sbShots="$OUT" || echo "player exited with $?"
+            -logFile "$OUT/player.log" -sbShots="$OUT" "${EXTRA[@]}" || echo "player exited with $?"
           echo "Smoke tour took $(( $(date +%s) - START )) s; $(ls "$OUT"/*.png 2>/dev/null | wc -l) screenshots."
           if bash tools/unity-smoke-check.sh "$OUT"; then
             echo "smoke=passed" >> "$GITHUB_OUTPUT"

@@ -85,6 +85,19 @@ Implementation, all self-written project code:
    Clip names, aliases and battle code are unchanged; a clip without a baked twin falls back to the
    shared legs.
 
+### Runtime pitfall (build 180)
+
+glTFast adds an `Animation` with a file's own clips to the object it instantiates under (for the high-detail
+files, the holder). A digitigrade hero's GLB carries its baked leg clips under the shared clip names, and
+`HeroModels.BuildHd` only adds a shared clip whose name is free (so an embedded Titan keeps its own). The two
+together left the leg-only clips in the shared clips' place: no curve moved the body, and `RigExtras`, which
+assumes a clip rewrote each bone every frame, re-applied its rest fix to its own output (`D*q`, `T1 + D*(p-T0)`
+compounding: Corran's pelvis orbited 3 m up, Tansy's arms and head spun into a sheet). Now `BuildHd` clears the
+auto-added clips first (`ClearClips`), `RigExtras` leaves alone a bone that still holds what it wrote last frame,
+and the smoke tour's gallery logs `SBBOUNDS` per hero (Head bone height and offset, skinned bounds, in units of
+the figure's height), which `tools/unity-smoke-check.sh` fails on. Offline renders of the clips alone cannot see
+this class of bug: check a real build's gallery.
+
 ### Adding a hero
 
 In the hero's landmark entry (`i3d_landmarks_portrait.py`), wrap it with `_digitigrade(...)` and give, per
@@ -156,3 +169,17 @@ upper body first. Results per hero: scratchpad `ctd/summary.json`.
 - `blenderforge/hd_materials.py` + `HeroModels.MaskFromGlow`: `SB_Hero_<id>_HD_mat.png` (R metal, G smoothness)
   for the steel/gold texels of props only, listed in `index_mat.txt`. Half metal, very smooth: the painted shader
   has no reflection probe, so full metal reads dark. Head gear was left out (kit hair above the skull read as gold).
+
+## Metal reflection, remodels (character TD roster batch 2, 2026-11-28)
+
+- `SigilCharacterPainted.shader`, block "metal reflection": a procedural studio environment (sky, hot horizon
+  band, dark ground) in the reflected direction, tinted by the albedo and weighted by mask R (metal) and A
+  (smoothness); `_EnvStrength` 2.2 on heroes, 0 on the Titan (its mask R is the crystal ridges) and on Low
+  quality (`HeroModels.SetLowDetail`). Cloth and skin have metal 0, so they are unchanged.
+- `hd_materials.py` now also covers kit helms, crowns and circlets (Looks.Gear) but skips any piece coloured like
+  the hero's hair; metal maps are R 200 / G 230 on steel-grey and bright gold texels only (orange-brown wood stays matte).
+- Wystan and Vorgrim remodelled (Gemini front image -> fal TRELLIS -> `i3d_rig.py`, landmarks in `i3d_landmarks.py`).
+  Vorgrim's mesh came out mirrored (sword in the left hand) and is flipped and recentred before rigging. His cloak
+  stays on the spine and his tail on RigExtras' sway: spring chains for both were tried and were worse.
+- Tried and not shipped: rigid head gear on image-to-3D heroes (the ramp at the skull stretched more), tail spring
+  chains on tails weighted to the pelvis or a leg (they tear from the tail tip; tails need rig-time landmarks).

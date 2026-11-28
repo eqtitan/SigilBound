@@ -174,10 +174,10 @@ namespace Sigilbound.Client
                 {
                     var t = list[i]; bool known = owned.Contains(t.Id);
                     var r = new Rect(Pad + (i % 4) * (cell + 8), y + (i / 4) * (cell + 8), cell, cell);
-                    Ui.Panel(r, known ? Palette.Panel2 : Palette.Hex("#0d0b10"), known ? Palette.Rarity(t.Rarity) : Palette.Line, 10);
+                    Ui.Panel(r, known ? Palette.Panel2 : Palette.Well, known ? Palette.Rarity(t.Rarity) : Palette.Line, 10);
                     if (known) Ui.Round(new Rect(r.x + 8, r.y + 8, 6, r.height - 34), Palette.Element(t.Element), null, 3);
                     // Undiscovered: a dark silhouette mark instead of the name.
-                    Ui.Text(new Rect(r.x, r.y + 4, r.width, r.height - 28), known ? t.ShortName.Substring(0, 1) : "?", known ? 28 : 30, known ? Palette.Text : Palette.Hex("#3a3344"), FontStyle.Bold, TextAnchor.MiddleCenter);
+                    Ui.Text(new Rect(r.x, r.y + 4, r.width, r.height - 28), known ? t.ShortName.Substring(0, 1) : "?", known ? 28 : 30, known ? Palette.Text : Palette.ButtonHi, FontStyle.Bold, TextAnchor.MiddleCenter);
                     Ui.Text(new Rect(r.x + 2, r.yMax - 24, r.width - 4, 20), known ? t.ShortName : "???", 11, known ? Palette.Text : Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
                     if (Ui.Button(r, "", Ui.Kind.Ghost)) CodexPopup(t, known);
                 }

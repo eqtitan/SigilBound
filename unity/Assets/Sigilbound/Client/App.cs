@@ -231,7 +231,7 @@ namespace Sigilbound.Client
         public bool UpdateBannerAllowed => _bannerOk; // Updater.cs draws its banner only when this is true
         void CheckPopups()
         {
-            if (Time.unscaledTime < _tipAt) return;
+            if (Time.unscaledTime < _tipAt || PhoneCheckRunning) return; // no pop-ups over the phone check
             _tipAt = Time.unscaledTime + 0.35f;
             bool battleScreen = Screen == ScreenId.Battle, inBattle = battleScreen && Battle.InProgress;
             // The tutorial already walks a new player through Home and the battle screen.
@@ -406,7 +406,7 @@ namespace Sigilbound.Client
         // Carved top bar with a gold rule: currencies and the settings button.
         void DrawTopBar(Rect r)
         {
-            GUI.DrawTexture(new Rect(Ui.Left, 0, Ui.FullW, r.yMax), Ui.GradientTex(Palette.Hex("#1d1726"), Palette.Hex("#120e19"), null, 2));
+            GUI.DrawTexture(new Rect(Ui.Left, 0, Ui.FullW, r.yMax), Ui.GradientTex(Palette.Card, Palette.WellFocus, null, 2));
             Ui.GoldRule(new Rect(Ui.Left, r.yMax - 1, Ui.FullW, 1));
             // Contents inside the safe area, so the gold and the menu never sit under a camera hole or a rounded corner.
             var sc = Ui.SafeContent(8);
@@ -417,7 +417,7 @@ namespace Sigilbound.Client
             void Chip(Icon icon, string text, Color c, string painted = null)
             {
                 var w = Mathf.Max(48, text.Length * 7.4f + 30);
-                Ui.Panel(new Rect(x, r.y + 8, w, 28), Palette.Hex("#0d0a12"), Palette.Bronze, 13);
+                Ui.Panel(new Rect(x, r.y + 8, w, 28), Palette.Well, Palette.Bronze, 13);
                 // The owner's painted coin / essence / one painted crystal per shard kind (worn, mystic, radiant) when the skin is on.
                 if (painted == null || !Icons.Painted(new Rect(x + 3, r.y + 10, 24, 24), painted)) Icons.Draw(new Rect(x + 8, r.y + 15, 14, 14), icon, c);
                 Ui.Text(new Rect(x + 24, r.y + 8, w - 30, 28), text, 12, c, FontStyle.Bold, TextAnchor.MiddleCenter);
@@ -450,7 +450,7 @@ namespace Sigilbound.Client
         void DrawNav(Rect r)
         {
             // Stone bar with a gold edge and a glowing active tab (style.css .nav).
-            GUI.DrawTexture(new Rect(Ui.Left, r.y, Ui.FullW, r.height), Ui.GradientTex(Palette.Hex("#1a1522"), Palette.Hex("#0d0a12"), null, 2));
+            GUI.DrawTexture(new Rect(Ui.Left, r.y, Ui.FullW, r.height), Ui.GradientTex(Palette.CardAlt, Palette.Well, null, 2));
             Ui.GoldRule(new Rect(Ui.Left, r.y, Ui.FullW, 1));
             var items = new (ScreenId id, string label, Icon icon)[] { (ScreenId.Home, "Home", Icon.Home), (ScreenId.Modes, "Battle", Icon.Sword), (ScreenId.Heroes, "Heroes", Icon.Helm), (ScreenId.Summon, "Summon", Icon.Portal), (ScreenId.Trials, "Trials", Icon.Tower), (ScreenId.Friends, "Friends", Icon.Friends) };
             for (int i = 0; i < items.Length; i++)
@@ -507,6 +507,7 @@ namespace Sigilbound.Client
                 Ui.Text(r, _toasts[i].text, 13, Palette.Text, FontStyle.Normal, TextAnchor.MiddleCenter, true);
                 y -= 42;
             }
+            DrawPhoneCheckBar(); // Settings > Run phone check (PhoneCheckRun.cs)
         }
     }
 }

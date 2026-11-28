@@ -56,6 +56,7 @@ namespace Sigilbound.Client
             _spec = spec;
             if (spec.Mode == BattleMode.Arena) _arenaSlot = SlotOf(spec.Rival);
             _climbPending = false; _climbRetreat = false;
+            _titanShown = 0; // one controller lasts the session: a real Titan fight after practice must start full (in-house report, build 190)
             App.ClearLineup();
             HeroModels.TrimSoon(); // auto-replay starts battles back to back: free the last one's leftovers
             _b = spec.Mode switch
@@ -252,6 +253,9 @@ namespace Sigilbound.Client
             bool seen = !_lairsRevealed.Add(chapter);
             if (AutoClimb.SkipLairReveal(Climbing, seen, clearedBefore)) yield break;
             var (pc, top) = rv.Value;
+            // the generator may have moved the landmark to frame it for the default view (Core/SceneGen)
+            var lmk = App.Arena.Layout?.Landmark;
+            if (lmk != null) { pc = new Piece { Mesh = lmk.Mesh, X = lmk.X, Z = lmk.Z, Scale = lmk.Scale }; top = App.Arena.Layout.LandmarkTop; }
             var arena = App.Arena; float keepSpeed = Time.timeScale; Time.timeScale = 1;
             _cinema = _skippable = true;
             _revealTitle = StoryScenes.LairTitle(chapter); _revealSub = Chapters[chapter];
@@ -1290,6 +1294,7 @@ namespace Sigilbound.Client
                         _awaiting = false;
                     }
                 }
+                IntentChip(u, x - w / 2, y - (manual && targets.Contains(u) ? 74 : 54)); // enemy intent, above the tag (and the matchup badge)
             }
 
             // banner + skill bar
@@ -1373,6 +1378,16 @@ namespace Sigilbound.Client
         }
 
         // "▲ WEAK" / "▼ RESIST" over a highlighted target (Battle.Matchup); nothing for an even matchup.
+        // Enemy intent (PLAN P2-15): what each foe will do next (Battle.PreviewAction), tap for the skill's details.
+        // Not on the foe whose turn it is (it is doing it), nor in cinematics or once the fight is over.
+        readonly EnemyIntentUi _intents = new EnemyIntentUi();
+        void IntentChip(Unit u, float x, float y)
+        {
+            if (u.Ally || u == _actor || _b.Over || _finished) return;
+            var it = _intents.Of(_b, u);
+            if (EnemyIntentUi.Chip(x, y, it, !App.ModalOpen)) EnemyIntentUi.ShowDetails(App, it);
+        }
+
         static void MatchupBadge(Rect r, int m)
         {
             if (m == 0) return;
@@ -1514,6 +1529,7 @@ namespace Sigilbound.Client
                         _awaiting = false;
                     }
                 }
+                IntentChip(u, r.x, r.y - (manual && targets.Contains(u) ? 46 : 26));
             }
 
             // ---- banner, and the skill buttons bottom-right (only on a manual turn) ----
@@ -1538,7 +1554,7 @@ namespace Sigilbound.Client
                     int cd = _actor.Cds[i];
                     var b = new Rect(x0 + i * (d + g), bottom - d, d, d);
                     bool sel = _sel == i;
-                    Ui.Round(b, sel ? Palette.Hex("#3d3020") : Palette.Hex("#1d1726"), sel ? Palette.Gold : cd > 0 ? Palette.Bronze : Palette.Trim, Mathf.RoundToInt(d / 2));
+                    Ui.Round(b, sel ? Palette.Hex("#3d3020") : Palette.Card, sel ? Palette.Gold : cd > 0 ? Palette.Bronze : Palette.Trim, Mathf.RoundToInt(d / 2));
                     var ic = sks[i].Target switch { Target.Enemy => Icon.Sword, Target.AllEnemies => Icon.Bolt, Target.Ally => Icon.Heart, Target.AllAllies => Icon.Shield, _ => Icon.Star };
                     Icons.Draw(new Rect(b.x + d * 0.27f, b.y + d * 0.16f, d * 0.46f, d * 0.46f), ic, cd > 0 ? Palette.Dim : sel ? Palette.Gold : Palette.Text);
                     // The skill's (short) name, not "A1" (UX review #5); the full name and text are in the box beside.

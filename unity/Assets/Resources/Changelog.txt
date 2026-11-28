@@ -7,12 +7,27 @@ change: Heroes take far less memory, so long play sessions and browsing the hero
 change: Heroes appear with fewer stutters while the team screen loads them.
 change: On Low and Medium graphics, heroes and Hollow enemies use lighter models, so battles run smoother on older phones.
 
+## 2026-11-28 | A journey to every lair
+new: Every campaign stop has its own scene, built around the battle cameras: the road leads toward the chapter's landmark, which draws nearer stop by stop until you fight at its foot.
+new: Hand-painted landmarks: the drowned mill, the leaning bell tower, the Stormcrown crag, the lighthouse, the sea-cliff throne, the sunken cathedral and more.
+fix: Scenery never stands between the camera and your heroes, and each chapter's landmark is now in view behind the enemies instead of cut off at the edge.
+fix: Heroes stay bright and readable at dusk and at night; the world darkens around them instead.
+change: Rolling ground, trees and rocks framing the edges, and skylines that match each land.
+change: On boss stages the camera looks up a little, so the whole lair and the sky above it are in view.
+
 ## 2026-11-28 | New heroes and a new Titan
+fix: A battle could stop acting after an ultimate or a boss blow on some stages; it now carries on.
+fix: A Titan fight after a practice fight starts with a full health bar and whole crystals.
+new: Settings has a Phone check: one tap plays a 60-second route (team screen, a big battle, the Titan) and copies a report on smoothness, memory and battery to send to the developer. Nothing is saved or spent.
 new: The Titan moves like its new body: it knuckle-walks in on its huge fists, roars, and has its own hits and stagger.
 change: The Titan's moves are now Bedrock Hammer (a two-fist overhead slam), Faultline Leap (a leap and quake) and Heartfire Torrent (fire from its open chest). Same damage as before.
 change: The Titan's blows land the moment its fists hit the ground, with the damage, the shake and the cracks right there.
 new: The Titan's seams and chest core flare before each big move, its crystal ridges glow, and the crystals break off as its health bar falls.
 new: If your team outlasts the Titan it sinks to its knees, its glow dying. The Titan screen lists its moves.
+change: Wystan has a new model with a knee-length tunic robe, so he jogs and casts without his robe tearing.
+change: Vorgrim has a new model with a half-cloak that hangs from his back and stays clear of his arms and legs.
+change: Steel and gold weapons, shield rims, helmets and crowns now reflect light like metal (off on Low graphics).
+fix: Sable, Vaelith, Rhea and Lumen walk formally and take heavy hits standing, so their skirts stay closed.
 fix: Solenne, Aelira, Ember, Azura, Morwenna and Kasimir walk formally and take heavy hits standing, so their gowns stay closed.
 fix: Shields and two-handed props no longer bend with the arm or legs (Hobb, Hask, Gorrum, Dunstan, Ivo, Merrit, Oswin, Tallow, Sable, Oriel, Benedict, Marrow, Maelis, Barley and more).
 fix: The loose specks around Fennick, Brega and Holt and the stray piece by Nell's feet are gone.
@@ -23,7 +38,7 @@ new: Reduce motion turns off screen shake and holds the Titan and lair cinematic
 new: Flash effects (On, Reduced, Off) dims or removes crit and ultimate flashes, flickering lightning and bright bursts.
 new: Colour-blind palettes for red-green and blue-yellow colour blindness change element and rarity colours; element icons and rarity letters stay, with preview chips in Settings.
 new: Hold to confirm can be shorter or longer, and Larger tap targets makes every button at least 56 dp.
-fix: Tansy and Corran are back to their previous look while their new animal legs are fixed (they showed up stretched and broken).
+fix: Tansy and Corran stand and move properly again, now with hare and goat legs that fold at the hock (they showed up stretched and broken).
 fix: Jasper's long coat now swings and slides off his legs instead of splitting around them, and his boots and trousers bend with his knees.
 fix: Hask's tower shield sits closer to his fist so it no longer cuts through his helmet, and he attacks with sword swings only.
 change: Kaelith and Wystan glide at a formal walk instead of jogging and take heavy hits on their feet, so their gown and robe stay closed.
@@ -65,6 +80,12 @@ balance: Gear can add at most +50 speed to a hero.
 balance: Kettle, Oriel and Wren toned down; Corvan, Ysolde, Brannoc, Nyx, Tamsin and Sable strengthened.
 balance: 45 more heroes retuned for the new speeds.
 balance: Stage 13-6 and the final stage 15-6 are a little easier.
+new: Enemy intent: a small icon over each foe shows its next move (attack, attack all, heal, buff, debuff, ultimate ready or stunned) and who it will hit. Tap it for the skill.
+change: Home in portrait folds login, quests and achievements into tabs under the title, so your team stands in full view; Continue Campaign stays at the bottom.
+new: Heroes still loading on Home show a soft portrait card with a light sweep instead of an empty spot.
+change: Menus, panels and plain buttons are deep slate with gold trim; violet now means the Shadow element only.
+fix: The Act II world map no longer shows fold lines across the parchment.
+balance: Stage 13-6 is a little easier again (it got much harder after the Act II enemy pool change).
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.

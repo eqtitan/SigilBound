@@ -28,7 +28,7 @@ Unity stores StreamingAssets uncompressed in the APK, so whatever prepare-models
 - Result: generated GLBs 96 MB to 66 MB; `StreamingAssets/Models` 148 MB to 117 MB.
   **Estimated APK: about 164 MB** (from 195 MB).
 
-## Hero textures as KTX2 and LOD1 meshes (PLAN step 116)
+## Hero textures as KTX2 and LOD1 meshes (PLAN step 119)
 
 Prepared with the batch of 158 high-detail heroes on main (2026-11-28): `StreamingAssets/Models` 117.9 MB to
 127.8 MB, **estimated APK 165.9 MB to 175.8 MB** (+9.8 MB; budget 190).
@@ -83,5 +83,5 @@ Not reached with lossless or invisible changes alone. The options, roughly in or
 2. **Texture quality** (art decision): normal maps at 512 px instead of 768 px save about 7 MB; albedo
    re-encoded at JPEG quality 72 instead of 82 saves about 7 MB (a second JPEG generation, so it should be
    judged on a phone first).
-3. **LOD1 only on low-end phones**: LOD1 now ships next to the full mesh (step 116). Shipping only LOD1 in a
+3. **LOD1 only on low-end phones**: LOD1 now ships next to the full mesh (step 119). Shipping only LOD1 in a
    store build for low-memory devices would cut about 40 MB of mesh data, at a visible cost in the hero viewer.

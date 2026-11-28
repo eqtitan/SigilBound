@@ -139,7 +139,7 @@ namespace Sigilbound.Client
             var box = new Rect(r.x + 2, r.y + (r.height - b) / 2, b, b);
             var c = color ?? Palette.Text;
             if (!enabled) c = new Color(c.r, c.g, c.b, 0.6f);
-            Ui.Round(box, on ? Palette.Hex("#3d3020") : Palette.Hex("#120e19"), on ? (color ?? Palette.Gold) : Palette.Bronze, 5);
+            Ui.Round(box, on ? Palette.Hex("#3d3020") : Palette.WellFocus, on ? (color ?? Palette.Gold) : Palette.Bronze, 5);
             if (on) Ui.Text(box, "✓", 17, color ?? Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter);
             Ui.Text(new Rect(box.xMax + 10, r.y, r.width - b - 14, r.height), label + (enabled ? "" : "  (always)"), size, c);
             if (enabled && Ui.Button(r, "", Ui.Kind.Ghost)) return !on;

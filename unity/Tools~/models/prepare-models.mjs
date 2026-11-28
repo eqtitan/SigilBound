@@ -14,7 +14,7 @@
 // Unity stores all StreamingAssets uncompressed in the APK, so this cuts the models to under half their size.
 // High-detail hero textures ship as KTX2 (Basis Universal; ktx-worker.mjs), which the phone transcodes to a
 // GPU-compressed format, and each hero gets a LOD1 ("SBL1", Core/HdLod.cs: the kept vertices and simplified
-// triangles of the shipped mesh) for the Low and Medium tiers and Hollow enemies (PLAN step 116).
+// triangles of the shipped mesh) for the Low and Medium tiers and Hollow enemies (PLAN step 119).
 import fs from "node:fs";
 import os from "node:os";
 import zlib from "node:zlib";

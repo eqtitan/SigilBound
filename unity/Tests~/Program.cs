@@ -40,6 +40,41 @@ static class Program
         // campaign stage (MechanicsTests checks the game against it). Regenerate only for a deliberate pool change.
         if (args.Length > 0 && args[0] == "stageenemies") { Console.WriteLine(MechanicsTests.StageEnemiesJson()); return 0; }
         if (args.Length > 0 && args[0] == "combatstats") { CombatStats.Run(); return 0; }
+        // `dotnet run --project Tests~ -- scenes OUT.json [tier]`: every campaign stage's generated layout (Tools~/scenery/scene_preview.py).
+        if (args.Length > 1 && args[0] == "scenes") { SceneGenTests.Dump(args[1], args.Length > 2 ? int.Parse(args[2]) : 2); return 0; }
+        // `-- scenedebug CHAPTER`: each stop's landmark, its framing in the default view, placements and refusals.
+        if (args.Length > 0 && args[0] == "scenedebug")
+        {
+            int ch = int.Parse(args[1]);
+            for (int st = 0; st < 6; st++)
+            {
+                var L = SceneGen.Generate(ch, st); var m = L.Landmark;
+                Console.Write($"{ch + 1}-{st + 1} {m.Mesh} at ({m.X:0.0},{m.Z:0.0}) top {L.LandmarkTop:0.0} err {SceneRules.FrameError(L, m, L.LandmarkTop):0.00} items {L.Items.Count} tris {L.Tris} rejects " + string.Join(",", L.Rejects.Select(kv => kv.Key + "=" + kv.Value)) + " |");
+                foreach (var c in L.Cams.Where(k => k.Default)) { var q = SceneCameras.Project(c.View, c.Aspect, new V3(m.X, m.Y + L.LandmarkTop * 0.5, m.Z)); Console.Write($" {c.Aspect:0.00}:({q?.x:0.00},{q?.y:0.00}) eye {c.View.Eye}"); }
+                Console.WriteLine();
+            }
+            return 0;
+        }
+        // `-- lairtilt`: each lair's landmark (base, body, top) in the default view, level and with the boss tilt.
+        if (args.Length > 0 && args[0] == "lairtilt")
+        {
+            for (int ch = 0; ch < GameData.Chapters.Length; ch++)
+            {
+                var L = SceneGen.Generate(ch, 5); var m = L.Landmark; if (m == null) continue;
+                Console.Write($"{ch + 1}-6 {m.Mesh} ({m.X:0.0},{m.Z:0.0}) top {L.LandmarkTop:0.0}:");
+                foreach (var a in SceneCameras.Aspects)
+                    foreach (bool boss in new[] { false, true })
+                    {
+                        var v = BattleLayout.View(BattleLayout.DefaultCamera, a, false, boss);
+                        var qb = SceneCameras.Project(v, a, new V3(m.X, 0, m.Z)); var qt = SceneCameras.Project(v, a, new V3(m.X, L.LandmarkTop, m.Z));
+                        Console.Write($" {a:0.00}{(boss ? "T" : "")} y {qb?.y:0.00}..{qt?.y:0.00}");
+                    }
+                Console.WriteLine();
+            }
+            return 0;
+        }
+        // `-- scenetests`: only the scene generator checks (Core/SceneGen.cs).
+        if (args.Length > 0 && args[0] == "scenetests") { SceneGenTests.Run(Check); Console.WriteLine(failures == 0 ? "All checks passed." : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
         // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).
         if (args.Length > 0 && args[0] == "balance")
         {
@@ -111,6 +146,7 @@ static class Program
         StoryScenesTests.Run(Check);
         SpringTests.Run(Check);
         LairRevealTests.Run(Check);
+        SceneGenTests.Run(Check);
         SaveSafetyTests.Run(Check);
         RankUpTests.Run(Check);
         ReleaseTests.Run(Check);
@@ -126,6 +162,10 @@ static class Program
         PolishTests.Run(Check);
         HotPathTests.Run(Check);
         AutoClimbTests.Run(Check);
+        IntentTests.Run(Check);
+        GameplayUiTests.Run(Check);
+        PhoneCheckTests.Run(Check);
+        BrainTests.Run(Check);
 
         // Win-rate sweep like the web sim's fixed-team check (geared team at stage level).
         Console.WriteLine("\nStage win rates (fixed teams at stage level, 30 runs):");

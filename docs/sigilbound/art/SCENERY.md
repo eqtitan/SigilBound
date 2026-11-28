@@ -162,6 +162,8 @@ stones and is broken by noise. Glowing parts use the glow material:
 
 ## 5. Budgets and quality tiers
 
+> Campaign stops now use the generator's budgets (section 8.3: 16k / 26k / 38k / 44k scenery triangles per tier, terrain included); the numbers below describe the older scatter, still used by the Titan.
+
 - Scatter is still 70 × density, with density 0.4 / 0.7 / 1.0 / 1.3 for Low / Medium / High / Ultra.
   Grass tufts at the ring edge are 60 × density.
 - Triangles per prop: broadleaf tree about 1000–1250, rock 320, wall 700–840, tuft 72, pine 300.
@@ -228,3 +230,90 @@ effect would compete with battle input.
 - How long painting takes on the Note20 baseline.
 - Brazier lights under the URP additional-light limit.
 - That kit props sit correctly with HideOccluders on the Cinematic camera preset.
+
+## 8. Procedural campaign scenes and camera rules (2026-11-28)
+
+Plan and spend: [CAMPAIGN_SCENES_PLAN.md](CAMPAIGN_SCENES_PLAN.md). Code: `Core/SceneCameras.cs` (cameras and rules),
+`Core/SceneGen.cs` (generator, rules check, light), `Core/Biomes.cs` (the theme table, moved from `Scenery.cs`, plus the
+generator's tables), `Core/SceneMeshes.Generated.cs` (every scenery mesh's footprint, from `Tools~/scenery/mesh_bounds.py`).
+`Client/Scenery.cs` builds the layout; `Tests~/SceneGenTests.cs` checks every stage.
+
+### 8.1 Cameras (camera first)
+
+Every camera a player can see a stage from is in `SceneCameras`:
+
+| Camera | Where it comes from | Aspects | Rule |
+|---|---|---|---|
+| Classic, Overhead, Cinematic, Three-quarter (default) | `BattleLayout.View` (the View button), fitted per aspect | portrait 390x844 (0.46), 16:9, 19.5:9 | **Guarded**: nothing may block the hero lane |
+| Hero view (yaw 180) | same | same | Looks back over the enemies: whatever stands behind them in the other views is in front of it, so it is faded at run time (`Arena.HideOccluders`), not refused |
+| Lair reveal, keys 0 / mid / 1 | `SceneCameras.RevealKeys` (BattleController's path, now in Core) | portrait, 16:9 | Nothing but the landmark may stand in its sight lines |
+| Battle start and victory | the framed battle view (no separate camera) | | covered by the views above |
+
+`SceneCameras.Footprint` gives each camera's ground footprint (the four corner rays on y = 0); the previews draw them.
+
+**Hero lane:** the rim ellipse (4.2 x 3.95 m round (0, 0.6)) grown by 1.3 m, up to 3.6 m (HP tags). Sample points: the
+centre and two rings (inside the rim and at the lane edge) at 0.3, 1.4, 2.4 and 3.6 m.
+
+### 8.2 Placement rules (enforced: `SceneRules.Check`, every placement, every stage)
+
+1. No footprint inside the lane.
+2. No sight line from a guarded camera to a lane point passes through a placement (each mesh is a low cylinder for its
+   whole footprint and a tall one for the part above 35 % of its height), and nothing within 1.5 m of a camera.
+3. Foreground: any part nearer a guarded camera than the lane's nearest point must sit in the outer bands of that
+   screen (|x| >= 0.6 in NDC), so near pieces only frame the edges.
+4. Seen: every placement is inside some camera's frustum within the fog's end; nothing is built where no one looks.
+5. Lair reveal: nothing but the landmark and its parts in the reveal keys' sight lines to the landmark.
+6. World bounds: inside the near ridge card (z 27.5, |x| 27); only story pieces (boats, gates, the mill) stand in water.
+7. Spacing: big pieces keep apart; scatter keeps off set-pieces.
+8. **Landmark framing** (`SceneRules.FrameError`): the landmark's body (35 % of its height, at most 2.5 m up) projects
+   in the default view's background band at every aspect: NDC y 0 to 0.76 (under the turn-order bar; a far copy may
+   reach 0.92), |x| <= 0.86. The default view looks down 30 degrees, so tall towers rise past the HUD; the lair reveal
+   shows them whole. **Boss stages** (stage 6, Normal and Hard; owner decision 2026-11-28) use the tilted views
+   (`BattleLayout.BossView`: Classic, Overhead, Cinematic and Three-quarter look up `BossTilt` = 6 degrees about the
+   camera's right axis, then refit the distance so the rim, heroes and tags stay in frame; Hero view and the Titan are
+   unchanged). The rules run on those tilted cameras, and on a boss stage the lair's base must be on screen and the
+   landmark up to `SceneCameras.LairShown` (6 m) under NDC 0.92: whole for every lair but the bell tower, the
+   Stormcrown crag, the burning tree and the sunken cathedral, whose tips still rise past the HUD in landscape. The generator searches x across the band and z a little nearer or farther for the legal spot
+   nearest the authored one; the landmark's parts and copies move with it. Other story pieces keep their authored spot
+   when it is legal, else the nearest legal spot (spiral search); a piece with no legal spot fails the tests.
+
+### 8.3 The generator
+
+Stage id -> seed (`SceneGen.Seed`) -> layout, in this order (each step through the rules):
+
+- **Light** (`SceneGen.LightOf`): the stop's mood sets the sun's height and side (day 50 degrees ... dusk 24), fog and a
+  world tint (day 1.0 ... night 0.7) painted into the ground and ramps. The sun (at least 0.85) and ambient keep a floor
+  so heroes read on every stop; the ring keeps more value (tint^0.4) and very dark biomes get a lane lift.
+- **Landmark**: the lair's main piece, or its copy ahead (synthesised at 24.5 m minus 5 m x progress when a stop has none).
+- **Road**: from the camera side through the ring to the landmark's foot, painted into the ground with ruts.
+- **Story set-pieces** (StoryScenes), **boss dressing** (braziers, banners), **night lanterns**.
+- **Skyline** (21.5-26 m, far ramp), **mid-ground** (10-17 m), **framing** (near flanks, edges only),
+  **approach props** (debris and dead wood along the road, thickening toward the lair), **scatter** (density falls off
+  over 4.5 m from the lane), **edge tufts**. Tables per biome in `Biomes.cs`.
+- **Terrain** (`SceneGen.TerrainHeight`): flat in and around the lane, on the road, at the shore and under the
+  landmark; rolling outside (biome relief 0.6-2.4 m) and rising toward the ridges; low on the camera side. Built as a
+  grid (24/32/48 per tier) with the Plane's texture mapping.
+- **Budget**: placements stop when the tier's triangle budget is reached (16k / 26k / 38k / 44k, terrain included).
+
+### 8.4 Image-to-3D landmarks
+
+`Tools~/scenery/i3d_landmark.py` turns a TRELLIS GLB into `Resources/Scenery/Landmarks/<name>.bytes` (SBL1): scaled to
+the landmark's height, pivot at the footprint centre, decimated to its budget (1,600-3,800 triangles), and its texture
+split into a gradient map (per texel a material row clustered from its colour, and a shade). The game paints the texture
+from the chapter's ramp at build time (`SceneryPaint.LandmarkTexture`), so a generated building wears the biome palette,
+the far haze and the mood like every procedural prop (art review H4). Bright saturated texels (a rose window, a shard)
+become glow texels with an emission mask that the boss-stage pulse drives. Moving parts stay procedural and hang on
+sockets (`SceneMeshes.Sockets`: the mill wheel, the bell, the lighthouse lamp). A generated landmark replaces the
+procedural mesh of the same name; deleting its file restores the procedural one.
+
+Generated so far: drowned mill, miller's cottage, wagon, stilt hut, bell tower, Stormcrown crag, lighthouse, sea throne,
+sunken cathedral, king's barrow, toll house, warehouse, chapel, shipwreck, gatehouse, cairn.
+
+### 8.5 Previews and checks
+
+- `dotnet run --project unity/Tests~ -- scenes OUT.json` dumps every stage's layout (items, landmark, road, light,
+  terrain heights, cameras and footprints).
+- `python Tools~/scenery/scene_preview.py OUT.json DIR 2 [3 ...]` (Blender) renders each stop from the default view at
+  16:9 and portrait, the lair reveal's first key, and a plan with the lane, road, placements by layer and the cameras'
+  footprints, then a contact sheet per chapter. These are previews, not game screenshots.
+- `-- scenetests` runs only the scene checks (about 4 s); `-- scenedebug CHAPTER` prints each stop's landmark framing.
