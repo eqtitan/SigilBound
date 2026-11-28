@@ -193,14 +193,40 @@ namespace Sigilbound.EditorTools
             return "0.0.0";
         }
 
+        // Android target API (ProjectSetup pins it; the workflow passes the same level to game-ci).
+        public const int TargetSdk = 36;
+
+        // Errors logged during the build are also written here (unity/Builds/build-errors.txt), so the workflow
+        // can tell a Maven Central rate limit (HTTP 429) from a real failure and retry only the former.
+        public const string ErrorLog = "Builds/build-errors.txt";
+
         static void Build(BuildTarget target, string path)
         {
             var dir = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            var errors = new System.Text.StringBuilder();
+            Application.LogCallback grab = (msg, stack, type) =>
             {
-                scenes = new[] { ProjectSetup.ScenePath }, locationPathName = path, target = target, options = BuildOptions.None,
-            });
+                if ((type == LogType.Error || type == LogType.Exception) && errors.Length < 400000) errors.AppendLine(msg);
+            };
+            try { Directory.CreateDirectory("Builds"); File.Delete(ErrorLog); } catch (IOException) { }
+            Application.logMessageReceived += grab;
+            BuildReport report;
+            try
+            {
+                report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = new[] { ProjectSetup.ScenePath }, locationPathName = path, target = target, options = BuildOptions.None,
+                });
+            }
+            finally { Application.logMessageReceived -= grab; }
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                foreach (var st in report.steps)
+                    foreach (var m in st.messages)
+                        if (m.type == LogType.Error || m.type == LogType.Exception) errors.AppendLine(m.content);
+                try { File.WriteAllText(ErrorLog, errors.ToString()); } catch (IOException) { }
+            }
             var sum = report.summary;
             Debug.Log($"Build {sum.result}: {sum.totalSize / (1024 * 1024)} MB uncompressed at {path}");
             // game-ci validates the log after the build: it needs the literal "Build succeeded!" (what its

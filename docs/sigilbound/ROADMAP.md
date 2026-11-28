@@ -78,7 +78,7 @@ a smaller chapter-10 jump and a gentler Act II (yes, as one change); Hartwin tri
    *Owner: art-director.*
 3. **Friends & chat live.** Unblocked by blockers 1 and 2. *Owner: engineering.*
 4. ~~**Sound & music.**~~ Shipped in 0.7.0, with volume sliders in 0.8.0. The in-app update banner works without a restart as of 0.13.1.
-5. **Play Store release build.** A release signing key in GitHub secrets, an AAB build, and the store listing. *Owner: pmo (checklist) + engineering.*
+5. **Play Store release build.** A release signing key in GitHub secrets, an AAB build, and the store listing. Item-by-item status and the owner's steps: `docs/sigilbound/store/READINESS.md` (2026-11-28). *Owner: pmo (checklist) + engineering.*
 6. **TestFlight.** Once there's an Apple account: signing secrets and an upload step in the workflow. *Owner: engineering.*
 
 ## Backlog
@@ -92,6 +92,7 @@ a smaller chapter-10 jump and a gentler Act II (yes, as one change); Hartwin tri
 - [ ] Smoke test: starter pick, summon, manual and auto battle, Titan, save and reload.
 - [ ] 3D screenshots reviewed (art-director checklist).
 - [ ] Install over the previous APK on a real phone and confirm progress is kept.
+- [ ] Phone check report from a real phone at Auto and Low (Settings > Run phone check; `docs/sigilbound/qa/PHONE_CHECK.md`).
 - [ ] Note the changes in the release notes.
 
 ## Decisions log

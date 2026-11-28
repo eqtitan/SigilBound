@@ -1,6 +1,6 @@
 # Sigilbound privacy policy
 
-_Last updated: 26 November 2026. Applies to the Sigilbound app for Android and Windows ("Sigilbound (Unity)")._
+_Last updated: 28 November 2026. Applies to the Sigilbound app for Android and Windows ("Sigilbound (Unity)")._
 
 Sigilbound is a single-player fantasy hero game with optional friends and chat. This page explains what the game stores and sends.
 
@@ -8,6 +8,7 @@ Sigilbound is a single-player fantasy hero game with optional friends and chat. 
 
 - **Your game save**: heroes, progress, currencies, gear and settings. It is stored only on your device (the app's local storage). We never receive it.
 - **Device settings**: graphics quality, frame rate, screen shake, camera view, tutorial progress and which "What's new" notes you have seen.
+- **Phone check reports**: if you use *Settings → Run phone check*, the game measures its own smoothness, memory use, battery level and heat for one minute and shows the result. The report (with your device model, operating system and graphics chip) is saved on your device (`phone-check.txt`) and copied to your clipboard; it is only sent if **you** paste it to us, or attach it to a feedback report.
 - **Feedback reports**: if you use *Settings → Send feedback*, the report is saved on your device (`feedback.txt`) and copied to your clipboard. It is only sent if **you** paste it into a message to us. It contains your note, the game build, your device model, operating system, graphics settings and recent error messages from the game.
 
 ## What is sent, and only if you use Friends

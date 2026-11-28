@@ -231,7 +231,7 @@ namespace Sigilbound.Client
         public bool UpdateBannerAllowed => _bannerOk; // Updater.cs draws its banner only when this is true
         void CheckPopups()
         {
-            if (Time.unscaledTime < _tipAt) return;
+            if (Time.unscaledTime < _tipAt || PhoneCheckRunning) return; // no pop-ups over the phone check
             _tipAt = Time.unscaledTime + 0.35f;
             bool battleScreen = Screen == ScreenId.Battle, inBattle = battleScreen && Battle.InProgress;
             // The tutorial already walks a new player through Home and the battle screen.
@@ -507,6 +507,7 @@ namespace Sigilbound.Client
                 Ui.Text(r, _toasts[i].text, 13, Palette.Text, FontStyle.Normal, TextAnchor.MiddleCenter, true);
                 y -= 42;
             }
+            DrawPhoneCheckBar(); // Settings > Run phone check (PhoneCheckRun.cs)
         }
     }
 }
