@@ -10,51 +10,66 @@
  "wick": {
   "chains": [
    "cape"
-  ]
+  ],
+  "verdict": "SHIP WITH NOTE"
  },
  "nocturne": {
   "chains": [
    "cape"
-  ]
+  ],
+  "verdict": "SHIP WITH NOTE"
  },
  "imogen": {
   "chains": [
    "cape"
-  ]
+  ],
+  "verdict": "SHIP WITH NOTE"
  },
  "sprig": {
   "chains": [
    "cape"
-  ]
+  ],
+  "verdict": "SHIP WITH NOTE"
  },
  "aurelia": {
   "chains": [
    "cape"
-  ]
+  ],
+  "verdict": "SHIP WITH NOTE"
  },
  "tallow": {
   "chains": [
    "cape"
-  ]
+  ],
+  "verdict": "SHIP WITH NOTE"
  },
  "dunstan": {
   "chains": [
    "cape"
-  ]
+  ],
+  "verdict": "SHIP WITH NOTE"
  },
  "kaija": {
   "chains": [
    "cape"
-  ]
+  ],
+  "cape": {
+   "K": 5,
+   "J": 4
+  },
+  "why": "3 bones let the right knee through the hem at the end of Ult_Uppercut",
+  "verdict": "SHIP WITH NOTE"
  },
  "hilde": {
   "chains": [
    "cape"
-  ]
+  ],
+  "verdict": "SHIP WITH NOTE"
  },
  "bastian": {
   "chains": [
    "cape"
-  ]
+  ],
+  "verdict": "SHIP"
  }
 }

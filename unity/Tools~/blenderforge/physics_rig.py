@@ -133,7 +133,7 @@ class Builder:
         m = self.whole_islands(part["mask"]); anchor = o.get("anchor", "spine_03")
         ytop = o.get("top", float(self.pos(anchor)[1]))
         width = float(np.percentile(self.P[m, 0], 96) - np.percentile(self.P[m, 0], 4))
-        K = o.get("K", int(np.clip(round(width / 0.07), 5, 7))); J = o.get("J", 4)
+        K = o.get("K", int(np.clip(round(width / 0.07), 5, 7))); J = o.get("J", 3)
         return self.sheet("cape", m, anchor, 20, K, J, ytop)
 
     def hair(self, part, o):

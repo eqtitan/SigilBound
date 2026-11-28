@@ -35,7 +35,7 @@ The chain number gives the library's `ChainKind` (`ChainKinds.Of`, `Core/Rig/Rig
 | k | Kind | Collides with | Defaults (stiffness, drag, gravity, joint r, swing limit) |
 |---|---|---|---|
 | 0-19 | Skirt (robe panel, coat tail) | hips, thighs, calves, ground | 1.5, 0.45, 0, 3 cm, - |
-| 20-29 | Cape | torso, hips, thighs, calves (no ground: lying on it squeezed it, L033) | 2.2, 0.55, 0.3, 2.5 cm, 20 deg |
+| 20-29 | Cape | torso, hips, thighs, calves +4.5 cm (no ground: lying on it squeezed it, L033) | 2.2, 0.55, 0, 2.5 cm, 12 deg |
 | 30-34 | Tail | hips, thighs, calves, ground | 2.0, 0.35, 0, 4 cm, - |
 | 35-39 | SoftWings | torso, arms, head | 3.0, 0.5, 0, 3 cm, - |
 | 40-49 | Hair | head, neck, torso, upper arms, ground | 2.5, 0.5, 0.1, 2 cm, 35 deg |
@@ -60,7 +60,7 @@ fix/ctd-headgear's job.
    over key battle frames). Then regenerate the data for everyone:
    `python3 physics_classify.py --all ../models/heroes_hd OUT.json --colliders-cs ../../Assets/Sigilbound/Core/Physics/BodyColliderData.cs`.
 3. Decide which kinds swing: add `"<id>": {"chains": ["cape"]}` to `unity/Tools~/models/physics/overrides.json`
-   (per kind optional `K` chains across, `J` bones, `anchor`, `top`).
+   (per kind optional `K` chains across, `J` bones, `anchor`, `top`; capes default to 5-7 chains x 3 bones).
 4. `python3 physics_rig.py SRC.glb DST.glb <id>` into a scratch folder (never straight over the shipped file).
 5. Frame sweep before/after (character-td rules, every 2nd frame of every clip, battle camera both sides, menu,
    face) with the preview mirror of this runtime (scratchpad `physics/tools/physim.py` + `sweep.py --spring`).
@@ -78,7 +78,7 @@ parts (armour as skirt, robes as tails) - treat their proposals as hints and che
   full run kinematic. Measured (PhysicsTests): a 48-joint hero with 17 colliders ~21 us per frame on the CI machine,
   a full battle at budget ~0.2 ms.
 - Low quality: kinematic (no swing, no history, cloth still pushed out of the body and above the ground).
-- Batch 1 capes: 12-15 joints per hero.
+- Batch 1 capes: 15-20 joints per hero.
 
 ## 5. Tests (`unity/Tests~/PhysicsTests.cs`, `SpringTests.cs`)
 
@@ -94,4 +94,10 @@ sweeps, review sheets, `before_after.jpg`, `motion.gif`), summary `physics/summa
 
 | Batch | Heroes | Result |
 |---|---|---|
-| 1 | kit capes: wick, nocturne, imogen, sprig, aurelia, tallow, dunstan, kaija, hilde, bastian | see `physics/summary.json` |
+| 1 | kit capes, worst cape severity first: wick, nocturne, imogen, sprig, aurelia, tallow, dunstan, kaija, hilde, bastian | 1 SHIP, 9 SHIP WITH NOTE, 0 REVERT (preview sweeps; real build pending the CI queue). Legs no longer split the capes in the run, idles, kneels and lying poses (cape depth inside the body over every swept frame down 70-100% per hero). Notes: in Death01 the cape trails below the falling body for a few frames; kaija needs 5 chains x 4 bones. 15-20 spring joints per hero. |
+
+Tuning history (batch 1, so the next batch starts from the right defaults - L033): the skirt pilot's settings made
+capes sag into the legs when a hero lay face down (gravity), get squeezed by the floor under a lying hero (ground
+collider) and whip round the body in a dash (no swing limit); bare capsules were thinner than trousers and boots
+(inflate 4.5 cm); 3 bones let a knee through the hem in a wide stance on one hero (4 bones there); 4 bones everywhere
+folded the hem in Hit_Kneel (so 3 stays the default).

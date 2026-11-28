@@ -138,6 +138,22 @@ static class PhysicsTests
             check(low > -0.005f, $"physics: ground keeps chains above the floor ({(kin ? "kinematic" : "dynamic")}, lowest tail {low * 100:0.0} cm)");
         }
 
+        // 3b. swing limit: a teleporting anchor (a dash ult) can't whip a joint past MaxAngle from its animated rest direction
+        {
+            var rig = ChainKinds.Defaults(ChainKind.Cape); var s = Sheet(1, rig); var ar = new[] { SQuat.Identity }; var none = new SCapsule[0];
+            float worst = 0;
+            for (int f = 0; f < 120; f++)
+            {
+                var ap = new[] { new SVec(f % 20 < 10 ? 0f : 1.5f, 1.3f, 0) };   // jumps 1.5 m back and forth
+                s.Update(1 / 60f, ar, ap, none, 0, false);
+                // joint 0's rest direction is the anchor's (identity) frame: (0,-0.3,-0.01)
+                var head = ap[0] + new SVec(-0.15f, 0f, -0.18f); var d = (s.Tail(0) - head).Normalized; var r = new SVec(0, -0.3f, -0.01f).Normalized;
+                worst = Math.Max(worst, (float)(Math.Acos(Math.Max(-1, Math.Min(1, SVec.Dot(d, r)))) * 180 / Math.PI));
+            }
+            check(rig.MaxAngle > 0 && worst <= rig.MaxAngle + 0.5f, $"physics: cape swing limit holds under a teleporting root (worst {worst:0.0} deg, limit {rig.MaxAngle} deg)");
+            check(new SpringRig().MaxAngle == 0 && new SpringRig().Inflate == 0 && SpringRigs.Of("jasper", ChainKind.Skirt).MaxAngle == 0, "physics: the pilot's skirt keeps no swing limit and no inflate (unchanged)");
+        }
+
         // 4. cost: a full-budget hero (48 joints) against a full body set (16 shapes + ground), and a whole battle
         {
             var rig = ChainKinds.Defaults(ChainKind.Cape); var s = Sheet(16, rig);
