@@ -43,7 +43,7 @@ generator (e.g. Hunyuan3D or Tripo) must have its tool, licence and any attribut
 before it ships.
 
 Later meshes (2026-11-27) for Crusk Brineclaw (regenerated), Nyssa Duskwing, Vessa Silkmourne,
-Brannoc, Vex and Aurex (the last three remodelled to match their portraits) were generated from
-front images the owner approved through fal.ai's hosted **`fal-ai/trellis`** endpoint, which runs the
+Brannoc, Vex and Aurex (the last three remodelled to match their portraits) and the Titan were generated
+from front images the owner approved through fal.ai's hosted **`fal-ai/trellis`** endpoint, which runs the
 same MIT-licensed TRELLIS model as a paid API call; the outputs are the project's own art on the same
 terms as above.

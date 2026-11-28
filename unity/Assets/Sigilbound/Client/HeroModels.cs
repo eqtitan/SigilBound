@@ -900,8 +900,8 @@ namespace Sigilbound.Client
             var head = BodyShaper.Find(holder, spec != null ? spec.HeadBone : "Head");
             if (head != null) headY = Mathf.Max(0.5f, holder.InverseTransformPoint(head.position).y);
             else if (spec != null) { float top = MeshTop(holder); if (top > 0.1f) headY = top / (float)spec.HornTop; } // no head bone: the mesh top is the horn tips
-            // a creature's longer neck raises its head: size it by where a humanoid head would sit
-            var neck = rigExt ? BodyShaper.Find(holder, "neck_01") : null;
+            // a creature's longer neck raises its head (not the Titan: titan.json names its head bone): size it by where a humanoid head would sit
+            var neck = rigExt && !titan ? BodyShaper.Find(holder, "neck_01") : null;
             if (neck != null) headY = Mathf.Max(0.5f, holder.InverseTransformPoint(neck.position).y + 0.08f);
             // Height and build from the approved design (heroes_hd/body.json): gnomes stand short, golems tall and broad.
             yield return EnsureHdBodies();

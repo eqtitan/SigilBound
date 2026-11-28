@@ -51,3 +51,22 @@ All the Titan cameras read `head`, `face`, `hornTop` and `back` through `BattleL
 silhouette needs `head` and `face` set, and nothing else. Every Titan cinematic is clamped so the bottom
 of the frame meets the ground within 30 m (`BattleLayout.MaxPitchForGround`, applied in
 `Arena.ComposeCamera`).
+
+## Current model: the hunched basalt colossus (2026-11-27)
+
+An image-to-3D mesh (TRELLIS via fal.ai) rigged to the hero UBC skeleton, so `clips` stays `ubc`:
+
+```
+bpyenv/bin/python i3d_prep.py -- titan.glb titan DIR
+bpyenv/bin/python i3d_rig.py -- --hero titan --clean DIR/titan_clean.blend --out OUT
+node compress-hd.mjs OUT && python3 compress-textures.py OUT
+```
+
+Landmarks are in `blenderforge/i3d_landmarks_titan.py`: the hands end at the fists (wrist above the fist,
+hand bone through it), the fists are rigid rocks, the back and shoulder crystal ridges are rigid on
+`spine_03`. The glow mask is the orange seams, chest core and eyes (dilated a little), and the albedo under
+it is darkened to neutral (`glow_neutral`) so the seam colour is the element's alone. The joints moved off
+the UBC proportions carry the `rest_fit` marker, so `RigExtras` re-expresses the shared clips for them.
+`titan.json`: the Head bone sits at the head's base (1.42 of 1.85 m), so `face` is 1.04 and `hornTop` 1.23;
+`head` 6.0 keeps the horn tips near the knight's height; `bulk` 1.0 (the mesh is already broad); `reach` 4.5
+for the long arms; no `glowCut`.
