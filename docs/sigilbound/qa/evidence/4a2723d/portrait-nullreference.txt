@@ -1,0 +1,16 @@
+== 1080x2400 player.log line 2013 (between story-storm-6 and story-glass-6)
+NullReferenceException: Object reference not set to an instance of an object
+  at Sigilbound.Client.ArenaReactor.Push (UnityEngine.Vector3 p, System.Single s) [0x00077] in <a676724b3c9d4010ab48ab810e0cc953>:0 
+  at Sigilbound.Client.ArenaReactor.OnShock (UnityEngine.Vector3 p, System.Single strength, System.Boolean slam) [0x00020] in <a676724b3c9d4010ab48ab810e0cc953>:0 
+  at Sigilbound.Client.ArenaEvents.RaiseShock (UnityEngine.Vector3 p, System.Single strength, System.Boolean slam) [0x00009] in <a676724b3c9d4010ab48ab810e0cc953>:0 
+  at Sigilbound.Client.BattleController+<DoAct>d__100.MoveNext () [0x012fa] in <a676724b3c9d4010ab48ab810e0cc953>:0 
+  at UnityEngine.SetupCoroutine.InvokeMoveNext (System.Collections.IEnumerator enumerator, System.IntPtr returnValueAddress) [0x00026] in <34dffe28823342d2a2c6b90ac297b242>:0 
+
+== a11y-1080x2400 player.log line 2003 (between story-storm-6 and story-glass-6)
+NullReferenceException: Object reference not set to an instance of an object
+  at Sigilbound.Client.ArenaReactor.Push (UnityEngine.Vector3 p, System.Single s) [0x00077] in <a676724b3c9d4010ab48ab810e0cc953>:0 
+  at Sigilbound.Client.ArenaReactor.OnShock (UnityEngine.Vector3 p, System.Single strength, System.Boolean slam) [0x00020] in <a676724b3c9d4010ab48ab810e0cc953>:0 
+  at Sigilbound.Client.ArenaEvents.RaiseShock (UnityEngine.Vector3 p, System.Single strength, System.Boolean slam) [0x00009] in <a676724b3c9d4010ab48ab810e0cc953>:0 
+  at Sigilbound.Client.BattleController+<DoAct>d__100.MoveNext () [0x012fa] in <a676724b3c9d4010ab48ab810e0cc953>:0 
+  at UnityEngine.SetupCoroutine.InvokeMoveNext (System.Collections.IEnumerator enumerator, System.IntPtr returnValueAddress) [0x00026] in <34dffe28823342d2a2c6b90ac297b242>:0 
+
