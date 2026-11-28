@@ -242,3 +242,13 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Prevention: when adding a map or shader property, check what the default texture means for heroes that lack the file.
 - Related: L010
 - Evidence: fix/ctd-roster-3 commit c52e108
+
+## L025 - Head gear "floating": check top and side views before automating
+- Status: open
+- Systems: hero-models, character-td
+- Symptom: owner, on the faces sheet: "almost every head accessory is either floating above the head model or floating".
+- Cause: partly found. At rest, kit helms/hats/crowns are 100% Head and mostly rest on the hair; the visible gaps are (1) circlets/crowns fitted to a wider head ring than the hair (gap 1-3 cm all round, seen from the top), (2) hat crowns sitting above flat hair caps (Dunstan, Tilly, Clemence) where lowering puts hair through the hat, (3) halos hovering by design. Weights don't let gear slide on kit heads (gear and hair both on Head). An automatic "lower everything onto the hair" pass moved mohawks and halos and made rings sink into the hair out of sight.
+- Fix: blenderforge/hg_seat.py fits only worn rings (shrink about the head axis to 6 mm proud of the hair, kit heads only); shipped where the before/after sheet is visibly better (Quill, Vaelith, Ondessa, Pell). Hats over flat hair need hair/hat rebuilt together (kit_head.py) - open.
+- Prevention: before fixing a "floating" report, render head front + side + back + TOP close-ups and confirm what floats; never move hair or halos; reject any fit that hides the accessory from any view.
+- Related: L008, L019
+- Evidence: scratchpad ctd/headgear/ (headgear_before_after.jpg, rejected_*.jpg)

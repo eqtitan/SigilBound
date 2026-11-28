@@ -15,7 +15,7 @@
 - Visual changes are proven in a real build (workflow_dispatch + smoke artifact), not only offline previews (L004).
   Dispatch once and wait - the CI queue keeps one pending run (L005).
 - Credit generated assets in `public/game/models/CREDITS.md` (prepare-models copies it) (L007).
-- Hero motion work follows `.claude/agents/character-td.md`: every frame, visual verdict (L008).
+- Hero motion work follows `.claude/agents/character-td.md`: load `.claude/skills/character-td/SKILL.md` first and append to it last; every frame, visual verdict (L008).
 - After roster, enemy-pool, speed or curve changes run `-- campaign 60` and `-- roles` (L006, L020).
 - Changelog lines start with new:/fix:/change:/balance:; check PLAN step numbers after merges (L013).
 - Never put keys, tokens or personal data in the repo or the brain.
