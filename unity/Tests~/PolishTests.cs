@@ -160,14 +160,15 @@ static class PolishTests
 
         check(!bc.Contains("$\"A{i + 1}\"") && bc.Contains("ShortNames(_actor.Template)"), "skill buttons: named with the skill, not A1/A2/A3");
         check(bc.Contains("MatchupBadge(") && bc.Split("MatchupBadge(new Rect").Length - 1 >= 2, "targets: Weak/Resist badges in both battle layouts");
-        check(System.Text.RegularExpressions.Regex.Matches(bc, "RoundButton\\([^;]*Icon\\.Info, \"Status\"").Count >= 2, "status legend: a Status button opens it on any turn (both layouts; portrait uses the 48 dp round button too)");
+        check(System.Text.RegularExpressions.Regex.Matches(bc, "RoundButton\\([^;]*Icon\\.Info, \"Status\"").Count >= 1 && bc.Contains("case HudBtn.Status:") && System.Text.RegularExpressions.Regex.Matches(bc, "DrawHudButtons\\(right, top,").Count >= 2,
+            "status legend: a Status button opens it on any turn (both layouts draw it from the one corner-button list, 48 dp round buttons)");
         check(!bc.Contains("\"Loop\"") && !bc.Contains("\"Cam\"") && !set.Contains("with Cam"), "wording: \"Replay\" (auto-replay) and \"View\" everywhere, no Loop or Cam");
-        check(!prep.Contains("next ? \"Battle\" : clear ? \"Replay\"") && prep.Contains("\"Team ▶\""), "wording: the stage row's button says it opens team setup");
+        check(!prep.Contains("next ? \"Battle\" : clear ? \"Replay\"") && prep.Contains("\"Team \\u25B6\""), "wording: the stage row's button says it opens team setup");
         check(!home.Contains("\"Reset save\"") && set.Contains("\"Reset save…\"") && set.Contains("void AskResetSave()") && set.Contains("Store?.AcceptFresh()"), "reset save: moved from Home to Settings > Danger zone, behind a confirm");
         check(prep.Contains("void AskSavePreset(int k)") && !prep.Contains("\"Save\", Ui.Kind.Chip, 12)) { G.TeamSave(k)") && Src("ExtrasScreens.cs").Contains("AskSavePreset(k)"), "presets: Save asks before replacing a different saved team");
         check(!trials.Contains("Battle.Begin(BattleSpec.ForDungeon") && trials.Contains("OpenDungeonPrep(key, f)") && prep.Contains("BattleSpec.ForDungeon(_prepDKey, _prepFloor)"), "dungeon: a floor opens team setup first");
-        check(app.Contains("public const float ModalW = 560, WideModalW = 900") && app.Contains("Mathf.Min(mx1 - mx0, _modalMaxW)"), "modals: at most 560 wide (results 900), centred");
-        check(bc.Contains("ShowResults(\"HARD CLEARED\"") && bc.Contains("ShowResults(_spec.Practice ? \"Titan Practice\" : \"Titan Battle\"") && bc.Contains("ShowResults($\"FLOOR {floor + 1} CLEARED\""), "results: Hard, Titan and Dungeon use the campaign results layout in landscape");
+        check(UiLayout.ModalW == 560 && UiLayout.WideModalW == 900 && app.Contains("public const float ModalW = UiLayout.ModalW, WideModalW = UiLayout.WideModalW") && app.Contains("UiLayout.ModalWidth(safe.width, _modalMaxW)"), "modals: at most 560 wide (results 900), centred");
+        check(bc.Contains("ShowResults(Words.Victory, spec)") && bc.Contains("ShowResults(Words.Cleared, spec)") && bc.Contains("ShowResults(Words.Defeat,") && !bc.Contains("ResultModal("), "results: every mode (Hard, Titan, dungeon, arena) uses the campaign results layout, in both orientations");
         check(bc.Contains("_b.Result == BattleResult.None") && bc.Contains("\"Battle over\""), "empty side: the client shows a neutral result, not a defeat");
         int mapTry = map.IndexOf("try { DrawWorldMapInner(area); }", StringComparison.Ordinal);
         check(mapTry > 0 && map.IndexOf("finally { Ui.Cover = null; Ui.OnTop = false; }", mapTry, StringComparison.Ordinal) > mapTry, "world map: Ui.Cover is reset in a finally (code review L2)");

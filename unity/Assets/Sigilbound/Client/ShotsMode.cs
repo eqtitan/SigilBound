@@ -86,6 +86,24 @@ namespace Sigilbound.Client
                 Go(s);
                 yield return Shot(s.ToString().ToLowerInvariant());
             }
+            // Sub-screens the UI/UX consistency review could only read from code: hero detail, equip, the Titan,
+            // dungeons, the arena and its team setup (the arena opens at stage 12: pretend for these shots).
+            if (G.S.heroes.Count > 0)
+            {
+                _heroUid = G.S.heroes[0].uid; Go(ScreenId.Hero);
+                yield return Shot("hero");
+                _slot = GameData.Slot.Weapon; Go(ScreenId.Equip);
+                yield return Shot("equip");
+            }
+            int keepTrials = G.S.cleared; G.S.cleared = System.Math.Max(G.S.cleared, Trials.ArenaUnlock);
+            foreach (var s in new[] { ScreenId.Titan, ScreenId.Dungeon, ScreenId.ArenaPvp })
+            {
+                Go(ScreenId.Trials); Go(s);
+                yield return Shot(s == ScreenId.ArenaPvp ? "arena" : s.ToString().ToLowerInvariant());
+            }
+            var shotRivals = G.CurrentRivals();
+            if (shotRivals.Count > 0) { OpenArenaPrep(shotRivals[0]); yield return Shot("prep-arena"); }
+            G.S.cleared = keepTrials;
             // The campaign map with chapter 1's stage list open (stop names, enemy chips, the gear chance).
             Go(ScreenId.Campaign); _chapterOpen = 0;
             yield return Shot("campaign-stages");

@@ -2,6 +2,24 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-28 | Screens that match
+change: Every button is at least a finger wide to tap, including hero detail, gear, skill upgrades, presets, achievements, friends and the Trials screens.
+change: Sub-screens share one header: a Back button and the screen's title. Back returns to where you came from, so the Titan, dungeons and arena go back to the Battle tab when you opened them there.
+change: Selected chips, tabs and switches all look the same: a gold rim, an underline and a check mark.
+change: Buttons have three looks: gold for the main action (always on the right), dark for the others, red only for things like Release, Sell, Reset and Stop.
+change: Locked cards and floors are solid and readable, say "Clear stage X to unlock" and show your progress; a Claim button you can't use yet shows how far along you are.
+change: Every battle ends on the same results screen, in every mode and holding the phone either way: arena fights and Replay runs included, with the MVP, damage and Edit Team.
+change: Results buttons read the same everywhere: Back to Map, Edit Team, Again or Retry, and Next.
+new: The arena opens team setup before a fight, like every other battle.
+fix: On 4:3 tablets and small windows, team setup, the stage list, results, the Battle tab and Home rearrange instead of overlapping or cutting off names.
+fix: The painted campaign maps keep their shape on wide and narrow screens, with each chapter on its landmark.
+change: Dialogs are the same width over every screen; tips, help and the status legend have a close button and close when you tap outside.
+change: Settings is grouped under headings: Accessibility, Audio, Battle, Updates, Display and performance, Help, Account and data, Danger zone.
+change: In battle the corner buttons are in the same order whichever way you hold the phone, and the upright skill buttons show the skill's icon, short name and "2 turns" while cooling down.
+fix: The WEAK and RESIST tags no longer cross the "your turn" banner.
+change: Coins, shards, essence and tomes look the same everywhere, counts read 12,345 up to 99,999, and no text is smaller than 11 points.
+change: The update banner sits below the top bar and matches the rest of the game.
+
 ## 2026-11-28 | A journey to every lair
 new: Every campaign stop has its own scene, built around the battle cameras: the road leads toward the chapter's landmark, which draws nearer stop by stop until you fight at its foot.
 new: Hand-painted landmarks: the drowned mill, the leaning bell tower, the Stormcrown crag, the lighthouse, the sea-cliff throne, the sunken cathedral and more.

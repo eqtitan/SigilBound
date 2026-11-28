@@ -195,7 +195,7 @@ namespace Sigilbound.Client
             Ui.Panel(bar, new Color(0, 0, 0, 0.8f), Palette.Gold, 10);
             int left = Mathf.Max(0, Mathf.CeilToInt(PhoneCheck.Duration - _checkT));
             Ui.Text(new Rect(bar.x + 12, bar.y, bar.width - 110, bar.height), $"Phone check · {PhoneCheck.StepAt(_checkT)} · {left} s left · don't touch", 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
-            if (Ui.Button(new Rect(bar.xMax - 92, bar.y + 4, 84, bar.height - 8), "Stop", Ui.Kind.Red, 12)) _checkStop = true;
+            if (Ui.Button(new Rect(bar.xMax - 92, bar.y + 4, 84, bar.height - 8), "Stop", Ui.Kind.Danger, 12)) _checkStop = true;
         }
     }
 }

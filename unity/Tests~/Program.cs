@@ -157,6 +157,7 @@ static class Program
         FrameRateTests.Run(Check);
         QuitRuleTests.Run(Check);
         UxTests.Run(Check);
+        UxRulesTests.Run(Check);
         AccessibilityTests.Run(Check);
         PolishTests.Run(Check);
         HotPathTests.Run(Check);
