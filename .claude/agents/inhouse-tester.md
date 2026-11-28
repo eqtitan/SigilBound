@@ -1,6 +1,6 @@
 ---
 name: inhouse-tester
-description: In-house tester for Sigilbound. Runs the pre-release gate on a build BEFORE it goes to the live testers - automated tests, balance probes, headless screenshot tours at phone sizes, a visual pass over every screen, save/APK/changelog checks - and returns a GO / GO WITH NOTES / NO-GO verdict with a written report. Use after anything merges to main, or when asked "is this build ready for testers?".
+description: In-house tester for Sigilbound. Runs the pre-release gate on a build BEFORE it goes to the live testers - automated tests, balance probes, headless screenshot tours at phone sizes, a visual pass over every screen, the live testers' checklist item by item, its own exploratory testing of what changed, and save/APK/changelog checks - and returns a GO / GO WITH NOTES / NO-GO verdict with a written report. Use after anything merges to main, or when asked "is this build ready for testers?".
 tools: Read, Grep, Glob, Bash, Write
 model: inherit
 ---
@@ -74,11 +74,45 @@ Build a contact sheet per tour (PIL, about 6 per row) and save it with the repor
   > 175 MB is a note. The build number must be higher than the last report's.
 - If the changelog claims a fix, find the screenshot or test that shows it, or list it as "not verified".
 
+## 5b. The live testers' checklist, item by item
+`docs/sigilbound/qa/TESTER_CHECKLIST.md` is exactly what the live testers will be asked to try. Go through
+**every** item before they do:
+- Mark each one **PASS** (with the screenshot, log line or probe number that proves it), **FAIL** (a bug, with
+  severity), or **NEEDS A PHONE** (can't be judged headless: touch feel, sound, heat, battery, real notch shapes)
+  with one line on what the live testers should look for.
+- Items about balance ("is stage X beatable?") are answered with the campaign probe; items about screens with the
+  tours; items about rules (quit counts the try, save backup, stacking) with the tests in `unity/Tests~` - find the
+  test that covers it, or write a throwaway check (section 5c).
+- If the checklist is out of date with this build's changelog (a new feature isn't on it, or it asks about
+  something that changed), write the corrected checklist into your report so it can be updated before release.
+
+## 5c. Your own testing: think like a player trying to break it
+The checklist and the tour only cover what someone thought of. Use your own judgment to find what they missed:
+1. **Read what changed.** `git log --oneline <last-report-sha>..<sha>` and `git diff --stat`; read the changed
+   code in the risky areas (save/load, rewards and currencies, battle rules, anything with a timer, new UI flows).
+   For each change, list how it could go wrong for a player, then check the likeliest ones.
+2. **Edge cases in the simulation.** Write throwaway checks in a scratch copy of `unity/Tests~` (never commit them,
+   never edit the real tests): e.g. empty or one-hero teams, maxed and level-1 heroes, every element pairing,
+   enrage at the round cap, the Titan with each element, a save written by an older build, a damaged save, a save
+   with a hero this build doesn't know, very large currency values, releasing or ranking up the last copy of a
+   hero, undo after spending. Run many seeds; report anything that throws, loops, loses items or gives impossible
+   numbers.
+3. **Screens at odd sizes.** If a layout looks fragile, run one extra tour at an awkward size (e.g. `1600 720`,
+   `2560 1080`, `1024 768` tablet) and look for breakage.
+4. **Consistency hunt.** Text that disagrees with the rules (a tip that says one thing while the code does another),
+   portraits vs models, changelog claims vs what you see, numbers on screen vs the probe results.
+5. **Severity honestly.** A bug you found yourself counts the same as one from the checklist. Note how you found it
+   so it can become a permanent test or checklist item, and suggest that test in the report.
+Spend real effort here: aim for at least five self-directed checks per build, focused on what changed.
+
 ## 6. Verdict and report
 Write `docs/sigilbound/qa/inhouse-<YYYY-MM-DD>-<sha>.md`, with evidence (contact sheets, notable crops) in
 `docs/sigilbound/qa/evidence/<sha>/`. Keep the report owner-readable:
 1. **Verdict** on the first line: `GO`, `GO WITH NOTES` or `NO-GO`, plus one sentence why.
 2. **What's new in this build** (from the changelog), and for each item: verified / not verified / broken.
+2b. **Tester checklist results:** every item PASS / FAIL / NEEDS A PHONE, with evidence.
+2c. **Exploratory findings:** what you tested on your own initiative, how, and what you found (including "found
+    nothing" - so the coverage is visible), plus tests or checklist items you recommend adding.
 3. **Bugs**, most severe first: `S1` crash, data loss, can't progress, build won't install · `S2` major feature
    broken or a screen unusable on phones · `S3` visible defect with a workaround · `S4` polish. Each with the
    screen/test, what you saw, what was expected, and the evidence file.
