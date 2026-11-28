@@ -157,16 +157,17 @@ namespace Sigilbound.Client
             App.Modal("Climb Summary", h, r => DrawClimbSummary(r, log, resume, spec, slot), App.ModalW);
         }
 
-        void DrawClimbSummary(Rect r, ClimbLog log, BattleSpec resume, BattleSpec spec, int slot)
+        // replay: the Replay run's summary in the same layout (ShowAutoSummary), with Again instead of Keep climbing.
+        void DrawClimbSummary(Rect r, ClimbLog log, BattleSpec resume, BattleSpec spec, int slot, bool replay = false)
         {
             float y = r.y - 6;
             string span = log.First.Length > 0 && log.Last != log.First ? $"{log.First}  →  {log.Last}" : log.Last;
-            Ui.Text(new Rect(r.x, y, r.width, 18), $"{AutoClimb.AreaName(log.Area, log.Dungeon)}   ·   {span}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+            Ui.Text(new Rect(r.x, y, r.width, 18), $"{(replay ? "Replay" : AutoClimb.AreaName(log.Area, log.Dungeon))}   ·   {span}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
             y += 22;
             // The headline: how far the climb went.
             Ui.Text(new Rect(r.x, y, r.width, 34), $"{log.Cleared} {log.ClearedNoun}", 24, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
             y += 34;
-            Ui.Text(new Rect(r.x, y, r.width, 16), $"{log.Fights} fight{(log.Fights == 1 ? "" : "s")} in all", 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+            Ui.Text(new Rect(r.x, y, r.width, 16), $"{log.Fights} fight{(log.Fights == 1 ? "" : "s")} in all{(log.Lost > 0 ? $" · {log.Lost} lost" : "")}", 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
             y += 22;
             // Why it stopped: an icon and words (not only a colour).
             var (ic, col) = log.Stop switch
@@ -184,88 +185,77 @@ namespace Sigilbound.Client
             Ui.Text(new Rect(why.x + 36, why.y, why.width - 44, why.height), log.Reason, 13, Palette.Text, FontStyle.Bold);
             y += 42;
             // Rewards: two columns of icon + amount, each shard kind named.
-            var items = new List<(Icon icon, Color c, string text)> { (Icon.Coin, Palette.Gold, $"{Ui.Fmt(log.Gold)} gold") };
-            if (log.Xp > 0) items.Add((Icon.Star, Palette.Blue, $"{Ui.Fmt(log.Xp)} XP each"));
-            if (log.Common > 0) items.Add((Icon.Shard, Palette.Hex("#c9a37b"), $"{log.Common} {ShardName(Shard.Common, log.Common)}"));
-            if (log.Mystic > 0) items.Add((Icon.Shard, Palette.Blue, $"{log.Mystic} {ShardName(Shard.Mystic, log.Mystic)}"));
-            if (log.Radiant > 0) items.Add((Icon.Shard, Palette.Hex("#ffb02e"), $"{log.Radiant} {ShardName(Shard.Radiant, log.Radiant)}"));
-            if (log.Gear > 0) items.Add((Icon.Shield, Palette.GearRarity(3), $"{log.Gear} gear piece{(log.Gear == 1 ? "" : "s")}"));
-            if (log.Essence > 0) items.Add((Icon.Essence, Palette.Hex("#8fd8ff"), $"{log.Essence} essence"));
-            if (log.Tome > 0) items.Add((Icon.Tome, Palette.Gold, $"{log.Tome} Skill Tome{(log.Tome == 1 ? "" : "s")}"));
+            // The same item pictures as the top bar and results (Icons.Currency).
+            var items = new List<(Icon icon, int cur, Color c, string text)> { (Icon.Coin, (int)Icons.Cur.Gold, Palette.Gold, $"{Ui.Fmt(log.Gold)} gold") };
+            if (log.Xp > 0) items.Add((Icon.Star, -1, Palette.Blue, $"{Ui.Fmt(log.Xp)} XP each"));
+            if (log.Common > 0) items.Add((Icon.Shard, (int)Icons.Cur.WornShard, Palette.Hex("#c9a37b"), $"{log.Common} {ShardName(Shard.Common, log.Common)}"));
+            if (log.Mystic > 0) items.Add((Icon.Shard, (int)Icons.Cur.MysticShard, Palette.Blue, $"{log.Mystic} {ShardName(Shard.Mystic, log.Mystic)}"));
+            if (log.Radiant > 0) items.Add((Icon.Shard, (int)Icons.Cur.RadiantShard, Palette.Hex("#ffb02e"), $"{log.Radiant} {ShardName(Shard.Radiant, log.Radiant)}"));
+            if (log.Gear > 0) items.Add((Icon.Shield, -1, Palette.GearRarity(3), $"{log.Gear} gear piece{(log.Gear == 1 ? "" : "s")}"));
+            if (log.Essence > 0) items.Add((Icon.Essence, (int)Icons.Cur.Essence, Palette.Hex("#8fd8ff"), $"{log.Essence} essence"));
+            if (log.Tome > 0) items.Add((Icon.Tome, (int)Icons.Cur.Tome, Palette.Gold, $"{log.Tome} {TomeName(log.Tome)}"));
             int cols = 2; float cw = (r.width - 20) / cols, rh = 24;
             for (int i = 0; i < items.Count; i++)
             {
                 float ix = r.x + 10 + (i % cols) * cw, iy = y + (i / cols) * rh;
-                Icons.Draw(new Rect(ix + 4, iy + 3, 18, 18), items[i].icon, items[i].c);
+                var ir = new Rect(ix + 4, iy + 3, 18, 18);
+                if (items[i].cur >= 0) Icons.Currency(ir, (Icons.Cur)items[i].cur); else Icons.Draw(ir, items[i].icon, items[i].c);
                 Ui.Text(new Rect(ix + 28, iy, cw - 30, rh), items[i].text, 13, Palette.Text, FontStyle.Bold);
             }
             y += Mathf.Ceil(items.Count / (float)cols) * rh + 6;
             if (log.LevelUps.Count > 0)
                 Ui.Text(new Rect(r.x + 10, y, r.width - 20, 34), "Level ups: " + string.Join(", ", log.LevelUps.Take(6)), 12, Palette.Good, FontStyle.Normal, TextAnchor.UpperCenter, true);
 
-            // Buttons: Edit team, Keep climbing, Close (48 dp).
-            float bh = Mathf.Max(44, Ui.Tap);
+            // Buttons through the shared row (design rule 3): Back to <place> and Edit Team, the Primary (Keep
+            // climbing, or Again after a Replay run) last; they wrap to two rows on a narrow modal.
             void EditTeam()
             {
                 switch (log.Area)
                 {
                     case ClimbArea.Dungeon: End(ScreenId.Dungeon); App.EditDungeonTeam(log.Dungeon, resume?.Floor ?? spec.Floor); break;
-                    case ClimbArea.Arena: End(ScreenId.Heroes); break;
+                    case ClimbArea.Arena:
+                        // Team setup for the arena too (it opened the Heroes list).
+                        End(ScreenId.ArenaPvp);
+                        var rivals = G.CurrentRivals();
+                        if (rivals.Count > 0 && G.S.daily.arenaTries > 0) App.OpenArenaPrep(rivals[Mathf.Clamp(slot, 0, rivals.Count - 1)]);
+                        break;
                     default: End(ScreenId.Campaign); App.EditTeam(resume?.Stage ?? spec.Stage, log.Area == ClimbArea.Hard); break;
                 }
             }
             void Keep() { AutoClimb.SetClimb(G.S.settings, true); App.Save(); App.CloseModal(); _arenaSlot = slot; _climb = null; Begin(resume); }
-            void Close() => End(log.Area == ClimbArea.Arena ? ScreenId.ArenaPvp : log.Area == ClimbArea.Dungeon ? ScreenId.Dungeon : ScreenId.Campaign);
-            if (Ui.Landscape)
-            {
-                float bw = (r.width - 20) / 3, by = r.yMax - bh;
-                if (Ui.Button(new Rect(r.x, by, bw, bh), "Edit team", Ui.Kind.Blue)) { EditTeam(); return; }
-                if (Ui.Button(new Rect(r.x + bw + 10, by, bw, bh), "Keep climbing", Ui.Kind.Primary, 15, resume != null)) { Keep(); return; }
-                if (Ui.Button(new Rect(r.x + 2 * (bw + 10), by, bw, bh), "Close", Ui.Kind.Secondary)) Close();
-            }
-            else
-            {
-                if (Ui.Button(new Rect(r.x, r.yMax - bh * 2 - 10, r.width, bh), "Keep climbing", Ui.Kind.Primary, 15, resume != null)) { Keep(); return; }
-                if (Ui.Button(new Rect(r.x, r.yMax - bh, r.width / 2 - 5, bh), "Edit team", Ui.Kind.Blue)) { EditTeam(); return; }
-                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - bh, r.width / 2 - 5, bh), "Close", Ui.Kind.Secondary)) Close();
-            }
+            var back = log.Area == ClimbArea.Arena ? ScreenId.ArenaPvp : log.Area == ClimbArea.Dungeon ? ScreenId.Dungeon : ScreenId.Campaign;
+            string place = log.Area == ClimbArea.Arena ? "Arena" : log.Area == ClimbArea.Dungeon ? "Dungeons" : "Map";
+            float bh = Mathf.Max(44, Ui.Tap), rowH = Ui.ButtonRowHeight(r.width, 3);
+            var row = new[] { (Words.BackTo(place), UiRole.Secondary, true), (Words.EditTeam, UiRole.Secondary, true), replay ? (Words.Again, UiRole.Primary, true) : ("Keep climbing", UiRole.Primary, resume != null) };
+            int hit = Ui.ButtonRow(new Rect(r.x, r.yMax - rowH, r.width, rowH), row);
+            if (hit == 0) End(back);
+            else if (hit == 1) EditTeam();
+            else if (hit == 2) { if (replay) { App.CloseModal(); Begin(spec); } else Keep(); }
         }
 
         // ---------- the switches on the results screens ----------
-        // An on/off chip on the painted plate: the icon, the word On/Off and a check mark, not only a colour.
+        // An on/off chip: the icon and the word On/Off on the shared ChipOn / Chip plates (ChipOn draws the one
+        // selected mark: rim, underline and check), not only a colour.
         static bool ToggleChip(Rect r, Icon icon, string name, bool on)
         {
             bool hit = Ui.Button(r, "", on ? Ui.Kind.ChipOn : Ui.Kind.Chip);
             float s = Mathf.Min(20, r.height - 20);
             Icons.Draw(new Rect(r.x + 10, r.center.y - s / 2, s, s), icon, on ? Palette.Gold : Palette.Text);
-            Ui.Text(new Rect(r.x + 16 + s, r.y, r.width - s - 46, r.height), $"{name}: {(on ? "On" : "Off")}", 13, on ? Palette.Gold : Palette.Text, FontStyle.Bold);
-            var m = new Rect(r.xMax - 28, r.center.y - 9, 18, 18);
-            if (on) { Ui.Round(m, Palette.Gold, null, 9); Icons.Draw(new Rect(m.x + 3, m.y + 3, 12, 12), Icon.Check, Palette.Hex("#1a1208")); }
-            else Ui.Round(m, new Color(0, 0, 0, 0.3f), Palette.Dim, 9);
+            Ui.Text(new Rect(r.x + 16 + s, r.y, r.width - s - 24, r.height), $"{name}: {(on ? "On" : "Off")}", 13, on ? Palette.Gold : Palette.Text, FontStyle.Bold);
             return hit;
         }
 
-        // Replay (campaign Normal only) and Climb, side by side in `row`; returns the width used.
+        // How many switches the results footer shows: Replay (campaign Normal only) and Climb.
+        int ToggleCount => !CanClimb ? 0 : _spec != null && _spec.Mode == BattleMode.Stage ? 2 : 1;
+        // Replay and Climb, side by side in `row` (Core/UiLayout.ResultsFooter sizes it); returns the width used.
         float ResultToggles(Rect row)
         {
             if (!CanClimb) return 0;
             bool replay = _spec.Mode == BattleMode.Stage;
-            int n = replay ? 2 : 1; float g = 8, w = Mathf.Min(150, (row.width - g * (n - 1)) / n), x = row.x;
+            int n = replay ? 2 : 1; float g = 8, w = UiLayout.ToggleW(Ui.ToBox(row), n), x = row.x;
             if (replay) { if (ToggleChip(new Rect(x, row.y, w, row.height), Icon.Loop, "Replay", G.S.settings.autoReplay)) ToggleAutoReplay(); x += w + g; }
             if (ToggleChip(new Rect(x, row.y, w, row.height), Icon.Climb, "Climb", G.S.settings.autoClimb)) ToggleClimb();
             return n * w + (n - 1) * g;
-        }
-
-        // A results modal with the switch row on top (portrait, and the arena in both orientations).
-        void ResultModal(string title, float height, System.Action<Rect> body, float maxW = App.ModalW)
-        {
-            if (!CanClimb) { App.Modal(title, height, body, maxW); return; }
-            float rowH = Mathf.Max(44, Ui.Tap);
-            App.Modal(title, height + rowH + 10, r =>
-            {
-                ResultToggles(new Rect(r.x, r.y - 4, r.width, rowH));
-                body(new Rect(r.x, r.y + rowH + 6, r.width, r.height - rowH - 6));
-            }, maxW);
         }
 
         // While the countdown runs, the results screen's own buttons give way to the climb's line and a Stop button.
@@ -280,7 +270,7 @@ namespace Sigilbound.Client
             Icons.Draw(new Rect(lr.center.x - Ui.Label(12).CalcSize(new GUIContent(line)).x / 2 - 20, lr.y + 3, 16, 16), Icon.Climb, Palette.Gold);
             Ui.Text(lr, line, 12, Palette.Hex("#e8d9b0"), FontStyle.Bold, TextAnchor.MiddleCenter);
             float bw = Mathf.Min(260, r.width);
-            if (Ui.Button(new Rect(r.center.x - bw / 2, r.yMax - bh, bw, bh), "Stop climbing", Ui.Kind.Red))
+            if (Ui.Button(new Rect(r.center.x - bw / 2, r.yMax - bh, bw, bh), "Stop climbing", Ui.Kind.Danger))
             {
                 AutoClimb.SetClimb(G.S.settings, false); App.Save();
                 StopClimb(ClimbStop.ByPlayer);

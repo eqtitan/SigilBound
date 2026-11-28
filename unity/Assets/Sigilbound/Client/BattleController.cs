@@ -914,42 +914,33 @@ namespace Sigilbound.Client
                 var res = G.CompleteStage(stage); App.Save();
                 App.Online.PushProfile();
                 if (ClimbResult(true, res.Reward, res.Gear != null ? 1 : 0, res.LevelUps)) return; // Auto Climb: the summary, or a countdown on the results
-                string ups = string.Join("\n", res.LevelUps.Select(l => $"{Hero(l.hero.id).ShortName} → Lv {l.hero.level}"));
-                string gear = res.Gear == null ? "" : $"\nFound: {GearRarityNames[res.Gear.rarity]} {res.Gear.Set} {res.Gear.Slot}";
                 bool canNext = stage + 1 < TotalStages && G.S.cleared > stage;
                 bool replay = G.S.settings.autoReplay;
-                // Auto-replay run totals (ui.js autoRecord): a summary when the run ends.
+                // Replay run totals (ui.js autoRecord): a summary when the run ends.
                 if (replay || _auto != null)
                 {
                     _auto ??= new AutoRun();
                     _auto.Record(true, res.Reward, res.Gear != null, res.LevelUps.Select(l => $"{Hero(l.hero.id).ShortName} Lv {l.hero.level}"));
-                    if (!replay) { ShowAutoSummary("auto-replay switched off", stage); return; }
+                    if (!replay) { ShowAutoSummary("switched off", stage); return; }
                 }
-                if (Ui.Landscape && !(replay && _auto != null))
+                // One results screen for every mode and both orientations (UI/UX review #6).
+                var spec = new ResultsSpec { Win = true, Mvp = true, Where = $"Stage {Game.StageLabel(stage)}", Reward = res.Reward, First = res.FirstClear, Ups = UpsOf(res.LevelUps) };
+                if (res.Gear != null) spec.Gear.Add(res.Gear);
+                if (replay && _auto != null)
                 {
-                    App.Modal("VICTORY", ResultsHeight, r => DrawResults(r, true, res.Reward, res.FirstClear,
-                        res.LevelUps.Select(l => (l.hero.uid, l.hero.level)).ToList(), res.Gear, stage, canNext), App.WideModalW);
-                    if (G.S.settings.autoReplay) StartCoroutine(AutoReplay());
-                    return;
+                    // Replay running: the run so far and one way out; the stage starts again after the pause.
+                    spec.Note = $"Next battle in a moment · this run: {_auto.Wins} win{(_auto.Wins == 1 ? "" : "s")}, {Ui.Fmt(_auto.Gold)} gold{(_auto.Gear > 0 ? $", {_auto.Gear} gear" : "")}";
+                    spec.Add("Stop Replay", UiRole.Danger, () => { G.S.settings.autoReplay = false; App.Save(); ShowAutoSummary("stopped", stage); });
                 }
-                ResultModal("VICTORY", 330, r =>
+                else
                 {
-                    if (replay && _auto != null)
-                    {
-                        Ui.Text(new Rect(r.x, r.y + 150, r.width, 40), $"Next battle in a moment…\nThis run: {_auto.Wins} win{(_auto.Wins == 1 ? "" : "s")} · {Ui.Fmt(_auto.Gold)} gold{(_auto.Gear > 0 ? $" · {_auto.Gear} gear" : "")}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                        if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width, 44), "Stop auto-replay", Ui.Kind.Red)) { G.S.settings.autoReplay = false; App.Save(); ShowAutoSummary("stopped", stage); }
-                        Ui.Text(new Rect(r.x, r.y, r.width, 60), res.Reward + $"\n+{Ui.Fmt(res.Reward.Xp)} XP each", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                        Ui.Text(new Rect(r.x, r.y + 64, r.width, 80), ups + gear, 13, Palette.Good, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                        return;
-                    }
-                    Ui.Text(new Rect(r.x, r.y, r.width, 60), res.Reward + $"\n+{Ui.Fmt(res.Reward.Xp)} XP each" + (res.FirstClear ? " · First clear bonus!" : ""), 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                    Ui.Text(new Rect(r.x, r.y + 64, r.width, 90), ups + gear, 13, Palette.Good, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                    if (ClimbBar(r)) return;
-                    float y = r.yMax - 100;
-                    if (canNext && Ui.Button(new Rect(r.x, y, r.width, 44), "Next Stage ▶")) { App.CloseModal(); Begin(Mathf.Min(G.S.cleared, TotalStages - 1)); }
-                    if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Again", Ui.Kind.Secondary)) { App.CloseModal(); Begin(stage); }
-                    if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Map", Ui.Kind.Secondary)) End(ScreenId.Campaign);
-                });
+                    if (canNext) spec.Add(Words.BackTo("Map"), UiRole.Secondary, () => End(ScreenId.Campaign));
+                    spec.Add(Words.EditTeam, UiRole.Secondary, () => { End(ScreenId.Campaign); App.EditTeam(stage); });
+                    spec.Add(Words.Again, UiRole.Secondary, () => { App.CloseModal(); Begin(stage); });
+                    if (canNext) spec.Add(Words.Next + " \u25B6", UiRole.Primary, () => { App.CloseModal(); Begin(Mathf.Min(G.S.cleared, TotalStages - 1)); });
+                    else spec.Add(Words.BackTo("Map"), UiRole.Primary, () => End(ScreenId.Campaign));
+                }
+                ShowResults(Words.Victory, spec);
                 if (G.S.settings.autoReplay) StartCoroutine(AutoReplay());
             }
             else
@@ -957,68 +948,42 @@ namespace Sigilbound.Client
                 G.S.settings.autoReplay = false; App.Save();
                 if (ClimbResult(false, null, 0, null)) return; // a loss ends the climb: its summary
                 if (_auto != null) { _auto.Record(false, null, false, null); ShowAutoSummary("ended by a defeat", _spec.Stage); return; }
-                if (Ui.Landscape) { App.Modal("DEFEAT", ResultsHeight, r => DrawResults(r, false, null, false, null, null, _spec.Stage, false), App.WideModalW); return; }
-                ResultModal("DEFEAT", 250, r =>
-                {
-                    Ui.Text(new Rect(r.x, r.y, r.width, 80), "Level heroes with training, equip and upgrade gear, bring elements that beat the enemy, and summon new heroes.", 13, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                    if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Retry", Ui.Kind.Secondary)) { App.CloseModal(); Begin(_spec.Stage); }
-                    if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Heroes")) End(ScreenId.Heroes);
-                });
+                int stage = _spec.Stage;
+                ShowResults(Words.Defeat, new ResultsSpec { Where = $"Stage {Game.StageLabel(stage)}" }
+                    .Add(Words.BackTo("Map"), UiRole.Secondary, () => End(ScreenId.Campaign))
+                    .Add(Words.EditTeam, UiRole.Secondary, () => { End(ScreenId.Campaign); App.EditTeam(stage); })
+                    .Add(Words.Retry, UiRole.Primary, () => { App.CloseModal(); Begin(stage); }));
             }
         }
 
         AutoRun _auto;
 
-        // Hard campaign result (MODES.hard.finish in extras.js).
+        // Hard campaign result (MODES.hard.finish in extras.js): the campaign's results, Hard's own actions.
         void FinishHard()
         {
             int idx = _spec.Stage;
-            if (_b.Result != BattleResult.Victory && ClimbResult(false, null, 0, null)) return;
-            if (_b.Result != BattleResult.Victory && Ui.Landscape)
-            {
-                // The same results screen as the campaign (UX review #10), with Hard's own actions.
-                ShowResults("DEFEAT", new ResultsSpec { Where = $"Hard {Game.StageLabel(idx)}", LoseText = "Hard stages hit much harder. Level up, upgrade gear and try again." }
-                    .Add("Retry", Ui.Kind.Blue, () => { App.CloseModal(); Begin(BattleSpec.ForHard(idx)); })
-                    .Add("Edit Team", Ui.Kind.Blue, () => { End(ScreenId.Campaign); App.EditTeam(idx, true); })
-                    .Add("Map", Ui.Kind.Primary, () => End(ScreenId.Campaign)));
-                return;
-            }
+            string where = $"Hard {Game.StageLabel(idx)}";
             if (_b.Result != BattleResult.Victory)
             {
-                ResultModal("DEFEAT", 250, r =>
-                {
-                    Ui.Text(new Rect(r.x, r.y, r.width, 80), "Hard stages hit much harder. Level up, upgrade gear and try again.", 13, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                    if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Retry", Ui.Kind.Secondary)) { App.CloseModal(); Begin(BattleSpec.ForHard(idx)); }
-                    if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Map")) End(ScreenId.Campaign);
-                });
+                if (ClimbResult(false, null, 0, null)) return;
+                ShowResults(Words.Defeat, new ResultsSpec { Where = where, LoseText = "Hard stages hit much harder. Level up, upgrade gear and try again." }
+                    .Add(Words.BackTo("Map"), UiRole.Secondary, () => End(ScreenId.Campaign))
+                    .Add(Words.EditTeam, UiRole.Secondary, () => { End(ScreenId.Campaign); App.EditTeam(idx, true); })
+                    .Add(Words.Retry, UiRole.Primary, () => { App.CloseModal(); Begin(BattleSpec.ForHard(idx)); }));
                 return;
             }
             var res = G.CompleteHard(idx); App.Save();
             App.Online.PushProfile();
             if (ClimbResult(true, res.Reward, res.Gear != null ? 1 : 0, res.LevelUps)) return;
-            string ups = string.Join("\n", res.LevelUps.Select(l => $"{Hero(l.hero.id).ShortName} → Lv {l.hero.level}"));
-            string gear = $"\nFound: {GearRarityNames[res.Gear.rarity]} {res.Gear.Set} {res.Gear.Slot}";
-            int next = idx + 1;
-            if (Ui.Landscape)
-            {
-                var spec = new ResultsSpec { Win = true, Mvp = true, Where = $"Hard {Game.StageLabel(idx)}", Reward = res.Reward, First = res.FirstClear, FirstText = "First Hard clear!", Ups = UpsOf(res.LevelUps) };
-                if (res.Gear != null) spec.Gear.Add(res.Gear);
-                spec.Add("Again", Ui.Kind.Blue, () => { App.CloseModal(); Begin(BattleSpec.ForHard(idx)); })
-                    .Add("Edit Team", Ui.Kind.Blue, () => { End(ScreenId.Campaign); App.EditTeam(idx, true); });
-                if (G.HardOpen(next)) spec.Add($"Hard {Game.StageLabel(next)} ▶", Ui.Kind.Primary, () => { App.CloseModal(); Begin(BattleSpec.ForHard(next)); });
-                else spec.Add("Map", Ui.Kind.Primary, () => End(ScreenId.Campaign));
-                ShowResults("HARD CLEARED", spec);
-                return;
-            }
-            ResultModal("HARD CLEARED", 340, r =>
-            {
-                Ui.Text(new Rect(r.x, r.y, r.width, 60), res.Reward + $"\n+{Ui.Fmt(res.Reward.Xp)} XP each" + (res.FirstClear ? " · First Hard clear!" : ""), 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                Ui.Text(new Rect(r.x, r.y + 64, r.width, 90), ups + gear, 13, Palette.Good, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                if (ClimbBar(r)) return;
-                if (G.HardOpen(next) && Ui.Button(new Rect(r.x, r.yMax - 100, r.width, 44), $"Hard {Game.StageLabel(next)} ▶")) { App.CloseModal(); Begin(BattleSpec.ForHard(next)); }
-                if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Again", Ui.Kind.Secondary)) { App.CloseModal(); Begin(BattleSpec.ForHard(idx)); }
-                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Map", Ui.Kind.Secondary)) End(ScreenId.Campaign);
-            });
+            int next = idx + 1; bool canNext = G.HardOpen(next);
+            var spec = new ResultsSpec { Win = true, Mvp = true, Where = where, Reward = res.Reward, First = res.FirstClear, FirstText = "First Hard clear!", Ups = UpsOf(res.LevelUps) };
+            if (res.Gear != null) spec.Gear.Add(res.Gear);
+            if (canNext) spec.Add(Words.BackTo("Map"), UiRole.Secondary, () => End(ScreenId.Campaign));
+            spec.Add(Words.EditTeam, UiRole.Secondary, () => { End(ScreenId.Campaign); App.EditTeam(idx, true); })
+                .Add(Words.Again, UiRole.Secondary, () => { App.CloseModal(); Begin(BattleSpec.ForHard(idx)); });
+            if (canNext) spec.Add(Words.Next + " \u25B6", UiRole.Primary, () => { App.CloseModal(); Begin(BattleSpec.ForHard(next)); });
+            else spec.Add(Words.BackTo("Map"), UiRole.Primary, () => End(ScreenId.Campaign));
+            ShowResults(Words.Victory, spec);
         }
 
         static readonly List<Unit> NoUnits = new List<Unit>();
@@ -1049,128 +1014,81 @@ namespace Sigilbound.Client
                 Icons.Draw(new Rect(r.x + 4, r.y + 4, 13, 13), Icons.ForElement(u.El), Palette.Element(u.El)); // the element's shape, not a coloured dot
                 Icons.Draw(new Rect(r.xMax - 15, r.y + 4, 11, 11), u.Ally ? Icon.Shield : Icon.Skull, u.Ally ? Palette.Hex("#bfe8c8") : Palette.Hex("#ffc0b0"));
                 string nm = u.Titan ? "Titan" : u.Template.ShortName;
-                Ui.Text(new Rect(r.x + 1, r.y + 17, r.width - 2, 18), nm.Length > 7 ? nm.Substring(0, 7) : nm, 10, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
+                Ui.Text(new Rect(r.x + 1, r.y + 17, r.width - 2, 18), nm.Length > 7 ? nm.Substring(0, 7) : nm, 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
             }
         }
 
-        // The whole auto-replay run (battles, wins, losses, gold, XP, shards, gear, level ups).
+        // The whole Replay run (battles, wins, losses, gold, XP, shards, gear, level ups), in the Climb Summary's
+        // layout (UI/UX review #6: "Auto-replay summary" and "Climb Summary" were two different screens).
         void ShowAutoSummary(string why, int stage)
         {
             var run = _auto; _auto = null;
             if (run == null) return;
-            App.Modal("Auto-replay summary", 330, r =>
-            {
-                Ui.Text(new Rect(r.x, r.y, r.width, 20), $"Run {why}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
-                Ui.Text(new Rect(r.x, r.y + 26, r.width, 160), run.Summary(), 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Again", Ui.Kind.Secondary)) { App.CloseModal(); Begin(stage); }
-                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Map")) End(ScreenId.Campaign);
-            });
+            var log = new ClimbLog(ClimbArea.Normal);
+            log.Fights = run.Battles; log.Cleared = run.Wins; log.Lost = run.Losses;
+            log.Gold = run.Gold; log.Xp = run.Xp; log.Common = run.Common; log.Mystic = run.Mystic; log.Radiant = run.Radiant; log.Gear = run.Gear;
+            foreach (var l in run.LevelUps.Distinct()) log.LevelUps.Add(l);
+            log.First = log.Last = $"Stage {Game.StageLabel(stage)}";
+            log.Finish(why.Contains("defeat") ? ClimbStop.Lost : ClimbStop.ByPlayer, log.Last);
+            var spec = BattleSpec.ForStage(stage);
+            float h = Ui.Landscape ? Mathf.Min(Ui.H - 24, 390) : 430;
+            App.Modal("Replay Summary", h, r => DrawClimbSummary(r, log, null, spec, _arenaSlot, true), App.ModalW);
         }
 
         void FinishTitan()
         {
             long dmg = _b.TitanDamage;
-            if (Ui.Landscape)
-            {
-                // The campaign's results layout (UX review #10): damage on the strip, each hero's share below.
-                Reward got = _spec.Practice ? null : G.CompleteTitan(dmg);
-                if (!_spec.Practice) App.Save();
-                var spec = new ResultsSpec { Win = true, Mvp = true, Where = _spec.Practice ? "Titan practice" : "Titan", Headline = $"{Ui.Fmt(dmg)} damage", Reward = got,
-                    LoseText = _spec.Practice ? "Practice: no rewards, no try used" : null, Note = _spec.Practice ? null : $"Titan tries left today: {G.S.daily.titanTries}" };
-                if (_spec.Practice) spec.Add("Again", Ui.Kind.Blue, () => { App.CloseModal(); Begin(BattleSpec.TitanPractice()); });
-                spec.Add("Continue", Ui.Kind.Primary, () => End(ScreenId.Titan));
-                ShowResults(_spec.Practice ? "Titan Practice" : "Titan Battle", spec);
-                return;
-            }
-            if (_spec.Practice)
-            {
-                // Practice: nothing is granted or saved; the daily tries and best are untouched.
-                App.Modal("Titan Practice", 300, r =>
-                {
-                    Ui.Text(new Rect(r.x, r.y, r.width, 40), $"{Ui.Fmt(dmg)} damage", 26, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
-                    Ui.Text(new Rect(r.x, r.y + 44, r.width, 40), "Practice: no rewards, no try used", 14, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter, true);
-                    Ui.Text(new Rect(r.x, r.y + 90, r.width, 70), string.Join("\n", _b.Allies.Select(a => $"{a.Template.ShortName}: {Ui.Fmt(a.DmgDealt)}")), 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                    if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Again", Ui.Kind.Secondary)) { App.CloseModal(); Begin(BattleSpec.TitanPractice()); }
-                    if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Continue")) End(ScreenId.Titan);
-                });
-                return;
-            }
-            var reward = G.CompleteTitan(dmg); App.Save();
-            App.Modal("Titan Battle", 300, r =>
-            {
-                Ui.Text(new Rect(r.x, r.y, r.width, 40), $"{Ui.Fmt(dmg)} damage", 26, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
-                Ui.Text(new Rect(r.x, r.y + 44, r.width, 40), reward.ToString(), 14, Palette.Gold, FontStyle.Normal, TextAnchor.MiddleCenter, true);
-                Ui.Text(new Rect(r.x, r.y + 90, r.width, 70), string.Join("\n", _b.Allies.Select(a => $"{a.Template.ShortName}: {Ui.Fmt(a.DmgDealt)}")), 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width, 44), "Continue")) End(ScreenId.Titan);
-            });
+            // The campaign's results layout (UX review #10): damage on the strip, each hero's share below.
+            Reward got = _spec.Practice ? null : G.CompleteTitan(dmg);
+            if (!_spec.Practice) App.Save();
+            var spec = new ResultsSpec { Win = true, Mvp = true, Where = _spec.Practice ? "Titan practice" : "Titan", Headline = $"{Ui.Fmt(dmg)} damage", Reward = got,
+                LoseText = _spec.Practice ? "Practice: no rewards, no try used" : null, Note = _spec.Practice ? null : $"Titan tries left today: {G.S.daily.titanTries}" };
+            if (_spec.Practice) spec.Add(Words.Again, UiRole.Secondary, () => { App.CloseModal(); Begin(BattleSpec.TitanPractice()); });
+            spec.Add(Words.BackTo("Titan"), UiRole.Primary, () => End(ScreenId.Titan));
+            ShowResults(Words.Cleared, spec);
         }
 
         void FinishDungeon()
         {
             var key = _spec.Dungeon; int floor = _spec.Floor; var D = Trials.Dungeon(key);
             string where = $"{D.Name} · Floor {floor + 1}";
-            if (_b.Result != BattleResult.Victory && ClimbResult(false, null, 0, null)) return;
-            if (_b.Result != BattleResult.Victory && Ui.Landscape)
-            {
-                ShowResults("DEFEAT", new ResultsSpec { Where = where, LoseText = "No run used. Strengthen your team and try again." }
-                    .Add("Retry", Ui.Kind.Blue, () => { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor)); })
-                    .Add("Edit Team", Ui.Kind.Blue, () => { End(ScreenId.Dungeon); App.EditDungeonTeam(key, floor); })
-                    .Add("Back", Ui.Kind.Primary, () => End(ScreenId.Dungeon)));
-                return;
-            }
             if (_b.Result != BattleResult.Victory)
             {
-                ResultModal("DEFEAT", 220, r =>
-                {
-                    Ui.Text(new Rect(r.x, r.y, r.width, 50), "No run used. Strengthen your team and try again.", 13, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                    if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Retry", Ui.Kind.Secondary)) { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor)); }
-                    if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Back")) End(ScreenId.Dungeon);
-                });
+                if (ClimbResult(false, null, 0, null)) return;
+                ShowResults(Words.Defeat, new ResultsSpec { Where = where, LoseText = "No run used. Strengthen your team and try again." }
+                    .Add(Words.BackTo("Dungeons"), UiRole.Secondary, () => End(ScreenId.Dungeon))
+                    .Add(Words.EditTeam, UiRole.Secondary, () => { End(ScreenId.Dungeon); App.EditDungeonTeam(key, floor); })
+                    .Add(Words.Retry, UiRole.Primary, () => { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor)); }));
                 return;
             }
             var res = G.CompleteDungeon(key, floor); App.Save();
             if (ClimbResult(true, res.Reward, res.Drops.Count, res.LevelUps)) return;
-            string ups = string.Join("\n", res.LevelUps.Select(l => $"{Hero(l.hero.id).ShortName} → Lv {l.hero.level}"));
-            string drops = string.Join("\n", res.Drops.Select(g => $"Found: {GearRarityNames[g.rarity]} {g.Set} {g.Slot}"));
             bool next = res.RunsLeft > 0 && floor + 1 < Trials.DungeonFloors;
-            if (Ui.Landscape)
-            {
-                var spec = new ResultsSpec { Win = true, Mvp = true, Where = where, Reward = res.Reward, First = res.First, Ups = UpsOf(res.LevelUps),
-                    Note = $"{D.Name}: {res.RunsLeft} run{(res.RunsLeft == 1 ? "" : "s")} left today" };
-                spec.Gear.AddRange(res.Drops);
-                if (res.RunsLeft > 0) spec.Add("Again", Ui.Kind.Blue, () => { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor)); });
-                spec.Add("Back", next ? Ui.Kind.Blue : Ui.Kind.Primary, () => End(ScreenId.Dungeon));
-                if (next) spec.Add($"Floor {floor + 2} ▶", Ui.Kind.Primary, () => { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor + 1)); });
-                ShowResults($"FLOOR {floor + 1} CLEARED", spec);
-                return;
-            }
-            ResultModal($"FLOOR {floor + 1} CLEARED", 360, r =>
-            {
-                Ui.Text(new Rect(r.x, r.y, r.width, 60), res.Reward + (res.Reward.Xp > 0 ? $"\n+{Ui.Fmt(res.Reward.Xp)} XP each" : "") + (res.First ? "\nFirst clear bonus!" : ""), 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                Ui.Text(new Rect(r.x, r.y + 64, r.width, 80), (ups + "\n" + drops).Trim(), 13, Palette.Good, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                Ui.Text(new Rect(r.x, r.yMax - 128, r.width, 22), $"{D.Name}: {res.RunsLeft} run{(res.RunsLeft == 1 ? "" : "s")} left today", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
-                if (ClimbBar(r)) return;
-                if (next && Ui.Button(new Rect(r.x, r.yMax - 100, r.width, 44), $"Floor {floor + 2} ▶")) { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor + 1)); }
-                if (res.RunsLeft > 0 && Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Again", Ui.Kind.Secondary)) { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor)); }
-                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Back", Ui.Kind.Secondary)) End(ScreenId.Dungeon);
-            });
+            var spec = new ResultsSpec { Win = true, Mvp = true, Where = where, Reward = res.Reward, First = res.First, Ups = UpsOf(res.LevelUps),
+                Note = $"{D.Name}: {res.RunsLeft} run{(res.RunsLeft == 1 ? "" : "s")} left today" };
+            spec.Gear.AddRange(res.Drops);
+            if (next) spec.Add(Words.BackTo("Dungeons"), UiRole.Secondary, () => End(ScreenId.Dungeon));
+            spec.Add(Words.EditTeam, UiRole.Secondary, () => { End(ScreenId.Dungeon); App.EditDungeonTeam(key, floor); });
+            if (res.RunsLeft > 0) spec.Add(Words.Again, UiRole.Secondary, () => { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor)); });
+            if (next) spec.Add(Words.Next + " \u25B6", UiRole.Primary, () => { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor + 1)); });
+            else spec.Add(Words.BackTo("Dungeons"), UiRole.Primary, () => End(ScreenId.Dungeon));
+            ShowResults(Words.Cleared, spec);
         }
 
+        // The arena uses the same results screen as every other fight (it had the old narrow pop-up in both
+        // orientations): the points on the strip, the rank change and fights left as the note.
         void FinishArena()
         {
             var rv = _spec.Rival;
             var res = G.CompleteArena(rv, _b.Result == BattleResult.Victory); App.Save();
             if (ClimbResult(res.Win, res.Reward, 0, null)) return;
-            ResultModal(res.Win ? "VICTORY" : "DEFEAT", 290, r =>
-            {
-                Ui.Text(new Rect(r.x, r.y, r.width, 50), $"vs {rv.Name}\n{Ui.ColorTag((res.Delta > 0 ? "+" : "") + res.Delta, res.Win ? Palette.Good : Palette.Bad)} points → {res.Points}", 15, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                float y = r.y + 56;
-                if (res.After.Name != res.Before.Name) { Ui.Text(new Rect(r.x, y, r.width, 26), $"{res.After.Name} rank{(res.Win ? " reached!" : "")}", 17, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter); y += 28; }
-                if (res.Win) { Ui.Text(new Rect(r.x, y, r.width, 22), res.Reward.ToString(), 13, Palette.Gold, FontStyle.Normal, TextAnchor.MiddleCenter); y += 24; }
-                Ui.Text(new Rect(r.x, y, r.width, 22), $"Fights left today: {G.S.daily.arenaTries}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
-                if (ClimbBar(r)) return;
-                if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width, 44), "Continue")) End(ScreenId.ArenaPvp);
-            });
+            string rank = res.After.Name != res.Before.Name ? $"{res.After.Name} rank{(res.Win ? " reached!" : "")} · " : "";
+            var spec = new ResultsSpec { Win = res.Win, Mvp = res.Win, Where = $"Arena · vs {rv.Name}", Reward = res.Win ? res.Reward : null,
+                Headline = $"{(res.Delta > 0 ? "+" : "")}{res.Delta} points ({res.Points})", LoseText = res.Win ? null : "A loss costs points. Strengthen your team or pick an easier rival.",
+                Note = $"{rank}Fights left today: {G.S.daily.arenaTries}" };
+            spec.Add(Words.EditTeam, UiRole.Secondary, () => { End(ScreenId.ArenaPvp); var again = G.CurrentRivals().FirstOrDefault(x => x.Name == rv.Name); if (again != null && G.S.daily.arenaTries > 0) App.OpenArenaPrep(again); });
+            spec.Add(Words.BackTo("Arena"), UiRole.Primary, () => End(ScreenId.ArenaPvp));
+            ShowResults(res.Win ? Words.Victory : Words.Defeat, spec);
         }
 
         IEnumerator AutoReplay()
@@ -1187,7 +1105,7 @@ namespace Sigilbound.Client
             {
                 Ui.Text(new Rect(r.x, r.y, r.width, 50), why, 14, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
                 if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Stay", Ui.Kind.Secondary)) App.CloseModal();
-                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Retreat", Ui.Kind.Red))
+                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Retreat", Ui.Kind.Danger))
                 {
                     App.CloseModal();
                     // Leaving a climb after its first fight stops it (stopped by you) and shows its summary; an arena
@@ -1238,20 +1156,19 @@ namespace Sigilbound.Client
                 BattleMode.Hard => $"Hard {Game.StageLabel(_spec.Stage)} · Wave {_b.Wave + 1}/{_b.Waves.Count}",
                 _ => $"Stage {Game.StageLabel(_spec.Stage)} · Wave {_b.Wave + 1}/{_b.Waves.Count}",
             };
-            float bx = right - bs;
-            if (RoundButton(new Rect(bx, top, bs, bs), _paused ? Icon.Play : Icon.Pause, _paused ? "Resume" : "Pause", _paused)) TogglePause();
-            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Speed, $"{G.S.settings.speed}x", G.S.settings.speed > 1)) { G.S.settings.speed = G.S.settings.speed >= 3 ? 1 : G.S.settings.speed + 1; if (!_paused) Time.timeScale = _finished ? 1 : G.S.settings.speed; App.Save(); }
-            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Auto, "Auto", Auto)) ToggleAuto();
-            HudAutoSpeed = new Rect(bx, top, bs * 2 + bg, bs);
-            if (_spec.Mode == BattleMode.Stage) { bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Loop, "Replay", G.S.settings.autoReplay)) ToggleAutoReplay(); }
-            if (CanClimb) { bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Climb, "Climb", Climbing)) ToggleClimb(); } // Auto Climb (PLAN step 112)
-            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Camera, "View", false)) CycleCamera();
-            Ui.Text(new Rect(left + 4, top + bs + 2, right - left - 8, 20), info, 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
-            float barY = top + bs + 24;
+            // The same buttons in the same order as landscape (HudOrder); the ones that don't fit beside Leave
+            // wrap to a second row under them, right-aligned (Status moved to the bottom before: UI/UX review #9).
+            var (rows, lastRowX) = DrawHudButtons(right, top, left + bs + bg, bs, bg);
+            float infoY = top + bs + 2;
+            if (rows > 1) infoY = top + rows * (bs + bg) - bg + 2;
+            Ui.Text(new Rect(left + 4, infoY, right - left - 8, 20), info, 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+            float barY = infoY + 22;
+            if (rows > 1) GUI.DrawTexture(new Rect(0, top + bs + 24, Ui.W, barY - top - bs - 24), Ui.Solid(new Color(0.06f, 0.05f, 0.08f, 0.55f)));
             DrawTurnBar(barY);
             RoundPill(8, barY + 48, false);
 
             // unit bars + tap targets
+            float barTop = safe.yMax - 92;
             bool manual = _awaiting && _actor != null && _actor.Ally && !Auto && !_paused;
             var targets = manual ? _b.AffectedBy(_actor, _sel) : NoUnits;
             foreach (var kv in _views)
@@ -1263,7 +1180,9 @@ namespace Sigilbound.Client
                 Vector3 sp = cam.WorldToScreenPoint(u.Titan ? TitanTagPoint(v) // the Titan's tag sits above its horn tips
                     : v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
                 if (sp.z < 0) continue;
-                float x = Mathf.Clamp(sp.x / Ui.Scale, 46, Ui.W - 46), y = Mathf.Max(barY + 104, (Screen.height - sp.y) / Ui.Scale); // tags stay on screen, below the turn bar and round pill
+                // Tags stay on screen, below the turn bar and round pill, and above the turn banner (its WEAK/RESIST
+                // badge and status icons ran into "Ysolde's turn": UI/UX review #9).
+                float x = Mathf.Clamp(sp.x / Ui.Scale, 46, Ui.W - 46), y = Mathf.Min(Mathf.Max(barY + 104, (Screen.height - sp.y) / Ui.Scale), barTop - 96);
                 float w = u.Titan ? 140 : 76;
                 Icons.Draw(new Rect(x - w / 2 - 10, y - 29, 13, 13), Icons.ForElement(u.El), Palette.Element(u.El));
                 Ui.Text(new Rect(x - w / 2 + 4, y - 30, w + 6, 16), u.Ally ? u.Template.ShortName : u.Name, 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
@@ -1293,29 +1212,66 @@ namespace Sigilbound.Client
             }
 
             // banner + skill bar
-            float barTop = safe.yMax - 92;
             string banner = _paused ? "Paused" : !string.IsNullOrEmpty(_banner) ? _banner : manual ? $"{_actor.Template.ShortName}'s turn" : "";
             Ui.Text(new Rect(0, barTop - 64, Ui.W, 30), banner, 19, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
             if (manual) Ui.Text(new Rect(16, barTop - 36, Ui.W - bs - 30, 32), SkillText.Describe(_actor.Template.Skills[_sel]), 11, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
-            // The status legend on your own turn too (UX review #5: tapping the icons does nothing then).
-            if (RoundButton(new Rect(right - bs, barTop - bs - 8, bs, bs), Icon.Info, "Status", false) && !App.ModalOpen) StatusIcons.ShowLegend(App);
             GUI.DrawTexture(new Rect(0, barTop, Ui.W, Ui.H - barTop), Ui.Solid(new Color(0, 0, 0, 0.6f)));
             Ui.GoldRule(new Rect(0, barTop, Ui.W, 1));
             if (manual)
             {
-                var sks = _actor.Template.Skills;
+                // The landscape disc's content on a plate (UI/UX review #9: the portrait buttons were text plates with
+                // an unreadable target line): the target icon, the short name, and the target or "N turns" in a
+                // readable colour.
+                var sks = _actor.Template.Skills; var names = ShortNames(_actor.Template);
                 float w = (Ui.W - 20 - (sks.Length - 1) * 8) / sks.Length;
                 for (int i = 0; i < sks.Length; i++)
                 {
-                    int cd = _actor.Cds[i];
-                    string sub = sks[i].Target switch { Target.Enemy => "Single", Target.AllEnemies => "All foes", Target.Ally => "Ally", Target.AllAllies => "All allies", _ => "Self" };
-                    string label = $"{sks[i].Name}\n{Ui.ColorTag(cd > 0 ? $"ready in {cd}" : sub, cd > 0 ? Palette.Bad : Palette.Dim)}";
+                    int cd = _actor.Cds[i]; bool sel = _sel == i;
+                    var b = new Rect(10 + i * (w + 8), barTop + 10, w, 70);
                     if (i == 0) HudSkills = new Rect(10, barTop + 10, Ui.W - 20, 70);
-                    if (Ui.Button(new Rect(10 + i * (w + 8), barTop + 10, w, 70), label, _sel == i ? Ui.Kind.ChipOn : Ui.Kind.Secondary, 13, cd == 0)) _sel = i;
+                    if (Ui.Button(b, "", sel ? Ui.Kind.ChipOn : Ui.Kind.Secondary, 13, cd == 0)) _sel = i;
+                    Icons.Draw(new Rect(b.x + 10, b.y + 10, 22, 22), SkillIcon(sks[i].Target), cd > 0 ? Ui.DisabledText : sel ? Palette.Gold : Palette.Text);
+                    Ui.Text(new Rect(b.x + 36, b.y + 6, b.width - 44, 30), names[i], 13, cd > 0 ? Ui.DisabledText : sel ? Palette.Gold : Palette.Text, FontStyle.Bold);
+                    Ui.Text(new Rect(b.x + 6, b.y + 38, b.width - 12, 24), cd > 0 ? CooldownText(cd) : TargetWord(sks[i].Target), 12, cd > 0 ? Palette.Hex("#ffb0a4") : Palette.Hex("#e0d6c4"), FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
             }
             else Ui.Text(new Rect(0, barTop, Ui.W, 90), Auto ? "Auto battle" : _actor != null && !_actor.Ally ? "Enemy turn…" : "", 13, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
         }
+
+        // ---------- the corner buttons, one list for both orientations (design rule 8) ----------
+        enum HudBtn { Pause, Speed, Auto, Climb, Replay, View, Status }
+        // Right to left. Climb shows where Auto Climb can run, Replay on campaign stages.
+        static readonly HudBtn[] HudOrder = { HudBtn.Pause, HudBtn.Speed, HudBtn.Auto, HudBtn.Climb, HudBtn.Replay, HudBtn.View, HudBtn.Status };
+        // Draws them from `right` leftward; a button that would cross minX starts a new row under the first.
+        // Returns the rows used and the x where the last row ended.
+        (int rows, float lastX) DrawHudButtons(float right, float top, float minX, float bs, float bg)
+        {
+            float bx = right - bs, y = top; int rows = 1;
+            foreach (var hb in HudOrder)
+            {
+                if (hb == HudBtn.Climb && !CanClimb) continue;
+                if (hb == HudBtn.Replay && _spec.Mode != BattleMode.Stage) continue;
+                if (bx < minX) { bx = right - bs; y += bs + bg; rows++; }
+                var r = new Rect(bx, y, bs, bs);
+                switch (hb)
+                {
+                    case HudBtn.Pause: if (RoundButton(r, _paused ? Icon.Play : Icon.Pause, _paused ? "Resume" : "Pause", _paused)) TogglePause(); break;
+                    case HudBtn.Speed: if (RoundButton(r, Icon.Speed, $"{G.S.settings.speed}x", G.S.settings.speed > 1)) { G.S.settings.speed = G.S.settings.speed >= 3 ? 1 : G.S.settings.speed + 1; if (!_paused) Time.timeScale = _finished ? 1 : G.S.settings.speed; App.Save(); } break;
+                    case HudBtn.Auto: if (RoundButton(r, Icon.Auto, "Auto", Auto)) ToggleAuto(); HudAutoSpeed = new Rect(bx, y, bs * 2 + bg, bs); break;
+                    case HudBtn.Climb: if (RoundButton(r, Icon.Climb, Words.Climb, Climbing)) ToggleClimb(); break; // Auto Climb (PLAN step 112)
+                    case HudBtn.Replay: if (RoundButton(r, Icon.Loop, Words.Replay, G.S.settings.autoReplay)) ToggleAutoReplay(); break;
+                    case HudBtn.View: if (RoundButton(r, Icon.Camera, Words.View, false)) CycleCamera(); break;
+                    // The status legend on any turn, your own included (UX review #5/#9).
+                    case HudBtn.Status: if (RoundButton(r, Icon.Info, "Status", false) && !App.ModalOpen) StatusIcons.ShowLegend(App); break;
+                }
+                bx -= bs + bg;
+            }
+            return (rows, bx + bs);
+        }
+        // Skill buttons read the same in both orientations: the target's icon and word, and "N turns" while cooling down.
+        static Icon SkillIcon(Target t) => t switch { Target.Enemy => Icon.Sword, Target.AllEnemies => Icon.Bolt, Target.Ally => Icon.Heart, Target.AllAllies => Icon.Shield, _ => Icon.Star };
+        static string TargetWord(Target t) => t switch { Target.Enemy => "Single", Target.AllEnemies => "All foes", Target.Ally => "Ally", Target.AllAllies => "All allies", _ => "Self" };
+        static string CooldownText(int cd) => cd == 1 ? "1 turn" : $"{cd} turns";
 
         // ---------- landscape battle HUD (docs/sigilbound/PLAN.md step 10) ----------
         float _t0; bool _paused;
@@ -1325,7 +1281,7 @@ namespace Sigilbound.Client
         {
             bool climbing = _climbPending;
             AutoClimb.SetReplay(G.S.settings, !G.S.settings.autoReplay); App.Save(); // Replay on turns Auto Climb off
-            App.Toast(G.S.settings.autoReplay ? "Auto-replay on: the stage starts again after each win" : "Auto-replay off");
+            App.Toast(G.S.settings.autoReplay ? "Replay on: the stage starts again after each win" : "Replay off");
             if (climbing && G.S.settings.autoReplay) { StopClimb(ClimbStop.ByPlayer); return; }
             // On at a campaign victory screen: the stage starts again after the usual pause.
             if (G.S.settings.autoReplay && _finished && _b != null && _b.Result == BattleResult.Victory && _spec.Mode == BattleMode.Stage) StartCoroutine(AutoReplay());
@@ -1336,16 +1292,6 @@ namespace Sigilbound.Client
         {
             if (Climbing) { App.Toast("Auto stays on while Auto Climb is on"); return; }
             G.S.settings.auto = !G.S.settings.auto; App.Save();
-        }
-
-        // A portrait switch: icon and name on the painted chip; "on" also shows a gold check badge, not only a colour.
-        static bool HudChip(Rect r, Icon icon, string name, bool on)
-        {
-            bool hit = Ui.Button(r, "", on ? Ui.Kind.ChipOn : Ui.Kind.Chip);
-            Icons.Draw(new Rect(r.x + 7, r.center.y - 8, 16, 16), icon, on ? Palette.Gold : Palette.Text);
-            Ui.Text(new Rect(r.x + 26, r.y, r.width - 28, r.height), name, 12, on ? Palette.Gold : Palette.Text, FontStyle.Bold);
-            if (on) { Ui.Round(new Rect(r.xMax - 14, r.y + 2, 12, 12), Palette.Gold, null, 6); Icons.Draw(new Rect(r.xMax - 12, r.y + 4, 8, 8), Icon.Check, Palette.Hex("#1a1208")); }
-            return hit;
         }
 
         void TogglePause()
@@ -1403,25 +1349,17 @@ namespace Sigilbound.Client
             };
             string round = _spec.Mode == BattleMode.Titan ? $"{Ui.Fmt(_b.TitanDamage)} damage" : _spec.Mode == BattleMode.Arena ? "" : $"Wave {_b.Wave + 1} of {_b.Waves.Count}";
             int secs = Mathf.FloorToInt(Time.unscaledTime - _t0);
-            var info = new Rect(left + bs + bg, top + (bs - 40) / 2, 300, 40);
-            Ui.Round(new Rect(info.x - 4, info.y, 246, 40), new Color(0.06f, 0.05f, 0.08f, 0.72f), null, 10);
-            Ui.Text(new Rect(info.x + 6, info.y + 1, 236, 20), where, 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+            float infoW = Ui.Compact ? 170 : 246; // narrower on 4:3 tablets, so the corner buttons keep one row
+            var info = new Rect(left + bs + bg, top + (bs - 40) / 2, infoW + 54, 40);
+            Ui.Round(new Rect(info.x - 4, info.y, infoW, 40), new Color(0.06f, 0.05f, 0.08f, 0.72f), null, 10);
+            Ui.Text(new Rect(info.x + 6, info.y + 1, infoW - 10, 20), where, 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
             Icons.Draw(new Rect(info.x + 6, info.y + 23, 12, 12), Icon.Clock, Palette.Dim);
-            Ui.Text(new Rect(info.x + 22, info.y + 20, 216, 18), $"{secs / 60}:{secs % 60:00}{(round.Length > 0 ? "   " + round : "")}", 12, Palette.Hex("#d0c4ae"));
+            Ui.Text(new Rect(info.x + 22, info.y + 20, infoW - 30, 18), $"{secs / 60}:{secs % 60:00}{(round.Length > 0 ? "   " + round : "")}", 12, Palette.Hex("#d0c4ae"));
             // Centred under the turn-order bar (beside the info box it ran under the turn chips).
             RoundPill(Ui.W / 2, top + 82 + dy, true, true);
 
-            // ---- top-right: camera, loop, auto, speed, pause ----
-            float bx = right - bs;
-            if (RoundButton(new Rect(bx, top, bs, bs), _paused ? Icon.Play : Icon.Pause, _paused ? "Resume" : "Pause", _paused)) TogglePause();
-            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Speed, $"{G.S.settings.speed}x", G.S.settings.speed > 1)) { G.S.settings.speed = G.S.settings.speed >= 3 ? 1 : G.S.settings.speed + 1; if (!_paused) Time.timeScale = _finished ? 1 : G.S.settings.speed; App.Save(); }
-            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Auto, "Auto", Auto)) ToggleAuto();
-            HudAutoSpeed = new Rect(bx, top, bs * 2 + bg, bs);
-            if (CanClimb) { bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Climb, "Climb", Climbing)) ToggleClimb(); }
-            if (_spec.Mode == BattleMode.Stage) { bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Loop, "Replay", G.S.settings.autoReplay)) ToggleAutoReplay(); }
-            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Camera, "View", false)) CycleCamera();
-            // The status legend on any turn, your own included (UX review #5/#9: it only opened on others' turns).
-            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Info, "Status", false) && !App.ModalOpen) StatusIcons.ShowLegend(App);
+            // ---- top-right: the shared corner buttons (HudOrder), the same order as portrait ----
+            DrawHudButtons(right, top, info.x + infoW + 4, bs, bg);
 
             // ---- turn order, centred under the top row ----
             if (!_b.Over)
@@ -1429,7 +1367,7 @@ namespace Sigilbound.Client
                 if (_turnsFrame != Time.frameCount) { _turnsFrame = Time.frameCount; _turns = _b.PredictTurns(7); }
                 // Chips 28 tall with 11-point names; allies and enemies differ by a shield or skull glyph and by
                 // the frame, not only green against red (UX review #4), and each face carries its element icon.
-                float cw = 88, cg = 4, ch = 28, tw = _turns.Count * (cw + cg) + 40;
+                float cg = 4, ch = 28, cw = Mathf.Min(88, (Ui.W - 40 - 56) / Mathf.Max(1, _turns.Count) - cg), tw = _turns.Count * (cw + cg) + 40; // fits a 640-unit tablet
                 float tx = Ui.W / 2 - tw / 2, ty = top + bs + 6;
                 Ui.Round(new Rect(tx - 4, ty - 2, tw + 8, ch + 4), new Color(0.04f, 0.03f, 0.06f, 0.66f), null, 8);
                 Ui.Text(new Rect(tx, ty, 38, ch), "Next", 11, Palette.Hex("#d0c4ae"), FontStyle.Bold, TextAnchor.MiddleLeft);
@@ -1453,7 +1391,9 @@ namespace Sigilbound.Client
             bool manual = _awaiting && _actor != null && _actor.Ally && !Auto && !_paused;
             var targets = manual ? _b.AffectedBy(_actor, _sel) : NoUnits;
             var tags = _tags; tags.Clear(); // reused lists, no LINQ: this runs every GUI event (performance review #5)
-            float minY = top + 168 + dy; // name tags (30 tall, above minY) stay below the round pill and the skill banner (top + 82..132 + dy), even the Titan's
+            // Name tags (30 tall, above minY) and their WEAK/RESIST badge (22 above the tag) stay below the round pill and
+            // the turn banner (top + 104..132 + dy): the badges crossed "Ysolde's turn" (UI/UX review #9).
+            float minY = top + 192 + dy;
             foreach (var kv in _views)
             {
                 var u = kv.Key; var v = kv.Value;
@@ -1487,7 +1427,7 @@ namespace Sigilbound.Client
                 Ui.Text(new Rect(r.x + 15, r.y - 3, r.width + 30, 16), u.Ally ? u.Template.ShortName : u.Name, 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
                 var badge = new Rect(r.x, r.y + 13, 22, 16);
                 Ui.Round(badge, u.Ally ? Palette.Hex("#1f3326") : Palette.Hex("#3a1c1c"), Palette.Element(u.El), 4);
-                Ui.Text(badge, NumText.Of(u.Level), 10, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+                Ui.Text(badge, NumText.Of(u.Level), 11, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
                 var bar = new Rect(r.x + 24, r.y + 14, r.width - 24, 8);
                 Ui.Bar(bar, u.Titan ? (float)TitanSpec.Health(_titanShown) : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
                 var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 3), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
@@ -1539,7 +1479,7 @@ namespace Sigilbound.Client
                     var b = new Rect(x0 + i * (d + g), bottom - d, d, d);
                     bool sel = _sel == i;
                     Ui.Round(b, sel ? Palette.Hex("#3d3020") : Palette.Hex("#1d1726"), sel ? Palette.Gold : cd > 0 ? Palette.Bronze : Palette.Trim, Mathf.RoundToInt(d / 2));
-                    var ic = sks[i].Target switch { Target.Enemy => Icon.Sword, Target.AllEnemies => Icon.Bolt, Target.Ally => Icon.Heart, Target.AllAllies => Icon.Shield, _ => Icon.Star };
+                    var ic = SkillIcon(sks[i].Target);
                     Icons.Draw(new Rect(b.x + d * 0.27f, b.y + d * 0.16f, d * 0.46f, d * 0.46f), ic, cd > 0 ? Palette.Dim : sel ? Palette.Gold : Palette.Text);
                     // The skill's (short) name, not "A1" (UX review #5); the full name and text are in the box beside.
                     Ui.Text(new Rect(b.x - 10, b.yMax - d * 0.38f, d + 20, d * 0.32f), names[i], 11, sel ? Palette.Gold : Palette.Hex("#d0c4ae"), FontStyle.Bold, TextAnchor.MiddleCenter);
@@ -1547,7 +1487,7 @@ namespace Sigilbound.Client
                     {
                         Ui.Round(b, new Color(0, 0, 0, 0.55f), null, Mathf.RoundToInt(d / 2));
                         Ui.Text(new Rect(b.x, b.y + d * 0.1f, d, d * 0.36f), cd.ToString(), 20, Palette.Hex("#ff8a7a"), FontStyle.Bold, TextAnchor.MiddleCenter);
-                        Ui.Text(new Rect(b.x, b.y + d * 0.42f, d, d * 0.2f), cd == 1 ? "turn" : "turns", 10, Palette.Hex("#ffb0a4"), FontStyle.Bold, TextAnchor.MiddleCenter);
+                        Ui.Text(new Rect(b.x - 4, b.y + d * 0.42f, d + 8, d * 0.22f), cd == 1 ? "turn" : "turns", 11, Palette.Hex("#ffb0a4"), FontStyle.Bold, TextAnchor.MiddleCenter); // "N turns", as in portrait
                     }
                     else if (Ui.Button(b, "", Ui.Kind.Ghost)) _sel = i;
                 }
@@ -1573,23 +1513,22 @@ namespace Sigilbound.Client
             public string Headline;               // big text on the rewards strip (the Titan's damage)
             public string Note;                   // a line above the buttons ("2 runs left today")
             public string LoseText = "No rewards this time. Level and gear up your heroes, bring elements that beat these foes, or summon new heroes.";
-            public readonly List<(string label, Ui.Kind kind, System.Action go)> Buttons = new List<(string, Ui.Kind, System.Action)>();
-            public ResultsSpec Add(string label, Ui.Kind kind, System.Action go) { Buttons.Add((label, kind, go)); return this; }
+            // The buttons by role (design rule 3); drawn through Ui.ButtonRow, so the Primary is always last (right).
+            public readonly List<(string label, UiRole role, System.Action go)> Buttons = new List<(string, UiRole, System.Action)>();
+            public ResultsSpec Add(string label, UiRole role, System.Action go) { Buttons.Add((label, role, go)); return this; }
         }
         static List<(int uid, int level)> UpsOf(List<(HeroSave hero, int levels)> l) => l?.Select(x => (x.hero.uid, x.hero.level)).ToList();
-        void ShowResults(string title, ResultsSpec spec) => App.Modal(title, ResultsHeight + (spec.Note != null ? 18 : 0), r => DrawResults(r, spec), App.WideModalW);
-
-        // Campaign results (the original step 11 screen), now built from a ResultsSpec.
-        void DrawResults(Rect r, bool win, Reward reward, bool first, List<(int uid, int level)> ups, GearSave gear, int stage, bool canNext)
+        // Every battle finish, every mode, both orientations (design rule 7): one ResultsSpec, one renderer. The
+        // height grows when the footer stacks (the switches over the buttons on narrow screens).
+        void ShowResults(string title, ResultsSpec spec)
         {
-            var spec = new ResultsSpec { Win = win, Mvp = win, Where = $"Stage {Game.StageLabel(stage)}", Reward = reward, First = first, Ups = ups };
-            if (gear != null) spec.Gear.Add(gear);
-            spec.Add(win ? "Again" : "Retry", Ui.Kind.Blue, () => { App.CloseModal(); Begin(stage); });
-            spec.Add("Edit Team", Ui.Kind.Blue, () => { End(ScreenId.Campaign); App.EditTeam(stage); });
-            if (win) spec.Add(canNext ? "Next" : "Map", Ui.Kind.Primary, () => { if (canNext) { App.CloseModal(); Begin(Mathf.Min(G.S.cleared, TotalStages - 1)); } else End(ScreenId.Campaign); });
-            else spec.Add("Heroes", Ui.Kind.Primary, () => End(ScreenId.Heroes));
-            DrawResults(r, spec);
+            float w = UiLayout.ModalWidth(Ui.SafeContent().width, App.WideModalW) - 32, tap = Mathf.Max(44, Ui.Tap);
+            var foot = UiLayout.ResultsFooter(new Box(0, 0, w, 400), ToggleCount, spec.Buttons.Count, tap);
+            float extra = foot.Height - tap + (spec.Note != null ? 18 : 0);
+            float h = Ui.Landscape ? Mathf.Min(Ui.H - 24, ResultsHeight + extra) : Mathf.Min(Ui.H - 40, 420 + extra + allyCount * 54);
+            App.Modal(title, h, r => DrawResults(r, spec), App.WideModalW);
         }
+        int allyCount => _b?.Allies.Count ?? 4;
 
         void DrawResults(Rect r, ResultsSpec spec)
         {
@@ -1600,36 +1539,42 @@ namespace Sigilbound.Client
             // Banner line: heroes standing and the battle time (the game has no star rating).
             Ui.Text(new Rect(r.x, r.y - 14, r.width, 20), $"{spec.Where}   ·   {standing}/{allies.Count} heroes standing   ·   {secs / 60}:{secs % 60:00}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
             float y = r.y + 10;
+            bool narrow = r.width < 600; // portrait and narrow windows: hero rows instead of columns
             // Rewards strip.
-            var strip = new Rect(r.x, y, r.width, 46);
+            var strip = new Rect(r.x, y, r.width, narrow ? 48 : 46);
             Ui.Round(strip, new Color(0.1f, 0.08f, 0.14f, 0.9f), Palette.Trim, 10);
             var itemsArea = strip;
             if (spec.Headline != null)
             {
                 // The Titan's damage, large, at the left of the strip; any rewards share the rest.
                 bool alone = reward == null && spec.LoseText == null;
-                float hw = alone ? strip.width - 24 : Mathf.Min(260, strip.width * 0.36f);
+                float hw = alone ? strip.width - 24 : Mathf.Min(260, strip.width * (narrow ? 0.42f : 0.36f));
                 Ui.Text(new Rect(strip.x + 14, strip.y, hw, strip.height), spec.Headline, 20, Palette.Text, FontStyle.Bold, alone ? TextAnchor.MiddleCenter : TextAnchor.MiddleLeft);
                 itemsArea = new Rect(strip.x + hw + 14, strip.y, strip.width - hw - 14, strip.height);
             }
             if (reward != null && (win || spec.Headline != null))
             {
-                var items = new List<(Icon icon, Color c, string text)>();
-                if (reward.Gold > 0) items.Add((Icon.Coin, Palette.Gold, Ui.Fmt(reward.Gold)));
-                if (reward.Xp > 0) items.Add((Icon.Star, Palette.Blue, $"{Ui.Fmt(reward.Xp)} XP each"));
-                if (reward.Common > 0) items.Add((Icon.Shard, Palette.Hex("#c9a37b"), $"{reward.Common} {ShardName(Shard.Common, reward.Common)}"));
-                if (reward.Mystic > 0) items.Add((Icon.Shard, Palette.Blue, $"{reward.Mystic} {ShardName(Shard.Mystic, reward.Mystic)}"));
-                if (reward.Radiant > 0) items.Add((Icon.Shard, Palette.Hex("#ffb02e"), $"{reward.Radiant} {ShardName(Shard.Radiant, reward.Radiant)}"));
-                if (reward.Essence > 0) items.Add((Icon.Essence, Palette.Hex("#8fd8ff"), $"{reward.Essence} essence"));
-                if (reward.Tome > 0) items.Add((Icon.Tome, Palette.Gold, $"{reward.Tome} Skill Tome{(reward.Tome == 1 ? "" : "s")}"));
-                foreach (var gear in spec.Gear) items.Add((Icon.Shield, Palette.GearRarity(gear.rarity), $"{GearRarityNames[gear.rarity]} {gear.Slot}"));
-                if (items.Count == 0) items.Add((Icon.Check, Palette.Dim, "No rewards"));
-                float iw = Mathf.Min(170, (itemsArea.width - 20) / items.Count), ix = itemsArea.center.x - iw * items.Count / 2;
-                foreach (var it in items)
+                // Items: the same pictures as the top bar (Icons.Currency), shard names through ShardName.
+                var items = new List<(Icon icon, int cur, Color c, string text)>();
+                if (reward.Gold > 0) items.Add((Icon.Coin, (int)Icons.Cur.Gold, Palette.Gold, Ui.Fmt(reward.Gold)));
+                if (reward.Xp > 0) items.Add((Icon.Star, -1, Palette.Blue, $"{Ui.Fmt(reward.Xp)} XP each"));
+                if (reward.Common > 0) items.Add((Icon.Shard, (int)Icons.Cur.WornShard, Palette.Hex("#c9a37b"), $"{reward.Common} {ShardName(Shard.Common, reward.Common)}"));
+                if (reward.Mystic > 0) items.Add((Icon.Shard, (int)Icons.Cur.MysticShard, Palette.Blue, $"{reward.Mystic} {ShardName(Shard.Mystic, reward.Mystic)}"));
+                if (reward.Radiant > 0) items.Add((Icon.Shard, (int)Icons.Cur.RadiantShard, Palette.Hex("#ffb02e"), $"{reward.Radiant} {ShardName(Shard.Radiant, reward.Radiant)}"));
+                if (reward.Essence > 0) items.Add((Icon.Essence, (int)Icons.Cur.Essence, Palette.Hex("#8fd8ff"), $"{reward.Essence} essence"));
+                if (reward.Tome > 0) items.Add((Icon.Tome, (int)Icons.Cur.Tome, Palette.Gold, $"{reward.Tome} {TomeName(reward.Tome)}"));
+                foreach (var gear in spec.Gear) items.Add((Icon.Shield, -1, Palette.GearRarity(gear.rarity), $"{GearRarityNames[gear.rarity]} {gear.Slot}"));
+                if (items.Count == 0) items.Add((Icon.Check, -1, Palette.Dim, "No rewards"));
+                // Narrow (portrait): two rows of items in a taller strip.
+                int perRow = narrow ? Mathf.Max(1, Mathf.CeilToInt(items.Count / 2f)) : items.Count;
+                float iw = Mathf.Min(170, (itemsArea.width - 20) / perRow);
+                for (int i = 0; i < items.Count; i++)
                 {
-                    Icons.Draw(new Rect(ix + 6, strip.y + 13, 20, 20), it.icon, it.c);
-                    Ui.Text(new Rect(ix + 30, strip.y, iw - 32, strip.height), it.text, 12, Palette.Text, FontStyle.Bold);
-                    ix += iw;
+                    var it = items[i]; int row = i / perRow, inRow = Mathf.Min(perRow, items.Count - row * perRow);
+                    float ix = itemsArea.center.x - iw * inRow / 2 + (i % perRow) * iw, iy = strip.y + (narrow ? 2 + row * 22 : 0), ih = narrow ? 22 : strip.height;
+                    var ir = new Rect(ix + 6, iy + ih / 2 - 10, 20, 20);
+                    if (it.cur >= 0) Icons.Currency(ir, (Icons.Cur)it.cur); else Icons.Draw(ir, it.icon, it.c);
+                    Ui.Text(new Rect(ix + 30, iy, iw - 32, ih), it.text, 12, Palette.Text, FontStyle.Bold);
                 }
                 if (spec.First) Ui.Text(new Rect(strip.xMax - 180, strip.y - 16, 176, 14), spec.FirstText, 11, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight);
             }
@@ -1637,15 +1582,45 @@ namespace Sigilbound.Client
             else if (spec.LoseText != null) Ui.Text(itemsArea, spec.LoseText, 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter, true);
             y = strip.yMax + 10;
 
+            // The footer: the Replay / Climb switches and the buttons, side by side or stacked (Core/UiLayout).
+            float tap = Mathf.Max(44, Ui.Tap);
+            var foot = UiLayout.ResultsFooter(Ui.ToBox(r), ToggleCount, spec.Buttons.Count, tap);
             // Per-hero columns: damage dealt, damage taken, healing done.
-            float bottomH = 52 + (spec.Note != null ? 22 : 0), colH = r.yMax - bottomH - y;
+            float bottomH = foot.Height + 8 + (spec.Note != null ? 22 : 0), colH = r.yMax - bottomH - y;
             long maxDealt = System.Math.Max(1, allies.Max(u => u.DmgDealt));
             long maxTaken = System.Math.Max(1, allies.Max(u => _taken.TryGetValue(u, out var t) ? t : 0));
             long maxHeal = System.Math.Max(1, allies.Max(u => _healed.TryGetValue(u, out var h) ? h : 0));
             float cw = Mathf.Min(190, (r.width - (allies.Count - 1) * 10) / allies.Count), cx = r.center.x - (cw * allies.Count + 10 * (allies.Count - 1)) / 2;
             // MVP: the hero who dealt the most damage (a win only).
             var mvp = spec.Mvp ? allies.OrderByDescending(u => u.DmgDealt).FirstOrDefault() : null;
-            foreach (var u in allies)
+            if (narrow)
+            {
+                // Portrait: one compact row per hero (face, name, level or level up, the MVP crown, damage bar), so
+                // portrait has the MVP and stats too (UI/UX review #6).
+                float rh = Mathf.Clamp((colH - 6 * (allies.Count - 1)) / Mathf.Max(1, allies.Count), 40, 56), ry = y;
+                foreach (var u in allies)
+                {
+                    var row = new Rect(r.x, ry, r.width, rh); ry += rh + 6;
+                    var rar = Palette.Rarity(u.Template.Rarity);
+                    var up = ups?.FirstOrDefault(l => l.uid == u.HeroUid);
+                    bool levelled = up.HasValue && up.Value.uid != 0;
+                    Ui.Round(row, new Color(0.09f, 0.07f, 0.12f, 0.92f), u == mvp ? Palette.Gold : u.Alive ? rar : Palette.Bronze, 10);
+                    var crest = new Rect(row.x + 6, row.y + 4, rh - 8, rh - 8);
+                    if (!Portraits.Thumb(crest, u.Template.Id, rar)) Ui.ElementBadge(crest, u.El, rar);
+                    if (!u.Alive) { Ui.Round(crest, new Color(0, 0, 0, 0.55f), null, Mathf.RoundToInt(crest.width / 2)); Icons.Draw(new Rect(crest.center.x - 9, crest.center.y - 9, 18, 18), Icon.Skull, Palette.Bad); }
+                    float tx = crest.xMax + 8, tw = row.width * 0.42f;
+                    Ui.Text(new Rect(tx, row.y + 2, tw, rh * 0.5f), u.Template.ShortName + (u == mvp ? "  " + Ui.ColorTag("MVP", Palette.Gold) : ""), 13, u.Alive ? Palette.Text : Palette.Dim, FontStyle.Bold, TextAnchor.LowerLeft);
+                    Ui.Text(new Rect(tx, row.y + rh * 0.5f, tw, rh * 0.5f - 2), levelled ? Ui.ColorTag($"Level up! Lv {up.Value.level}", Palette.Good) : $"Lv {u.Level}", 11, Palette.Hex("#c9b896"), FontStyle.Normal, TextAnchor.UpperLeft);
+                    if (u == mvp) Icons.Draw(new Rect(crest.xMax - 12, crest.y - 4, 14, 14), Icon.Crown, Palette.Gold);
+                    float sx = tx + tw + 6, sw = row.xMax - 10 - sx;
+                    Icons.Draw(new Rect(sx, row.y + 6, 13, 13), Icon.Sword, Palette.Bad);
+                    Ui.Text(new Rect(sx + 16, row.y + 2, sw - 16, 18), Ui.Fmt(u.DmgDealt), 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
+                    Ui.Bar(new Rect(sx, row.y + 22, sw, 5), u.DmgDealt / (float)maxDealt, Palette.Bad);
+                    long hl0 = _healed.TryGetValue(u, out var hv) ? hv : 0;
+                    if (hl0 > 0 && rh >= 46) Ui.Text(new Rect(sx, row.y + 28, sw, 16), $"Healing {Ui.Fmt(hl0)}", 11, Palette.Hex("#c9bda6"), FontStyle.Normal, TextAnchor.MiddleRight);
+                }
+            }
+            else foreach (var u in allies)
             {
                 var col = new Rect(cx, y, cw, colH); cx += cw + 10;
                 var rar = Palette.Rarity(u.Template.Rarity);
@@ -1674,7 +1649,7 @@ namespace Sigilbound.Client
                     var tag = new Rect(col.xMax - 52, col.y - 9, 46, 18);
                     Ui.Round(tag, Palette.Gold, null, 9);
                     Icons.Draw(new Rect(tag.x + 4, tag.y + 3, 12, 12), Icon.Crown, Palette.Hex("#1a1208"));
-                    Ui.Text(new Rect(tag.x + 16, tag.y, 28, 18), "MVP", 10, Palette.Hex("#1a1208"), FontStyle.Bold, TextAnchor.MiddleCenter);
+                    Ui.Text(new Rect(tag.x + 15, tag.y, 31, 18), "MVP", 11, Palette.Hex("#1a1208"), FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
                 // Three labelled stats with bars scaled to the team's best.
                 float by = head.yMax + 10, step = Mathf.Clamp((col.yMax - by - 6) / 3f, 30, 44);
@@ -1694,17 +1669,12 @@ namespace Sigilbound.Client
             // While Auto Climb counts down to the next fight: its line and a Stop button instead of the mode's buttons.
             if (ClimbBar(r)) return;
             // A note (runs left, practice) and the mode's buttons, centred; the Replay / Climb switches at the left.
-            if (spec.Note != null) Ui.Text(new Rect(r.x, r.yMax - 70, r.width, 20), spec.Note, 12, Palette.Hex("#c9bda6"), FontStyle.Normal, TextAnchor.MiddleCenter);
-            int nb = Mathf.Max(1, spec.Buttons.Count);
-            float bh = Mathf.Max(44, Ui.Tap), btnY = r.yMax - bh;
-            float togW = ResultToggles(new Rect(r.x, btnY, Mathf.Min(308, r.width * 0.38f), bh));
-            float ax = togW > 0 ? r.x + togW + 16 : r.x, aw = r.xMax - ax;
-            float bw = Mathf.Min(200, (aw - 10 * (nb - 1)) / nb), bx = ax + aw / 2 - (bw * nb + 10 * (nb - 1)) / 2;
-            foreach (var (label, kind, go) in spec.Buttons)
-            {
-                if (Ui.Button(new Rect(bx, btnY, bw, bh), label, kind)) { go(); break; }
-                bx += bw + 10;
-            }
+            if (spec.Note != null) Ui.Text(new Rect(r.x, r.yMax - foot.Height - 24, r.width, 20), spec.Note, 12, Palette.Hex("#c9bda6"), FontStyle.Normal, TextAnchor.MiddleCenter, true);
+            ResultToggles(Ui.ToRect(foot.Toggles));
+            var row2 = new List<(string, UiRole, bool)>(spec.Buttons.Count);
+            foreach (var b in spec.Buttons) row2.Add((b.label, b.role, true));
+            int hit = Ui.ButtonRow(Ui.ToRect(foot.Buttons), row2);
+            if (hit >= 0) spec.Buttons[hit].go();
         }
     }
 }
