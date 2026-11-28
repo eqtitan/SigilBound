@@ -51,49 +51,112 @@ namespace Sigilbound.Client
         }
 
         // ---------- home ----------
+        // Landscape (UX review #2): the team stands in the middle in 3D, daily login and quests on the left, and
+        // "Continue Campaign" pinned on the right, always visible (the welcome tip points at it). Portrait keeps
+        // the column with the button pinned above the nav.
+        public static Rect HomeCta; // where "Continue Campaign" is (the tutorial points at it)
+        Vector2 _homeLeftScroll;
+
         void DrawHome(Rect area)
         {
             MaybeShowWhatsNew(); // the "What's new" window, once after an update (WhatsNew.cs)
-            float content = 710;
-            _scroll = Scroller.Begin(area, _scroll, content);
+            if (Ui.Landscape) { DrawHomeWide(area); return; }
+            float ctaH = Mathf.Max(56, Ui.Tap + 8);
+            var cta = new Rect(Pad, area.yMax - ctaH - 8, Ui.W - Pad * 2, ctaH);
+            var view = new Rect(area.x, area.y, area.width, cta.y - 6 - area.y);
+            float content = 650;
+            _scroll = Scroller.Begin(view, _scroll, content);
             float y = 8;
             Ui.Heading(new Rect(0, y, Ui.W, 40), "SIGILBOUND", 30, TextAnchor.MiddleCenter); y += 40;
-            Ui.Text(new Rect(0, y, Ui.W, 20), $"Campaign {G.S.cleared}/{TotalStages} · {G.S.heroes.Count} heroes · {G.S.wins} wins", 13, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter); y += 30;
+            Ui.TextOnArt(new Rect(0, y, Ui.W, 22), HomeSubtitle(), 13, Palette.Text); y += 30;
             y += 170; // space where the team stands in 3D
+            LoginCard(Row(ref y, 64));
+            QuestsCard(Row(ref y, QuestsHeight));
+            y = AchievementsCard(y);
+            HomeChips(Row(ref y, Mathf.Max(44, Ui.Tap)));
+            Scroller.End();
+            if (content > view.height + 1) ScrollFade(view, _scroll.y, content);
+            HomeContinue(cta);
+        }
 
-            var r = Row(ref y, 64);
+        void DrawHomeWide(Rect area)
+        {
+            float colW = Mathf.Clamp((area.width - 330) / 2, 236, 330), gap = 12;
+            var left = new Rect(area.x + gap, area.y + 8, colW, area.height - 16);
+            var right = new Rect(area.xMax - gap - colW, area.y + 8, colW, area.height - 16);
+            // Title and stats over the scene, between the columns.
+            var mid = new Rect(left.xMax + 8, area.y + 4, right.x - left.xMax - 16, 40);
+            Ui.Heading(new Rect(mid.x - 40, mid.y, mid.width + 80, 40), "SIGILBOUND", 30, TextAnchor.MiddleCenter);
+            Ui.TextOnArt(new Rect(mid.x, mid.yMax, mid.width, 22), HomeSubtitle(), 13, Palette.Text);
+
+            // Right: the main call to action at the bottom (pinned), the login reward and achievements above it.
+            float ctaH = Mathf.Max(60, Ui.Tap + 10);
+            var cta = new Rect(right.x, right.yMax - ctaH, right.width, ctaH);
+            HomeContinue(cta);
+            float ry = right.y;
+            LoginCard(new Rect(right.x, ry, right.width, 64)); ry += 74;
+            if (cta.y - ry >= 58 + 10) AchievementsCard(new Rect(right.x, ry, right.width, 58));
+
+            // Left: daily quests and the help chips, scrolling if the screen is short.
+            float content = QuestsHeight + 10 + Mathf.Max(44, Ui.Tap) + 8;
+            if (cta.y - ry < 68) content += 68; // achievements move here when the right column is full
+            _homeLeftScroll = Scroller.Begin(left, _homeLeftScroll, content);
+            float y = 0;
+            QuestsCard(new Rect(0, y, left.width, QuestsHeight)); y += QuestsHeight + 10;
+            if (cta.y - ry < 68) { AchievementsCard(new Rect(0, y, left.width, 58)); y += 68; }
+            HomeChips(new Rect(0, y, left.width, Mathf.Max(44, Ui.Tap)));
+            Scroller.End();
+            if (content > left.height + 1) ScrollFade(left, _homeLeftScroll.y, content);
+        }
+
+        string HomeSubtitle() => $"Campaign {G.S.cleared}/{TotalStages} · {G.S.heroes.Count} heroes · {G.S.wins} wins";
+        float QuestsHeight => 40 + DailyQuests.Length * 50;
+
+        void HomeContinue(Rect r)
+        {
+            HomeCta = r;
+            int next = Mathf.Min(G.S.cleared, TotalStages - 1);
+            if (Ui.Button(r, G.S.cleared < TotalStages ? $"Continue Campaign · {Game.StageLabel(next)}" : "Campaign complete! Replay stages", Ui.Kind.Primary, 17))
+                OpenPrep(next, false, ScreenId.Home);
+        }
+
+        void LoginCard(Rect r)
+        {
             Ui.Card(r);
             bool login = G.LoginAvailable;
-            Ui.Text(new Rect(r.x + 14, r.y + 8, 220, 24), $"Daily Login · Day {(G.S.loginDay - (login ? 0 : 1)) % 7 + 1}", 16, Palette.Text, FontStyle.Bold);
-            Ui.Text(new Rect(r.x + 14, r.y + 32, 230, 22), login ? LoginRewards[G.S.loginDay % LoginRewards.Length].ToString() : "Come back tomorrow", 12, Palette.Dim);
-            if (Ui.Button(new Rect(r.xMax - 100, r.y + 14, 86, 36), login ? "Claim" : "Claimed", Ui.Kind.Primary, 14, login))
+            float bw = 92, bh = Mathf.Min(r.height - 8, Mathf.Max(44, Ui.Tap));
+            Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - bw - 24, 24), $"Daily Login · Day {(G.S.loginDay - (login ? 0 : 1)) % 7 + 1}", 16, Palette.Text, FontStyle.Bold);
+            Ui.Text(new Rect(r.x + 14, r.y + 32, r.width - bw - 24, 22), login ? LoginRewards[G.S.loginDay % LoginRewards.Length].ToString() : "Come back tomorrow", 13, Palette.Dim);
+            if (Ui.Button(new Rect(r.xMax - bw - 10, r.center.y - bh / 2, bw, bh), login ? "Claim" : "Claimed", Ui.Kind.Primary, 14, login))
             { var rw = G.ClaimLogin(); Save(); Sound.I?.Play("coin"); Toast("Login reward: " + rw); }
+        }
 
-            float qh = 40 + DailyQuests.Length * 44;
-            r = Row(ref y, qh);
+        void QuestsCard(Rect r)
+        {
             Ui.Card(r);
             Ui.Banner(new Rect(r.center.x - 110, r.y + 6, 220, 26), "Daily Quests", 15);
-            float qy = r.y + 38;
+            float qy = r.y + 40, bw = 78, bh = Mathf.Max(44, Ui.Tap) - 2;
             foreach (var q in DailyQuests)
             {
                 int p = Mathf.Min(q.Goal, G.QuestProgress(q.Id)); bool claimed = G.QuestClaimed(q.Id), done = p >= q.Goal;
-                Ui.Text(new Rect(r.x + 14, qy, 230, 18), q.Name, 13, Palette.Text);
-                Ui.Bar(new Rect(r.x + 14, qy + 20, 220, 5), p / (float)q.Goal, Palette.Gold);
-                Ui.Text(new Rect(r.x + 14, qy + 26, 240, 16), $"{p}/{q.Goal} · {q.Reward}", 11, Palette.Dim);
-                if (Ui.Button(new Rect(r.xMax - 86, qy + 4, 72, 32), claimed ? "Done" : "Claim", Ui.Kind.Primary, 13, done && !claimed))
+                float tw = r.width - bw - 34;
+                Ui.Text(new Rect(r.x + 14, qy, tw, 18), q.Name, 13, Palette.Text);
+                Ui.Bar(new Rect(r.x + 14, qy + 21, Mathf.Min(220, tw), 6), p / (float)q.Goal, Palette.Gold);
+                Ui.Text(new Rect(r.x + 14, qy + 28, tw, 18), $"{p}/{q.Goal} · {q.Reward}", 12, Palette.Dim);
+                // A disabled button names its state ("2/5", "Done") on a readable grey plate.
+                string label = claimed ? "Done" : done ? "Claim" : $"{p}/{q.Goal}";
+                if (Ui.Button(new Rect(r.xMax - bw - 12, qy + 24 - bh / 2, bw, bh), label, Ui.Kind.Primary, 13, done && !claimed))
                 { var rw = G.ClaimQuest(q.Id); if (rw != null) { Save(); Sound.I?.Play("coin"); Toast("Quest complete: " + rw); } }
-                qy += 44;
+                qy += 50;
             }
-            y = AchievementsCard(y);
-            int next = Mathf.Min(G.S.cleared, TotalStages - 1);
-            r = Row(ref y, 52);
-            if (Ui.Button(r, G.S.cleared < TotalStages ? $"Continue Campaign · {Game.StageLabel(next)}" : "Campaign complete! Replay stages", Ui.Kind.Primary, 17))
-                OpenPrep(next, false, ScreenId.Home);
-            r = Row(ref y, 40);
+        }
+
+        void HomeChips(Rect r)
+        {
             float third = (r.width - 10) / 3;
-            if (Ui.Button(new Rect(r.x, r.y, third, 40), "Settings", Ui.Kind.Chip, 13)) OpenSettings();
-            if (Ui.Button(new Rect(r.x + third + 5, r.y, third, 40), "How to play", Ui.Kind.Chip, 13)) ShowHelp();
-            if (Ui.Button(new Rect(r.x + (third + 5) * 2, r.y, third, 40), "Reset save", Ui.Kind.Chip, 13))
+            if (Ui.Button(new Rect(r.x, r.y, third, r.height), "Settings", Ui.Kind.Chip, 13)) OpenSettings();
+            if (Ui.Button(new Rect(r.x + third + 5, r.y, third, r.height), "How to play", Ui.Kind.Chip, 13)) ShowHelp();
+            if (Ui.Button(new Rect(r.x + (third + 5) * 2, r.y, third, r.height), "Reset save", Ui.Kind.Chip, 13))
                 Modal("Reset all progress?", 200, b =>
                 {
                     Ui.Text(new Rect(b.x, b.y, b.width, 50), "This deletes your save on this device. It can't be undone.", 14, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
@@ -101,7 +164,6 @@ namespace Sigilbound.Client
                     if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Reset", Ui.Kind.Red))
                     { Store?.AcceptFresh(); G = new Game(new SaveData()); G.EnsureDaily(); Save(); ClearLineup(); CloseModal(); Go(ScreenId.Intro); }
                 });
-            Scroller.End();
         }
 
         void ShowHelp() => Modal("How to play", 470, b =>
@@ -202,6 +264,7 @@ namespace Sigilbound.Client
                 var r = new Rect(Pad + (i % 2) * (cw + 8), y + (i / 2) * 58, cw, 50);
                 bool inTeam = G.S.team.Contains(h.uid);
                 if (inTeam) Ui.Panel(r, Palette.Hex("#3a2f22"), Palette.Gold, 10); else Ui.SmallCard(r, Palette.Panel2, Palette.Rarity(t.Rarity), 10);
+                Ui.RarityTab(r, t.Rarity, 14); // rarity as a letter too, not only the frame colour (UX review #4)
                 float px = Portraits.Thumb(new Rect(r.x + 6, r.y + 6, 38, 38), t.Id, Palette.Rarity(t.Rarity)) ? 46 : 0; // the face, when there is one
                 Ui.Text(new Rect(r.x + px + 10, r.y + 4, r.width - px - 20, 22), t.ShortName + (inTeam ? $"  #{G.S.team.IndexOf(h.uid) + 1}" : ""), 14, Palette.Text, FontStyle.Bold);
                 Ui.Text(new Rect(r.x + px + 10, r.y + 26, r.width - px - 20, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv{h.level} · {Ui.ColorTag(t.Element.ToString(), Palette.Element(t.Element))}", 12, Palette.Dim);
@@ -245,6 +308,7 @@ namespace Sigilbound.Client
                 Ui.SmallCard(r, Palette.Panel, Palette.Rarity(t.Rarity), 12);
                 Ui.Round(new Rect(r.x + 8, r.y + 10, 6, 34), Palette.Element(t.Element), null, 3);
                 float tx = Portraits.Thumb(new Rect(r.x + 20, r.y + 6, 42, 42), t.Id, Palette.Rarity(t.Rarity)) ? 70 : 22; // painted portrait, when there is one
+                Ui.RarityTab(new Rect(r.x + 20, r.y + 4, tx > 22 ? 48 : 16, 16), t.Rarity, 15); // rarity as a letter too, not only the frame colour (UX review #4)
                 int ti = G.S.team.IndexOf(h.uid);
                 // Team tag above the power on the right, so the name keeps room (the portrait took 48 px).
                 if (ti >= 0) Ui.Text(new Rect(r.xMax - 84, r.y + 6, 74, 20), $"Team {ti + 1}", 12, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight);
@@ -389,7 +453,8 @@ namespace Sigilbound.Client
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;
             Ui.Banner(new Rect(Ui.W / 2 - 130, y + 2, 260, 30), "Summon", 19); y += 38;
-            Ui.Text(Row(ref y, 34), "Shards drop from the campaign, quests, the Titan and daily logins.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
+            { var sr = Row(ref y, 34); Ui.Round(sr, new Color(0.04f, 0.03f, 0.06f, 0.72f), null, 10); // on the altar painting: a dark backing (art review H5)
+              Ui.Text(new Rect(sr.x + 8, sr.y, sr.width - 16, sr.height), "Shards drop from the campaign, quests, the Titan and daily logins.", 12, Palette.Hex("#e0d6c4"), FontStyle.Normal, TextAnchor.MiddleCenter, true); }
             foreach (Shard s in System.Enum.GetValues(typeof(Shard)))
             {
                 var r = Row(ref y, 148);
@@ -402,7 +467,7 @@ namespace Sigilbound.Client
                 Ui.Text(new Rect(r.x + 14, r.y + 34, r.width - 28, 20), rateText, 12, Palette.Text);
                 if (ShardPity(s) > 0) Ui.Text(new Rect(r.x + 14, r.y + 54, r.width - 28, 20), $"Guaranteed Legendary in {G.PityLeft(s)} summons", 12, Palette.Gold);
                 if (Ui.Button(new Rect(r.x + 14, r.y + 88, r.width / 2 - 19, 46), "Summon ×1", Ui.Kind.Primary, 15, G.ShardCount(s) >= 1)) DoSummon(s, 1);
-                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.y + 88, r.width / 2 - 19, 46), "Summon ×10", Ui.Kind.Blue, 15, G.ShardCount(s) >= 10)) DoSummon(s, 10);
+                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.y + 88, r.width / 2 - 19, 46), G.ShardCount(s) >= 10 ? "Summon ×10" : $"×10 · {G.ShardCount(s)}/10", Ui.Kind.Blue, 15, G.ShardCount(s) >= 10)) DoSummon(s, 10); // disabled: says how many you have
             }
             var e = Row(ref y, 110);
             Ui.Panel(e, new Color(0.12f, 0.1f, 0.17f, 0.94f));

@@ -26,7 +26,7 @@ namespace Sigilbound.Client
         {
             if (!Active || app.ModalOpen) return;
             var G = app.G; int heroes = G.S.heroes.Count;
-            Rect Nav(int i) { float w = Ui.W / 6f; return new Rect(i * w, navTop, w, 64); }
+            Rect Nav(int i) => App.NavCell(i, navTop); // the same cells the nav draws
             switch (Step)
             {
                 case 1:
@@ -44,7 +44,10 @@ namespace Sigilbound.Client
                     Coach(app, "Team and levels", "Open a hero to see its skills, level it up and equip gear. Up to four heroes fight as your team.", Rect.zero, true); break;
                 case 5:
                     if (app.Screen == ScreenId.Campaign || app.Screen == ScreenId.Prep || app.Screen == ScreenId.Battle) { Step = 6; break; }
-                    Coach(app, "To battle", "Tap Battle, then the Campaign, and start the first stage.", Nav(1), false); break;
+                    // The same route as the welcome tip: Continue Campaign on Home (or Battle, then Campaign elsewhere).
+                    if (app.Screen == ScreenId.Home && App.HomeCta.width > 0) Coach(app, "To battle", "Press Continue Campaign to start the first stage.", App.HomeCta, false);
+                    else Coach(app, "To battle", "Tap Battle, then the Campaign, and start the first stage.", Nav(1), false);
+                    break;
                 case 6: case 7: case 8: case 9:
                     if (app.Screen == ScreenId.Battle) _sawBattle = true;
                     else if (_sawBattle) { Step = 10; break; }
@@ -64,9 +67,10 @@ namespace Sigilbound.Client
             var safe = Ui.Safe;
             switch (Step)
             {
-                case 6: Coach(app, "Turn order", "The bar at the top shows who acts next. Faster heroes act more often.", new Rect(Ui.W * 0.22f, safe.y + 46, Ui.W * 0.56f, 34), true); break;
-                case 7: Coach(app, "Skills", "On your hero's turn, pick a skill at the bottom, then tap a target. Strong skills need a few turns to recharge.", new Rect(Ui.W * 0.2f, safe.yMax - 110, Ui.W * 0.6f, 100), true); break;
-                case 8: Coach(app, "Auto and speed", "Auto plays your turns for you; the speed button runs the fight at 2x or 3x.", new Rect(Ui.W - 150, safe.y + 6, 100, 44), true); break;
+                // The rings use the rects the HUD drew this frame (BattleController.Hud*), so they land on the controls.
+                case 6: Coach(app, "Turn order", "The bar at the top shows who acts next. Faster heroes act more often.", BattleController.HudTurns.width > 0 ? BattleController.HudTurns : new Rect(Ui.W * 0.22f, safe.y + 46, Ui.W * 0.56f, 34), true); break;
+                case 7: Coach(app, "Skills", "On your hero's turn, pick a skill at the bottom, then tap a target. Strong skills need a few turns to recharge.", BattleController.HudSkills.width > 0 ? BattleController.HudSkills : new Rect(Ui.W * 0.2f, safe.yMax - 110, Ui.W * 0.6f, 100), true); break;
+                case 8: Coach(app, "Auto and speed", "Auto plays your turns for you; the speed button runs the fight at 2x or 3x.", BattleController.HudAutoSpeed.width > 0 ? BattleController.HudAutoSpeed : new Rect(Ui.W - 150, safe.y + 6, 100, 44), true); break;
                 case 9: break; // playing: the tutorial resumes on the results screen
             }
         }
@@ -85,15 +89,16 @@ namespace Sigilbound.Client
                 float ay = below ? ring.yMax + 6 + pulse * 6 : ring.y - 30 - pulse * 6;
                 Ui.Text(new Rect(target.center.x - 20, ay, 40, 24), below ? "▲" : "▼", 22, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter);
             }
-            float w = Mathf.Min(Ui.W - 24, 520), h = 112;
+            float w = Mathf.Min(Ui.W - 24, 520), h = 126;
             bool low = target.width <= 0 || target.center.y < Ui.H * 0.5f;
             var r = new Rect((Ui.W - w) / 2, low ? Ui.Safe.yMax - 64 - h - 70 : Ui.Safe.y + 60, w, h);
             Ui.Card(r, true);
             Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 28, 22), title, 15, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
             Ui.Text(new Rect(r.x + 14, r.y + 30, r.width - 28, 46), text, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
             var was = GUI.enabled; GUI.enabled = true;
-            if (Ui.Button(new Rect(r.x + 14, r.yMax - 34, 110, 28), "Skip tutorial", Ui.Kind.Ghost, 11)) Finish();
-            if (next && Ui.Button(new Rect(r.xMax - 110, r.yMax - 36, 96, 30), nextLabel, Ui.Kind.Primary, 13)) { if (Step >= 10) Finish(); else Step = Step + 1; }
+            // 44-unit buttons; "Skip" is a framed chip, not bare small text (UX review #13).
+            if (Ui.Button(new Rect(r.x + 14, r.yMax - 50, 126, 42), "Skip tutorial", Ui.Kind.Chip, 12)) Finish();
+            if (next && Ui.Button(new Rect(r.xMax - 118, r.yMax - 50, 104, 42), nextLabel, Ui.Kind.Primary, 14)) { if (Step >= 10) Finish(); else Step = Step + 1; }
             GUI.enabled = was;
         }
     }

@@ -73,7 +73,7 @@ namespace Sigilbound.Client
             // Title band.
             var band = new Rect(r.x + 6, r.y + 6, r.width - 12, 38);
             Ui.Round(band, new Color(0, 0, 0, 0.35f), null, 10);
-            Ui.Text(band, c.Title, 17, c.Open ? Palette.Gold : Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+            Ui.Text(band, c.Title, Ui.FitSize(c.Title, band.width - 12, 17, 12, true), c.Open ? Palette.Gold : Palette.Hex("#cfc5b2"), FontStyle.Bold, TextAnchor.MiddleCenter, false, true); // shrinks to fit (the Titan's name was cut off)
             // Emblem: glow, rune ring and the mode's icon.
             float s = Mathf.Min(r.width * 0.62f, (r.height - 150) * 0.9f);
             var em = new Rect(r.center.x - s / 2, band.yMax + Mathf.Max(8, (r.height - 150 - s) / 2), s, s);
@@ -87,8 +87,8 @@ namespace Sigilbound.Client
             if (!c.Open) Icons.Draw(new Rect(em.xMax - s * 0.28f, em.yMax - s * 0.3f, s * 0.26f, s * 0.26f), Icon.Lock, Palette.Dim);
             // Status footer.
             var foot = new Rect(r.x + 8, r.yMax - 74, r.width - 16, 66);
-            Ui.Round(foot, new Color(0, 0, 0, 0.4f), null, 10);
-            Ui.Text(new Rect(foot.x + 8, foot.y + 4, foot.width - 16, foot.height - 8), c.Open ? c.Status : c.Locked, 12, c.Open ? Palette.Text : Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter, true);
+            Ui.Round(foot, new Color(0, 0, 0, c.Open ? 0.4f : 0.62f), null, 10);
+            Ui.Text(new Rect(foot.x + 8, foot.y + 4, foot.width - 16, foot.height - 8), c.Open ? c.Status : c.Locked, 13, c.Open ? Palette.Text : Ui.DisabledText, FontStyle.Normal, TextAnchor.MiddleCenter, true); // the unlock hint stays readable
             // Count badge (runs, fights or tries left).
             if (c.Open && c.Badge > 0)
             {
@@ -96,7 +96,7 @@ namespace Sigilbound.Client
                 Ui.Round(b, Palette.Bad, Palette.Gold, 13);
                 Ui.Text(b, c.Badge.ToString(), 12, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
             }
-            if (c.Open && Ui.Button(r, "", Ui.Kind.Ghost)) c.Go();
+            if (Ui.Button(r, "", Ui.Kind.Ghost)) { if (c.Open) c.Go(); else Toast(c.Locked); } // a locked card says why
         }
     }
 }
