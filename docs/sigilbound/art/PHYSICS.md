@@ -2,7 +2,7 @@
 
 Owner, 2026-11-28: "Add colliders as a base standard for all models moving forward and game physics to everything;
 start remediation of the existing models." This page is the standard. Lessons: L018 (where spring cloth fails),
-L029 (this standard and its tuning), L030 (classifier limits on fused image-to-3D meshes).
+L033 (this standard and its tuning), L034 (classifier limits on fused image-to-3D meshes).
 
 ## 1. What every hero has
 
@@ -35,7 +35,7 @@ The chain number gives the library's `ChainKind` (`ChainKinds.Of`, `Core/Rig/Rig
 | k | Kind | Collides with | Defaults (stiffness, drag, gravity, joint r, swing limit) |
 |---|---|---|---|
 | 0-19 | Skirt (robe panel, coat tail) | hips, thighs, calves, ground | 1.5, 0.45, 0, 3 cm, - |
-| 20-29 | Cape | torso, hips, thighs, calves (no ground: lying on it squeezed it, L029) | 2.2, 0.55, 0.3, 2.5 cm, 20 deg |
+| 20-29 | Cape | torso, hips, thighs, calves (no ground: lying on it squeezed it, L033) | 2.2, 0.55, 0.3, 2.5 cm, 20 deg |
 | 30-34 | Tail | hips, thighs, calves, ground | 2.0, 0.35, 0, 4 cm, - |
 | 35-39 | SoftWings | torso, arms, head | 3.0, 0.5, 0, 3 cm, - |
 | 40-49 | Hair | head, neck, torso, upper arms, ground | 2.5, 0.5, 0.1, 2 cm, 35 deg |
@@ -67,7 +67,7 @@ fix/ctd-headgear's job.
    Verdict SHIP / SHIP WITH NOTE / REVERT; any frame worse = REVERT. Only then copy DST over the shipped GLB.
 6. Gates (prepare-models, Tests~ "All checks passed", CompileCheck, APK) and a real build (L004).
 
-Classifier limits (L030): kit heroes (separate cloth islands) classify cleanly; fused image-to-3D meshes give noisy
+Classifier limits (L034): kit heroes (separate cloth islands) classify cleanly; fused image-to-3D meshes give noisy
 parts (armour as skirt, robes as tails) - treat their proposals as hints and check the colour view
 (scratchpad `physics/tools/partview.py`). Skirts and gowns on chains still follow L018.
 

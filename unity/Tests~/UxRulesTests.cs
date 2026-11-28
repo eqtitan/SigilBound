@@ -112,8 +112,8 @@ static class UxRulesTests
         check(File.Exists(Path.Combine(root, "Assets", "Resources", "Skin", "button_chipon.png")) && Regex.IsMatch(mark, @"painted \? 0\.1[5-9]"),
             "ux rule 4: the painted chip_on plate exists and gets a stronger gold wash than the drawn one");
         check(!bc.Contains("static bool HudChip(") && Method(extras, "float HeroTabs(").Contains("Ui.Segmented(") && Method(trials, "void DrawDungeon(").Contains("Ui.Segmented(")
-              && prep.Contains("if (inTeam) Ui.Plate(r, Ui.Kind.ChipOn)") && screens.Contains("Ui.Plate(r, Ui.Kind.ChipOn)") && !climb.Contains("Ui.Round(m, Palette.Gold, null, 9)"),
-            "ux rule 4: tabs are segmented switches, in-team cards and switches use the ChipOn look; the extra check badges and HudChip are gone");
+              && Method(ui, "public static Rect CardFrame(").Contains("if (selected) SelectedMark(r, painted)") && screens.Contains("Ui.CardFrame(r, inTeam,") && !climb.Contains("Ui.Round(m, Palette.Gold, null, 9)"),
+            "ux rule 4: tabs are segmented switches, in-team cards take the one selected mark (Ui.CardFrame) and switches the ChipOn look; the extra check badges and HudChip are gone");
 
         // ---------- rule 5: disabled and locked ----------
         // LoadingPlaceholder's light sweep is a decorative band over a picture (no text), so it may be faint.
@@ -225,7 +225,7 @@ static class UxRulesTests
                 if (l.Any(ch => (ch >= 0x2190 && ch <= 0x27BF) || ch == '‹' || ch == '›')) glyphs.Add(kv.Key + ": " + l);
             }
         check(glyphs.Count == 0 && ui.Contains("static bool TailIcon(ref string text, out Icon icon)"), $"ux rule 10: no symbol glyphs in button labels (a trailing arrow or star is drawn as an icon){(glyphs.Count > 0 ? "; " + glyphs[0] : "")}");
-        check(prep.Contains("Ui.ElementBadge(new Rect(slot.x + 4") && prep.Contains("Ui.ElementBadge(new Rect(r.x + px + 5"), "ux rule 10: team slots and the picker show elements as Ui.ElementBadge");
+        check(prep.Contains("Ui.ElementBadge(new Rect(slot.x + 4") && screens.Contains("Ui.ElementBadge(Ui.ToRect(c.Badge), t.Element)"), "ux rule 10: team slots and the picker show elements as Ui.ElementBadge");
 
         // ---------- rule 11: text ----------
         var tiny = new List<string>();
@@ -266,7 +266,7 @@ static class UxRulesTests
             // Home
             var H = UiLayout.Home(area, tap, fw);
             NoOverlap("home", H.Title, H.Right); NoOverlap("home", H.Title, H.Left); if (!H.Compact) NoOverlap("home", H.Left, H.Right);
-            InArea("home cta", H.Cta, H.Right); Min("home title width", H.Title.W, 200); Min("home column", H.Right.W, 230);
+            InArea("home cta", H.Cta, H.Compact ? area : H.Right); if (H.Compact) NoOverlap("home cta", H.Cta, H.Right); Min("home title width", H.Title.W, 200); Min("home column", H.Right.W, 230);
             // the stage list and its rows (1 to 4 enemies, with and without shards)
             var mapArea = new Box(10, area.Y + 8, fw - 20, area.H - 16);
             var list = UiLayout.StageList(mapArea, true, fw);
@@ -300,6 +300,113 @@ static class UxRulesTests
             foreach (var c in cards) { InArea("mode card", c, area); Min("mode card width", c.W, 150); Min("mode card height", c.H, 150); }
             check(errs.Count == 0, $"ux rule 12: team setup, Home, stage list rows, results footer and modes lay out at {fw:0} units with no overlaps or cut controls{(errs.Count > 0 ? "; " + errs[0] + (errs.Count > 1 ? $" (+{errs.Count - 1})" : "") : "")}");
         }
+        // ---------- L028: card content inside the painted frame; one-line button labels; tablet Home and gear rows ----------
+        // The small card frame's real 9-slice borders (Resources/Skin/skin.txt), as the client reads them.
+        var skinTxt = Path.Combine(root, "Assets", "Resources", "Skin", "skin.txt");
+        var cardB = UiLayout.CardSmallFallback;
+        if (File.Exists(skinTxt))
+            foreach (var line in File.ReadAllLines(skinTxt))
+            {
+                var p = line.Trim().Split(' ');
+                if (p.Length == 5 && p[0] == "card_small") cardB = new UiLayout.Border9(float.Parse(p[1]), float.Parse(p[2]), float.Parse(p[3]), float.Parse(p[4]));
+            }
+        check(File.Exists(skinTxt) && cardB.L > 0 && cardB.T > 0, $"L028: skin.txt lists the card_small frame's borders ({cardB.L} {cardB.T} {cardB.R} {cardB.B})");
+        foreach (float fw in UiLayout.ReferenceWidths)
+        {
+            bool tablet = fw < 900;
+            float h = tablet ? 480 : 600, tap = tablet ? 48 : 44;
+            var area = new Box(0, 44, fw, h - 44 - 64);
+            var errs = new List<string>();
+            void Card(string what, Box cell)
+            {
+                foreach (bool face in new[] { true, false })
+                {
+                    var c = UiLayout.HeroCard(cell, cardB, face);
+                    var inner = UiLayout.FrameInner(cell, cardB, UiLayout.CardFrameK);
+                    float band = Math.Min(cardB.T, cardB.L) * UiLayout.FrameScale(cell.W, cell.H, cardB, UiLayout.CardFrameK);
+                    if (band < 4) errs.Add($"{what}: frame border {band:0.0} units (too thin to be the painted frame)");
+                    foreach (var (n, b) in new[] { ("name", c.Name), ("line", c.Line), ("badge", c.Badge), ("face", c.Face) })
+                        if (b.W > 0 && !b.Inside(inner)) errs.Add($"{what} {n} {b} outside the frame's inner rect {inner}");
+                    if (c.Name.Overlaps(c.Line) || (face && (c.Face.Overlaps(c.Name) || c.Face.Overlaps(c.Line)))) errs.Add($"{what}: card parts overlap");
+                    if (c.Name.H < 17 || c.Line.H < 17) errs.Add($"{what}: text lines {c.Name.H:0}/{c.Line.H:0} tall (< 17)");
+                    if (c.Line.W < 90) errs.Add($"{what}: the stars, level and power line is {c.Line.W:0} wide (< 90)");
+                    if (c.Name.XMax > cell.XMax - UiLayout.RarityTabW - 2) errs.Add($"{what}: the name runs under the rarity letter");
+                }
+            }
+            var P = UiLayout.Prep(area, tap, fw);
+            var g = UiLayout.Picker(P.Picker, tap);
+            if (!g.View.Inside(P.Picker)) errs.Add($"picker view {g.View} outside {P.Picker}");
+            for (int i = 0; i < 6; i++) { var cell = g.Cell(i); Card($"picker card {i}", new Box(g.View.X + cell.X, g.View.Y + cell.Y, cell.W, cell.H)); if (cell.XMax > g.View.W + 0.25f) errs.Add($"picker card {i} wider than the view"); }
+            // the presets: one line inside the same frame
+            foreach (var pr in UiLayout.Team(P.Team, tap).Presets) { var pin = UiLayout.FrameInner(pr, cardB, UiLayout.CardFrameK); if (pin.H < 18 || pin.W < 70) errs.Add($"preset content {pin} too small"); }
+            check(errs.Count == 0, $"L028: team-setup hero cards keep the face, name and \"★ Lv · power\" line inside the painted frame's inner rect (9-slice borders) at {fw:0} units{(errs.Count > 0 ? "; " + errs[0] + (errs.Count > 1 ? $" (+{errs.Count - 1})" : "") : "")}");
+            if (fw == UiLayout.ReferenceWidths[0])
+            {
+                // portrait team setup (390 wide): two columns of the same cards
+                var perr = errs.Count; float cw = (390 - 32 - 8) / 2f;
+                Card("portrait card", new Box(16, 0, cw, UiLayout.CardH(48)));
+                check(errs.Count == perr, $"L028: portrait team-setup cards keep their text inside the frame{(errs.Count > perr ? "; " + errs[perr] : "")}");
+            }
+        }
+        // Button labels: one word (or a label with a tail icon) never wraps; it shrinks to fit on one line.
+        var oneLine = Method(ui, "static int OneLinePx(");
+        check(button.Contains("bool oneLine = OneLine(text, tail);") && button.Contains("px = OneLinePx(lr, text, px, ref serif, k)") && Regex.Matches(button, @"ButtonStyle\(k, px, serif, (false, true|true, false), !oneLine\)").Count >= 3
+              && ui.Contains("s.wordWrap = wrap;") && oneLine.Contains("fit > MinText") && oneLine.Contains("serif = false"),
+            "L028: one-word and arrow button labels never wrap (\"TEA / M\"): no word wrap, shrink to the 11-point floor, then the sans face");
+        // The stage row's Team button has room for "TEAM" and its arrow at 13 points on one line (Cinzel capitals are
+        // under 0.8 em wide; 4 letters).
+        {
+            var errs = new List<string>();
+            foreach (float fw in UiLayout.ReferenceWidths)
+            {
+                var list = UiLayout.StageList(new Box(10, 52, fw - 20, 400), true, fw);
+                var row = new Box(0, 0, list.W - 16 - 4, 52);
+                var s = UiLayout.StageRow(row, 4, true);
+                float room = UiLayout.LabelRoom(s.Button, true), need = 4 * 0.8f * 13;
+                if (room < need) errs.Add($"{fw:0}: label room {room:0.0} < {need:0.0}");
+            }
+            check(errs.Count == 0, $"L028: the stage row's \"TEAM ▶\" button fits its label on one line at default size ({UiLayout.StageButtonW:0} wide){(errs.Count > 0 ? "; " + errs[0] : "")}");
+        }
+        // Compact Home (a 1024x768 window is 800x600 units; a 4:3 tablet 640x480): the team stands clear of the card
+        // column, Continue sits under the team, and the column shows login and achievements without scrolling (800: all of it).
+        foreach (var (fw, h) in new[] { (640f, 480f), (800f, 600f) })
+        {
+            float tap = 48, chipsH = 48;
+            var area = new Box(0, 44, fw, h - 44 - 64);
+            var H = UiLayout.Home(area, tap, fw);
+            var errs = new List<string>();
+            double shift = HomeLayout.ShiftFor(H.Team.CenterX / fw, fw / h);
+            var (l, r) = HomeLayout.TeamSpanX(fw / h, shift);
+            if (l * fw < 0 || r * fw > H.Right.X - 4) errs.Add($"team spans {l * fw:0}..{r * fw:0}, column at {H.Right.X:0}");
+            var (bt, bb) = HomeLayout.TeamBand();
+            if (H.Cta.Y < (bb + HomeLayout.Margin) * h) errs.Add($"Continue at {H.Cta.Y:0} over the team's feet at {(bb + HomeLayout.Margin) * h:0}");
+            if (H.Cta.Overlaps(H.Right) || H.Title.Overlaps(H.Right) || !H.Cta.Inside(area)) errs.Add("Continue or the title overlaps the column");
+            float colH = UiLayout.HomeColumnH(5, chipsH);
+            if (UiLayout.LoginH + UiLayout.HomeGap + UiLayout.AchievementsH > H.Left.H) errs.Add("achievements cut off");
+            if (fw >= 800 && colH > H.Left.H + 0.25f) errs.Add($"column content {colH:0} > {H.Left.H:0}");
+            if (H.Right.W < 260) errs.Add($"column {H.Right.W:0} wide");
+            check(H.Compact && errs.Count == 0, $"ux rule 12: compact Home at {fw:0}x{h:0}: the team stands clear of the cards, Continue under it, achievements in view{(errs.Count > 0 ? "; " + errs[0] : "")}");
+        }
+        check(Method(screens, "void DrawHomeWide(Rect area)").Contains("HomeLayout.ShiftFor(") && app.Contains("Arena.MenuShift = Screen == ScreenId.Home") && Src("Arena.cs").Contains("pos += Vector3.right * _menuShift"),
+            "ux rule 12: compact Home slides the menu camera by that shift (and only on Home)");
+        // Equipment rows: the name has its own line, clear of Lock and Upgrade, inside the frame (column and portrait widths).
+        {
+            var errs = new List<string>();
+            foreach (float tap in new[] { 44f, 48f, 56f })
+                foreach (float w in new[] { 358f, 326f })
+                {
+                    var r = new Box(16, 0, w, UiLayout.GearRowH(tap));
+                    var gr = UiLayout.GearRow(r, cardB, tap);
+                    var parts = new[] { gr.Name, gr.Main, gr.Subs, gr.Lock, gr.Up, gr.Sell, gr.Equip };
+                    for (int i = 0; i < parts.Length; i++) { if (!parts[i].Inside(gr.Inner)) errs.Add($"{w:0}/{tap:0}: part {i} {parts[i]} outside {gr.Inner}"); for (int j = i + 1; j < parts.Length; j++) if (parts[i].Overlaps(parts[j])) errs.Add($"{w:0}/{tap:0}: parts {i}/{j} overlap"); }
+                    if (gr.Name.W < 280) errs.Add($"{w:0}: name {gr.Name.W:0} wide");
+                    if (gr.Subs.H < 30) errs.Add($"{w:0}/{tap:0}: sub-stats {gr.Subs.H:0} tall");
+                }
+            check(errs.Count == 0 && Method(screens, "void DrawEquip(Rect area)").Contains("UiLayout.GearRow("), $"ux rule 12: equipment rows put the item name on its own line, clear of Lock (1024x768 ran it under){(errs.Count > 0 ? "; " + errs[0] : "")}");
+        }
+        check(!prep.Contains("Ui.Plate(r, Ui.Kind.ChipOn)") && !screens.Contains("Ui.Plate(r, Ui.Kind.ChipOn)") && prep.Contains("UiLayout.Picker(Ui.ToBox(R), tap)") && prep.Contains("Ui.CardFrame(pr, false"),
+            "L028: hero and preset cards draw the card frame, not the one-line chip plate, from the same UiLayout arithmetic");
+
         check(prep.Contains("UiLayout.Prep(Ui.ToBox(area), tap, Ui.FullW)") && screens.Contains("UiLayout.Home(Ui.ToBox(area), Ui.Tap, Ui.FullW)") && prep.Contains("UiLayout.StageRow(Ui.ToBox(row)") && modes.Contains("UiLayout.Modes(Ui.ToBox(area)")
               && Method(bc, "void DrawResults(Rect r, ResultsSpec spec)").Contains("UiLayout.ResultsFooter("),
             "ux rule 12: the client draws those screens from the same UiLayout arithmetic the checks above run");

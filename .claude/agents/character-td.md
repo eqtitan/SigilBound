@@ -39,6 +39,9 @@ Rule-of-thumb weight tweaks that fix some poses and break others are the failure
      (e.g. a wider stance for gowned heroes) via the existing alias tables.
    - **Faces:** lock the face to the head above the jaw; symmetrise only inside a face mask and only if it doesn't copy
      asymmetric hair across; otherwise leave it and say so.
+   - **Physics standard (every hero, part of rigging):** body colliders + classified spring chains
+     (docs/sigilbound/art/PHYSICS.md: `physics_classify.py` -> overrides.json -> `physics_rig.py`), verified in the
+     same frame sweep; rigid accessories (weapons, shields, head gear) are never physics (L033).
 4. **Re-sweep and compare** before/after on the same frames. If any frame got worse, it is not fixed.
 5. **Decide per hero:** SHIP (no bad frames), SHIP WITH NOTE (a bad frame that is rare and tiny at battle distance -
    name it), or REVERT (keep the previous model). Never ship a hero you haven't looked at frame by frame.

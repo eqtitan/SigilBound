@@ -72,6 +72,10 @@ length restore, sphere/capsule push-out, then rotate the bone onto the tail) fol
 `VRMSpringBone` (https://github.com/vrm-c/UniVRM), **MIT licence**, Copyright (c) 2020 VRM Consortium,
 Copyright (c) 2018 Masataka SUMI for MToon. The C# here is our own re-implementation (no UniVRM source files are
 included); the chains and weights are added to the meshes by `unity/Tools~/blenderforge/spring_rig.py`.
+The physics standard (capes, hair, tails and other chains on every hero; `Core/Rig/RigChains.cs`,
+`Client/SpringBones.cs`, `unity/Tools~/blenderforge/physics_classify.py` and `physics_rig.py`) also follows UniVRM
+for its per-chain collider groups (VRMSpringBoneColliderGroup) and the sphere/capsule body colliders; the swing
+limit, measured collider girth and dangling-part classifier are our own.
 
 ## Image-to-3D scenery landmarks (campaign scenes, 2026-11-28)
 

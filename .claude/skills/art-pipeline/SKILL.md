@@ -49,6 +49,10 @@ in `<out>.request` so an unclear submit is resumed, never billed twice). Batch w
 - Heroes: rig with `unity/Tools~/blenderforge/i3d_prep.py`, `i3d_landmarks*.py` (add the hero's landmarks), `i3d_rig.py`
   (props rigid to the hand/forearm, capes/shells/wings to the spine, gowns partly to the pelvis); creatures use
   `creature_i3d.py`; animal legs `i3d_legs.py`. Blender python is a local venv (`bpy`) - create one if missing.
+  **Physics standard (required for every new hero, L033):** after rigging and `compress-hd.mjs`, run
+  `blenderforge/physics_classify.py` on the GLB, regenerate `Core/Rig/BodyColliderData.cs` (`--all`), enable the
+  swinging parts (capes, long hair, tails, skirts that hang free) in `Tools~/models/physics/overrides.json`, add chains
+  with `physics_rig.py` (last step), and verify them in the character-td frame sweep (docs/sigilbound/art/PHYSICS.md).
   Render `<id>_fal_compare.jpg` (input | raw | rigged front/side/back) and an anim GIF (idle, strike, cast/ult, hit).
   Anything with motion problems goes to the **character-td** agent (.claude/agents/character-td.md).
 - Landmarks/props: `unity/Tools~/scenery/i3d_landmark.py` (see docs/sigilbound/art/CAMPAIGN_SCENES_PLAN.md).

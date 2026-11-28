@@ -29,7 +29,7 @@ namespace Sigilbound.Core
         public static BodyGroup Mask(ChainKind c) => c switch
         {
             ChainKind.Skirt => BodyGroup.Hips | BodyGroup.Thighs | BodyGroup.Calves | BodyGroup.Ground,
-            // no ground: a hero lying on its back squeezed the cape between back and floor (stretched; L029)
+            // no ground: a hero lying on its back squeezed the cape between back and floor (stretched; L033)
             ChainKind.Cape => BodyGroup.Torso | BodyGroup.Hips | BodyGroup.Thighs | BodyGroup.Calves | BodyGroup.Extra,
             ChainKind.Tail => BodyGroup.Hips | BodyGroup.Thighs | BodyGroup.Calves | BodyGroup.Ground,
             ChainKind.SoftWings => BodyGroup.Torso | BodyGroup.Arms | BodyGroup.Head,

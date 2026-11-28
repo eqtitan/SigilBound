@@ -34,6 +34,37 @@ namespace Sigilbound.Core
             return (Frac(LineupTop, LineupFarZ), Frac(0, LineupNearZ));
         }
 
+        // ---------- compact landscape Home: the camera slides sideways ----------
+        // The team's half-width in metres: the widest lineup (Creatures.MaxLineupSpan, 5.2 m) plus a body's half-width.
+        public const double LineupHalfW = 3.1;
+        // How far along the camera's view a point lies, and its screen x as a fraction of the width (0 = left)
+        // with the camera moved sideways by shift metres (x right). aspect = width / height.
+        static double Depth(double y, double z)
+        {
+            double fy = MenuTarget[1] - MenuEye[1], fz = MenuTarget[2] - MenuEye[2], n = Math.Sqrt(fy * fy + fz * fz);
+            return ((y - MenuEye[1]) * fy + (z - MenuEye[2]) * fz) / n;
+        }
+        static double HalfW(double depth, double aspect) => depth * Math.Tan(MenuFov * Math.PI / 360) * aspect;
+        public static double ScreenX(double x, double y, double z, double aspect, double shift) => 0.5 + 0.5 * (x - shift) / HalfW(Depth(y, z), aspect);
+        // The sideways shift that centres the team's screen span (feet to heads, both rows) on fraction centre
+        // (Arena.MenuShift). Perspective spreads the near feet wider than the heads, so it settles in a few steps.
+        public static double ShiftFor(double centre, double aspect)
+        {
+            double hw = HalfW(Depth(LineupTop / 2, (LineupNearZ + LineupFarZ) / 2), aspect), s = (0.5 - centre) * 2 * hw;
+            for (int i = 0; i < 6; i++) { var (l, r) = TeamSpanX(aspect, s); s += ((l + r) / 2 - centre) * 2 * hw; }
+            return s;
+        }
+        // The team's left and right screen fractions with that shift: both rows, feet to heads.
+        public static (double left, double right) TeamSpanX(double aspect, double shift)
+        {
+            double l = 1, r = 0;
+            foreach (double z in new[] { LineupNearZ, LineupFarZ })
+                foreach (double y in new[] { 0.0, LineupTop })
+                    foreach (double x in new[] { -LineupHalfW, LineupHalfW })
+                    { double f = ScreenX(x, y, z, aspect, shift); l = Math.Min(l, f); r = Math.Max(r, f); }
+            return (l, r);
+        }
+
         public const double TabH = 48, Gap = 8, CtaMin = 56, Margin = 0.02;
 
         // area: the content rect under the top bar and above the nav (UI units); screenH: Ui.H; tap: Ui.Tap.

@@ -170,7 +170,9 @@ def write_acc(binb, j, ai, arr):
     a = j["accessors"][ai]; bv = j["bufferViews"][a["bufferView"]]
     dt = np.dtype(CT[a["componentType"]]); nc = NC[a["type"]]
     start = bv.get("byteOffset", 0) + a.get("byteOffset", 0); stride = bv.get("byteStride", dt.itemsize * nc)
-    if a.get("normalized"): raise ValueError("normalized accessor")
+    if a.get("normalized"):   # signed/unsigned normalized ints (quantized normals): scale back to the int range
+        mx = {5120: 127, 5121: 255, 5122: 32767, 5123: 65535}[a["componentType"]]
+        arr = np.clip(np.round(np.asarray(arr, float) * mx), -mx if a["componentType"] in (5120, 5122) else 0, mx)
     for i in range(a["count"]):
         o = start + i * stride
         binb[o:o + dt.itemsize * nc] = np.asarray(arr[i], dtype=dt).tobytes()
