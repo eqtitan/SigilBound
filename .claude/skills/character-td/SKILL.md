@@ -88,6 +88,7 @@ result, an owner preference) to the sections below with the date and branch. Kee
 - Wants weapons' full move sets kept (NoBlock/Sword_Attack-only rejected; wait for the skeleton rebuild).
 - Remodel picks: Lazlo A, Neve B with the FULL braid on a spring chain, Holt A; "make those look real" before fal.
 - Prefers remodels with shorter cloth over weight hacks on long robes; options sheet first, fal only after the pick.
+- Rebuilds must not change anything but what was asked: an outfit that changes colour or gains a skirt in a headgear pass is a regression (legacy_look.json).
 - Changelog must not claim a fix the tester can still see (L010).
 - Favour fixes that carry over to the skeleton-library rebuild (mesh/material clean-up) over weight tweaks.
 
@@ -98,3 +99,4 @@ result, an owner preference) to the sections below with the date and branch. Kee
 - 2026-11-28 fix/ctd-roster-1/2: rigid props, islands, metal maps + reflection, Wystan/Vorgrim remodels.
 - 2026-11-28 fix/ctd-headgear: ring fit shipped for Quill/Vaelith/Ondessa/Pell; lowering hats/helms and tight rings rejected (rings sink out of sight); L025.
 - 2026-11-28 fix/ctd-roster-3: L010 root cause = missing mask (L023); Obrecht pick turned; Nell idle; NoBlock weapons.
+- 2026-11-28 fix/ctd-headgear-2: 61 kit heroes REBUILT with seated head gear (L025, L026); a rebuild drifts the body where later global builder changes landed (light-plate tint, coat-skirt triggers) - diff the body below AND at the neck vs shipped (ctd2/tools/drift.py, NECKPX=30) and pin the old look in blenderforge/legacy_look.json (27 heroes); i3d head gear: no neck-weighted islands, Aurex/Nettle/Lazlo fused gear needs sockets; realistic re-renders: Lazlo faithful (fal mesh + first rig WIP: torn left wrist in Sword_Attack, rapier breaks - not shipped), Neve/Holt drifted -> owner.
