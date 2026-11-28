@@ -1,5 +1,5 @@
-// Physics standard (docs/sigilbound/art/PHYSICS.md; Core/Physics/ColliderSet.cs, Client/BodyColliders.cs,
-// Client/SpringBones.cs): every shipped hero gets a complete body collider set of sane size, every spring chain is
+// Physics standard (docs/sigilbound/art/PHYSICS.md; the library's Core/Rig/RigPhysics.cs + measured
+// BodyColliderData, Core/Rig/RigChains.cs, Client/BodyPhysics.cs, Client/SpringBones.cs): every shipped hero gets a complete body collider set of sane size, every spring chain is
 // well formed, within the per-hero budget and outside its kind's colliders at rest, the multi-kind runtime is
 // deterministic and cheap enough for a full battle, Low quality (and over-budget heroes) run kinematic, and the
 // ground keeps chains above the floor.
@@ -10,7 +10,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using Sigilbound.Core;
-using Sigilbound.Core.Physics;
 
 static class PhysicsTests
 {
@@ -52,6 +51,23 @@ static class PhysicsTests
         return r;
     }
 
+    public sealed class Shape { public string Name, A, B; public float R; public BodyGroup G; }
+
+    // The body collider set of one hero as BodyPhysics builds it (legacy profile: biped, girth 1).
+    public static List<Shape> BodySet(string id, Func<string, SVec?> pos, Func<string, string> parentOf, List<string> missing = null)
+    {
+        var o = new List<Shape>();
+        foreach (var c in RigPhysics.BodySet(SkeletonKind.Biped))
+        {
+            var a = pos(c.Bone); var b = c.Tip != null ? pos(c.Tip) : null;
+            if (!a.HasValue || (c.Tip != null && !b.HasValue)) { missing?.Add(a.HasValue ? c.Tip : c.Bone); continue; }
+            float len = RigPhysics.RefLength(c, pos, parentOf(c.Bone));
+            float r = Math.Max(0.02f, Math.Min(0.6f, RigPhysics.Radius(id, c, len, 1f)));
+            o.Add(new Shape { Name = c.Name, A = c.Bone, B = c.Tip ?? c.Bone, R = r, G = RigPhysics.Group(c.Name) });
+        }
+        return o;
+    }
+
     static Dictionary<string, JsonElement> _ov;
     public static Dictionary<string, JsonElement> Overrides(string models)
     {
@@ -90,35 +106,20 @@ static class PhysicsTests
     public static void Run(Action<bool, string> check)
     {
         // 1. kinds and budgets are consistent
-        check(ChainKinds.Of(0) == ChainKind.Skirt && ChainKinds.Of(20) == ChainKind.Cape && ChainKinds.Of(30) == ChainKind.Tail && ChainKinds.Of(35) == ChainKind.Wing
-              && ChainKinds.Of(40) == ChainKind.Hair && ChainKinds.Of(50) == ChainKind.Ear && ChainKinds.Of(55) == ChainKind.Flap
-              && Enum.GetValues(typeof(ChainKind)).Cast<ChainKind>().All(k => ChainKinds.Of(ChainKinds.First(k)) == k),
-              "physics: chain numbers map to kinds (0 skirt, 20 cape, 30 tail, 35 wing, 40 hair, 50 ear, 55 flap)");
-        check(Enum.GetValues(typeof(ChainKind)).Cast<ChainKind>().All(k => (ChainKinds.Mask(k) & (BodyGroup.Arms | BodyGroup.Forearms)) == 0 || k == ChainKind.Hair || k == ChainKind.Wing),
+        check(Enum.GetValues(typeof(ChainKind)).Cast<ChainKind>().All(k => ChainKinds.Of(ChainKinds.First(k)) == k) && ChainKinds.Of(0) == ChainKind.Skirt && ChainKinds.Of(29) == ChainKind.Cape && ChainKinds.Of(69) == ChainKind.Banner,
+              "physics: chain numbers map to every chain kind (0 skirt, 20 cape, 30 tail, 35 soft wings, 40 hair, 50 ears, 55 sash, 60 pouch, 64 chain, 67 banner)");
+        check(Enum.GetValues(typeof(ChainKind)).Cast<ChainKind>().All(k => (ChainKinds.Mask(k) & (BodyGroup.Arms | BodyGroup.Forearms)) == 0 || k == ChainKind.Hair || k == ChainKind.SoftWings),
               "physics: only hair and wings collide with the arms (cloth never catches on a swinging arm)");
         check(ChainKinds.BattleBudget >= 10 * ChainKinds.MaxJointsPerHero / 2 && ChainKinds.MaxJointsPerHero <= 64, $"physics: budgets {ChainKinds.MaxJointsPerHero} joints per hero, {ChainKinds.BattleBudget} per battle");
+        check(RigPhysics.BodySet(SkeletonKind.Biped).All(c => RigPhysics.Group(c.Name) != BodyGroup.Extra) && BodyColliderData.Names.SequenceEqual(RigPhysics.BodySet(SkeletonKind.Biped).Select(c => c.Name)),
+              "physics: every library body collider has a group and the measured data follows RigPhysics.BodySet's order");
 
-        // 2. the fallback set (a hero without a data line) is complete and inside the sane bands
+        // 2. a hero without measured data keeps the library's fraction x bone length (compatible extension)
         {
-            var fake = new Dictionary<string, SVec>
-            {
-                ["pelvis"] = new SVec(0, 0.95f, 0), ["spine_02"] = new SVec(0, 1.2f, 0), ["neck_01"] = new SVec(0, 1.52f, 0), ["Head"] = new SVec(0, 1.6f, 0.02f),
-                ["upperarm_l"] = new SVec(0.19f, 1.46f, 0), ["lowerarm_l"] = new SVec(0.46f, 1.46f, 0), ["hand_l"] = new SVec(0.72f, 1.46f, 0),
-                ["upperarm_r"] = new SVec(-0.19f, 1.46f, 0), ["lowerarm_r"] = new SVec(-0.46f, 1.46f, 0), ["hand_r"] = new SVec(-0.72f, 1.46f, 0),
-                ["thigh_l"] = new SVec(0.09f, 0.97f, 0), ["calf_l"] = new SVec(0.09f, 0.54f, 0), ["foot_l"] = new SVec(0.09f, 0.09f, 0),
-                ["thigh_r"] = new SVec(-0.09f, 0.97f, 0), ["calf_r"] = new SVec(-0.09f, 0.54f, 0), ["foot_r"] = new SVec(-0.09f, 0.09f, 0),
-            };
-            SVec? P(string n) => n != null && fake.TryGetValue(n, out var p) ? p : (SVec?)null;
-            var miss = new List<string>(); var set = ColliderSet.Build("no-such-hero", P, miss);
-            var a = ColliderSet.Build("no-such-hero", P);
-            bool same = set.Length == a.Length && set.Zip(a, (x, y) => x.Name == y.Name && x.Radius == y.Radius && x.Offset.X == y.Offset.X && x.Offset.Y == y.Offset.Y).All(z => z);
-            check(set.Length == 13 && miss.Count == 0 && same, $"physics: fallback body set has all 13 shapes, deterministic ({string.Join(",", set.Select(s => s.Name))})");
-            var R = ColliderSet.Radii("no-such-hero", P);
-            bool inBand = true;
-            for (int i = 0; i < R.Length; i++) { float L = ColliderSet.RefLength(i, P); if (i != 1 && (R[i] < ColliderSet.BandLo[i] * L - 1e-4f || R[i] > ColliderSet.BandHi[i] * L + 1e-4f)) inBand = false; }
-            check(inBand, "physics: fallback radii inside the sane bands");
-            fake.Remove("calf_l"); miss.Clear(); var part = ColliderSet.Build("no-such-hero", P, miss);
-            check(miss.SequenceEqual(new[] { "calf_l" }) && part.All(s => s.BoneA != "calf_l" && s.BoneB != "calf_l") && part.Length == 11, "physics: a missing bone drops only its own shapes and is reported");
+            var c = RigPhysics.BodySet(SkeletonKind.Biped).First(x => x.Name == "thigh_l");
+            check(Math.Abs(RigPhysics.Radius("no-such-hero", c, 0.43f, 1.2f) - c.Radius * 0.43f * 1.2f) < 1e-6f, "physics: no measured line = the library's fraction x length x girth");
+            var some = BodyColliderData.ById.First();
+            check(Math.Abs(RigPhysics.Radius(some.Key, c, 0.43f, 1.2f) - some.Value[BodyColliderData.Names.IndexOf("thigh_l")]) < 1e-6f, $"physics: a measured hero ({some.Key}) uses its own girth");
         }
 
         // 3. the ground sphere keeps a falling sheet above the floor (dynamic and kinematic)
@@ -178,20 +179,23 @@ static class PhysicsTests
         { var p = Path.Combine(dir.FullName, "unity", "Tools~", "models", "heroes_hd"); if (Directory.Exists(p)) { models = p; break; } }
         if (models == null) { bool ci = Environment.GetEnvironmentVariable("CI") == "true"; check(!ci, "physics: models not found here" + (ci ? "" : " (skipped)")); return; }
         int heroes = 0, complete = 0, sane = 0, data = 0, rigged = 0; var bad = new List<string>(); var noData = new List<string>();
-        var ov = Overrides(models);
+        var ov = Overrides(models); int nBody = RigPhysics.BodySet(SkeletonKind.Biped).Count;
         foreach (var f in Directory.GetFiles(models, "SB_Hero_*_HD.glb").OrderBy(x => x))
         {
             var id = Path.GetFileName(f).Substring(8); id = id.Substring(0, id.Length - 7);
             if (Creatures.Is(id)) continue;   // creature rigs (CreatureRig): no humanoid body
             heroes++;
             var rest = LoadRest(f);
-            var miss = new List<string>(); var set = ColliderSet.Build(id, rest.P, miss);
-            if (miss.Count == 0 && set.Length >= 13) complete++; else bad.Add($"{id} missing {string.Join("/", miss)}");
+            var miss = new List<string>(); var set = BodySet(id, rest.P, n => rest.Parent.TryGetValue(n, out var pa) ? pa : null, miss);
+            if (miss.Count == 0 && set.Count == nBody) complete++; else bad.Add($"{id} missing {string.Join("/", miss)}");
             if (BodyColliderData.ById.ContainsKey(id)) data++; else noData.Add(id);
-            var R = ColliderSet.Radii(id, rest.P); bool ok = true;
-            for (int i = 0; i < R.Length; i++) { if (i == 1) continue; float L = ColliderSet.RefLength(i, rest.P); if (!(R[i] >= ColliderSet.BandLo[i] * L - 1e-3f && R[i] <= ColliderSet.BandHi[i] * L + 1e-3f)) { ok = false; bad.Add($"{id} {ColliderSet.Data[i]} {R[i]:0.000} vs bone {L:0.000}"); } }
-            // limbs never fatter than they are long, the thigh at least as thick as the calf
-            ok &= R[8] < ColliderSet.RefLength(8, rest.P) * 0.5f && R[6] < ColliderSet.RefLength(6, rest.P) * 0.5f;
+            bool ok = true;
+            foreach (var c in RigPhysics.BodySet(SkeletonKind.Biped))
+            {
+                var sh = set.FirstOrDefault(x => x.Name == c.Name); if (sh == null) continue;
+                float L = RigPhysics.RefLength(c, rest.P, rest.Parent.TryGetValue(c.Bone, out var pa) ? pa : null), fb = c.Radius * L;
+                if (!(sh.R >= 0.5f * fb - 1e-3f && sh.R <= 1.8f * fb + 1e-3f)) { ok = false; bad.Add($"{id} {c.Name} {sh.R:0.000} vs library {fb:0.000}"); }
+            }
             if (ok) sane++;
 
             // spring chains: <= budget, each chain >= 2 bones + tip, every joint's tail at rest outside its kind's colliders
@@ -212,10 +216,9 @@ static class PhysicsTests
                     var p = rest.Pos[bones[k]];
                     foreach (var sh in set)
                     {
-                        if ((sh.Group & mask) == 0) continue;
-                        float r = sh.Group == BodyGroup.Thighs && rig.ThighR > 0 ? rig.ThighR : sh.Group == BodyGroup.Calves && rig.CalfR > 0 ? rig.CalfR : sh.Radius;
-                        var a = rest.Pos[sh.BoneA] + sh.Offset; var b = sh.Sphere ? a : rest.Pos[sh.BoneB];
-                        float gap = SegDist(p, a, b) - r - rig.JointRadius;
+                        if ((sh.G & mask) == 0) continue;
+                        float r = sh.G == BodyGroup.Thighs && rig.ThighR > 0 ? rig.ThighR : sh.G == BodyGroup.Calves && rig.CalfR > 0 ? rig.CalfR : sh.R;
+                        float gap = SegDist(p, rest.Pos[sh.A], rest.Pos[sh.B]) - r - rig.JointRadius;
                         if (gap < worst) { worst = gap; where = $"{bones[k]} in {sh.Name}"; }
                     }
                     if ((mask & BodyGroup.Ground) != 0 && p.Y - rig.JointRadius < worst) { worst = p.Y - rig.JointRadius; where = bones[k] + " in ground"; }
@@ -227,7 +230,7 @@ static class PhysicsTests
             check(ov.ContainsKey(id), $"physics: {id} chains listed in models/physics/overrides.json");
         }
         check(heroes > 100 && complete == heroes, $"physics: {complete}/{heroes} humanoid heroes have the full body collider set{(bad.Count > 0 ? " - " + string.Join("; ", bad.Take(5)) : "")}");
-        check(sane == heroes, $"physics: {sane}/{heroes} heroes' collider radii are sane for their bone lengths");
+        check(sane == heroes, $"physics: {sane}/{heroes} heroes' measured collider radii are within 0.5-1.8x the library's size for their bones{(bad.Count > 0 ? " - " + string.Join("; ", bad.Take(5)) : "")}");
         check(data == heroes, $"physics: {data}/{heroes} heroes have measured girth (BodyColliderData){(noData.Count > 0 ? " missing " + string.Join(",", noData.Take(8)) : "")}");
         check(ov.Keys.All(k => File.Exists(Path.Combine(models, $"SB_Hero_{k}_HD.glb"))), $"physics: every overrides entry names a shipped hero ({ov.Count} entries, {rigged} heroes rigged)");
     }

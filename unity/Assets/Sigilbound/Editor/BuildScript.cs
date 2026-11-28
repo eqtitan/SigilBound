@@ -210,6 +210,9 @@ namespace Sigilbound.EditorTools
                 if ((type == LogType.Error || type == LogType.Exception) && errors.Length < 400000) errors.AppendLine(msg);
             };
             try { Directory.CreateDirectory("Builds"); File.Delete(ErrorLog); } catch (IOException) { }
+            // Skeleton library: the shared clips become Humanoid clips (Resources/HumanoidClips) before the player is built.
+            // A failure only logs: the migrated heroes then fall back to the legacy path at runtime.
+            try { HumanoidClipBaker.Bake(); } catch (Exception e) { Debug.LogError("SBHUMAN bake failed: " + e); }
             Application.logMessageReceived += grab;
             BuildReport report;
             try

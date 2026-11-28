@@ -16,35 +16,46 @@ import sys, os, json, math, numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import glb_io as glbio
 
-# --- the collider set (keep in step with Core/Physics/ColliderSet.cs: names, bones, groups, data order) ---------
-# data per hero: R = [head, headUp, neck, chest, spine, hips, upperarm, lowerarm, thigh, calf]
-DATA = ["head", "headUp", "neck", "chest", "spine", "hips", "upperarm", "lowerarm", "thigh", "calf"]
-# fallback ratios (radius / reference length) = medians over the 158 heroes (printed by --all); C# uses the same
-FALLBACK = {"head": 0.54, "headUp": 0.9, "neck": 0.34, "chest": 0.23, "spine": 0.22, "hips": 0.15,
-            "upperarm": 0.21, "lowerarm": 0.17, "thigh": 0.2, "calf": 0.14}
-# clamp band per radius, as a fraction of the reference length (keeps a robe or a pauldron from inflating it)
-BAND = {"head": (0.35, 0.9), "neck": (0.3, 0.9), "chest": (0.15, 0.4), "spine": (0.12, 0.38), "hips": (0.06, 0.25),
-        "upperarm": (0.08, 0.3), "lowerarm": (0.07, 0.26), "thigh": (0.09, 0.3), "calf": (0.07, 0.24)}
-SHAPES = [  # name, boneA, boneB (None = sphere on A), data key, group
-    ("head", "Head", None, "head", "Head"), ("neck", "neck_01", "Head", "neck", "Neck"),
-    ("chest", "spine_02", "neck_01", "chest", "Torso"), ("spine", "pelvis", "spine_02", "spine", "Torso"),
-    ("hips", "thigh_l", "thigh_r", "hips", "Hips"),
-    ("upperarm_l", "upperarm_l", "lowerarm_l", "upperarm", "Arms"), ("upperarm_r", "upperarm_r", "lowerarm_r", "upperarm", "Arms"),
-    ("lowerarm_l", "lowerarm_l", "hand_l", "lowerarm", "Forearms"), ("lowerarm_r", "lowerarm_r", "hand_r", "lowerarm", "Forearms"),
-    ("thigh_l", "thigh_l", "calf_l", "thigh", "Thighs"), ("thigh_r", "thigh_r", "calf_r", "thigh", "Thighs"),
-    ("calf_l", "calf_l", "foot_l", "calf", "Calves"), ("calf_r", "calf_r", "foot_r", "calf", "Calves"),
-]
+# --- the body collider set: the library's physics standard (Core/Rig/RigPhysics.BodySet, Biped) - same names, bones,
+# order and fallback fractions; this tool measures the radius of each from the hero's own girth -------------------
+SHAPES = [  # name, bone, tip (None = sphere on the bone, length to its parent), fraction of that length
+    ("head", "Head", None, 1.1), ("neck", "neck_01", "Head", 0.45), ("chest", "spine_03", "neck_01", 0.8),
+    ("spine", "spine_01", "spine_03", 0.6), ("hips", "pelvis", "spine_01", 1.3)]
+for _s in "lr":
+    SHAPES += [("upperarm_" + _s, "upperarm_" + _s, "lowerarm_" + _s, 0.2), ("lowerarm_" + _s, "lowerarm_" + _s, "hand_" + _s, 0.17),
+               ("thigh_" + _s, "thigh_" + _s, "calf_" + _s, 0.22), ("calf_" + _s, "calf_" + _s, "foot_" + _s, 0.17)]
+NAMES = [x[0] for x in SHAPES]   # BodyColliderData.Names
+SPHERE_PARENT = {"Head": "neck_01"}
+# sane band per radius as a multiple of the library's fraction x length (the tests use the same band)
+BAND = (0.5, 1.8)
 GROUPS = {"Head": 1, "Neck": 2, "Torso": 4, "Hips": 8, "Arms": 16, "Forearms": 32, "Thighs": 64, "Calves": 128, "Extra": 256}
 HANDISH = ("hand", "index", "middle", "ring", "pinky", "thumb")
 
 
-def ref_len(key, pos):
-    """The bone length a radius is measured against (same rule as ColliderSet.RefLength)."""
-    L = lambda a, b: float(np.linalg.norm(pos(a) - pos(b)))
-    return {"head": L("neck_01", "Head") + 0.08, "headUp": 1.0, "neck": L("neck_01", "Head") + 0.08,
-            "chest": L("pelvis", "neck_01"), "spine": L("pelvis", "neck_01"), "hips": L("pelvis", "neck_01"),
-            "upperarm": L("upperarm_l", "lowerarm_l"), "lowerarm": L("lowerarm_l", "hand_l"),
-            "thigh": L("thigh_l", "calf_l"), "calf": L("calf_l", "foot_l")}[key]
+def group(name):   # RigPhysics.Group
+    if name == "head": return GROUPS["Head"]
+    if name == "neck": return GROUPS["Neck"]
+    if name in ("chest", "spine"): return GROUPS["Torso"]
+    if name == "hips": return GROUPS["Hips"]
+    for pre, g in (("upperarm", "Arms"), ("lowerarm", "Forearms"), ("thigh", "Thighs"), ("calf", "Calves")):
+        if name.startswith(pre): return GROUPS[g]
+    return GROUPS["Extra"]
+
+
+def ref_len(name, pos):
+    _, a, t, frac = next(x for x in SHAPES if x[0] == name)
+    return float(np.linalg.norm(pos(a) - pos(t or SPHERE_PARENT[a])))
+
+
+def fallback(pos):
+    return {n: frac * ref_len(n, pos) for n, a, t, frac in SHAPES}
+
+
+def aliases(R):
+    """Convenience sizes the classifier uses (averages of the two sides)."""
+    R = dict(R)
+    for k in ("upperarm", "lowerarm", "thigh", "calf"): R[k] = (R[k + "_l"] + R[k + "_r"]) / 2
+    return R
 
 
 def starts(arr, prefix):
@@ -92,61 +103,37 @@ def grow(b, mask, seed):
 
 
 def measure(b):
-    """Collider radii (and the head sphere's lift) from the hero's own girth: per segment, the vertices whose
-    dominant joint is that bone, inside the middle of the segment, distance to the bone; the 30th percentile is the
-    body under the clothes (a robe or pauldron on the same bone sits further out), clamped to a band of the bone length."""
+    """Radius of each library body collider from the hero's own girth: per collider, the vertices whose dominant joint is
+    that bone, inside the middle of the segment, distance to the bone; the 30th percentile is the body under the clothes
+    (a robe or pauldron on the same bone sits further out), clamped to BAND x the library's fraction x the bone length.
+    Also 'skull' (the classifier's head-top estimate; not a collider)."""
     pos = b.pos; P = b.P; out = {}; why = {}
-    def ring(bones, a, c, key, pct=30):
-        sel = np.isin(b.dom, bones)
-        if sel.sum() < 30: return None
-        d, t = seg_dist(P[sel], pos(a), pos(c)); m = (t > 0.15) & (t < 0.85)
-        if m.sum() < 20: return None
-        return float(np.percentile(d[m], pct))
-    def put(key, val):
-        L = ref_len(key, pos); lo, hi = BAND[key]
-        if val is None: out[key] = FALLBACK[key] * L; why[key] = "fallback"; return
-        r = min(max(val, lo * L), hi * L); out[key] = r; why[key] = "girth" if r == val else "clamped"
-    # head: horizontal radius of the Head-weighted band just above the head joint (hair and hats sit above/outside)
+    dom_of = {"Head": ["Head"], "neck_01": ["neck_01"], "spine_03": ["spine_02", "spine_03"], "spine_01": ["spine_01", "spine_02"], "pelvis": ["pelvis"]}
+    for name, a, t, frac in SHAPES:
+        L = ref_len(name, pos); fb = frac * L
+        bones = dom_of.get(a, [a]); sel = np.isin(b.dom, bones); val = None
+        if name == "head":
+            hp = pos("Head"); m = sel & (P[:, 1] > hp[1] - 0.02) & (P[:, 1] < hp[1] + 0.12)
+            if m.sum() > 30: val = float(np.percentile(np.linalg.norm(P[m] - hp, axis=1), 30))
+        elif sel.sum() >= 30:
+            d, tt = seg_dist(P[sel], pos(a), pos(t)); m = (tt > 0.15) & (tt < 0.85) if name != "hips" else np.ones(len(d), bool)
+            if m.sum() >= 20: val = float(np.percentile(d[m], 15 if name == "hips" else 30))   # gowns are pelvis-weighted
+        if val is None: out[name] = fb; why[name] = "fallback"; continue
+        r = min(max(val, BAND[0] * fb), BAND[1] * fb); out[name] = r; why[name] = "girth" if r == val else "clamped"
     hp = pos("Head"); sel = (b.dom == "Head") & (P[:, 1] > hp[1] + 0.02) & (P[:, 1] < hp[1] + 0.16)
-    hr = float(np.percentile(np.hypot(P[sel, 0] - hp[0], P[sel, 2] - hp[2]), 30)) if sel.sum() > 30 else None
-    put("head", hr); out["headUp"] = 0.9; why["headUp"] = "rule"
-    put("neck", ring(["neck_01"], "neck_01", "Head", "neck"))
-    put("chest", ring(["spine_02", "spine_03"], "spine_02", "neck_01", "chest", 25))
-    put("spine", ring(["pelvis", "spine_01", "spine_02"], "pelvis", "spine_02", "spine", 25))
-    sel = np.isin(b.dom, ["pelvis"]) & (P[:, 1] < pos("pelvis")[1] + 0.05) & (P[:, 1] > pos("pelvis")[1] - 0.15)
-    hipv = float(np.percentile(seg_dist(P[sel], pos("thigh_l"), pos("thigh_r"))[0], 30)) if sel.sum() > 30 else None
-    put("hips", hipv)
-    v = [ring(["upperarm_" + s], "upperarm_" + s, "lowerarm_" + s, "upperarm") for s in "lr"]
-    put("upperarm", None if None in v else (v[0] + v[1]) / 2)
-    v = [ring(["lowerarm_" + s], "lowerarm_" + s, "hand_" + s, "lowerarm") for s in "lr"]
-    put("lowerarm", None if None in v else (v[0] + v[1]) / 2)
-    v = [ring(["thigh_" + s], "thigh_" + s, "calf_" + s, "thigh") for s in "lr"]
-    put("thigh", None if None in v else (v[0] + v[1]) / 2)
-    v = [ring(["calf_" + s], "calf_" + s, "foot_" + s, "calf") for s in "lr"]
-    put("calf", None if None in v else (v[0] + v[1]) / 2)
+    out["skull"] = float(np.clip(np.percentile(np.hypot(P[sel, 0] - hp[0], P[sel, 2] - hp[2]), 30), 0.05, 0.16)) if sel.sum() > 30 else 0.09
     return out, why
 
 
 def shapes(b, R, pose_G=None):
-    """The collider set in model space: list of (name, A, B, r, group bit). pose_G: global matrices of a pose (else rest)."""
+    """The body collider set in model space: list of (name, A, B, r, group bit). pose_G: global matrices of a pose."""
     G = pose_G if pose_G is not None else b.G
     pos = lambda n: G[b.names.index(n)][:3, 3]
     out = []
-    for name, a, c, key, grp in SHAPES:
-        if not b.has(a) or (c and not b.has(c)): continue
-        if c is None:   # head sphere: lifted along the neck->head direction by headUp * r (rest offset carried by the bone)
-            up = b.pos("Head") - b.pos("neck_01"); up /= max(np.linalg.norm(up), 1e-9)
-            off_rest = up * R["headUp"] * R["head"]
-            Ga = G[b.names.index(a)]; Ra = b.G[b.names.index(a)]
-            local = np.linalg.inv(Ra[:3, :3]) @ off_rest
-            A = Ga[:3, 3] + Ga[:3, :3] @ local
-            out.append((name, A, A, R[key], GROUPS[grp]))
-        else:
-            out.append((name, pos(a).copy(), pos(c).copy(), R[key], GROUPS[grp]))
-    if b.has("tail_01") and b.has("tail_02"):
-        out.append(("tail", pos("tail_01").copy(), pos("tail_02").copy(), 0.6 * R["calf"], GROUPS["Extra"]))
-    for s in "lr":
-        if b.has("wing_" + s): out.append(("wing_" + s, pos("wing_" + s).copy(), pos("wing_" + s).copy(), 0.8 * R["upperarm"], GROUPS["Extra"]))
+    for name, a, t, frac in SHAPES:
+        if not b.has(a) or (t and not b.has(t)): continue
+        A = pos(a).copy(); B = pos(t).copy() if t else A
+        out.append((name, A, B, R[name], group(name)))
     return out
 
 
@@ -161,7 +148,7 @@ def outside(P, caps, mask=0xFFFF):
 
 # --- classification -----------------------------------------------------------------------------------------------
 KIND_CHAIN = {"skirt": (0, 19), "cape": (20, 29), "tail": (30, 34), "wing": (35, 39), "hair": (40, 49), "ear": (50, 54), "flap": (55, 69)}
-KIND_MASK = {  # which body colliders a chain of that kind collides with (ChainKinds in Core/Physics/ColliderSet.cs)
+KIND_MASK = {  # which body colliders a chain of that kind collides with (ChainKinds.Mask in Core/Rig/RigChains.cs)
     "skirt": GROUPS["Hips"] | GROUPS["Thighs"] | GROUPS["Calves"],
     "cape": GROUPS["Torso"] | GROUPS["Hips"] | GROUPS["Thighs"] | GROUPS["Calves"] | GROUPS["Extra"],
     "tail": GROUPS["Hips"] | GROUPS["Thighs"] | GROUPS["Calves"],
@@ -174,7 +161,7 @@ KIND_MASK = {  # which body colliders a chain of that kind collides with (ChainK
 
 def classify(b, R):
     P = b.P; pos = b.pos; n = len(P)
-    caps = shapes(b, R)
+    caps = shapes(b, R); R = aliases(R); R["head"] = R["skull"]
     d_out, near = outside(P, caps)
     pel, sp3, neck, head = pos("pelvis"), pos("spine_03"), pos("neck_01"), pos("Head")
     knee = (pos("calf_l") + pos("calf_r")) / 2
@@ -298,18 +285,18 @@ def main():
     if a and a[0] == "--all":
         d, out = a[1], a[2]
         clips = glbio.Clips(clips_path)
-        res = {}; ratios = {k: [] for k in DATA}
+        res = {}; ratios = {k: [] for k in NAMES}
         for f in sorted(os.listdir(d)):
             if not (f.startswith("SB_Hero_") and f.endswith("_HD.glb")): continue
             hid = f[8:-7]
             b, R, why, parts, rig = run(os.path.join(d, f), clips)
             if R is None: print(hid, "skipped: not a humanoid rig", why); continue
             res[hid] = dict(R={k: round(v, 4) for k, v in R.items()}, how=why, parts=clean(parts), rigid=rig)
-            for k in DATA:
+            for k in NAMES:
                 if why.get(k) == "girth": ratios[k].append(R[k] / ref_len(k, b.pos))
             print(hid, " ".join(f"{p['kind']}:{p['verts']}/{p.get('severity', 0)}" for p in parts), flush=True)
         json.dump(res, open(out, "w"), indent=1)
-        print("median ratios:", {k: round(float(np.median(v)), 3) for k, v in ratios.items() if v})
+        print("median radius / bone length (library fractions: head 1.1, neck .45, chest .8, spine .6, hips 1.3, upperarm .2, lowerarm .17, thigh .22, calf .17):", {k: round(float(np.median(v)), 3) for k, v in ratios.items() if v})
         if "--colliders-cs" in a: write_cs(res, a[a.index("--colliders-cs") + 1])
         return
     path = a[0]
@@ -321,21 +308,24 @@ def main():
 
 
 def write_cs(res, path):
-    """Core/Physics/BodyColliderData.cs: one line per hero, the radii in DATA order (generated; do not edit)."""
+    """Core/Rig/BodyColliderData.cs: one line per hero, the measured radii in RigPhysics.BodySet order (generated)."""
     lines = []
     for hid in sorted(res):
         R = res[hid]["R"]
-        lines.append(f'            ["{hid}"] = new[] {{ ' + ", ".join(f"{R[k]:.3f}f" for k in DATA) + " },")
+        lines.append(f'            ["{hid}"] = new[] {{ ' + ", ".join(f"{R[k]:.3f}f" for k in NAMES) + " },")
+    names = ", ".join(f'"{n}"' for n in NAMES)
     src = f"""// GENERATED by unity/Tools~/blenderforge/physics_classify.py --all (physics standard, docs/sigilbound/art/PHYSICS.md).
-// Per hero: the body collider radii measured from its own mesh girth and bone lengths, in metres (model space), in
-// ColliderSet.Data order: {", ".join(DATA)}. Heroes without a line get ColliderSet's fallback ratios of their bone
-// lengths. Regenerate after any model change; tests check every shipped hero has a line and sane sizes.
+// Per hero: the radius of each body collider of the library standard (Core/Rig/RigPhysics.BodySet) measured from the
+// hero's own mesh girth, in metres (model space), in Names order. RigPhysics.Radius uses it instead of fraction x bone
+// length x girth. Regenerate after any model change; tests check every shipped hero has a line and sane sizes.
 using System.Collections.Generic;
 
-namespace Sigilbound.Core.Physics
+namespace Sigilbound.Core
 {{
     public static class BodyColliderData
     {{
+        public static readonly List<string> Names = new List<string> {{ {names} }};
+
         public static readonly Dictionary<string, float[]> ById = new Dictionary<string, float[]>
         {{
 {chr(10).join(lines)}

@@ -248,8 +248,170 @@ namespace Sigilbound.Client
             yield return new WaitForSecondsRealtime(4f);
             for (int i = 1; i <= 6 && Battle.InProgress; i++) { yield return Shot($"titan-{i}"); LogBudget($"titan-{i}"); LogTitanBounds($"titan-{i}"); yield return new WaitForSecondsRealtime(3.2f); }
 
+            if (!NoPilotArg()) yield return PilotTour();
+
             ShotLog($"DONE {_shotCount}");
             Application.Quit(0);
+        }
+
+        static bool NoPilotArg() => Environment.GetCommandLineArgs().Any(a => a == "-sbShotsNoPilot");
+
+        // Skeleton library pilot (docs/sigilbound/art/SKELETON_LIBRARY.md): each migrated hero alone on the arena, battle
+        // camera (33 degrees up, three-quarter front), playing ten battle states, frozen at six points of each clip
+        // (HeroModel.Pose: exact frames at any frame rate). Shot twice, first on the legacy path (RigProfiles.ForceLegacy),
+        // then on the skeleton library, so before and after are the same frames of the same build. Frames are cropped
+        // JPEGs named pilot-<pass>-<hero>-<state>-<k>; each logs "SBPOSE <pass> <hero> <state> <k> clip=.. head=.. top=..
+        // wide=.." (head height, bounds top and width in units of the figure's height marker) for the review.
+        static readonly string[] PilotStates = { "idle", "walk", "run", "attack", "cast", "ultimate", "hit", "heavyhit", "death", "victory" };
+        static readonly float[] PilotFrames = { 0.08f, 0.24f, 0.4f, 0.56f, 0.72f, 0.9f };
+
+        static string PilotClip(HeroModel m, string id, string state)
+        {
+            var st = m.Style;
+            if (id == "titan")
+            {
+                var ts = TitanSpec.Current;
+                string move = state switch { "idle" => "idle", "walk" => "walk", "run" => "leap", "attack" => "fists", "cast" => "breath", "ultimate" => "sweep", "victory" => "roar", "death" => "collapse", _ => null };
+                if (move != null) { var c = ts.ClipOf(move, null); if (c != null && m.Has(c)) return c; }
+                if (state == "hit") return m.Has("Titan_Hit") ? "Titan_Hit" : "HitReact";
+                if (state == "heavyhit") return m.Has("Titan_HitBig") ? "Titan_HitBig" : "Hit_Head";
+            }
+            switch (state)
+            {
+                case "idle": return st.Idle;
+                case "walk": return "Walk_Loop";
+                case "run": return "Run";
+                case "attack": return st.Strike.FirstOrDefault(m.Has) ?? st.Strike.FirstOrDefault();
+                case "cast": return st.Cast;
+                case "ultimate": { var u = HeroUlts.ClipFor(id); return u != null && m.Has(u) ? u : st.Ult; }
+                case "hit": return st.Hit.FirstOrDefault(m.Has);
+                case "heavyhit": return st.BigHit.FirstOrDefault(m.Has);
+                case "death": return st.Death.FirstOrDefault(m.Has);
+                default: return st.Win;
+            }
+        }
+
+        IEnumerator PilotTour()
+        {
+            ShotLog("pilot tour on");
+            if (Battle.InProgress) Battle.End(ScreenId.Home);   // the Titan practice fight before this is still running
+            CloseModal();
+            _shotLineup = new System.Collections.Generic.List<string>(); _shotNoUi = true; _lineupKey = "";
+            Go(ScreenId.Home);
+            yield return new WaitForSecondsRealtime(1f);
+            var keepTs = Time.timeScale;
+            foreach (var pass in new[] { "legacy", "library" })
+            {
+                RigProfiles.ForceLegacy = pass == "legacy";
+                foreach (var id in RigProfiles.Table.Keys)
+                {
+                    bool titan = id == "titan";
+                    var def = titan ? GameData.Titan : GameData.Hero(id);
+                    if (def == null) { ShotLog($"pilot {id}: no such hero"); continue; }
+                    var u = titan ? Sigilbound.Core.Battle.TitanUnit(1000, Element.Flame)
+                                  : new Unit { Template = def, Name = def.Name, El = def.Element, Ally = true, Key = "P0" };
+                    float scale = titan ? (float)TitanSpec.Current.ViewScale : 1f;
+                    var v = CharacterView.Create(u, Vector3.zero, 0f, scale);
+                    float wait = Time.realtimeSinceStartup + 40f;
+                    while (Time.realtimeSinceStartup < wait && (v == null || v.Hero == null)) yield return null;
+                    if (v == null || v.Hero == null) { ShotLog($"pilot {pass} {id}: model did not load"); if (v) Destroy(v.gameObject); continue; }
+                    yield return new WaitForSecondsRealtime(0.5f);
+                    var m = v.Hero;
+                    // battle camera: 33 degrees up, 35 degrees round from the front, framing the whole figure
+                    float H = titan ? (float)TitanSpec.Current.ModelHead * scale * 1.25f : 2.3f;
+                    var look = new Vector3(0, H * 0.45f, 0);
+                    float dist = H * 2.6f, el = 33f * Mathf.Deg2Rad, az = 35f * Mathf.Deg2Rad;
+                    var camPos = look + new Vector3(Mathf.Sin(az) * Mathf.Cos(el), Mathf.Sin(el), Mathf.Cos(az) * Mathf.Cos(el)) * dist;
+                    Arena.Override(camPos, look, 34f, 1f);
+                    ShotLog($"pilot {pass} {id}: rig {(m.Humanoid != null ? "humanoid " + m.Humanoid.Profile.Skeleton + " gait " + m.Humanoid.Profile.Gait : "legacy")}");
+                    foreach (var state in PilotStates)
+                    {
+                        var clip = PilotClip(m, id, state);
+                        if (clip == null || !m.Has(clip)) { ShotLog($"pilot {pass} {id} {state}: no clip ({clip})"); continue; }
+                        for (int k = 0; k < PilotFrames.Length; k++)
+                        {
+                            Arena.Override(camPos, look, 34f, 1f);   // the menu framing clears overrides
+                            m.Pose(clip, PilotFrames[k]);
+                            yield return null; yield return null;
+                            m.Pose(clip, PilotFrames[k]);   // after the arena camera and any LateUpdate settled
+                            LogPose(pass, id, state, k, clip, v);
+                            yield return ShotCrop($"pilot-{pass}-{id}-{state}-{k}");
+                        }
+                    }
+                    // Physics standard (Core/Rig/RigPhysics.cs): the body colliders drawn over the idle, then the run played
+                    // live so chains (Nyssa's soft wings) swing; frames named pilot-<pass>-<hero>-physics-<k>.
+                    var phys = m.Root.GetComponentInChildren<BodyPhysics>();
+                    var marks = new System.Collections.Generic.List<GameObject>();
+                    if (phys != null)
+                    {
+                        var idleClip = PilotClip(m, id, "idle");
+                        m.Pose(idleClip, 0.3f);
+                        var mat = Materials.Unlit(new Color(0.25f, 1f, 0.45f, 0.38f));
+                        foreach (var b in phys.Bodies)
+                        {
+                            var g = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                            Destroy(g.GetComponent<Collider>());
+                            g.GetComponent<Renderer>().sharedMaterial = mat;
+                            var c = b.Collider; var t = c.transform;
+                            g.transform.SetParent(t, false);
+                            g.transform.localPosition = c.center;
+                            g.transform.localRotation = c.direction == 0 ? Quaternion.Euler(0, 0, 90) : c.direction == 2 ? Quaternion.Euler(90, 0, 0) : Quaternion.identity;
+                            g.transform.localScale = new Vector3(c.radius * 2f, Mathf.Max(c.height, c.radius * 2f) * 0.5f, c.radius * 2f);
+                            marks.Add(g);
+                        }
+                        ShotLog($"pilot {pass} {id}: physics {phys.Bodies.Count} colliders, {phys.ChainJoints} chain joints");
+                    }
+                    Arena.Override(camPos, look, 34f, 1f);
+                    yield return null; yield return null;
+                    yield return ShotCrop($"pilot-{pass}-{id}-physics-0");
+                    foreach (var g in marks) Destroy(g);
+                    var runClip = PilotClip(m, id, "run");
+                    if (runClip != null && m.Has(runClip))
+                    {
+                        m.Play(runClip, true, 0f, 1f);
+                        for (int k = 1; k < 6; k++)
+                        {
+                            float until = Time.realtimeSinceStartup + 0.25f;
+                            while (Time.realtimeSinceStartup < until) { Arena.Override(camPos, look, 34f, 1f); yield return null; }
+                            yield return ShotCrop($"pilot-{pass}-{id}-physics-{k}");
+                        }
+                    }
+                    Arena.ClearOverride();
+                    Destroy(v.gameObject);
+                    yield return null;
+                }
+            }
+            RigProfiles.ForceLegacy = false;
+            Time.timeScale = keepTs;
+            _shotLineup = null; _shotNoUi = false; _lineupKey = "";
+        }
+
+        void LogPose(string pass, string id, string state, int k, string clip, CharacterView v)
+        {
+            var root = v.Hero.Root.transform; var feet = v.transform.position;
+            float H = Mathf.Max(0.1f, v.Hero.Height * root.lossyScale.y / Mathf.Max(1e-4f, root.localScale.y));
+            bool any = false; var bb = new Bounds(feet, Vector3.zero);
+            foreach (var r in root.GetComponentsInChildren<SkinnedMeshRenderer>()) { if (!r.enabled) continue; if (!any) { bb = r.bounds; any = true; } else bb.Encapsulate(r.bounds); }
+            var head = BodyShaper.Find(root, "Head");
+            float hy = head != null ? (head.position.y - feet.y) / H : -1f;
+            ShotLog($"SBPOSE {pass} {id} {state} {k} clip={clip} head={hy:0.00} top={(bb.max.y - feet.y) / H:0.00} wide={Mathf.Max(bb.size.x, bb.size.z) / H:0.00}");
+        }
+
+        // A centred square crop of the frame as JPEG (the pilot tour shoots about 600 frames).
+        IEnumerator ShotCrop(string name)
+        {
+            yield return new WaitForEndOfFrame();
+            int w = UnityEngine.Screen.width, h = UnityEngine.Screen.height, side = Mathf.Min(w, h);
+            var tex = new Texture2D(side, side, TextureFormat.RGB24, false);
+            try
+            {
+                tex.ReadPixels(new Rect((w - side) / 2, (h - side) / 2, side, side), 0, 0);
+                tex.Apply(false);
+                _shotCount++;
+                var path = Path.Combine(_shotDir, $"{_shotCount:000}-{name}.jpg");
+                File.WriteAllBytes(path, tex.EncodeToJPG(88));
+            }
+            finally { Destroy(tex); }
         }
 
         // The campaign scenes (CAMPAIGN_SCENES_PLAN.md, M3), with -sbShotsScenes: for every chapter, stops 1, 3 and 6 as a

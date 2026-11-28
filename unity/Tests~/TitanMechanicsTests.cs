@@ -53,7 +53,7 @@ static class TitanMechanicsTests
         string Src(string f) { var q = Path.Combine(client, f); return File.Exists(q) ? File.ReadAllText(q) : ""; }
         var hm = Src("HeroModels.cs"); var shots = Src("ShotsMode.cs");
         var smoke = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(hd)), "..", "..", "tools", "unity-smoke-check.sh");
-        check(hm.Contains("bool rigExt = RigExtras.Needed(holder) && !ownTitanClips;") && hm.Contains("ClearClips(anim);"),
+        check(hm.Contains("rigExt = RigExtras.Needed(holder) && !ownTitanClips;") && hm.Contains("ClearClips(anim);"),
             "titan runtime: no RigExtras rest fix on a Titan with its own clips (glTFast's auto-added clips cleared first)");
         check(shots.Contains("LogTitanBounds(\"titan-intro\")") && shots.Contains("LogTitanBounds($\"titan-{i}\")") && shots.Contains("stretched sideways or bind pose")
               && File.Exists(smoke) && File.ReadAllText(smoke).Contains("SBBOUNDS titan-"),

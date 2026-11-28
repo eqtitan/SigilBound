@@ -220,3 +220,23 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Prevention: docs/sigilbound/art/SKELETON_LIBRARY.md.
 - Related: L002, L003, L018
 - Evidence: owner message 2026-11-28
+
+## L023 - Humanoid retargeting works with glTFast heroes: bake in the editor, avatar at runtime
+- Status: solved
+- Systems: animation, rig-runtime, hero-models, ci
+- Symptom: the skeleton-library plan needed Humanoid (muscle-space) clips for heroes loaded at runtime by glTFast, with no FBX pipeline and no AnimatorController authoring at runtime.
+- Cause: Humanoid clips can only be written in the editor; glTFast's own importer makes Generic/legacy clips only.
+- Fix: Editor/HumanoidClipBaker.cs runs at the start of every BuildScript build (game-ci's editor), rebuilds the reference skeleton from the GLB, reads HumanPoseHandler poses per frame and writes Humanoid .anim files to Resources/HumanoidClips; at runtime HumanoidRig builds an avatar from the glTFast instance (AvatarBuilder, rest pose = T-pose) and plays the clips through a PlayableGraph (manual evaluate). Build 208: 59 + 11 clips baked, all five pilots "rig humanoid", no exceptions.
+- Prevention: RigLibraryTests (mapping completeness, T-pose rest, every clip retargets, no legacy components on migrated heroes); runtime falls back to the legacy path and logs "rig LEGACY" if the avatar or clips are missing; finger muscles are spelled LeftHand.Index.1 Stretched in clip curves (RigProfiles.CurveName).
+- Related: L022, L002, L004
+- Evidence: run 208 (player.log SBHUMAN lines), feat/skeleton-library commits c483bc0, docs/sigilbound/art/SKELETON_LIBRARY.md
+
+## L024 - A screenshot tour step inherits the previous step's running battle
+- Status: solved
+- Systems: ci, qa
+- Symptom: the first pilot tour (run 208) photographed the Titan practice fight 600 times instead of the pilot heroes, and the smoke check still passed.
+- Cause: ShotsMode's Titan step leaves its practice battle running (the loop ends on a shot count, not on Battle.End); the battle camera and its cinematics overrode the tour's camera, and the tour's heroes stood off-screen.
+- Fix: the pilot tour calls Battle.End first and re-applies its camera override before every frame.
+- Prevention: a new tour step starts from a known screen (end any battle, close modals); judge the real frames, not just the log lines (L004, L016).
+- Related: L004, L016
+- Evidence: run 208 smoke artifact (pilot-*.jpg), ShotsMode.PilotTour

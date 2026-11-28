@@ -1,10 +1,11 @@
 // Spring bones at runtime (character TD pilot 2026-11-28; physics standard, docs/sigilbound/art/PHYSICS.md): capes,
 // skirts, robes, coat tails, tails, hair, ears and flaps that swing and slide off the body instead of being glued to it.
 // The chains are nodes sb_<chain>_<bone> in the hero's GLB (added by blenderforge/physics_rig.py or the pilot's
-// spring_rig.py; the last node of each chain is its tip; the chain number gives its kind, Core/Physics ChainKinds).
+// spring_rig.py; the last node of each chain is its tip; the chain number gives its kind, Core/Rig/RigChains.cs).
 // Each kind runs its own solver (Core/SpringSolver.cs, after UniVRM's VRMSpringBone, MIT) with its own settings
-// (Core/Kit/SpringRigs.cs) against its own groups of the hero's body collider set (BodyColliders, Core/Physics/
-// ColliderSet.cs): a skirt meets the hips and legs, hair the head, neck, chest and upper arms.
+// (Core/Kit/SpringRigs.cs) against its own groups of the hero's body colliders (Client/BodyPhysics.cs, the library's
+// physics standard Core/Rig/RigPhysics.cs; groups and kinds Core/Rig/RigChains.cs): a skirt meets the hips and legs,
+// hair the head, neck, chest and upper arms.
 // Runs after the clip, RigExtras and DigitigradeLegs (execution order), in the model holder's own space, so the
 // battle's moves, scale and camera never feed into the cloth and the result matches the offline previews.
 // Low quality, or more simulated joints in the battle than ChainKinds.BattleBudget: kinematic (no swing, the cloth
@@ -12,7 +13,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Sigilbound.Core;
-using Sigilbound.Core.Physics;
 
 namespace Sigilbound.Client
 {
@@ -29,7 +29,7 @@ namespace Sigilbound.Client
         }
 
         Transform _space;
-        BodyColliders _body;
+        BodyPhysics _body;
         readonly List<Group> _groups = new List<Group>();
         int _joints;
         bool _counted;
@@ -58,11 +58,11 @@ namespace Sigilbound.Client
 
         // model: the holder the GLB was instantiated under (unscaled glTF space = the previews' space).
         // body: the hero's body collider set (made here if the caller has none).
-        public void Init(Transform model, string heroId, BodyColliders body = null)
+        public void Init(Transform model, string heroId, BodyPhysics body = null)
         {
             _space = model;
-            _body = body != null ? body : (GetComponent<BodyColliders>() ?? gameObject.AddComponent<BodyColliders>());
-            if (body == null && _body.Count == 0) _body.Init(model, heroId);
+            _body = body != null ? body : GetComponent<BodyPhysics>();
+            if (_body == null) { _body = gameObject.AddComponent<BodyPhysics>(); _body.Init(model, RigProfiles.Legacy(heroId)); }
             var chains = new SortedDictionary<int, SortedDictionary<int, Transform>>();
             foreach (var t in model.GetComponentsInChildren<Transform>(true))
                 if (Parse(t.name, out int c, out int b)) { if (!chains.TryGetValue(c, out var d)) chains[c] = d = new SortedDictionary<int, Transform>(); d[b] = t; }
@@ -100,11 +100,11 @@ namespace Sigilbound.Client
             g.ARot = new SQuat[g.Anchors.Length]; g.APos = new SVec[g.Anchors.Length];
             var mask = rig.Mask != 0 ? (BodyGroup)rig.Mask : ChainKinds.Mask(kind);
             var shape = new List<int>(); var rr = new List<float>();
-            for (int i = 0; i < _body.Count; i++)
+            for (int i = 0; i < _body.Bodies.Count; i++)
             {
-                var sh = _body.Shapes[i];
-                if ((sh.Group & mask) == 0) continue;
-                float r = sh.Group == BodyGroup.Thighs && rig.ThighR > 0 ? rig.ThighR : sh.Group == BodyGroup.Calves && rig.CalfR > 0 ? rig.CalfR : -1f;
+                var grp = RigPhysics.Group(_body.Bodies[i].Name);
+                if ((grp & mask) == 0) continue;
+                float r = grp == BodyGroup.Thighs && rig.ThighR > 0 ? rig.ThighR : grp == BodyGroup.Calves && rig.CalfR > 0 ? rig.CalfR : -1f;
                 shape.Add(i); rr.Add(r);
             }
             g.Shape = shape.ToArray(); g.R = rr.ToArray();
@@ -149,8 +149,8 @@ namespace Sigilbound.Client
                 int n = 0;
                 for (int i = 0; i < g.Shape.Length; i++)
                 {
-                    var c = _body.Capsule(g.Shape[i], _space); if (g.R[i] > 0) c.R = g.R[i];
-                    g.Caps[n++] = c;
+                    var b = _body.Bodies[g.Shape[i]];
+                    g.Caps[n++] = new SCapsule { A = V(_space.InverseTransformPoint(b.A.position)), B = V(_space.InverseTransformPoint(b.B.position)), R = g.R[i] > 0 ? g.R[i] : b.R };
                 }
                 for (int i = 0; i < g.ExtraR.Length; i++)
                     g.Caps[n++] = new SCapsule { A = V(_space.InverseTransformPoint(g.Extra[i, 0].position)), B = V(_space.InverseTransformPoint(g.Extra[i, 1].position)), R = g.ExtraR[i] };

@@ -154,6 +154,7 @@ static class Program
         CachePolicyTests.Run(Check);
         ModelPackTests.Run(Check);
         DigitigradeTests.Run(Check);
+        RigLibraryTests.Run(Check);
         UpdaterTests.Run(Check);
         FrameRateTests.Run(Check);
         QuitRuleTests.Run(Check);

@@ -1,11 +1,10 @@
 // Spring-bone settings per hero (character TD pilot 2026-11-28; physics standard, docs/sigilbound/art/PHYSICS.md).
 // The chains themselves live in the hero's GLB (nodes sb_<chain>_<bone>, the last node of a chain is its tip; the
-// chain number says its kind, Core/Physics/ColliderSet.cs ChainKinds). Client/SpringBones.cs simulates them with
-// Core/SpringSolver.cs against the hero's body collider set (Core/Physics/ColliderSet.cs). Lookup order:
+// chain number says its kind, Core/Rig/RigChains.cs ChainKinds). Client/SpringBones.cs simulates them with
+// Core/SpringSolver.cs against the hero's body colliders (Client/BodyPhysics.cs, Core/Rig/RigPhysics.cs). Lookup order:
 // ["id:kind"] (e.g. "dorian:cape"), then ["id"], then the kind's defaults (ChainKinds.Defaults). The preview tool
 // reads these numbers from this file, so keep the one-line `["key"] = new SpringRig { ... }` form.
 using System.Collections.Generic;
-using Sigilbound.Core.Physics;
 
 namespace Sigilbound.Core
 {
