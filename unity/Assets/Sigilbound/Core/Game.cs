@@ -192,20 +192,22 @@ namespace Sigilbound.Core
             return true;
         }
 
-        public List<HeroSave> RankUpFodder(HeroSave h) =>
-            S.heroes.Where(o => o.uid != h.uid && o.stars == h.stars && !o.locked && !S.team.Contains(o.uid)).ToList();
+        // Heroes the player may pick by hand as fodder: same stars, not locked, not in the current team (the
+        // web game's rule). Auto-picks use the stricter shared rules (Roster.cs: Protect.Fodder).
+        public List<HeroSave> RankUpFodder(HeroSave h) => RankUpFodder(h, Protect.Always);
         public bool CanRankUp(HeroSave h) =>
             h.stars < MaxStars && h.level >= MaxLevelFor(h.stars) && RankUpFodder(h).Count >= h.stars && S.gold >= RankUpGold(h.stars);
-        // Cheapest fodder first: lowest rarity, then spare copies (heroes you own more than one of) before
+        // Cheapest safe fodder first: lowest rarity, then spare copies (heroes you own more than one of) before
         // singletons, then lowest level. Rarity comes first so a freshly summoned Epic or Legendary (level 1)
-        // is never offered before a levelled Common (research BULK_RELEASE_AUTO_RANKUP 1.3).
+        // is never offered before a levelled Common (research BULK_RELEASE_AUTO_RANKUP 1.3). Never a hero the
+        // shared rules protect (locked, team, saved teams, gear, Epic+, last copy); may return fewer than needed.
         public int CopiesOf(string id) => S.heroes.Count(o => o.id == id);
-        public List<HeroSave> SuggestFodder(HeroSave h) =>
-            RankUpFodder(h).OrderBy(f => (int)Hero(f.id).Rarity).ThenByDescending(f => CopiesOf(f.id))
-                .ThenBy(f => f.level).ThenBy(f => f.uid).Take(h.stars).ToList();
+        public List<HeroSave> SuggestFodder(HeroSave h) => AutoFill(h);
         public bool RankUp(HeroSave h, List<HeroSave> fodder)
         {
-            if (!CanRankUp(h) || fodder.Count != h.stars || fodder.Any(f => !RankUpFodder(h).Contains(f))) return false;
+            if (fodder == null || !CanRankUp(h) || fodder.Count != h.stars || fodder.Distinct().Count() != fodder.Count) return false;
+            var ok = RankUpFodder(h);
+            if (fodder.Any(f => !ok.Contains(f))) return false;
             foreach (var f in fodder) Release(f, false);
             S.gold -= RankUpGold(h.stars);
             h.stars++;

@@ -108,6 +108,7 @@ static class Program
         LairRevealTests.Run(Check);
         SaveSafetyTests.Run(Check);
         RankUpTests.Run(Check);
+        ReleaseTests.Run(Check);
         CachePolicyTests.Run(Check);
         ModelPackTests.Run(Check);
         UpdaterTests.Run(Check);
