@@ -11,8 +11,8 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 | art-pipeline | Gemini, cut-out, fal TRELLIS, artgen | L009 L012 |
 | character-td | per-frame visual review method | L008 L018 L019 |
 | build-pipeline | prepare-models, compress, credits | L001 L007 L010 |
-| tests | Tests~, CompileCheck, gates | L001 L013 |
-| ci | workflow, smoke gate, queue, artifacts | L004 L005 L016 |
+| tests | Tests~, CompileCheck, gates | L001 L013 L024 |
+| ci | workflow, smoke gate, queue, artifacts | L004 L005 L016 L025 |
 | qa | in-house tester, checklists | L004 L016 |
 | scenes | campaign scenery, cameras | L004 |
 | balance | curves, pools, roles, probes | L006 L020 |
@@ -21,8 +21,8 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 | arena | ArenaReactor, effects | L015 |
 | platform | Windows/Android specifics | L021 |
 | licensing | credits, licences | L007 |
-| docs | changelog, PLAN, roadmap | L013 |
-| process | who pushes, approvals | L014 |
+| docs | changelog, PLAN, roadmap | L013 L024 L025 |
+| process | who pushes, approvals | L014 L024 L025 |
 | tooling | keys, scripts | L012 |
 
 ```mermaid
@@ -44,4 +44,6 @@ graph LR
   L009[L009 i3d input rules] --> L018
   L011[L011 GUI.depth] --> L017[L017 shared UI]
   L015[L015 OnEnable/Start] --> L016
+  L013[L013 merge hygiene] --> L024[L024 id collisions]
+  L005 --> L025[L025 status needs pushed work]
 ```
