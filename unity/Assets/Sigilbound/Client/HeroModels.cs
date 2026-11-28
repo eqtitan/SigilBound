@@ -886,6 +886,10 @@ namespace Sigilbound.Client
                 foreach (var c in bk.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose")) anim.AddClip(c, c.name);
             foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose") && anim.GetClip(c.name) == null) anim.AddClip(c, c.name);
             anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
+            // Creature rig extensions (tail, jaw, longer neck, digitigrade legs, wing bones; kit_rig.py):
+            // re-apply this hero's rest-pose changes over the humanoid clips and drive the extra bones.
+            bool rigExt = RigExtras.Needed(holder);
+            if (rigExt) root.AddComponent<RigExtras>().Init(holder, lib.Prototype, anim);
             if (titan) { root.AddComponent<HandGrip>(); ApplyGlowCut(holder); }
             else if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
@@ -893,6 +897,9 @@ namespace Sigilbound.Client
             var head = BodyShaper.Find(holder, spec != null ? spec.HeadBone : "Head");
             if (head != null) headY = Mathf.Max(0.5f, holder.InverseTransformPoint(head.position).y);
             else if (spec != null) { float top = MeshTop(holder); if (top > 0.1f) headY = top / (float)spec.HornTop; } // no head bone: the mesh top is the horn tips
+            // a creature's longer neck raises its head (not the Titan: titan.json names its head bone): size it by where a humanoid head would sit
+            var neck = rigExt && !titan ? BodyShaper.Find(holder, "neck_01") : null;
+            if (neck != null) headY = Mathf.Max(0.5f, holder.InverseTransformPoint(neck.position).y + 0.08f);
             // Height and build from the approved design (heroes_hd/body.json): gnomes stand short, golems tall and broad.
             yield return EnsureHdBodies();
             float hgt = (float)body.H, bulk = 1f;

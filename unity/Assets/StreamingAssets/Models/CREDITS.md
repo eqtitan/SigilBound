@@ -41,3 +41,7 @@ project's own art; TRELLIS is a tool, not a content source. The meshes are clean
 UBC skeleton and skinned in Blender (`unity/Tools~/blenderforge`). Any mesh made with another
 generator (e.g. Hunyuan3D or Tripo) must have its tool, licence and any attribution added here
 before it ships.
+
+The Titan's mesh (2026-11-27) was generated from a front image the owner approved through fal.ai's hosted
+**`fal-ai/trellis`** endpoint (the same MIT-licensed TRELLIS model as a paid API call); it is the project's own
+art on the same terms as above.

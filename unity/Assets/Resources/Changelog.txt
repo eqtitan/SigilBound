@@ -4,6 +4,7 @@
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 fix: The Titan's arrival is now filmed from behind your heroes looking up at its face, its jump keeps the ground in view, the caldera has lava veins and a crater rim, and its name tag clears its horns.
+change: The Titan has a new look: a hunched basalt colossus with huge fists, crystal ridges and molten seams that glow in its element's colour.
 fix: The Round and Enrage banner now sits under the turn order bar instead of running beneath it.
 balance: Light and Shadow chapters are easier: Flame, Gale and Tide heroes have no edge there, so those enemies are 8% weaker.
 balance: Stage 10-1 no longer jumps in difficulty, and Act II climbs more gently to a beatable final boss.
