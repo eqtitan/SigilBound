@@ -335,7 +335,7 @@ def make_cape(arm, mat, clasp_mat, long_=True, train=False, ember=None, ragged=F
 
 def kit(c, arm):
     pal = c.get("palette", {}); el = P.hexc(ELEM.get(c.get("element"), pal.get("glow")))
-    _mc = P.hexc(pal.get("metal", "#aab0b8")); _light = (0.3 * _mc[0] + 0.59 * _mc[1] + 0.11 * _mc[2]) > 0.72
+    _mc = P.hexc(pal.get("metal", "#aab0b8")); _light = (0.3 * _mc[0] + 0.59 * _mc[1] + 0.11 * _mc[2]) > 0.72 and "tint" not in P.LEGACY.get(c.get("id"), ())
     # a light palette metal (white-and-gold plate) is enamel, not a mirror: a mirror-white reflects the dark scene and reads black
     mats = {"metal": P.flat("K_Metal", _mc, metal=0.3 if _light else 0.9, rough=0.35 if _light else 0.3),
             "acc": P.flat("K_Accent", P.hexc(pal.get("accent")), metal=0.3, rough=0.4),
@@ -372,7 +372,7 @@ def kit(c, arm):
     out += KH.head(c, arm, mats, sys.modules[__name__])
     nh, _ = rest_bone(arm, "neck_01")
     # Gowns and robes first (cloth-simulated, kit_cloth.py), so a cape is fitted over them.
-    if KC.needs_gown(c, text):
+    if KC.needs_gown(c, text) and "gown" not in P.LEGACY.get(c.get("id"), ()):
         out += KC.make_gown(c, arm, mats, bind)
     if has(text, "cape", "cloak", "mantle"):
         out += make_cape(arm, mats["second"] if has(text, "crimson cape", "red cape") else mats["main"], mats["metal"], long_=not has(text, "short cape", "half cape", "shoulder cape", "mantle", "half-cape", "capelet"),
@@ -519,6 +519,28 @@ def export(arm, obj, path):
                               export_apply=False, export_yup=True, export_materials="PLACEHOLDER")
     return os.path.getsize(path) // 1024
 
+def dump_head(arm, path):
+    """Review aid (SB_HEADDUMP=DIR): the rest-pose triangles near the head, labelled per piece (skin, hair, each
+    Kit_ piece), for cross-section checks of how head gear sits on the hair."""
+    import numpy as np
+    hh, _ = rest_bone(arm, "Head"); dg = bpy.context.evaluated_depsgraph_get()
+    V, F, L, names = [], [], [], []
+    for o in bpy.context.scene.objects:
+        if o.type != "MESH": continue
+        me = o.evaluated_get(dg).to_mesh(); mw = o.matrix_world; base = len(V)
+        V += [tuple(mw @ v.co) for v in me.vertices]
+        for p_ in me.polygons:
+            c = mw @ p_.center
+            if (c - hh).length > 0.45: continue
+            mat = me.materials[p_.material_index].name if me.materials and me.materials[p_.material_index] else ""
+            lab = o.name if o.name.startswith("Kit_") else ("hair" if "Hair" in mat else "skin" if "Regular" in mat else "eye" if "Eye" in mat else "outfit")
+            if o.name.startswith("Kit_") and o.get("sb_piece"): lab = o.name + ":" + o["sb_piece"]
+            if lab not in names: names.append(lab)
+            vs = list(p_.vertices)
+            for k in range(1, len(vs) - 1): F.append((base + vs[0], base + vs[k], base + vs[k + 1])); L.append(names.index(lab))
+        o.evaluated_get(dg).to_mesh_clear()
+    np.savez_compressed(path, V=np.array(V, np.float32), F=np.array(F, np.int32), L=np.array(L, np.int16), names=np.array(names), head=np.array(tuple(hh)))
+
 def normalise_parts(c):
     """Outfit part names are file names (Male_Knight_Body_Armor). The phase H designs wrote them as
     Pack/Part ("Female_Ranger/Legs"): nothing matched, and every such slot silently fell back to the
@@ -537,11 +559,15 @@ def main():
     ap.add_argument("--lod1", action="store_true", help="also export a ~1/3-triangle LOD1 (not shipped by default)")
     a = ap.parse_args(sys.argv[sys.argv.index("--") + 1:])
     os.makedirs(a.out, exist_ok=True)
-    c = normalise_parts({d["id"]: d for d in json.load(open(a.design))}[a.hero])
+    c = {d["id"]: d for d in json.load(open(a.design))}[a.hero]
+    if "parts" not in P.LEGACY.get(a.hero, ()): c = normalise_parts(c)
     arm = P.build(c, pose=False)
     import kit_rig as KR
     KH.RIG = KR.extend(c, arm, head_box)   # creature rig extensions (tail, jaw, neck, digitigrade legs, wing bones)
     pieces = kit(c, arm)
+    if os.environ.get("SB_HEADDUMP"): dump_head(arm, os.path.join(os.environ["SB_HEADDUMP"], a.hero + "_head.npz"))
+    if os.environ.get("SB_HEADONLY"):
+        print(f"[ubc] {a.hero}: head dump only"); return
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     for x in bpy.context.selected_objects: x.select_set(False)
     for o in meshes: o.select_set(True)

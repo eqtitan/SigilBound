@@ -245,9 +245,19 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 ## L025 - Head gear "floating": check top and side views before automating
 - Status: open
 - Systems: hero-models, character-td
-- Symptom: owner, on the faces sheet: "almost every head accessory is either floating above the head model or floating".
-- Cause: partly found. At rest, kit helms/hats/crowns are 100% Head and mostly rest on the hair; the visible gaps are (1) circlets/crowns fitted to a wider head ring than the hair (gap 1-3 cm all round, seen from the top), (2) hat crowns sitting above flat hair caps (Dunstan, Tilly, Clemence) where lowering puts hair through the hat, (3) halos hovering by design. Weights don't let gear slide on kit heads (gear and hair both on Head). An automatic "lower everything onto the hair" pass moved mohawks and halos and made rings sink into the hair out of sight.
-- Fix: blenderforge/hg_seat.py fits only worn rings (shrink about the head axis to 6 mm proud of the hair, kit heads only); shipped where the before/after sheet is visibly better (Quill, Vaelith, Ondessa, Pell). Hats over flat hair need hair/hat rebuilt together (kit_head.py) - open.
-- Prevention: before fixing a "floating" report, render head front + side + back + TOP close-ups and confirm what floats; never move hair or halos; reject any fit that hides the accessory from any view.
-- Related: L008, L019
-- Evidence: scratchpad ctd/headgear/ (headgear_before_after.jpg, rejected_*.jpg)
+- Symptom: owner: head accessories float "in battle / on Home", in the faces sheet, on crowns/circlets and hats, and on image-to-3D heroes.
+- Cause: four, all at build time (kit_head.py): (1) hat crowns were one inward-facing sheet, invisible under the game's back-face culling, so only brim and band showed and the hair poked through (L026); (2) hats were sized by a 4-ray ellipse centred on the head's bounding box: a gap in front, cut into the hair behind, ~1.5 cm wide at the sides; (3) rings were fitted to one height of the hair (wider than the hair above it) and crowns sat high on the dome; (4) hats and helms sat over full-volume hair. The first ring fit (hg_seat.py, in place) helped four heroes but could not fix the others; lowering hats in place put hair through them.
+- Fix: (open only for owner approval of the kit rebuild and for image-to-3D sockets, L022) fix/ctd-headgear-2, kit heroes rebuilt (not patched): hair under hats/caps/helms/kerchiefs/wimples flattened toward the scalp (re-imported unculled body head, max 0.7-1.0 cm; beards and hair below the brim untouched), crowns placed where the hair is near-vertical, every ring and rim conformed to the hair per angle (and height for rings, taper <= 6 mm) 3 mm proud, hat crowns faced outward, halos set to a measured 4 cm gap. Gear stays 100% Head; the head region is rigid on Head, so gear vs hair is the same in every frame as at rest. Image-to-3D heroes: no separate accessory islands on the neck exist; fused gear that shears (Aurex sunburst, Nettle fox head, Lazlo shark head) needs separate accessory meshes on sockets in the skeleton rebuild.
+- Prevention: before fixing a "floating" report, render head front + side + back + TOP close-ups with back-face culling AND labelled cross-sections (ubc.py SB_HEADDUMP + xsec); reproduce in a real build's gallery shot; rebuild kit gear in kit_head.py instead of nudging shipped GLBs; never hide an accessory from any view.
+- Related: L008, L019, L026, L022
+- Evidence: fix/ctd-headgear-2; scratchpad ctd2/ (sheets/, hgsw/, xs_*.jpg, real_zoom.jpg = build 190 gallery: Cole's hat a bare ring, Dunstan's hair through his hat)
+
+## L026 - Single-sheet gear vanishes under back-face culling
+- Status: solved
+- Systems: hero-models, materials, character-td
+- Symptom: hats read as a floating brim with hair inside; offline renders without culling looked fine.
+- Cause: the hero shader culls back faces (SigilCharacterPainted _Cull = Back, HeroPainted.mat from shader defaults); a lathe built as one sheet (hat crown) had its faces pointing into the head, so it disappeared from outside. 21 kit heroes (every lathe hat) were affected.
+- Fix: kit_head._crown_out faces the crown sheet outward; opensheets.py (scratchpad ctd2/tools) scans for open inward sheets.
+- Prevention: preview with back-face culling (ctdlib.render_lit cull=True); any new single-sheet piece must be solidified or oriented outward; scan new builds with opensheets.py.
+- Related: L004, L025
+- Evidence: fix/ctd-headgear-2; scratchpad ctd2/real_zoom.jpg, ctd2/t1_a.jpg

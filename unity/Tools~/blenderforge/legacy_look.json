@@ -1,0 +1,94 @@
+{
+ "_doc": "ubc.py rebuilds of heroes whose approved look predates a later global builder change (ubc_parts.LEGACY): 'tint' = no light-plate boost (172c5c7), 'gown' = no cloth coat/gown skirt from the later 'greatcoat'/'long coat' triggers (172c5c7), 'parts' = Pack/Part names unnormalised (411b530). Found by rebuilding for the headgear pass (2026-11-28) and diffing the body below the neck against the shipped model; each entry reproduces the shipped body (mean colour difference < 1/255).",
+ "leofric": [
+  "tint"
+ ],
+ "kaito": [
+  "tint"
+ ],
+ "lucan": [
+  "tint"
+ ],
+ "isla": [
+  "tint"
+ ],
+ "agathe": [
+  "tint"
+ ],
+ "clemence": [
+  "tint"
+ ],
+ "dulcie": [
+  "tint"
+ ],
+ "rhea": [
+  "tint"
+ ],
+ "calder": [
+  "tint",
+  "gown"
+ ],
+ "kettle": [
+  "tint",
+  "gown"
+ ],
+ "zephyrine": [
+  "tint",
+  "gown"
+ ],
+ "marisol": [
+  "tint",
+  "gown"
+ ],
+ "nerys": [
+  "tint",
+  "gown"
+ ],
+ "thessaly": [
+  "tint",
+  "gown"
+ ],
+ "nocturne": [
+  "tint",
+  "gown"
+ ],
+ "wynn": [
+  "tint",
+  "gown"
+ ],
+ "perrin": [
+  "tint",
+  "gown"
+ ],
+ "ottavia": [
+  "tint",
+  "gown"
+ ],
+ "aelira": [
+  "tint"
+ ],
+ "auren": [
+  "tint"
+ ],
+ "hobb": [
+  "tint"
+ ],
+ "seraphine": [
+  "tint"
+ ],
+ "stormbearer": [
+  "tint"
+ ],
+ "ysabeau": [
+  "tint"
+ ],
+ "amber": [
+  "tint"
+ ],
+ "hilde": [
+  "tint"
+ ],
+ "pike": [
+  "tint"
+ ]
+}

@@ -93,7 +93,8 @@ class Ctx:
         if isinstance(bone, dict) or callable(bone): self.U.bind(obj, self.arm, bone)
         else: self.U.bind(obj, self.arm, {bone: 1.0})
         self.out.append(obj)
-        if piece: REPORT.append((self.c["id"], piece))
+        if piece:
+            REPORT.append((self.c["id"], piece)); obj["sb_piece"] = piece
         return obj
 
     # head landmarks
@@ -203,14 +204,14 @@ def crown(X, text):
     if style == "flower": gold = X.mat("#3f6a2a", "cloth")
     # A floating crown hovers just clear of the head (owner report 2026-11-27: at 3.5 cm, seen from the
     # low battle and portrait cameras, it read as a crown or hair knocked off the head).
-    z0 = X.top - 0.04 if not floating else X.top + 0.012
+    z0 = crown_height(X, 0.03 if style not in ("flower", "smoke", "water", "thorn") else 0.012) if not floating else X.top + 0.012
     radii = X.head_ring(z0) if not floating else [X.hw * 0.88] * 32
     if not floating: radii = [r + 0.004 for r in radii]
     parts = []
     bh = 0.03 if style not in ("flower", "smoke", "water", "thorn") else 0.012
     if style == "thorn":
         # two thin twisted briar vines, not a solid band, resting on the hair
-        z0 = X.top - 0.03; radii = [r + 0.003 for r in X.head_ring(z0)]
+        z0 = crown_height(X, 0.012, start=X.top - 0.03); radii = [r + 0.003 for r in X.head_ring(z0)]
         for ph in (0.0, math.pi):
             vine = []
             for j in range(65):
@@ -299,6 +300,8 @@ def crown(X, text):
             parts.append(G.sphere(Vector((X.cx + math.cos(a) * X.hw * 0.7, X.cy + math.sin(a) * X.hw * 0.7, z0 - 0.004)), 0.005, X.glow, segs=8))
     o = X.add(G.join(parts), "Head", piece="crown:" + style + (" floating" if floating else ""))
     if floating: X.hover.append(o)
+    elif style == "thorn": seat_zone(o, z0 + 0.001, z0 + 0.011)
+    elif style != "smoke": seat_zone(o, z0, z0 + bh)
     return o
 
 
@@ -336,7 +339,7 @@ def circlet(X, text):
         parts.append(G.sphere(Vector((pf.x, pf.y - 0.004, fz + 0.005)), 0.0055, gem, segs=10))
     if has(text, "ribbon", "tail"):
         parts += tails(X, X.cloth_of(text, X.pal.get("secondary")), z, long_=has(text, "long", "very long"))
-    return X.add(G.join(parts), "Head", piece="circlet")
+    return seat_zone(X.add(G.join(parts), "Head", piece="circlet"), z - 0.004, z + 0.005, 0.018)
 
 
 def headband(X, text):
@@ -346,7 +349,7 @@ def headband(X, text):
         for k in range(40):
             a = k / 40 * TAU; p, d = G.ring_point(radii, X.cx, X.cy, a, 0.008)
             parts.append(G.sphere(Vector((p.x, p.y, z + 0.02 * math.sin(a))), 0.0055, X.mat("#efe9df", "glass"), segs=8))
-        return X.add(G.join(parts), "Head", piece="headband:pearl")
+        return seat_zone(X.add(G.join(parts), "Head", piece="headband:pearl"), z - 0.005, z + 0.005, 0.02)
     z = X.brow - 0.008
     radii = [r + 0.002 for r in X.head_ring(z + 0.01, tilt=0.025)]
     parts = [G.band(radii, cm, X.cx, X.cy, z, 0.022, 0.005, zfun=lambda a: 0.025 * math.sin(a))]
@@ -355,7 +358,7 @@ def headband(X, text):
     if has(text, "pin", "star"):
         p, d = G.ring_point(radii, X.cx, X.cy, FRONT + 0.5, 0.008)
         parts.append(G.extrude(star_outline(0.012, 0.005), 0.004, X.metal_of("silver"), Vector((p.x, p.y, z + 0.012)), Vector((-math.sin(FRONT + 0.5), math.cos(FRONT + 0.5), 0)), Vector((0, 0, 1))))
-    return X.add(G.join(parts), "Head", piece="headband")
+    return seat_zone(X.add(G.join(parts), "Head", piece="headband"), z, z + 0.022, 0.025)
 
 
 def tails(X, mat, z, long_=False):
@@ -536,6 +539,8 @@ def hat(X, text):
         if kind == "tricorne" and r > 1.02: return 1 + 0.25 * (0.5 + 0.5 * math.cos(3 * (a - FRONT))) * (r - 1) / r
         return 1.0
     o = G.lathe(prof, m, center=(X.cx, X.cy + 0.004, zb), rx=rx, ry=ry, segs=40, zfun=zf, rfun=rf)
+    # the crown is one sheet: face it outward (it pointed into the head, and back-face culling hid it)
+    _crown_out(o, Vector((X.cx, X.cy + 0.004, zb)), rx, ry, zb + 0.0045)
     if kind == "witch":
         for v in o.data.vertices:
             h = v.co.z - (zb + 0.08)
@@ -569,7 +574,7 @@ def hat(X, text):
         for sx in (-1, 1):
             for k in range(5):
                 parts.append(feather(Vector((X.cx + sx * rx * 0.98, X.cy + 0.01, zb + 0.03)), (sx * 0.8, 0.25 + k * 0.1, 0.25 + k * 0.12), 0.09 - k * 0.008, 0.016, X.mat("#ece6da"), side=(0, 0, 1)))
-    return X.add(G.join(parts), "Head", piece="hat:" + kind)
+    return seat_zone(X.add(G.join(parts), "Head", piece="hat:" + kind), zb + 0.008, zb + 0.008, 0.0, "rim")
 
 
 def cap(X, text):
@@ -629,7 +634,7 @@ def wimple(X, text):
     m = X.cloth_of(text, "#e9dfc6")
     zs = [X.base - 0.07, X.base - 0.02, X.eye - 0.02, X.brow, X.top - 0.02]
     offs = [0.05, 0.03, 0.016, 0.014, 0.014]
-    parts = [shell(X, zs, offs, m, a0=FRONT + 0.85, a1=FRONT + TAU - 0.85, top_off=0.02, thick=0.006)]
+    parts = [shell(X, zs, offs, m, a0=FRONT + 0.85, a1=FRONT + TAU - 0.85, top_off=0.032, thick=0.006)]   # apex clear of the (flattened) hair top
     radii = X.head_ring(X.brow)
     parts.append(G.band(radii, X.metal_of("gold"), X.cx, X.cy, X.brow - 0.006, 0.012, 0.003, off=0.016))
     return X.add(G.join(parts), "Head", piece="wimple")
@@ -768,7 +773,7 @@ def helm(X, text):
         for k in range(5):
             p = Vector((X.cx, X.cy - 0.03 + k * 0.025, X.top + 0.02))
             parts.append(G.extrude([(0, 0), (0.012, 0.02), (0, 0.05), (-0.012, 0.02)], 0.003, X.mat("#4f8a3a"), p, Vector((1, 0, 0)), Vector((0, 0.3, 1))))
-    return X.add(G.join(parts), "Head", piece=piece)
+    return seat_zone(X.add(G.join(parts), "Head", piece=piece), zb + 0.004, zb + 0.004, 0.0, "rim")
 
 
 def lantern(X, p, s, name="Kit_Head"):
@@ -1392,6 +1397,8 @@ def head(c, arm, mats, U):
         done.add(k); return True
     # headwear (the design's head slot)
     animal_head = has(h, "turtle head", "shark head", "lion head", "raven head", "owl head", "bear head", "dragon head", "stag head", "crab")
+    cover = cover_kind(X, pack, animal_head)
+    if cover and compress_hair(X, cover): refit(X)
     if not pack and h and not h.startswith("none") and not animal_head:
         if has(h, "diving", "helm", "helmet", "bascinet", "great helm") and once("helm"): helm(X, h)
         elif has(h, "veil") and has(h, "hood") and once("veil"): veil(X, h, hood=True)
@@ -1450,29 +1457,247 @@ def head(c, arm, mats, U):
         X.add(animal_ears(X, "hare", X.mat((c.get("hair") or {}).get("colour", "#d8c8b0")), X.mat("#e8c0c0")), "Head", piece="hare ears")
     if has(h, "fin-ear", "fin ear") and once("finears"): X.add(fin_ears(X, X.mat("#5ac8c0", "glass")), "Head", piece="fin ears")
     if has(h, "gnomon"): X.add(fin(X, "head", X.metal_of("bronze")), "Head", piece="gnomon fin")
+    seat_all(X)
     clear_hover(X)
+    for hid_, msg in REPORT:
+        if hid_ == c["id"] and msg.startswith(("seated", "hat hair", "set ", "lifted")): print("[kit_head]", hid_, msg)
     return X.out
 
 
+# ---------- seating worn gear on the hair (character TD headgear pass 2, 2026-11-28) ----------
+# Owner: head accessories floated "in battle / on Home". Causes found: hat crowns built as single inward-facing
+# sheets (invisible under back-face culling: only brim and band showed, the hair poked through), hats sized by a
+# 4-ray ellipse centred on the head's bounding box (gap in front, cut into the hair behind), rings fitted to one
+# height of the hair (wider than the hair above it), and hats sat over full-volume hair. Now: hair under covering
+# gear is compressed toward the scalp (a "hat hair" variant), then every worn ring / rim is conformed to the real
+# hair surface per angle and height, SEAT_OFF proud of it; halos hover HALO_GAP over whatever is under them.
+SEAT_OFF = 0.003    # contact offset: worn gear sits this far outside the (compressed) hair
+TAPER = 0.006      # how much a worn band may narrow toward its top edge to follow the hair
+HALO_GAP = 0.04     # halos hover this far above the highest point of the head or gear beneath
+HAT_HAIR = {"hat": 0.010, "cap": 0.008, "helm": 0.010, "kerchief": 0.007, "wimple": 0.008}   # hair thickness left under it
+
+
+def cover_kind(X, pack, animal_head):
+    """The covering headwear the design asks for (hair under it is compressed), or None."""
+    h = X.head_txt
+    if pack or not h or h.startswith("none") or animal_head: return None
+    if has(h, "diving", "bucket", "great helm"): return None
+    if has(h, "helm", "helmet", "bascinet"): return "helm"
+    if has(h, "veil") and has(h, "hood"): return None
+    if has(h, "hood", "cowl"): return None
+    if has(h, "wimple"): return "wimple"
+    if has(h, "hat", "tricorne", "bicorne", "sou'wester") and not has(h, "hard cap"): return "hat"
+    if has(h, "cap"): return "cap"
+    if has(h, "kerchief", "headscarf", "scarf"): return "kerchief"
+    return None
+
+
+def cover_line(X, kind):
+    """Height of the covering piece's lower edge at the forehead (matches the builders below)."""
+    return {"hat": X.brow + 0.004, "cap": X.brow - 0.005, "helm": X.brow - 0.018, "kerchief": X.brow - 0.01, "wimple": X.brow}[kind]
+
+
+def compress_hair(X, kind, fall=0.025):
+    """Flatten the scalp hair under covering gear: every hair vertex above the gear's lower edge (fading in over
+    `fall` below it) is pulled toward the nearest scalp point until at most HAT_HAIR[kind] thick. Beards and
+    moustaches (below the eyes) and hair hanging below the edge keep their shape."""
+    z1 = cover_line(X, kind); z0 = z1 - fall; tmax = HAT_HAIR[kind]
+    face = scalp_bvh(X)
+    if face is None: return 0
+    moved = 0
+    for o in bpy.context.scene.objects:
+        if o.type != "MESH" or o.name.startswith(("Kit_", "Icosphere")): continue
+        hair = {i for i, m in enumerate(o.data.materials) if m and "Hair" in m.name}
+        if not hair: continue
+        hv = set()
+        for p_ in o.data.polygons:
+            if p_.material_index in hair: hv.update(p_.vertices)
+        mw = o.matrix_world; mi = mw.inverted()
+        for i in hv:
+            v = o.data.vertices[i]; p = mw @ v.co
+            if p.z < z0 or p.z < X.eye: continue
+            t = min(1.0, (p.z - z0) / fall); w = t * t * (3 - 2 * t)
+            loc, nrm, _, d = face.find_nearest(p)
+            if loc is None or d <= tmax: continue
+            dirv = (p - loc)
+            if dirv.dot(nrm) < 0: continue   # inside the skull (a hair card tucked in): leave it
+            nd = d + (tmax - d) * w
+            v.co = mi @ (loc + dirv.normalized() * nd); moved += 1
+    if moved:
+        REPORT.append((X.c["id"], f"hat hair: {moved} hair vertices flattened under the {kind} (max {tmax * 100:.1f} cm)"))
+    return moved
+
+
+def scalp_bvh(X):
+    """The bare skull: the base skin body's head as shipped in the pack (the build culls the scalp under the hair,
+    so the dressed body has no scalp to measure hair thickness against). Re-imported, read, removed."""
+    from mathutils.bvhtree import BVHTree
+    f = P.FILES.get("Regular_Female_FullBody" if X.c.get("sex", "male") == "female" else "Regular_Male_FullBody")
+    if not f: return None
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=f)
+    new = [o for o in bpy.data.objects if o not in before]
+    verts, polys = [], []
+    for o in new:
+        if o.type != "MESH": continue
+        mw = o.matrix_world; skin = {i for i, m in enumerate(o.data.materials) if m and "Regular" in m.name}
+        base = len(verts); verts += [mw @ v.co for v in o.data.vertices]
+        for p_ in o.data.polygons:
+            if p_.material_index in skin and (mw @ p_.center).z > X.base - 0.03: polys.append([base + i for i in p_.vertices])
+    for o in new: bpy.data.objects.remove(o, do_unlink=True)
+    return BVHTree.FromPolygons(verts, polys) if polys else None
+
+
+def refit(X):
+    """After compress_hair: re-cast against the flattened hair; only the head top changes (eye, brow, face and
+    width keep the dressed-head values, so faces, masks and bands stay where the design put them)."""
+    X.fit = G.Fit(X.U.body_bvh())
+    X.hb = dict(X.hb); X.hb["top"] = X.U.head_box(X.arm)["top"]
+
+
+def crown_height(X, bh, start=None, lean=0.008):
+    """Where a worn crown band sits: the highest height (from 4 cm under the top of the hair down to the brow) at
+    which the hair narrows by at most `lean` across the band, so the band rests on the hair all round instead of
+    sliding down a dome (a band high on the dome sank into the hair at the back, or stood off it at the top)."""
+    z = X.top - 0.04 if start is None else start
+    lo = X.brow + 0.004
+    while z > lo:
+        a = X.head_ring(z, 24); b = X.head_ring(z + bh, 24)
+        if sum(x - y for x, y in zip(a, b)) / 24 <= lean: return z
+        z -= 0.004
+    return max(lo, min(z, X.top - 0.04))
+
+
+def seat_zone(o, zlo, zhi, tilt=0.0, kind="ring"):
+    """Mark a built piece for seat(): the height band (at the forehead-to-back midline, plus tilt*sin(angle)) where
+    its inner surface should rest on the hair. kind ring = band conforms per angle and height; rim = per angle."""
+    if o is not None:
+        o["sb_seat"] = (float(zlo), float(zhi), float(tilt)); o["sb_seat_kind"] = kind
+    return o
+
+
+def seat(X, o, bins=48, maxs=0.045):
+    """Conform a piece's inner surface to the hair: per angle (and per height for rings) the piece moves radially so
+    its inner surface sits SEAT_OFF outside the outermost hair/skin surface (rays from outside, so a ring can't sink
+    out of sight into the hair). Parts further out than the inner surface (brims, crown points, gems) are carried
+    along unchanged; parts inside it (a hat's crown top) scale with it, so nothing tears. Gear stays 100% Head."""
+    from mathutils.bvhtree import BVHTree
+    zlo, zhi, tilt = o["sb_seat"]; ring = o.get("sb_seat_kind", "ring") == "ring"
+    mw = o.matrix_world; mi = mw.inverted()
+    P = [mw @ v.co for v in o.data.vertices]
+    bvh = BVHTree.FromPolygons(P, [tuple(p_.vertices) for p_ in o.data.polygons])
+    nz = 3 if ring else 1
+    zs = [zlo + (zhi - zlo) * (k / (nz - 1) if nz > 1 else 0.5) for k in range(nz)]
+    rin = [[None] * nz for _ in range(bins)]; sh = [[None] * nz for _ in range(bins)]
+    for i in range(bins):
+        a = i / bins * TAU; d = Vector((math.cos(a), math.sin(a), 0))
+        for k, z in enumerate(zs):
+            zz = z + tilt * math.sin(a); c = Vector((X.cx, X.cy, zz))
+            hit = bvh.ray_cast(c, d, 0.4)
+            if hit[0] is None: continue
+            r_in = (Vector((hit[0].x, hit[0].y, 0)) - Vector((X.cx, X.cy, 0))).length
+            R = X.fit.radius(X.cx, X.cy, zz, a, fallback=None, reach=0.45)
+            if R is None or R > r_in + 0.06: continue   # a ray through a gap (ear, collar): no target here
+            rin[i][k] = r_in; sh[i][k] = R + SEAT_OFF - r_in
+    # fill gaps around the ring, keep each column clear of hair lumps (max of neighbours), then smooth
+    for k in range(nz):
+        col = [sh[i][k] for i in range(bins)]
+        if all(v is None for v in col):
+            for i in range(bins): sh[i][k] = 0.0; rin[i][k] = rin[i][k] or 0.1
+            continue
+        known = [i for i in range(bins) if col[i] is not None]
+        for i in range(bins):
+            if col[i] is None:
+                j0 = max((j for j in known if j < i), default=known[-1] - bins); j1 = min((j for j in known if j > i), default=known[0] + bins)
+                t = (i - j0) / max(1, j1 - j0)
+                sh[i][k] = col[j0 % bins] * (1 - t) + col[j1 % bins] * t
+                rin[i][k] = (rin[j0 % bins][k] or 0.1) * (1 - t) + (rin[j1 % bins][k] or 0.1) * t
+        env = [max(sh[(i - 1) % bins][k], sh[i][k], sh[(i + 1) % bins][k]) for i in range(bins)]
+        for i in range(bins):
+            sh[i][k] = max(-maxs, min(maxs, sum(env[(i + j) % bins] for j in range(-2, 3)) / 5))
+    # a rigid band may lean in toward its top edge by at most TAPER (more read as a band sunk into the hair)
+    for i in range(bins):
+        r0 = rin[i][0] + sh[i][0]
+        for k in range(1, nz):
+            frac = (zs[k] - zs[0]) / max(1e-6, zhi - zlo)
+            sh[i][k] = max(sh[i][k], r0 - TAPER * frac - rin[i][k])
+    def interp(tab, a, z):
+        f = (a % TAU) / TAU * bins; i = int(f) % bins; t = f - int(f)
+        if nz == 1: return tab[i][0] * (1 - t) + tab[(i + 1) % bins][0] * t
+        u = (min(max(z, zlo), zhi) - zlo) / max(1e-6, zhi - zlo) * (nz - 1); k = min(int(u), nz - 2); s = u - k
+        A = tab[i][k] * (1 - s) + tab[i][k + 1] * s; B = tab[(i + 1) % bins][k] * (1 - s) + tab[(i + 1) % bins][k + 1] * s
+        return A * (1 - t) + B * t
+    for v, p in zip(o.data.vertices, P):
+        rv = Vector((p.x - X.cx, p.y - X.cy, 0)); r = rv.length
+        if r < 1e-6: continue
+        a = math.atan2(rv.y, rv.x); z = p.z - tilt * math.sin(a)
+        s = interp(sh, a, z); ri = interp(rin, a, z)
+        dsp = s if r >= ri - 0.002 else s * r / max(ri, 1e-4)
+        v.co = mi @ (p + rv / r * dsp)
+    REPORT.append((X.c["id"], f"seated {o.get('sb_piece', o.name)}"))
+
+
+def outward_sheet(o, center, rmax=None):
+    """Flip the faces of a single-sheet surface that point toward `center` (they vanished under the game's
+    back-face culling: a hat crown read as an empty brim). rmax limits it to faces within that radius of the axis."""
+    import bmesh as _bm
+    bm = _bm.new(); bm.from_mesh(o.data); flips = []
+    for f in bm.faces:
+        c = f.calc_center_median()
+        if rmax is not None and math.hypot(c.x - center.x, c.y - center.y) > rmax: continue
+        if f.normal.dot(c - center) < 0: flips.append(f)
+    if flips: _bm.ops.reverse_faces(bm, faces=flips)
+    bm.to_mesh(o.data); bm.free(); o.data.update()
+    return len(flips)
+
+
+def _crown_out(o, c, rx, ry, zmin):
+    """Hat lathe: flip the single-sheet crown (inside the band radius, above the brim) to face outward."""
+    import bmesh as _bm
+    bm = _bm.new(); bm.from_mesh(o.data); flips = []
+    for f in bm.faces:
+        m = f.calc_center_median()
+        if m.z < zmin or math.hypot((m.x - c.x) / rx, (m.y - c.y) / ry) > 1.06: continue
+        if f.normal.dot(m - c) < 0: flips.append(f)
+    if flips: _bm.ops.reverse_faces(bm, faces=flips)
+    bm.to_mesh(o.data); bm.free(); o.data.update()
+
+
+def seat_all(X):
+    for o in X.out:
+        if o is not None and o.type == "MESH" and o.get("sb_seat"): seat(X, o)
+
+
 def clear_hover(X, gap=0.015):
-    """Lift each halo / floating crown so it sits `gap` above every other head piece under it (a hat,
-    hood or helm built on the same hero); the head box only knows the bare head and hair."""
+    """Halos hover a deliberate HALO_GAP over the head: the gap is measured straight down from every point of the
+    halo to whatever is under it (hair, skin, or a hat, hood or helm on the same hero), and the halo is moved up
+    or down so the smallest gap is exactly HALO_GAP. Floating crowns (designed to hover just clear) are only
+    lifted, to `gap`, when something under them comes closer."""
     if not X.hover: return
-    R = X.hw * 1.5
-    def under(o):
-        mw = o.matrix_world
-        return [mw @ v.co for v in o.data.vertices if math.hypot((mw @ v.co).x - X.cx, (mw @ v.co).y - X.cy) < R]
+    from mathutils.bvhtree import BVHTree
     others = [o for o in X.out if o not in X.hover and o.type == "MESH"]
-    top = max((p.z for o in others for p in under(o)), default=None)
-    if top is None: return
+    V, Fc = [], []
+    for o in others:
+        base = len(V); mw = o.matrix_world
+        V += [mw @ v.co for v in o.data.vertices]; Fc += [[base + i for i in p_.vertices] for p_ in o.data.polygons]
+    gb = BVHTree.FromPolygons(V, Fc) if Fc else None
+    down = Vector((0, 0, -1))
     for o in X.hover:
-        pts = [o.matrix_world @ v.co for v in o.data.vertices]
-        if not pts: continue
-        low = min(p.z for p in pts)
-        if low < top + gap:
-            d = o.matrix_world.inverted().to_3x3() @ Vector((0, 0, top + gap - low))
-            for v in o.data.vertices: v.co += d
-            REPORT.append((X.c["id"], f"lifted {o.name} {top + gap - low:.3f} m clear of the headwear"))
+        halo = str(o.get("sb_piece", "")).startswith("halo")
+        want = HALO_GAP if halo else gap
+        mw = o.matrix_world; vs = o.data.vertices; mg = None
+        for v in list(vs)[:: max(1, len(vs) // 600)]:
+            p = mw @ v.co
+            for bvh in (X.fit.bvh, gb):
+                if bvh is None: continue
+                h = bvh.ray_cast(p + down * 0.0005, down, 0.5)
+                if h[0] is not None: mg = h[3] if mg is None else min(mg, h[3])
+        if mg is None: continue
+        dz = want - mg
+        if abs(dz) < 0.001 or (not halo and dz < 0): continue
+        d = mw.inverted().to_3x3() @ Vector((0, 0, dz))
+        for v in vs: v.co += d
+        REPORT.append((X.c["id"], f"{'set' if halo else 'lifted'} {o.get('sb_piece', o.name)} {dz * 100:+.1f} cm ({'halo gap' if halo else 'clear of the head'} {want * 100:.1f} cm)"))
 
 
 def species(c, arm, mats, U):

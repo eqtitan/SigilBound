@@ -46,6 +46,21 @@ DEFAULT = {"male": {"arms": "Male_Peasant_Arms", "body": "Male_Peasant_Body", "l
            "female": {"arms": "Female_Peasant_Arms", "body": "Female_Peasant_Body", "legs": "Female_Peasant_Legs", "feet": "Female_Peasant_Feet"}}
 FEMALE_ALT = {"Knight": "Ranger", "Noble": "Ranger", "Wizard": "Peasant"}
 
+# Heroes whose approved look predates a later global builder change; a rebuild keeps their shipped look:
+#   "tint"  - no light-plate boost (172c5c7 turned every light palette into white enamel plate)
+#   "parts" - outfit part names as they loaded then (411b530 made Pack/Part names load real pack parts)
+#   "gown"  - no cloth-simulated gown/coat skirt (172c5c7 added "greatcoat" / "long coat" to the gown triggers)
+LEGACY = {}
+try:
+    import json as _json
+    LEGACY = {k: tuple(v) for k, v in _json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "legacy_look.json"))).items() if not k.startswith("_")}
+except FileNotFoundError:
+    pass
+if os.environ.get("SB_LEGACY"):   # review aid: SB_LEGACY=hero:tint+parts,...
+    for _e in os.environ["SB_LEGACY"].split(","):
+        _h, _, _f = _e.partition(":"); LEGACY[_h] = tuple(_f.split("+"))
+
+
 def tint_material(mat, color, k, boost=1.0):
     """Base colour = mix(texture, grey(texture) * colour * 1.9 * boost, k). A light colour on a dark
     texture (white plate on the dark knight armour) needs the boost to reach it."""
@@ -175,7 +190,7 @@ def build(c, pose=True):
                            "headgear": pal.get("metal"), "acc": pal.get("accent")}.get(slot, pal.get("main"))
                     # Under a gown the fallback top is the gown's bodice: dyed to the gown's colour.
                     gown = str(o.get("body", "")).startswith("custom") and any(k in str(o.get("body", "")).lower() for k in ("robe", "gown", "dress", "habit"))
-                    cc = hexc(col); light = (0.3 * cc[0] + 0.59 * cc[1] + 0.11 * cc[2]) > 0.72
+                    cc = hexc(col); light = (0.3 * cc[0] + 0.59 * cc[1] + 0.11 * cc[2]) > 0.72 and "tint" not in LEGACY.get(c.get("id"), ())
                     # light plate (white and gold paladins): a near-full tint with a boost so the dark
                     # pack texture only lends its shading
                     tint_material(mat, cc, 0.97 if light else 0.93 if gown and slot in ("body", "arms") else 0.7, boost=2.6 if light else 1.0)

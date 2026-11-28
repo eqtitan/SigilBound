@@ -5,7 +5,7 @@ description: The character TD's living playbook for Sigilbound hero models - rev
 
 # Character TD playbook (load first, append last)
 
-Role: `.claude/agents/character-td.md`. Brain: `docs/sigilbound/brain/` (L004, L008, L010, L018, L019, L022-L025).
+Role: `.claude/agents/character-td.md`. Brain: `docs/sigilbound/brain/` (L004, L008, L010, L018, L019, L022-L026).
 **Rule:** read this file before touching a hero; before you report, add what you learned (new failure mode, a tool
 result, an owner preference) to the sections below with the date and branch. Keep entries one or two lines.
 
@@ -31,7 +31,8 @@ result, an owner preference) to the sections below with the date and branch. Kee
 | Prop lying on the floor / pointing at the next hero | gallery shot; the prop's PCA axis vs forearm | i3d prop held mid-haft, pointing forward | prop_turn.py |
 | Weapon through the head | headhit.py (prop verts inside a head sphere per frame) | Punch_Cross / Punch_Enter with long props | HdOverrides Strike=Sword_Attack, NoBlock |
 | Shield through helmet/arm | shieldmetric | shield centred on the forearm | shield_slide.py (cap 20 cm) + prop_rigid |
-| Floating head gear | head FRONT/SIDE/BACK/TOP close-ups (hgba.py, headview.py) | rings fitted wider than the hair; hat crowns over flat hair caps; halos hover by design | hg_seat.py: worn rings only (6 mm proud), kit heads; never move hair/halos; hats need kit_head rebuild (L025) |
+| Floating head gear | head FRONT/SIDE/BACK/TOP close-ups WITH back-face culling + labelled cross-sections (ubc.py SB_HEADDUMP, ctd2/tools/xsec.py, hgrow.py); real build gallery | single-sheet hat crowns culled (L026); hats sized by a bbox-centred ellipse; rings fitted to one hair height / high on the dome; full hair under hats | kit: REBUILD with kit_head.py seating (compress_hair, seat/seat_zone, crown_height, _crown_out, clear_hover HALO_GAP) + post.sh re-patches; i3d: sockets (L025) |
+| Gear/hair shown inside a closed piece | opensheets.py on the head dump | lathe sheet faces point inward | orient outward or solidify (L026) |
 | Face warp / face slides on the head | face drift vs Head bone; face close-up frames | i3d faces weighted to neck/clavicles; Head-lock on a neck-weighted head slides (L024) | face_lock.py (tight mask; "avg" mode for i3d) |
 | Lower layer showing through (shirt under armour) | detect.py inner-face metric | layered kit pieces | usually leave (tiny at battle distance) |
 | Dark, metallic, sparkling hero | game render / maskproof | no _glow and no _mat map -> default white mask (L023) | neutral mask in HeroModels (shipped on fix/ctd-roster-3) |
@@ -48,8 +49,14 @@ result, an owner preference) to the sections below with the date and branch. Kee
 - `mesh_fix.py SRC DST [--orient] [--no-islands]` - remove small loose pieces; winding fix is opt-in (rejected).
 - `hd_materials.py DIR [ids]` - `_mat.png` metal/smoothness for steel/gold prop texels + kit helms/crowns (hair-coloured skipped) + `index_mat.txt`.
 - `spring_rig.py SRC DST HERO` - spring chains (skirt ring, cape, tail) + leg re-skin; run LAST (compress-hd prunes tips). Only Jasper ships.
-- `shield_slide.py SRC DST MAX`, `face_lock.py face_lock.json SRC DST [ids]` (faces branch), `hg_seat.py SRC DST HERO` (headgear).
+- `shield_slide.py SRC DST MAX`, `face_lock.py face_lock.json SRC DST [ids]` (faces branch), `hg_seat.py SRC DST HERO` (headgear, superseded by the kit rebuild).
+- Kit rebuild of a hero (headgear pass 2): `ubc.py` (SB_HEADDUMP=DIR dumps labelled head triangles, SB_HEADONLY=1 stops after the head pass, 2-5 s) then
+  scratchpad `ctd2/post.sh OUT STAGE ids` = compress-hd + compress-textures + the in-place patches the shipped kit GLBs carry
+  (prop_rigid for dunstan gorrum hask hobb ivo merrit oriel oswin sable tallow, shield_slide 0.20 hask, face_lock for face_lock.json ids, hd_materials).
+  A fresh build reproduces the shipped base exactly (checked Dunstan, Quill); always re-run those patches or they are lost.
 - Runtime: `Core/SpringSolver.cs`, `Client/SpringBones.cs`, `Core/Kit/SpringRigs.cs`, `AnimStyle.HdOverrides`, `HeroModels.MaskFromGlow`, shader "metal reflection" block.
+- Headgear review (scratchpad `ctd2/tools/`): `xsec.py`/`xsec_lib.py` (labelled sections), `hgrow.py` (renders+sections), `combo.py` (owner faces+headgear sheet: battle cam + framed close-ups + motion),
+  `hgsweep.py` (head close-up every 2nd frame before/after), `gearbody.py` (per-frame rigid-head vs body contacts, before/after), `headrigid.py`, `opensheets.py`, `i3dscan.py`/`topbones2.py` (i3d head gear weights), `hgclip.py`.
 - Review scripts (scratchpad `ctd/tools/`, not in the repo): `ctdlib.py` + `raster.so` (fast z-buffer renders,
   `render_lit` = game light model incl. mask/metal), `sweep.py` (every frame contact sheets), `cmp.py`/`cmpall.sh`/`stats.sh`
   (before/after + stretch), `mkba.py` (owner before/after sheets), `springsim.py` (preview solver = C#),
@@ -60,6 +67,8 @@ result, an owner preference) to the sections below with the date and branch. Kee
 ## 4. What worked / what was rejected
 - Worked: spring coat on Jasper; clip overrides for gowned kit heroes; prop_rigid; shield slide capped; neutral mask;
   remodels with shorter cloth (Wystan tunic, Vorgrim half-cloak); metal reflection limited to steel/gold props.
+- Worked (headgear 2): rebuilding kit gear with hair compressed under covers + conform-to-hair seating; outward hat crowns; crowns placed where hair is near-vertical.
+- Rejected: per-height conform of crowns high on the dome (band slid down the slope and sank at the back) - taper capped at 6 mm.
 - Rejected: spring chains on kit gowns (holes, legs out), on cloth carrying arm/hand weights (Wystan old, Vorgrim cape),
   on Lazlo/Neve/Holt/Perpetua; tail chains on pelvis/leg-weighted tails; rigid head gear by height ramp on i3d heads
   (stretched more); double-sided / winding fix for i3d holes; uncapped shield slide (held by the top edge);
@@ -81,6 +90,8 @@ result, an owner preference) to the sections below with the date and branch. Kee
 - Prefers remodels with shorter cloth over weight hacks on long robes; options sheet first, fal only after the pick.
 - Changelog must not claim a fix the tester can still see (L010).
 - Favour fixes that carry over to the skeleton-library rebuild (mesh/material clean-up) over weight tweaks.
+
+- Art: the proxy key only works on Gemini's OpenAI-compatible images/generations (text-to-image); image-conditioned edits are not available, so a "make it real" pass is a re-generation from a precise description of the pick - compare side by side and stop for the owner if it drifts. gemini-3-pro-image-preview gives the high-detail realistic look (n=1 per call).
 
 ## 6. Log (append: date, branch, one line)
 - 2026-11-28 fix/ctd-pilot: spring bones, Jasper coat, Hask shield, gown clip overrides.
