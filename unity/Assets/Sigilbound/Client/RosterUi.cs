@@ -17,7 +17,7 @@ namespace Sigilbound.Client
         public const float Gap = 6;         // between chips in a row
         public const float RowGap = 10;     // between rows
         public const float LabelH = 22;     // section label
-        public const float BackW = 104;     // "‹ Heroes" chip
+        public const float BackW = UiLayout.BackW; // the shared Back button (Ui.BackButton)
         public const float CheckBox = 26;   // the box of a check row
         public const float ReleaseFooterH = 112;
         public const float ReviewFooterH = 64;
@@ -60,7 +60,7 @@ namespace Sigilbound.Client
             y += T + G6;
             if (Ui.Button(new Rect(Pad, y, w2, T), "Release…", Ui.Kind.Secondary, 13)) OpenRelease();
             var ra = new Rect(Pad + w2 + G6, y, w2, T);
-            if (Ui.Button(ra, "Rank up all", Ui.Kind.Secondary, 13)) OpenRankAll();
+            if (Ui.Button(ra, "Rank Up All", Ui.Kind.Secondary, 13)) OpenRankAll();
             int ready = RankReadyCount();
             if (ready > 0) Badge(new Rect(ra.xMax - 24, ra.y - 6, 22, 22), ready);
             y += T + 12;
@@ -161,7 +161,7 @@ namespace Sigilbound.Client
         string _holdKey; float _holdStart;
         bool HoldButton(Rect r, string text, string key, bool enabled)
         {
-            Ui.Button(r, text, Ui.Kind.Red, 15, enabled);
+            Ui.Button(r, text, Ui.Kind.Danger, 15, enabled);
             bool down = enabled && GUI.enabled && Input.GetMouseButton(0) && r.Contains(Event.current.mousePosition) && !Scroller.WasDragging;
             string done = "done:" + key;
             if (!down) { if ((_holdKey == key || _holdKey == done) && Event.current.type == EventType.Repaint) _holdKey = null; return false; }

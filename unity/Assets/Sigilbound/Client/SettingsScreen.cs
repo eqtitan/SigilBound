@@ -26,7 +26,13 @@ namespace Sigilbound.Client
                 Ui.Text(new Rect(b.x, b.y, b.width, 36), "What happened, or what would you like? Your note and some device details are copied so you can paste them to the developer.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
                 _feedback = Ui.Field(new Rect(b.x, b.y + 42, b.width, 120), _feedback, 2000, true);
                 string errs = Feedback.ErrorCount > 0 ? $"Attach the last {Feedback.ErrorCount} error lines" : "Attach recent errors (none so far)";
-                if (Ui.Button(new Rect(b.x, b.y + 170, b.width, 30), (_feedbackErrors ? "☑ " : "☐ ") + errs, Ui.Kind.Ghost, 12)) _feedbackErrors = !_feedbackErrors;
+                // A real check box (drawn), not a glyph, in a 48 dp row.
+                var cb = new Rect(b.x, b.y + 166, b.width, Tap);
+                if (Ui.Button(cb, "", Ui.Kind.Ghost)) _feedbackErrors = !_feedbackErrors;
+                var box = new Rect(cb.x + 4, cb.center.y - 10, 20, 20);
+                Ui.Round(box, _feedbackErrors ? Palette.Gold : Palette.Hex("#0d0a12"), Palette.Trim, 4);
+                if (_feedbackErrors) Icons.Draw(new Rect(box.x + 3, box.y + 3, 14, 14), Icon.Check, Palette.Hex("#1a1208"));
+                Ui.Text(new Rect(cb.x + 32, cb.y, cb.width - 32, cb.height), errs, 12, Palette.Text);
                 if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
                 if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Copy report"))
                 {
@@ -142,7 +148,6 @@ namespace Sigilbound.Client
             Chips(ref y, b, new[] { "Off", "On" }, Access.LargeTaps ? 1 : 0, i => { Access.LargeTaps = i == 1; Toast(i == 1 ? "Larger tap targets: on" : "Larger tap targets: off"); });
 
             y += 4;
-            SettingGroup(ref y, b, "Game");
         }
 
         // Preview chips for the chosen palette: the five element badges (icon + name) and the four rarity tabs.
@@ -178,13 +183,18 @@ namespace Sigilbound.Client
             float y = 0;
             var st = G.S.settings;
             DrawAccessibility(ref y, b); // first (UX review #16)
+            // Every row sits under a section heading (UI/UX review #7): Audio, Battle, Updates, Display and
+            // performance, Help, Account and data, Danger zone.
+            SettingGroup(ref y, b, "Audio");
             // Volume sliders (0 = off) that apply instantly, as audio.js.
             Slider(ref y, b, "Music", st.musicVol, v => { st.musicVol = v; Sound.I?.ApplyVolumes(); });
             Slider(ref y, b, "Sound effects", st.sfxVol, v => { st.sfxVol = v; Sound.I?.ApplyVolumes(); });
             var cams = BattleLayout.Cameras;
+            SettingGroup(ref y, b, "Battle");
             SettingRow(ref y, b, "Battle view", "Also switchable during battle with the View button.");
             Chips(ref y, b, System.Array.ConvertAll(cams, c => c.Name), System.Array.FindIndex(cams, c => c.Key == BattleLayout.Camera(st.cam).Key), i => { st.cam = cams[i].Key; Save(); Toast("View: " + cams[i].Name); });
 
+            SettingGroup(ref y, b, "Updates");
             if (Updater.Included && (Application.platform == RuntimePlatform.Android || Application.isEditor))
             {
                 // In-app updates (PLAN step 34): Auto downloads new builds on Wi-Fi and installs them on the home screen.
@@ -200,6 +210,7 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(b.x, y, 170, Tap), "View notes", Ui.Kind.Secondary, 13)) OpenWhatsNew();
             y += Tap + 10;
 
+            SettingGroup(ref y, b, "Display and performance");
             // Frame rate (owner decision 2026-11-27): 60 by default; the screen's 90/120 Hz as a choice.
             int hz = Quality.HighHz; string fpsMode = Quality.SavedFpsMode(st.fpsCap);
             if (fpsMode == "high" && !Quality.HighAvailable) fpsMode = "60";
@@ -211,13 +222,13 @@ namespace Sigilbound.Client
                 Quality.SaveFpsMode(modes[i]); st.fpsCap = modes[i] == "30" ? 30 : 60; Save(); Quality.I?.Set(st.quality, modes[i]);
                 Toast(modes[i] == "high" ? $"{hz} fps: uses more battery" : modes[i] == "60" ? "60 fps" : "30 fps: cooler and longer battery");
             });
-            Ui.Text(new Rect(b.x, y - 6, b.width, 18 * Ui.TextGrow), "Auto-replay always runs at 30 fps.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
+            Ui.Text(new Rect(b.x, y - 6, b.width, 18 * Ui.TextGrow), "Replay and Climb always run at 30 fps.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
             y += 14 * Ui.TextGrow;
 
             if (Background.Supported)
             {
                 // Desktop only: Windows used to freeze battles whenever the window lost focus.
-                SettingRow(ref y, b, "When the window isn't focused", Background.KeepRunning ? "The game keeps running, so battles and auto-replay carry on." : "The game pauses until you click back into it.");
+                SettingRow(ref y, b, "When the window isn't focused", Background.KeepRunning ? "The game keeps running, so battles, Replay and Climb carry on." : "The game pauses until you click back into it.");
                 Chips(ref y, b, new[] { "Keep running", "Pause" }, Background.KeepRunning ? 0 : 1, i =>
                 {
                     Background.KeepRunning = i == 0; Toast(i == 0 ? "Keeps running in the background" : "Pauses when not focused");
@@ -249,16 +260,21 @@ namespace Sigilbound.Client
                 Toast("Graphics: " + (i == 0 ? "Auto" : qKeys[i]));
             });
 
-            SettingRow(ref y, b, "Feedback", "Found a bug or have an idea? Send it to the developer.");
-            if (Ui.Button(new Rect(b.x, y, 170, Tap), "Send feedback", Ui.Kind.Primary, 13)) OpenFeedback();
-            if (Ui.Button(new Rect(b.x + 180, y, 170, Tap), "Replay tutorial", Ui.Kind.Secondary, 13)) { Tutorial.Step = 1; CloseModal(); Go(ScreenId.Home); Toast("Tutorial restarted"); }
-            y += Tap + 10;
-
             SettingRow(ref y, b, "Performance overlay", "Shows frame rate and draw calls. For testing; saved on this device.");
             Chips(ref y, b, new[] { "Off", "On" }, PerfOverlay.Enabled ? 1 : 0, i => PerfOverlay.Enabled = i == 1);
 
+            SettingGroup(ref y, b, "Help");
+            SettingRow(ref y, b, "Feedback", "Found a bug or have an idea? Send it to the developer.");
+            // Two buttons sharing the row (Replay tutorial was cut off on a 358-wide modal); they stack if it's narrow.
+            float hb = (b.width - 8) / 2; bool stackHelp = hb < 140;
+            if (Ui.Button(new Rect(b.x, y, stackHelp ? b.width : hb, Tap), "Replay tutorial", Ui.Kind.Secondary, 13)) { Tutorial.Step = 1; CloseModal(); Go(ScreenId.Home); Toast("Tutorial restarted"); }
+            if (stackHelp) y += Tap + 6;
+            if (Ui.Button(new Rect(stackHelp ? b.x : b.x + hb + 8, y, stackHelp ? b.width : hb, Tap), "Send feedback", Ui.Kind.Primary, 13)) OpenFeedback();
+            y += Tap + 10;
+
             if (Screen != ScreenId.Battle)
             {
+                SettingGroup(ref y, b, "Account and data");
                 SettingRow(ref y, b, "Promo code", "Got a code? Enter it here for free rewards.");
                 _promoInput = Ui.Field(new Rect(b.x, y, b.width - 108, Tap), _promoInput, 32, false);
                 if (Ui.Button(new Rect(b.xMax - 100, y, 100, Tap), "Redeem", Ui.Kind.Primary, 13))
@@ -285,10 +301,9 @@ namespace Sigilbound.Client
 
                 // Danger zone (UX review #17: "Reset save" sat on Home beside "How to play").
                 y += 6;
-                GUI.DrawTexture(new Rect(b.x, y, b.width, 1), Ui.Solid(new Color(Palette.Bad.r, Palette.Bad.g, Palette.Bad.b, 0.5f)));
-                y += 10;
-                SettingRow(ref y, b, "Danger zone", "Start over from the beginning on this device.");
-                if (Ui.Button(new Rect(b.x, y, 170, Tap), "Reset save…", Ui.Kind.Red, 13)) AskResetSave();
+                SettingGroup(ref y, b, "Danger zone");
+                SettingRow(ref y, b, "Reset save", "Start over from the beginning on this device.");
+                if (Ui.Button(new Rect(b.x, y, Mathf.Min(b.width, 190), Tap), "Reset save…", Ui.Kind.Danger, 13)) AskResetSave();
                 y += Tap + 10;
             }
             _settingsH = y + 8;
@@ -308,7 +323,7 @@ namespace Sigilbound.Client
                 Ui.Text(new Rect(b.x, b.y, b.width, 100), "This starts a new game on this device: heroes, gear and campaign progress are gone.\n\nCopy your save code first if you might want this game back.", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
                 if (Ui.Button(new Rect(b.x, b.yMax - 96, b.width, 44), "Copy my save code", Ui.Kind.Secondary, 13)) { GUIUtility.systemCopyBuffer = ExportSaveCode(); Toast("Save code copied"); }
                 if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) OpenSettings();
-                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Reset", Ui.Kind.Red))
+                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Reset", Ui.Kind.Danger))
                 {
                     Store?.AcceptFresh(); G = new Game(new SaveData()); G.EnsureDaily(); Save(); ClearLineup(); CloseModal();
                     _undo = null; _rp = RosterPanel.None;

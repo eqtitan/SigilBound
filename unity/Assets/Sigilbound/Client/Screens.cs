@@ -29,22 +29,28 @@ namespace Sigilbound.Client
             float bw = Mathf.Min(Ui.W - 40, 560);
             Ui.Round(new Rect(Ui.W / 2 - bw / 2, y - 2, bw, 44), new Color(0.04f, 0.03f, 0.07f, 0.72f), null, 14);
             Ui.Text(new Rect(30, y, Ui.W - 60, 40), "The Sigil has shattered. Choose the first champion to answer your call.", 14, Palette.Text, FontStyle.Normal, TextAnchor.MiddleCenter, true);
-            y = area.yMax - 3 * 92 - 30;
+            // Starter cards 18 apart (their painted frames ran into each other: UI/UX review #19), each with a
+            // Choose button; rarity and element as a letter tab and an icon badge, not two coloured words.
+            y = area.yMax - 3 * 100 - 30;
             foreach (var id in Starters)
             {
                 var t = Hero(id);
-                var r = Row(ref y, 82);
+                var r = Row(ref y, 82, 18);
                 Ui.Card(r);
-                Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 28, 24), t.Name, 18, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + 14, r.y + 32, r.width - 28, 20), Tag(t), 13, Palette.Dim);
-                Ui.Text(new Rect(r.x + 14, r.y + 52, r.width - 28, 20), string.Join(" · ", t.Skills.Select(s => s.Name)), 12, Palette.Text);
-                if (Ui.Button(r, "", Ui.Kind.Ghost))
+                Ui.RarityTab(r, t.Rarity, 16);
+                Ui.ElementBadge(new Rect(r.x + 12, r.y + 10, 24, 24), t.Element);
+                float cw = Mathf.Max(Ui.Tap * 1.8f, 92);
+                Ui.Text(new Rect(r.x + 42, r.y + 8, r.width - cw - 60, 26), t.Name, 18, Palette.Text, FontStyle.Bold);
+                Ui.Text(new Rect(r.x + 14, r.y + 36, r.width - cw - 30, 20), $"{t.Rarity} · {t.Element} · {RoleName(t.Role)}", 13, Palette.Hex("#d6c7a6"));
+                Ui.Text(new Rect(r.x + 14, r.y + 56, r.width - cw - 30, 20), string.Join(" · ", t.Skills.Select(s => s.Name)), 12, Palette.Text);
+                bool pick = Ui.Button(new Rect(r.xMax - cw - 12, r.center.y - Ui.Tap / 2, cw, Ui.Tap), "Choose", Ui.Kind.Primary, 14);
+                if (pick | Ui.Button(r, "", Ui.Kind.Ghost))
                 {
                     G.StartWith(id); Save(); Go(ScreenId.Home); Tutorial.Start();
-                    Modal("Welcome!", 230, b =>
+                    InfoModal("Welcome!", 230, b =>
                     {
                         Ui.Text(new Rect(b.x, b.y, b.width, 90), $"{t.Name} answers your call, joined by Pell and Odo. Summon more heroes with your shards, then fight in the Campaign.", 15, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                        if (Ui.Button(new Rect(b.x, b.yMax - 48, b.width, 46), "Let's go")) CloseModal();
+                        if (ModalFooter(b, "Let's go")) CloseModal();
                     });
                 }
             }
@@ -80,33 +86,46 @@ namespace Sigilbound.Client
 
         void DrawHomeWide(Rect area)
         {
-            // Inset by the painted frames' outer band (Ui.Card grows its frame about 21 units around the rect).
-            float colW = Mathf.Clamp((area.width - 350) / 2, 230, 320), gap = 24;
-            var left = new Rect(area.x + gap, area.y + 20, colW, area.height - 28);
-            var right = new Rect(area.xMax - gap - colW, area.y + 20, colW, area.height - 28);
-            // Title and stats over the scene, between the columns.
-            var mid = new Rect(left.xMax + 8, area.y + 4, right.x - left.xMax - 16, 40);
+            // Core/UiLayout.Home: two columns either side of the team at 16:9 and wider; one column on the right
+            // (Continue pinned at its foot) on 4:3 tablets and narrow windows, where the middle was 96 units wide.
+            var L = UiLayout.Home(Ui.ToBox(area), Ui.Tap, Ui.FullW);
+            var mid = Ui.ToRect(L.Title);
             Ui.Heading(new Rect(mid.x - 40, mid.y, mid.width + 80, 40), "SIGILBOUND", 30, TextAnchor.MiddleCenter);
             Ui.TextOnArt(new Rect(mid.x, mid.yMax, mid.width, 22), HomeSubtitle(), 13, Palette.Text);
-
-            // Right: the main call to action at the bottom (pinned), the login reward and achievements above it.
-            float ctaH = Mathf.Max(60, Ui.Tap + 10);
-            var cta = new Rect(right.x, right.yMax - ctaH, right.width, ctaH);
+            var cta = Ui.ToRect(L.Cta);
             HomeContinue(cta);
+            float chipsH = Mathf.Max(44, Ui.Tap);
+            if (L.Compact)
+            {
+                // Everything in one scrolling column above the pinned button.
+                var col = Ui.ToRect(L.Left);
+                float content = 74 + QuestsHeight + 10 + 68 + chipsH + 8;
+                _homeLeftScroll = Scroller.Begin(col, _homeLeftScroll, content);
+                float cy = 0;
+                LoginCard(new Rect(0, cy, col.width, 64)); cy += 74;
+                QuestsCard(new Rect(0, cy, col.width, QuestsHeight)); cy += QuestsHeight + 10;
+                AchievementsCard(new Rect(0, cy, col.width, 58)); cy += 68;
+                HomeChips(new Rect(0, cy, col.width, chipsH));
+                Scroller.End();
+                if (content > col.height + 1) ScrollFade(col, _homeLeftScroll.y, content);
+                return;
+            }
+            var left = Ui.ToRect(L.Left); var right = Ui.ToRect(L.Right);
+            // Right: the main call to action at the bottom (pinned), the login reward and achievements above it.
             float ry = right.y;
             LoginCard(new Rect(right.x, ry, right.width, 64)); ry += 74;
             if (cta.y - ry >= 58 + 10) AchievementsCard(new Rect(right.x, ry, right.width, 58));
 
             // Left: daily quests and the help chips, scrolling if the screen is short.
-            float content = QuestsHeight + 10 + Mathf.Max(44, Ui.Tap) + 8;
-            if (cta.y - ry < 68) content += 68; // achievements move here when the right column is full
-            _homeLeftScroll = Scroller.Begin(left, _homeLeftScroll, content);
+            float lcontent = QuestsHeight + 10 + chipsH + 8;
+            if (cta.y - ry < 68) lcontent += 68; // achievements move here when the right column is full
+            _homeLeftScroll = Scroller.Begin(left, _homeLeftScroll, lcontent);
             float y = 0;
             QuestsCard(new Rect(0, y, left.width, QuestsHeight)); y += QuestsHeight + 10;
             if (cta.y - ry < 68) { AchievementsCard(new Rect(0, y, left.width, 58)); y += 68; }
-            HomeChips(new Rect(0, y, left.width, Mathf.Max(44, Ui.Tap)));
+            HomeChips(new Rect(0, y, left.width, chipsH));
             Scroller.End();
-            if (content > left.height + 1) ScrollFade(left, _homeLeftScroll.y, content);
+            if (lcontent > left.height + 1) ScrollFade(left, _homeLeftScroll.y, lcontent);
         }
 
         string HomeSubtitle() => $"Campaign {G.S.cleared}/{TotalStages} · {G.S.heroes.Count} heroes · {G.S.wins} wins";
@@ -159,7 +178,7 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(r.x + half + 5, r.y, half, r.height), "How to play", Ui.Kind.Chip, 13)) ShowHelp();
         }
 
-        void ShowHelp() => Modal("How to play", 470, b =>
+        void ShowHelp() => InfoModal("How to play", 470, b =>
             {
                 Ui.Text(new Rect(b.x, b.y, b.width, 350),
                     "Battles: units act when their Turn Meter fills, so faster heroes act more often. On your hero's turn, pick a skill, then tap a highlighted target.\n\n" +
@@ -167,7 +186,7 @@ namespace Sigilbound.Client
                     "Grow: win battles for XP or train with gold. At max level, rank up by using heroes with the same star count.\n\n" +
                     "Trials: the Titan (3 tries a day), Dungeons for gold, XP and the gear set you want (3 winning runs each a day), and the Arena (5 fights a day, Bronze to Sigil).\n\n" +
                     "Free: there's no shop. Every shard is earned by playing.", 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
-                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Got it")) CloseModal();
+                if (ModalFooter(b)) CloseModal();
             });
 
         // ---------- campaign ----------
@@ -224,37 +243,66 @@ namespace Sigilbound.Client
             }
             catch (System.Exception e) { Debug.LogWarning("Sigilbound: preload failed: " + e.Message); }
         }
-        void OpenPrep(int stage, bool titan, ScreenId back, bool hard = false, bool practice = false) { PreloadStage(stage, titan); _prepDungeon = false; _prepStage = stage; _prepTitan = titan; _prepPractice = titan && practice; _prepHard = hard && !titan; _prepBack = back; Go(ScreenId.Prep); }
+        void OpenPrep(int stage, bool titan, ScreenId back, bool hard = false, bool practice = false) { PreloadStage(stage, titan); _prepDungeon = _prepArena = false; _prepStage = stage; _prepTitan = titan; _prepPractice = titan && practice; _prepHard = hard && !titan; _prepBack = back; Go(ScreenId.Prep); }
 
+        // Portrait team setup: the landscape blocks stacked (UI/UX review #23: no waves, matchup or element filter
+        // here before), under the shared header; text over the 3D scene sits on a dark pill.
         void DrawPrep(Rect area)
         {
-            var heroes = SortedHeroes();
-            float content = 436 + Mathf.Ceil(heroes.Count / 2f) * 58;
+            var waves = PrepWaves();
+            var heroes = SortedHeroes().Where(h => _prepFilter == null || Hero(h.id).Element == _prepFilter).ToList();
+            float tap = Mathf.Max(44, Ui.Tap);
+            float wavesH = waves == null ? 0 : waves.Count * 40 + 4;
+            float content = 300 + wavesH + tap * 2 + 70 + Mathf.Ceil(heroes.Count / 2f) * 58;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;
-            if (Ui.Button(new Rect(Pad, y, 80, 34), "‹ Back", Ui.Kind.Secondary, 13)) Go(_prepBack);
-            Ui.Text(new Rect(Ui.W - 200, y, 184, 34), $"Power {Ui.Fmt(G.TeamPower)}", 13, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
-            y += 44;
-            string title = PrepTitle(), sub = PrepSub(PrepWaves());
-            Ui.Text(new Rect(Pad, y, Ui.W - 32, 28), title, 19, Palette.Text, FontStyle.Bold); y += 28;
-            Ui.Text(new Rect(Pad, y, Ui.W - 32, 20), sub, 13, Palette.Dim); y += 30;
+            if (Ui.ScreenHeader(new Rect(Pad, y, Ui.W - Pad * 2, tap), PrepTitle())) GoBack();
+            y += tap + 8;
+            Ui.TextOnArt(new Rect(Pad + 8, y, Ui.W - 48, 20), $"{PrepSub(waves)} · Power {Ui.Fmt(G.TeamPower)}", 12, Palette.Text, FontStyle.Normal, TextAnchor.MiddleLeft); y += 28;
             var team = G.Team;
-            Ui.Text(new Rect(Pad, y, Ui.W - 32, 20), $"Team ({team.Count}/4): " + (team.Count == 0 ? "tap heroes below" : string.Join(", ", team.Select(h => Hero(h.id).ShortName))), 13, Palette.Text); y += 30;
-            if (Ui.Button(Row(ref y, 50), PrepGoLabel(), Ui.Kind.Primary, 18, PrepCanGo())) PrepGo();
-            y += 4;
+            Ui.TextOnArt(new Rect(Pad + 8, y, Ui.W - 48, 20), $"Team ({team.Count}/4): " + (team.Count == 0 ? "tap heroes below" : string.Join(", ", team.Select(h => Hero(h.id).ShortName))), 13, Palette.Text, FontStyle.Normal, TextAnchor.MiddleLeft); y += 30;
+            if (Ui.Button(Row(ref y, Mathf.Max(50, tap)), PrepGoLabel(), Ui.Kind.Primary, 18, PrepCanGo())) PrepGo();
+            // Matchup and waves, as in landscape.
+            var theirs = new System.Collections.Generic.HashSet<Element>(waves == null ? new[] { TitanElement(System.DateTime.Now) } : waves.SelectMany(w => w).Select(e => e.El));
+            int good = team.Count(h => theirs.Any(e => ElementMultiplier(Hero(h.id).Element, e) > 1));
+            int bad = team.Count(h => theirs.Any(e => ElementMultiplier(e, Hero(h.id).Element) > 1));
+            var mr = Row(ref y, 24, 4);
+            Ui.Round(mr, new Color(0.04f, 0.03f, 0.06f, 0.72f), null, 10);
+            Ui.Text(mr, $"{Ui.ColorTag($"{good} strong", Palette.Good)} · {Ui.ColorTag($"{bad} weak", Palette.Bad)} against these foes", 12, Palette.Text, FontStyle.Normal, TextAnchor.MiddleCenter);
+            if (waves != null)
+            {
+                var wr = Row(ref y, waves.Count * 40, 8);
+                Ui.Round(wr, new Color(0.07f, 0.05f, 0.1f, 0.85f), Palette.Bronze, 10);
+                for (int w = 0; w < waves.Count; w++)
+                {
+                    float wy = wr.y + 2 + w * 40;
+                    Ui.Text(new Rect(wr.x + 8, wy, 60, 36), $"Wave {w + 1}", 11, Palette.Hex("#c9bda6"), FontStyle.Bold);
+                    float ex = wr.x + 66, ew = (wr.width - 72) / Mathf.Max(1, waves[w].Count);
+                    foreach (var e in waves[w]) { EnemyChip(new Rect(ex, wy + 4, ew - 2, 30), e); ex += ew; }
+                }
+            }
             y = DrawPresets(y);
-            Ui.Text(new Rect(Pad, y - 4, Ui.W - 32, 18), "Tap a hero to add them", 11, Palette.Dim); y += 18;
+            // Element filter chips above the picker, as in landscape.
+            float fw = (Ui.W - Pad * 2 - 5 * 4) / 6f;
+            if (Ui.Button(new Rect(Pad, y, fw, tap), "All", _prepFilter == null ? Ui.Kind.ChipOn : Ui.Kind.Chip, 12)) _prepFilter = null;
+            for (int i = 0; i < Elements.Length; i++)
+            {
+                var el = Elements[i]; var b = new Rect(Pad + (i + 1) * (fw + 4), y, fw, tap);
+                if (Ui.Button(b, "", _prepFilter == el ? Ui.Kind.ChipOn : Ui.Kind.Chip)) _prepFilter = _prepFilter == el ? (Element?)null : el;
+                Icons.Draw(new Rect(b.center.x - 9, b.center.y - 9, 18, 18), Icons.ForElement(el), Palette.Element(el));
+            }
+            y += tap + 8;
             float cw = (Ui.W - Pad * 2 - 8) / 2;
             for (int i = 0; i < heroes.Count; i++)
             {
                 var h = heroes[i]; var t = Hero(h.id);
                 var r = new Rect(Pad + (i % 2) * (cw + 8), y + (i / 2) * 58, cw, 50);
                 bool inTeam = G.S.team.Contains(h.uid);
-                if (inTeam) Ui.Panel(r, Palette.Hex("#3a2f22"), Palette.Gold, 10); else Ui.SmallCard(r, Palette.Panel2, Palette.Rarity(t.Rarity), 10);
+                TeamPickCard(r, inTeam);
                 Ui.RarityTab(r, t.Rarity, 14); // rarity as a letter too, not only the frame colour (UX review #4)
                 float px = Portraits.Thumb(new Rect(r.x + 6, r.y + 6, 38, 38), t.Id, Palette.Rarity(t.Rarity)) ? 46 : 0; // the face, when there is one
                 Ui.Text(new Rect(r.x + px + 10, r.y + 4, r.width - px - 20, 22), t.ShortName + (inTeam ? $"  #{G.S.team.IndexOf(h.uid) + 1}" : ""), 14, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + px + 10, r.y + 26, r.width - px - 20, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv{h.level} · {Ui.ColorTag(t.Element.ToString(), Palette.Element(t.Element))}", 12, Palette.Dim);
+                Ui.Text(new Rect(r.x + px + 10, r.y + 26, r.width - px - 20, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)} Lv {h.level} · {t.Element}", 12, Palette.Hex("#c9bda6"));
                 if (Ui.Button(r, "", Ui.Kind.Ghost))
                 {
                     if (inTeam) G.S.team.Remove(h.uid);
@@ -264,6 +312,14 @@ namespace Sigilbound.Client
                 }
             }
             Scroller.End();
+        }
+
+        // A hero card in a team picker: in the team it takes the one "selected" look (gold rim, wash, underline and
+        // check: Ui.Kind.ChipOn), out of it the small painted card. Design rule 4.
+        static void TeamPickCard(Rect r, bool inTeam)
+        {
+            if (inTeam) Ui.Plate(r, Ui.Kind.ChipOn);
+            else Ui.SmallCard(r, Palette.Panel2, Palette.Bronze, 10);
         }
 
         // ---------- heroes ----------
@@ -310,19 +366,22 @@ namespace Sigilbound.Client
             var h = G.HeroByUid(_heroUid);
             if (h == null) { Go(ScreenId.Heroes); return; }
             var t = Hero(h.id); var st = G.HeroStats(h); int cap = MaxLevelFor(h.stars); bool atCap = h.level >= cap;
-            float content = 300 + 150 + 120 + 130 + t.Skills.Length * 100 + 90;
+            float tap = Mathf.Max(44, Ui.Tap);
+            float content = 300 + 150 + 120 + 130 + t.Skills.Length * (90 + tap) + 90 + tap * 3;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;
-            if (Ui.Button(new Rect(Pad, y, 90, 34), "‹ Heroes", Ui.Kind.Secondary, 13)) Go(ScreenId.Heroes);
-            if (Ui.Button(new Rect(Ui.W - Pad - 190, y, 90, 34), h.locked ? "Locked" : "Lock", Ui.Kind.Secondary, 13)) { h.locked = !h.locked; Save(); }
-            if (Ui.Button(new Rect(Ui.W - Pad - 92, y, 92, 34), "Release", Ui.Kind.Secondary, 13)) AskRelease(h);
-            y += 44;
-            Ui.Text(new Rect(Pad, y, Ui.W - 32, 28), t.Name, 20, Palette.Text, FontStyle.Bold); y += 26;
-            Ui.Text(new Rect(Pad, y, Ui.W - 32, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)}{Ui.ColorTag(new string('☆', MaxStars - h.stars), Palette.Dim)}   {Tag(t)}   Power {Ui.ColorTag(Ui.Fmt(st.Power), Palette.Gold)}", 13, Palette.Text);
+            // The shared header (Back + title); Lock and Release on the row under it, both 48 dp.
+            if (Ui.ScreenHeader(new Rect(Pad, y, Ui.W - Pad * 2, tap), t.Name)) GoBack();
+            y += tap + 6;
+            float hw = (Ui.W - Pad * 2 - 8) / 2;
+            if (Ui.Button(new Rect(Pad, y, hw, tap), h.locked ? "Locked" : "Lock", h.locked ? Ui.Kind.ChipOn : Ui.Kind.Chip, 13)) { h.locked = !h.locked; Save(); }
+            if (Ui.Button(new Rect(Pad + hw + 8, y, hw, tap), "Release", Ui.Kind.Secondary, 13)) AskRelease(h);
+            y += tap + 8;
+            Ui.TextOnArt(new Rect(Pad + 8, y, Ui.W - 48, 20), $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)}   {Tag(t)}   Power {Ui.ColorTag(Ui.Fmt(st.Power), Palette.Gold)}", 13, Palette.Text, FontStyle.Normal, TextAnchor.MiddleLeft);
             y += 230; // the hero stands here in 3D (App.UpdateHeroViewer: drag to spin, tap to attack)
             Ui.Text(new Rect(Pad, y - 20, Ui.W - 32, 16), "Drag to spin · tap to attack", 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
 
-            var r = Row(ref y, atCap ? 110 : 96);
+            var r = Row(ref y, (atCap ? 74 : 60) + tap);
             Ui.Card(r);
             Ui.Text(new Rect(r.x + 14, r.y + 8, 200, 22), $"Level {h.level} / {cap}", 15, Palette.Text, FontStyle.Bold);
             Ui.Text(new Rect(r.xMax - 160, r.y + 8, 146, 22), atCap ? "MAX" : $"{h.xp} / {XpToNext(h.level)} XP", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
@@ -330,13 +389,13 @@ namespace Sigilbound.Client
             if (atCap)
             {
                 Ui.Text(new Rect(r.x + 14, r.y + 44, r.width - 28, 20), h.stars >= MaxStars ? "Fully ascended!" : $"Rank up: {h.stars} other {h.stars}★ heroes ({G.RankUpFodder(h).Count} available) + {Ui.Fmt(RankUpGold(h.stars))} gold", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleLeft, true);
-                if (Ui.Button(new Rect(r.x + 14, r.y + 66, r.width - 28, 36), $"Rank Up to {h.stars + 1}★", Ui.Kind.Primary, 14, G.CanRankUp(h))) OpenRankUp(h);
+                if (Ui.Button(new Rect(r.x + 14, r.y + 66, r.width - 28, tap), $"Rank Up to {h.stars + 1}\u2605", Ui.Kind.Primary, 14, G.CanRankUp(h))) OpenRankUp(h);
             }
             else
             {
                 int lvlCost = Mathf.CeilToInt((XpToNext(h.level) - h.xp) / (float)TrainXpPerGold), maxCost = Mathf.CeilToInt(G.XpToCap(h) / (float)TrainXpPerGold);
-                if (Ui.Button(new Rect(r.x + 14, r.y + 50, r.width / 2 - 19, 36), $"Train +1 · {Ui.Fmt(lvlCost)}", Ui.Kind.Secondary, 13, G.S.gold >= lvlCost)) { G.Train(h, false); Save(); }
-                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.y + 50, r.width / 2 - 19, 36), $"Train to {cap} · {Ui.Fmt(maxCost)}", Ui.Kind.Secondary, 13, G.S.gold >= maxCost)) { G.Train(h, true); Save(); }
+                if (Ui.Button(new Rect(r.x + 14, r.y + 50, r.width / 2 - 19, tap), $"Train +1 · {Ui.Fmt(lvlCost)}", Ui.Kind.Secondary, 13, G.S.gold >= lvlCost)) { G.Train(h, false); Save(); }
+                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.y + 50, r.width / 2 - 19, tap), $"Train to {cap} · {Ui.Fmt(maxCost)}", Ui.Kind.Secondary, 13, G.S.gold >= maxCost)) { G.Train(h, true); Save(); }
             }
 
             r = Row(ref y, 110);
@@ -345,16 +404,16 @@ namespace Sigilbound.Client
             for (int i = 0; i < stats.Length; i++) Ui.Text(new Rect(r.x + 14 + (i % 2) * (r.width / 2), r.y + 10 + (i / 2) * 26, r.width / 2 - 20, 24), stats[i], 14, Palette.Text);
             Ui.Text(new Rect(r.x + 14, r.y + 86, r.width - 28, 18), st.Sets.Count > 0 ? "Sets: " + string.Join(", ", st.Sets.Select(s => $"{s} ({SetBonus(s).desc})")) : "Equip 2 pieces of a set for a bonus.", 11, Palette.Dim);
 
-            r = Row(ref y, 116);
+            r = Row(ref y, 86 + tap);
             Ui.Card(r);
-            Ui.Text(new Rect(r.x + 14, r.y + 8, 100, 24), "Gear", 15, Palette.Text, FontStyle.Bold);
-            if (Ui.Button(new Rect(r.xMax - 114, r.y + 6, 100, 30), "Auto-equip", Ui.Kind.Secondary, 12)) { G.AutoEquip(h); Save(); Toast("Best available gear equipped"); }
+            Ui.Text(new Rect(r.x + 14, r.y + 8, 100, tap), "Gear", 15, Palette.Text, FontStyle.Bold);
+            if (Ui.Button(new Rect(r.xMax - 134, r.y + 6, 120, tap), "Auto-equip", Ui.Kind.Secondary, 12)) { G.AutoEquip(h); Save(); Toast("Best available gear equipped"); }
             float gw = (r.width - 28 - 18) / 4;
             int si = 0;
             foreach (Slot slot in System.Enum.GetValues(typeof(Slot)))
             {
                 var g = G.GearByUid(h.GetGear(slot));
-                var b = new Rect(r.x + 14 + si * (gw + 6), r.y + 42, gw, 64);
+                var b = new Rect(r.x + 14 + si * (gw + 6), r.y + 14 + tap, gw, 64);
                 string label = g == null ? $"{slot}\n{Ui.ColorTag("empty", Palette.Dim)}" : $"{slot} +{g.level}\n{Ui.ColorTag(g.Set.ToString(), Palette.GearRarity(g.rarity))}";
                 if (Ui.Button(b, label, Ui.Kind.Secondary, 12)) { _slot = slot; Go(ScreenId.Equip); }
                 si++;
@@ -373,7 +432,7 @@ namespace Sigilbound.Client
             {
                 Ui.Text(new Rect(b.x, b.y, b.width, 60), $"They leave your roster for good. Their gear returns to your bag. You get {ess} essence.", 14, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
                 if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
-                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Release", Ui.Kind.Red))
+                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Release", Ui.Kind.Danger))
                 {
                     var u = G.ReleaseMany(G.PlanReleaseOne(h)); // gear back to the bag, out of saved presets
                     if (u != null) SetUndo(u);
@@ -387,31 +446,36 @@ namespace Sigilbound.Client
             var h = G.HeroByUid(_heroUid);
             if (h == null) { Go(ScreenId.Heroes); return; }
             var list = G.S.gear.Where(g => g.Slot == _slot).OrderByDescending(Game.GearScore).ToList();
-            float content = 80 + list.Count * 92 + 40 + 44;
+            float tap = Mathf.Max(44, Ui.Tap), rowH = 2 * tap + 14;
+            float content = 80 + tap * 2 + list.Count * (rowH + 8) + 40;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;
-            if (Ui.Button(new Rect(Pad, y, 110, 34), $"‹ {Hero(h.id).ShortName}", Ui.Kind.Secondary, 13)) Go(ScreenId.Hero);
-            if (h.GetGear(_slot) != 0 && Ui.Button(new Rect(Ui.W - Pad - 100, y, 100, 34), "Unequip", Ui.Kind.Secondary, 13)) { h.SetGear(_slot, 0); Save(); Go(ScreenId.Hero); }
-            y += 44;
-            Ui.Text(new Rect(Pad, y, 200, 28), _slot.ToString(), 20, Palette.Text, FontStyle.Bold);
-            if (Ui.Button(new Rect(Ui.W - Pad - 150, y - 2, 150, 32), "Sell junk (1-2★)", Ui.Kind.Secondary, 12))
-            { int total = G.SellJunk(); Save(); Toast(total > 0 ? $"Sold for {Ui.Fmt(total)} gold (locked gear kept)" : "No unequipped, unlocked 1-2★ gear to sell"); }
-            y += 36;
+            // The shared header: Back and "<slot> for <hero>".
+            if (Ui.ScreenHeader(new Rect(Pad, y, Ui.W - Pad * 2, tap), $"{_slot} · {Hero(h.id).ShortName}")) GoBack();
+            y += tap + 6;
+            float hw = (Ui.W - Pad * 2 - 8) / 2;
+            if (h.GetGear(_slot) != 0 && Ui.Button(new Rect(Pad, y, hw, tap), "Unequip", Ui.Kind.Secondary, 13)) { h.SetGear(_slot, 0); Save(); Go(ScreenId.Hero); }
+            if (Ui.Button(new Rect(Pad + hw + 8, y, hw, tap), "Sell junk (1-2 stars)", Ui.Kind.Secondary, 12))
+            { int total = G.SellJunk(); Save(); Toast(total > 0 ? $"Sold for {Ui.Fmt(total)} gold (locked gear kept)" : "No unequipped, unlocked 1-2 star gear to sell"); }
+            y += tap + 10;
             if (list.Count == 0) Ui.Text(Row(ref y, 40), "Nothing for this slot yet. Clear campaign stages to find gear.", 13, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleLeft, true);
             foreach (var g in list)
             {
-                var r = Row(ref y, 84, 8);
+                // Two 48 dp button rows on the right: Lock and Upgrade, then Sell and Equip (the Primary, last).
+                var r = Row(ref y, rowH, 8);
                 var owner = G.GearOwner(g);
-                Ui.Panel(r, Palette.Panel2, Palette.GearRarity(g.rarity), 12);
-                Ui.Text(new Rect(r.x + 12, r.y + 6, r.width - 186, 20), $"{Ui.ColorTag(GearRarityNames[g.rarity], Palette.GearRarity(g.rarity))} {g.Set} {g.Slot} +{g.level}", 14, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + 12, r.y + 26, r.width - 186, 18), $"{SlotMainStat(g.Slot).ToString().ToUpper()} +{Game.GearMainValue(g)}", 13, Palette.Text);
-                Ui.Text(new Rect(r.x + 12, r.y + 44, r.width - 186, 36), string.Join(" · ", g.subs.Select(s => SkillText.StatName((Stat)s.stat, s.val))) + (owner != null ? $"\nOn {Hero(owner.id).ShortName}" : ""), 11, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                Ui.SmallCard(r, Palette.Panel2, Palette.GearRarity(g.rarity), 12);
+                float bw1 = 64, bw2 = 104, bx2 = r.xMax - bw2 - 8, bx1 = bx2 - bw1 - 6, tx = r.width - (bw1 + bw2 + 34);
+                Ui.Text(new Rect(r.x + 12, r.y + 6, tx, 20), $"{Ui.ColorTag(GearRarityNames[g.rarity], Palette.GearRarity(g.rarity))} {g.Set} {g.Slot} +{g.level}", 14, Palette.Text, FontStyle.Bold);
+                Ui.Text(new Rect(r.x + 12, r.y + 26, tx, 18), $"{SlotMainStat(g.Slot).ToString().ToUpper()} +{Game.GearMainValue(g)}", 13, Palette.Text);
+                Ui.Text(new Rect(r.x + 12, r.y + 44, tx, r.height - 48), string.Join(" · ", g.subs.Select(s => SkillText.StatName((Stat)s.stat, s.val))) + (owner != null ? $"\nOn {Hero(owner.id).ShortName}" : ""), 11, Palette.Hex("#c9bda6"), FontStyle.Normal, TextAnchor.UpperLeft, true);
                 int cost = Game.GearUpgradeCost(g);
-                if (g.level < GearMaxLevel && Ui.Button(new Rect(r.xMax - 110, r.y + 8, 100, 32), $"Up · {Ui.Fmt(cost)}", Ui.Kind.Secondary, 12, G.S.gold >= cost)) { if (G.UpgradeGear(g)) { Save(); Toast($"Upgraded to +{g.level}"); } }
-                if (Ui.Button(new Rect(r.xMax - 166, r.y + 8, 50, 32), g.locked ? "Locked" : "Lock", g.locked ? Ui.Kind.ChipOn : Ui.Kind.Chip, 11)) { g.locked = !g.locked; Save(); }
-                if (owner == null && !g.locked && Ui.Button(new Rect(r.xMax - 166, r.y + 44, 50, 32), "Sell", Ui.Kind.Red, 11)) { int v = Game.GearSellValue(g); G.SellGear(g); Save(); Toast($"Sold for {Ui.Fmt(v)} gold"); }
-                if (owner != h && Ui.Button(new Rect(r.xMax - 110, r.y + 44, 100, 32), "Equip", Ui.Kind.Primary, 13)) { G.Equip(h, g); Save(); Go(ScreenId.Hero); }
-                else if (owner == h) Ui.Text(new Rect(r.xMax - 110, r.y + 44, 100, 32), "Equipped", 12, Palette.Good, FontStyle.Bold, TextAnchor.MiddleCenter);
+                float r1 = r.y + 5, r2 = r.y + 9 + tap;
+                if (g.level < GearMaxLevel && Ui.Button(new Rect(bx2, r1, bw2, tap), $"Up · {Ui.Fmt(cost)}", Ui.Kind.Secondary, 12, G.S.gold >= cost)) { if (G.UpgradeGear(g)) { Save(); Toast($"Upgraded to +{g.level}"); } }
+                if (Ui.Button(new Rect(bx1, r1, bw1, tap), g.locked ? "Locked" : "Lock", g.locked ? Ui.Kind.ChipOn : Ui.Kind.Chip, 11)) { g.locked = !g.locked; Save(); }
+                if (owner == null && !g.locked && Ui.Button(new Rect(bx1, r2, bw1, tap), "Sell", Ui.Kind.Danger, 11)) { int v = Game.GearSellValue(g); G.SellGear(g); Save(); Toast($"Sold for {Ui.Fmt(v)} gold"); }
+                if (owner != h && Ui.Button(new Rect(bx2, r2, bw2, tap), "Equip", Ui.Kind.Primary, 13)) { G.Equip(h, g); Save(); Go(ScreenId.Hero); }
+                else if (owner == h) Ui.Text(new Rect(bx2, r2, bw2, tap), "Equipped", 12, Palette.Good, FontStyle.Bold, TextAnchor.MiddleCenter);
             }
             Scroller.End();
         }
@@ -433,16 +497,17 @@ namespace Sigilbound.Client
                 Color c = s == Shard.Common ? Palette.Hex("#c9a37b") : s == Shard.Mystic ? Palette.Blue : Palette.Hex("#ffb02e");
                 Ui.Panel(r, new Color(0.12f, 0.1f, 0.17f, 0.94f), c);
                 string name = ShardName(s);
-                Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 28, 24), $"{name}  {Ui.ColorTag($"owned {G.ShardCount(s)}", Palette.Dim)}", 16, c, FontStyle.Bold);
+                Icons.Currency(new Rect(r.x + 14, r.y + 12, 16, 16), Icons.ShardCur(s));
+                Ui.Text(new Rect(r.x + 36, r.y + 8, r.width - 50, 24), $"{name}  {Ui.ColorTag($"owned {Ui.Fmt(G.ShardCount(s))}", Palette.Dim)}", 16, c, FontStyle.Bold);
                 string rateText = string.Join(" · ", Enumerable.Range(0, 4).Where(i => rates[i] > 0).Select(i => Ui.ColorTag($"{(Rarity)i} {rates[i]}%", Palette.Rarity((Rarity)i))));
                 Ui.Text(new Rect(r.x + 14, r.y + 34, r.width - 28, 20), rateText, 12, Palette.Text);
                 if (ShardPity(s) > 0) Ui.Text(new Rect(r.x + 14, r.y + 54, r.width - 28, 20), $"Guaranteed Legendary in {G.PityLeft(s)} summons", 12, Palette.Gold);
                 if (Ui.Button(new Rect(r.x + 14, r.y + 88, r.width / 2 - 19, 46), "Summon ×1", Ui.Kind.Primary, 15, G.ShardCount(s) >= 1)) DoSummon(s, 1);
-                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.y + 88, r.width / 2 - 19, 46), G.ShardCount(s) >= 10 ? "Summon ×10" : $"×10 · {G.ShardCount(s)}/10", Ui.Kind.Blue, 15, G.ShardCount(s) >= 10)) DoSummon(s, 10); // disabled: says how many you have
+                if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.y + 88, r.width / 2 - 19, 46), G.ShardCount(s) >= 10 ? "Summon ×10" : $"×10 · {G.ShardCount(s)}/10", Ui.Kind.Secondary, 15, G.ShardCount(s) >= 10)) DoSummon(s, 10); // disabled: says how many you have
             }
             var e = Row(ref y, 110);
             Ui.Panel(e, new Color(0.12f, 0.1f, 0.17f, 0.94f));
-            Ui.Text(new Rect(e.x + 14, e.y + 8, e.width - 28, 22), $"Essence Exchange  {Ui.ColorTag($"you have {G.S.essence}", Palette.Dim)}", 15, Palette.Text, FontStyle.Bold);
+            Ui.Text(new Rect(e.x + 14, e.y + 8, e.width - 28, 22), $"Essence Exchange  {Ui.ColorTag($"you have {Ui.Fmt(G.S.essence)}", Palette.Dim)}", 15, Palette.Text, FontStyle.Bold);
             int k = 0;
             foreach (Shard s in System.Enum.GetValues(typeof(Shard)))
             {
@@ -452,6 +517,7 @@ namespace Sigilbound.Client
                 k++;
             }
             Scroller.End();
+            if (content > area.height + 1) ScrollFade(area, _scroll.y, content); // the Radiant card and the exchange are below the fold
         }
 
         void DoSummon(Shard s, int n)
@@ -476,9 +542,10 @@ namespace Sigilbound.Client
                     var t = Hero(res[i].id);
                     Ui.Text(new Rect(b.x, b.y + top + i * 26, b.width, 24), $"{Ui.ColorTag(Ui.Stars(res[i].stars), Palette.Gold)}  {Ui.ColorTag(t.Name, Palette.Rarity(t.Rarity))}  {Ui.ColorTag(t.Element.ToString(), Palette.Element(t.Element))}", 14, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
-                bool again = G.ShardCount(s) >= n;
-                if (Ui.Button(new Rect(b.x, b.yMax - 46, again ? b.width / 2 - 5 : b.width, 44), "OK", Ui.Kind.Secondary)) CloseModal();
-                if (again && Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), $"Again ×{n}")) DoSummon(s, n);
+                bool again = G.ShardCount(s) >= n; float tp = Mathf.Max(44, Ui.Tap);
+                var row = again ? new[] { ("OK", UiRole.Secondary, true), ($"Again ×{n}", UiRole.Primary, true) } : new[] { ("OK", UiRole.Primary, true) };
+                int hit = Ui.ButtonRow(new Rect(b.x, b.yMax - tp, b.width, tp), row);
+                if (hit == 0) CloseModal(); else if (hit == 1) DoSummon(s, n);
             });
         }
 
@@ -489,17 +556,19 @@ namespace Sigilbound.Client
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;
             var el = TitanElement(System.DateTime.Now);
-            if (Ui.Button(new Rect(Pad, y, 80, 30), "‹ Trials", Ui.Kind.Secondary, 13)) Go(ScreenId.Trials); y += 38;
-            Ui.Heading(new Rect(Pad, y, Ui.W - 32, 30), Titan.Name, 20); y += 34;
-            var r = Row(ref y, 168);
+            float tap = Mathf.Max(44, Ui.Tap);
+            if (Ui.ScreenHeader(new Rect(Pad, y, Ui.W - Pad * 2, tap), Titan.Name)) GoBack();
+            y += tap + 10;
+            var r = Row(ref y, 124 + tap);
             Ui.Card(r);
             var strong = Elements.Where(x => Strong(x) == el).ToList();
             Ui.Text(new Rect(r.x + 14, r.y + 10, r.width - 28, 22), $"Today's element: {Ui.ColorTag(el.ToString(), Palette.Element(el))}", 15, Palette.Text, FontStyle.Bold);
             Ui.Text(new Rect(r.x + 14, r.y + 34, r.width - 28, 60), $"Bring {string.Join(" or ", strong)} heroes. The Titan can't be killed: deal as much damage as you can in {TitanTurns} of its turns. It's immune to stun and turn meter drain.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             Ui.Text(new Rect(r.x + 14, r.y + 94, r.width - 28, 22), $"Tries left today: {Ui.ColorTag($"{G.S.daily.titanTries}/3", Palette.Gold)} · Best today: {Ui.Fmt(G.S.daily.titanBest)}", 13, Palette.Text);
-            if (Ui.Button(new Rect(r.x + 14, r.y + 120, r.width - 28, 40), "Prepare Team", Ui.Kind.Primary, 15, G.S.daily.titanTries > 0)) OpenPrep(-1, true, ScreenId.Titan);
+            // "Team ▶" as on stages and floors: it opens team setup (one word for it: UI/UX review #16).
+            if (Ui.Button(new Rect(r.x + 14, r.y + 118, r.width - 28, tap), G.S.daily.titanTries > 0 ? "Team \u25B6" : "No tries left today", Ui.Kind.Primary, 15, G.S.daily.titanTries > 0)) OpenPrep(-1, true, ScreenId.Titan);
             // Practice: unlimited Titan fights with no rewards and no try used (try out teams, see the Titan).
-            var pr = Row(ref y, 40);
+            var pr = Row(ref y, tap);
             if (Ui.Button(pr, "Practice (no rewards, no try used)", Ui.Kind.Secondary, 14)) OpenPrep(-1, true, ScreenId.Titan, false, true);
             // Its moves (owner request 2026-11-28): what each one looks like on the remodelled body, and the numbers.
             r = Row(ref y, 40 + Titan.Skills.Length * 78);
@@ -510,7 +579,7 @@ namespace Sigilbound.Client
                 var sk = Titan.Skills[i]; float sy = r.y + 34 + i * 78;
                 Ui.Text(new Rect(r.x + 14, sy, r.width - 28, 20), sk.Name + (sk.Cooldown > 0 ? $"  ·  cooldown {sk.Cooldown}" : "  ·  basic"), 13, Palette.Gold, FontStyle.Bold);
                 Ui.Text(new Rect(r.x + 14, sy + 19, r.width - 28, 36), i < TitanMoveLore.Length ? TitanMoveLore[i] : "", 11, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
-                Ui.Text(new Rect(r.x + 14, sy + 55, r.width - 28, 18), SkillText.Describe(sk), 10, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                Ui.Text(new Rect(r.x + 14, sy + 55, r.width - 28, 18), SkillText.Describe(sk), 11, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             }
             Ui.Text(Row(ref y, 36), "Its crystal ridges crack off as you deal damage: the first at 66% of its health bar, more at 33%.", 11, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             r = Row(ref y, 40 + TitanTiers.Length * 30);
@@ -520,7 +589,8 @@ namespace Sigilbound.Client
             {
                 var t = TitanTiers[i];
                 bool got = G.S.daily.titanBest > 0 && G.S.daily.titanBest >= t.Dmg;
-                Ui.Text(new Rect(r.x + 14, r.y + 36 + i * 30, 120, 26), (got ? "✓ " : "") + (i == 0 ? "Any damage" : Ui.Fmt(t.Dmg) + "+"), 13, got ? Palette.Good : Palette.Text);
+                if (got) Icons.Draw(new Rect(r.x + 14, r.y + 41 + i * 30, 16, 16), Icon.Check, Palette.Good);
+                Ui.Text(new Rect(r.x + 34, r.y + 36 + i * 30, 100, 26), i == 0 ? "Any damage" : Ui.Fmt(t.Dmg) + "+", 13, got ? Palette.Good : Palette.Text);
                 Ui.Text(new Rect(r.x + 130, r.y + 36 + i * 30, r.width - 144, 26), t.Reward.ToString(), 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
             }
             Ui.Text(Row(ref y, 24), $"All-time best: {Ui.Fmt(G.S.titanBestAllTime)}", 12, Palette.Dim);
