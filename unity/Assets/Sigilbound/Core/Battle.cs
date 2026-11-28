@@ -19,10 +19,10 @@ namespace Sigilbound.Core
         public bool Boss, Titan; public int HeroUid;
         public int[] SkillLv = new int[0]; // Skill Tome upgrades per skill (allies)
         public int SkillLevel(int i) => i < SkillLv.Length ? SkillLv[i] : 0;
-        public bool Has(FxType t) => Effects.Any(e => e.Type == t);
+        public bool Has(FxType t) { for (int i = 0; i < Effects.Count; i++) if (Effects[i].Type == t) return true; return false; } // a loop: the HUD asks this per unit per GUI event (no closure garbage)
         // Weakness break (PLAN step 98): hits from the element that beats this unit fill the meter; full = Broken.
         public double Break; public int BreakGuard;
-        public Effect Shield => Effects.FirstOrDefault(e => e.Type == FxType.Shield);
+        public Effect Shield { get { for (int i = 0; i < Effects.Count; i++) if (Effects[i].Type == FxType.Shield) return Effects[i]; return null; } }
     }
 
     public enum EvType { Skill, Damage, Heal, Absorb, Status, Text, Death }

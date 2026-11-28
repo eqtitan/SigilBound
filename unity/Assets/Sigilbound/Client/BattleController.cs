@@ -856,6 +856,11 @@ namespace Sigilbound.Client
             });
         }
 
+        static readonly List<Unit> NoUnits = new List<Unit>();
+        readonly List<(Unit u, CharacterView v, Rect r)> _tags = new List<(Unit u, CharacterView v, Rect r)>();
+        readonly List<Rect> _placed = new List<Rect>();
+        static bool OverlapsAny(List<Rect> rs, Rect r) { for (int i = 0; i < rs.Count; i++) if (rs[i].Overlaps(r)) return true; return false; }
+
         // Turn-order bar under the header: the next 7 actors (Battle.PredictTurns, extras.js predictTurns).
         List<Unit> _turns = new List<Unit>(); int _turnsFrame = -1;
         void DrawTurnBar(float y)
@@ -1029,7 +1034,7 @@ namespace Sigilbound.Client
 
             // unit bars + tap targets
             bool manual = _awaiting && _actor != null && _actor.Ally && !Auto;
-            var targets = manual ? _b.AffectedBy(_actor, _sel) : new List<Unit>();
+            var targets = manual ? _b.AffectedBy(_actor, _sel) : NoUnits;
             foreach (var kv in _views)
             {
                 var u = kv.Key; var v = kv.Value;
@@ -1175,8 +1180,8 @@ namespace Sigilbound.Client
 
             // ---- unit tags: slim bars with a level badge, nudged apart so none overlap ----
             bool manual = _awaiting && _actor != null && _actor.Ally && !Auto && !_paused;
-            var targets = manual ? _b.AffectedBy(_actor, _sel) : new List<Unit>();
-            var tags = new List<(Unit u, CharacterView v, Rect r)>();
+            var targets = manual ? _b.AffectedBy(_actor, _sel) : NoUnits;
+            var tags = _tags; tags.Clear(); // reused lists, no LINQ: this runs every GUI event (performance review #5)
             float minY = top + 168 + dy; // name tags (30 tall, above minY) stay below the round pill and the skill banner (top + 82..132 + dy), even the Titan's
             foreach (var kv in _views)
             {
@@ -1194,11 +1199,11 @@ namespace Sigilbound.Client
             }
             // Lowest on screen first; anything overlapping an earlier tag moves up until it clears.
             tags.Sort((a, b) => b.r.y.CompareTo(a.r.y));
-            var placed = new List<Rect>();
+            var placed = _placed; placed.Clear();
             for (int i = 0; i < tags.Count; i++)
             {
                 var r = tags[i].r;
-                for (int guard = 0; guard < 8 && placed.Any(p => p.Overlaps(r)); guard++) r.y -= 28;
+                for (int guard = 0; guard < 8 && OverlapsAny(placed, r); guard++) r.y -= 28;
                 r.y = Mathf.Max(minY - 30, r.y);
                 placed.Add(r); tags[i] = (tags[i].u, tags[i].v, r);
             }
@@ -1209,7 +1214,7 @@ namespace Sigilbound.Client
                 Ui.Text(new Rect(r.x + 15, r.y - 3, r.width + 30, 16), u.Ally ? u.Template.ShortName : u.Name, 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
                 var badge = new Rect(r.x, r.y + 13, 22, 16);
                 Ui.Round(badge, u.Ally ? Palette.Hex("#1f3326") : Palette.Hex("#3a1c1c"), Palette.Element(u.El), 4);
-                Ui.Text(badge, u.Level.ToString(), 10, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+                Ui.Text(badge, NumText.Of(u.Level), 10, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
                 var bar = new Rect(r.x + 24, r.y + 14, r.width - 24, 8);
                 Ui.Bar(bar, u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
                 var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 3), Ui.Solid(new Color(0.7f, 0.85f, 1f)));

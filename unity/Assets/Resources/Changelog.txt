@@ -14,6 +14,7 @@ change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lig
 change: Painted icons for the Gale, Light and Shadow elements on the campaign map, and each shard type has its own coloured crystal.
 change: Smoother team screen: hero models now load bit by bit over several frames instead of freezing the screen for a moment per hero.
 change: Faster first launch: sounds and effect textures now load in the background.
+fix: Fewer small stutters in long sessions: menus and the battle screen create much less throwaway data every frame.
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 new: Release Heroes: filter by rarity, stars, element, role and level, keep the best copies, save presets, review before you release, and undo within 2 minutes.
