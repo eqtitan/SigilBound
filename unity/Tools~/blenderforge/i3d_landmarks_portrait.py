@@ -275,15 +275,12 @@ BATCH["benedict"] = {**_STD,
     "rigid": [("hand_r", _near_line((-0.47, -0.38, 0.0), (-0.47, -0.38, 1.55), 0.05)), ("hand_r", _near((-0.48, -0.38, 1.65), 0.24)),
               ("lowerarm_l", lambda p: p.x > 0.35 and 0.35 < p.z < 1.35)],   # the sundial shield
     "glow_hue": (400, 400)}
-BATCH["poppy"] = {**_STD,   # regenerated (2026-11-28): the sunflower stem held out to her side
-    # the generator still made a flat backdrop card behind her (paper-thin at y 0.035-0.06): trimmed; the sunflower
-    # head is its own thin layer just in front (y 0.01-0.02) and stays
-    "trim_faces": [lambda c, n: abs(n.y) > 0.9 and 0.035 < c.y < 0.06],
-    "joints": _hum((0.75, 0.82, 0.90, 0.98, 1.08, 1.12, 1.48), (0.13, 1.02),
-                   ((0.30, 0.98), (0.42, 1.06), (0.46, 1.08)), ((-0.27, 0.96), (-0.40, 1.00), (-0.45, 1.00)),
-                   (0.06, 0.70), ((0.08, 0.35), (-0.02, 0.35)), ((0.10, 0.08), (0.0, 0.08)), ((0.12, -0.12, 0.01), (0.0, -0.12, 0.01))),
-    "rigid": [("hand_r", _near_line((-0.43, 0.03, 0.0), (-0.43, 0.03, 1.45), 0.05)), ("hand_r", lambda p: p.x < -0.36 and p.z > 1.1)],
-    "blend": [("pelvis", 0.7, lambda p: 0.25 < p.z < 0.85)],
+BATCH["poppy"] = {**_STD,   # third mesh (2026-11-28): background-removed input, legs apart, the sunflower at arm's length
+    "joints": _hum((0.82, 0.90, 1.00, 1.10, 1.25, 1.30, 1.62), (0.15, 1.20),
+                   ((0.28, 1.18), (0.38, 1.27), (0.41, 1.30)), ((-0.30, 1.05), (-0.55, 0.92), (-0.62, 0.90)),
+                   (0.07, 0.77), ((0.15, 0.40), (-0.22, 0.40)), ((0.27, 0.07), (-0.38, 0.07)), ((0.30, -0.12, 0.02), (-0.40, -0.12, 0.02))),
+    "rigid": [("hand_l", lambda p: p.x > 0.33 and p.z > 0.8), ("Head", lambda p: p.z > 1.32 and abs(p.x) < 0.42)],
+    "blend": [("pelvis", 0.5, lambda p: 0.68 < p.z < 0.98)],
     "glow_hue": (400, 400)}
 BATCH["jasper"] = {**_STD,
     "joints": _hum((0.95, 1.05, 1.17, 1.30, 1.48, 1.55, 1.72), (0.22, 1.40),
