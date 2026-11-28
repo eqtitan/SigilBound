@@ -37,16 +37,18 @@ static class ModelPackTests
         {
             var files = Directory.GetFiles(hdSrc, "*_HD.glb").OrderBy(f => f).ToList();
             files.Add(Path.Combine(root, "Tools~", "models", "ubc_anims.glb"));
-            int exact = 0; long gzPlain = 0, gzPacked = 0;
+            // prepare-models.mjs ships whichever is smaller, packed or plain (image-to-3D meshes gzip better
+            // plain); the sample is every fourth file, so it mixes kit-built and image-to-3D heroes
+            int exact = 0, idx = 0; long gzPlain = 0, gzPacked = 0;
             foreach (var f in files.Where(File.Exists))
             {
                 var raw = File.ReadAllBytes(f);
                 var p = ModelPack.Pack(raw);
                 if (ModelPack.Unpack(p).SequenceEqual(raw)) exact++;
-                if (gzPlain < 6_000_000) { gzPlain += Gz(raw); gzPacked += Gz(p); }
+                if (idx++ % 4 == 0 && gzPlain < 6_000_000) { long g = Gz(raw); gzPlain += g; gzPacked += Math.Min(g, Gz(p)); }
             }
             check(exact == files.Count(File.Exists), $"model pack: all {exact} shipped hero/clip GLBs round-trip exactly");
-            check(gzPacked < gzPlain * 0.97, $"model pack: packing alone makes gzip {100.0 * gzPacked / gzPlain:0}% of plain");
+            check(gzPacked < gzPlain * 0.97, $"model pack: packing (where it helps) makes gzip {100.0 * gzPacked / gzPlain:0}% of plain");
         }
 
         // What prepare-models.mjs wrote (CI prepares it before these checks).
