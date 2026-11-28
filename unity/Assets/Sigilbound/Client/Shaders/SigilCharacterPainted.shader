@@ -21,6 +21,12 @@ Shader "Sigilbound/CharacterPainted"
         _Metallic ("Metallic scale", Range(0, 1)) = 1
         _Smoothness ("Smoothness scale", Range(0, 1)) = 0.5
         _OcclusionStrength ("AO strength", Range(0, 1)) = 1
+        // --- metal reflection (character TD 2026-11-28): a procedural studio environment seen in the reflection,
+        // weighted by mask R (metal) and A (smoothness); 0 = off (Titan, Low quality). ---
+        _EnvStrength ("Metal reflection strength", Range(0, 2)) = 0
+        _EnvSky ("Metal reflection sky", Color) = (1.0, 0.97, 0.9, 1)
+        _EnvGround ("Metal reflection ground", Color) = (0.16, 0.13, 0.12, 1)
+        // --- end metal reflection ---
         _Wrap ("Wrap lighting", Range(0, 1)) = 0.3
         _Ramp ("Painterly ramp", Range(0, 1)) = 0.35
         [HDR] _RimColor ("Rim colour (element)", Color) = (0.62, 0.7, 1, 1)
@@ -48,6 +54,7 @@ Shader "Sigilbound/CharacterPainted"
             float _BumpScale;
             float _Metallic;
             float _Smoothness;
+            float _EnvStrength; float4 _EnvSky; float4 _EnvGround; // metal reflection
             float _OcclusionStrength;
             float _Wrap;
             float _Ramp;
@@ -146,6 +153,17 @@ Shader "Sigilbound/CharacterPainted"
                 float3 specCol = lerp(float3(0.04, 0.04, 0.04), albedo, metal);
                 col += specCol * light.color * spec * atten * saturate(ndl * 4.0);
                 col += albedo * metal * lerp(float3(0.29, 0.23, 0.19), float3(0.81, 0.88, 1.0), n.y * 0.5 + 0.5) * 0.25 * ao;
+                // --- metal reflection: a studio environment in the reflected direction (bright sky, a hot horizon
+                // band, dark ground), tinted by the metal's own colour; cloth and skin (mask R 0) get nothing. ---
+                {
+                    float3 r = reflect(-v, n);
+                    float up = r.y * 0.5 + 0.5;
+                    float3 env = lerp(_EnvGround.rgb, _EnvSky.rgb, smoothstep(0.35, 0.75, up));
+                    env += _EnvSky.rgb * 1.2 * pow(saturate(1.0 - abs(r.y - 0.12) * 4.0), 4.0);
+                    float fres = 0.6 + 0.4 * pow(1.0 - saturate(dot(n, v)), 3.0);
+                    col += lerp(float3(0.04, 0.04, 0.04), albedo, metal) * env * fres * metal * (0.3 + 0.7 * smooth) * _EnvStrength * ao;
+                }
+                // --- end metal reflection ---
 
                 float nv = saturate(dot(n, v));
                 col += albedo * _Sheen * (1.0 - metal) * pow(1.0 - nv, 3.0) * 0.6 * light.color;

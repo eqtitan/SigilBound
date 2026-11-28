@@ -9,6 +9,9 @@ Pilot result (2026-11-28, scratchpad ctd/): shipped for jasper only. Tried and n
 the chains opened holes in the idle and let the legs out in Death01; fixed by clip overrides instead), wystan
 (robe and sleeves carry hand weights; no frame got clearly better), vorgrim (cape weighted to the right upper arm,
 tail to the right thigh; the cape/tail chains below tore from the arm-weighted top).
+Roster batch 2: perpetua (gown on chains, with the tail kept) worse in every clip; vorgrim cloak chains took leg
+vertices, tail chain no better than RigExtras' sway; fennick has no tail (the red piece is a prop); perpetua's gown is on the pelvis (fine);
+nettle's tail (on the pelvis) as a chain tore from its white tip - tails need landmarks at rig time (i3d_rig "tail").
 Roster batch 1: lazlo (coat; idle/jog much better but Spell_Simple_Enter, Hit_Kneel f0-6 and Death01 f28-70 worse,
 with or without the leg re-skin), neve (big leg slabs gone, but dark specks of the legs show through the feathered
 skirt in the idle; wider colliders tore the skirt) and holt (worse in every clip) - none shipped.
@@ -26,9 +29,10 @@ from glb_io import write_acc, save
 # skip = sector indices without a chain (open coat fronts), hem_min = lowest cloth y kept on the chains
 CFG = {
     "wystan":  dict(top=0.02, K=10, J=3, r_in=0.035, r_out=0.07, r_leg=0.07),
-    "vorgrim": dict(top=0.02, K=10, J=3, r_in=0.12, r_out=0.17, layers=False, legs=False,
-                    cape=dict(src=["upperarm_r", "upperarm_l", "clavicle_r", "clavicle_l", "lowerarm_r"], half=0.4, K=5, J=3),
-                    tail=dict(src=["thigh_r", "thigh_l", "calf_r", "calf_l"], J=4)),
+    # the 2026-11-28 remodel (half-cloak): cloak on chains from the upper spine, tail on its own chain
+    # the 2026-11-28 remodel (half-cloak): the cloak stays on the spine (cloak chains took leg vertices behind the
+    # knees and stretched them, rejected); only the rig's own tail chain becomes a spring chain
+    "vorgrim": dict(top=0.0, K=0, J=3, r_in=0.1, r_out=0.15, layers=False, legs=False, skirt=False, tail_bones=True),
     "jasper":  dict(top=0.00, K=10, J=3, r_in=0.08, r_out=0.14),
     "hask": dict(),
     "kaelith": dict(top=0.00, K=12, J=3, r_in=0.07, r_out=0.12, legs=False, layers=False, keep=0.4),
@@ -172,6 +176,7 @@ def rig(src, dst, hid, cfg=None):
         a = smooth(rin, rin + (c["r_out"] - c["r_in"]), d)
     a = a * smooth(ytop + 0.02, ytop - 0.10, P0[:, 1]) * (~armlike)
     a *= (P0[:, 1] > c.get("hem_min", -1)) * (footw < 0.2) * smooth(c.get("foot_r", 0.08), c.get("foot_r", 0.08) + 0.04, dfoot)
+    if not c.get("skirt", True): a = np.zeros(len(P0))   # cape/tail only
     cloth = a > 0.5
     a = a * (1 - c.get("keep", 0.0))   # keep part of the old (leg-following) weights on the cloth
     legs_rule = c.get("legs", True)
@@ -209,7 +214,7 @@ def rig(src, dst, hid, cfg=None):
             pts.append(pel * [1, 0, 1] + [0, y, 0] + r * np.array([math.sin(th[k]), 0, math.cos(th[k])]))
         chains[k] = (np.array(pts), yh)
     ks = sorted(chains)
-    if len(ks) < 3: raise SystemExit("too few chains")
+    if len(ks) < 3 and c.get("skirt", True): raise SystemExit("too few chains")
     # nodes
     nodes = j["nodes"]; pi = h.names.index("pelvis"); Gp = G0[pi]; Rp = Gp[:3, :3]; ip = np.linalg.inv(Gp)
     qp_inv = glbio.qinv(mat_rot(Rp))
@@ -229,7 +234,7 @@ def rig(src, dst, hid, cfg=None):
                 M = np.eye(4); M[:3, 3] = pts[s]; ibm_new.append(np.linalg.inv(M))
     if len(sk["joints"]) > 255: raise SystemExit("too many joints for uint8")
     # weights
-    nk = len(ks); thk = th[ks]
+    nk = len(ks); thk = th[ks] if ks else th[:0]
     idx = np.nonzero(a > 1e-3)[0]
     for i in idx:
         dp = np.angle(np.exp(1j * (phi[i] - thk)))
@@ -274,7 +279,9 @@ def rig(src, dst, hid, cfg=None):
     cp = c.get("cape")
     if cp:
         sp3 = pos(cp.get("anchor", "spine_03"))
-        m = np.isin(dom0, cp["src"]) & (P0[:, 2] < sp3[2] - cp.get("behind", 0.08)) & (P0[:, 1] < sp3[1] + 0.12)
+        srcm = (~np.array([d_.startswith(("clavicle", "upperarm", "lowerarm", "hand", "index", "middle", "ring", "pinky", "thumb", "Head", "neck")) for d_ in dom0])) if cp["src"] == "*" else np.isin(dom0, cp["src"])
+        m = srcm & (P0[:, 2] < sp3[2] - cp.get("behind", 0.08)) & (P0[:, 1] < sp3[1] + 0.12) & (np.abs(P0[:, 0]) < cp["half"] + 0.06)
+        if cp.get("exclude"): m &= ~cp["exclude"](P0, dom0)
         xs = np.linspace(-cp["half"], cp["half"], cp["K"]); Jc = cp.get("J", 3); ytop_c = sp3[1]
         cks = []; prof = []
         for kk, x0 in enumerate(xs):
@@ -312,6 +319,13 @@ def rig(src, dst, hid, cfg=None):
             q = int(np.argmin(dd)); tt = seg_t(P0[i:i + 1], P_[q], P_[q + 1])[0]; ws = {jl[q]: 1.0}
             if tt < 0.3 and q > 0: ws = {jl[q]: 0.5 + tt / 0.6, jl[q - 1]: 0.5 - tt / 0.6}
             setw(i, ws, 1.0)
+    if c.get("tail_bones"):
+        # the rig's own tail_01.. chain (i3d_rig "tail") becomes spring chain 30 (+ a tip node), so SpringBones
+        # simulates it with the leg colliders instead of RigExtras' procedural sway
+        tb = sorted(n for n in h.names if n.startswith("tail_"))
+        for k_, n_ in enumerate(tb): nodes[h.names.index(n_)]["name"] = f"sb_30_{k_}"
+        last = nodes[h.names.index(tb[-1])]; prevt = nodes[h.names.index(tb[-2])]["translation"] if len(tb) > 1 else [0, -0.1, 0]
+        nodes.append({"name": f"sb_30_{len(tb)}", "translation": list(map(float, prevt))}); last.setdefault("children", []).append(len(nodes) - 1)
     at = j["meshes"][0]["primitives"][0]["attributes"]
     write_acc(binb, j, at["JOINTS_0"], Jt); write_acc(binb, j, at["WEIGHTS_0"], W)
     # inverse bind matrices: append the new ones after the IBM view (the last view in these files)

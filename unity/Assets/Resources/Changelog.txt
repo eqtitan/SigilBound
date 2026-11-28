@@ -3,6 +3,10 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-28 | New heroes and a new Titan
+change: Wystan has a new model with a knee-length tunic robe, so he jogs and casts without his robe tearing.
+change: Vorgrim has a new model with a half-cloak that hangs from his back and stays clear of his arms and legs.
+change: Steel and gold weapons, shield rims, helmets and crowns now reflect light like metal (off on Low graphics).
+fix: Sable, Vaelith, Rhea and Lumen walk formally and take heavy hits standing, so their skirts stay closed.
 fix: Solenne, Aelira, Ember, Azura, Morwenna and Kasimir walk formally and take heavy hits standing, so their gowns stay closed.
 fix: Shields and two-handed props no longer bend with the arm or legs (Hobb, Hask, Gorrum, Dunstan, Ivo, Merrit, Oswin, Tallow, Sable, Oriel, Benedict, Marrow, Maelis, Barley and more).
 fix: The loose specks around Fennick, Brega and Holt and the stray piece by Nell's feet are gone.
