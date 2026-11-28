@@ -608,6 +608,8 @@ namespace Sigilbound.Client
         static float _lastUnload = -100f;
 
         // On every high-detail figure: tells the cache when the figure is gone.
+        // True for a high-detail hero instance (built by BuildHd).
+        public static bool IsHd(Transform holder) => holder != null && holder.GetComponentInChildren<HdRef>(true) != null;
         sealed class HdRef : MonoBehaviour
         {
             public string Key;
@@ -792,7 +794,15 @@ namespace Sigilbound.Client
             if (titan && mat.HasProperty("_Cull")) mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back);
             // The crystal ridges (mask red): dark until it attacks (TitanBody ramps _RidgeColor), with a little sheen.
             if (titan && mat.HasProperty("_RidgeColor")) { mat.SetColor("_RidgeColor", Color.black); mat.SetFloat("_Metallic", 0.35f); }
-            if (hollow) mat.name += "_Hollow";
+            if (hollow)
+            {
+                mat.name += "_Hollow";
+                // The speckles (art review M2): the hero's glow mask and its normal map, recoloured red on a near-black
+                // body, broke into scattered pink pixels. A Hollow copy has no glow mask and smooth normals (so its red
+                // rim is one soft band); HollowLook adds the outline and eyes instead.
+                if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", Color.black);
+                if (mat.HasProperty("_BumpScale")) mat.SetFloat("_BumpScale", 0f);
+            }
             NormalMapOn(mat);
             return mat;
         }

@@ -2,6 +2,15 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-28 | Clearer battles
+fix: Skill pillars, heals and shields are now soft see-through light that fades out at the top, so you can always see who they hit.
+fix: Spell circles are the size of the caster's floor disc instead of a big stamp over the neighbours.
+fix: Damage numbers float above the name and health bar instead of over the body, spread a little, stack when several land at once and stay on screen.
+change: WEAK! and RESIST sit on their own line under the number, with a dark shadow so they read on any background.
+fix: Everyone stands inside the rune circle, allies on the near side and enemies on the far side; the circle grows a little for wide heroes like Vorgrim and Nyssa.
+fix: Hollow enemies have a clean red outline and glowing red eyes instead of pink speckles.
+fix: Boss-stage braziers are iron fire bowls with glowing embers and a small flame, not glowing lamp shades.
+
 ## 2026-11-28 | New heroes and a new Titan
 new: The Titan moves like its new body: it knuckle-walks in on its huge fists, roars, and has its own hits and stagger.
 change: The Titan's moves are now Bedrock Hammer (a two-fist overhead slam), Faultline Leap (a leap and quake) and Heartfire Torrent (fire from its open chest). Same damage as before.

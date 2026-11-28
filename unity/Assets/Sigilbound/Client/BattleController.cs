@@ -79,6 +79,7 @@ namespace Sigilbound.Client
             // Campaign battles stand at their route stop (Core.StoryScenes); Hard mode is the same stop by night.
             bool campaign = spec.Mode == BattleMode.Stage || spec.Mode == BattleMode.Hard;
             App.Arena.Build(Mathf.Min(chapter, Chapters.Length - 1), IsTitan, bossArena, campaign ? spec.Stage % StagesPerChapter : -1, spec.Mode == BattleMode.Hard);
+            SetRing(); // before framing: the camera fits the ring at its line-up's size
             App.Arena.FrameBattle(CamKey, IsTitan);
             Clear();
             Spawn(_b.Allies, true); Spawn(_b.Enemies, false);
@@ -95,14 +96,33 @@ namespace Sigilbound.Client
             _loop = StartCoroutine(Loop());
         }
 
+        // Room each unit takes in the line-up: creatures and winged / big-shield heroes more (Creatures.LineupWidth),
+        // a boss its 1.35x scale. The ring is sized once per battle for the allies and the longest wave (art review M1),
+        // so the team never moves when a new wave arrives, and both rows share one stand ellipse (_maxWidth).
+        static double UnitWidth(Unit u) => Creatures.LineupWidth(u.Template.Id) * (u.Boss ? BattleLayout.BossWidth : 1);
+        double _maxWidth = 1;
+        void SetRing()
+        {
+            var allies = _b.Allies.Select(UnitWidth).ToList();
+            double ring = 1, widest = allies.Count > 0 ? allies.Max() : 1;
+            foreach (var wave in _b.Waves)
+            {
+                var foes = wave.Where(x => !x.Titan).Select(UnitWidth).ToList();
+                ring = System.Math.Max(ring, BattleLayout.RingScale(allies, foes));
+                if (foes.Count > 0) widest = System.Math.Max(widest, foes.Max());
+            }
+            BattleLayout.Ring = ring; _maxWidth = widest;
+            App.Arena.SetRing((float)ring);
+        }
+
         void Spawn(List<Unit> units, bool ally)
         {
-            var widths = units.Select(x => Creatures.SlotWidth(x.Template.Id)).ToList(); // creatures take more room
+            var widths = units.Select(UnitWidth).ToList(); // creatures, wide heroes and bosses take more room
             for (int i = 0; i < units.Count; i++)
             {
                 var u = units[i];
-                float scale = u.Titan ? (float)TitanSpec.Current.ViewScale : u.Boss ? 1.35f : 1f;
-                var pos = u.Titan ? Arena.ToUnity(BattleLayout.TitanSlot()) : Arena.Slot(ally, i, widths);
+                float scale = u.Titan ? (float)TitanSpec.Current.ViewScale : u.Boss ? (float)BattleLayout.BossWidth : 1f;
+                var pos = u.Titan ? Arena.ToUnity(BattleLayout.TitanSlot()) : Arena.Slot(ally, i, widths, _maxWidth);
                 _views[u] = CharacterView.Create(u, pos, Arena.FacingYaw(pos), scale, G.GearLookOf(u));
             }
         }
@@ -120,6 +140,7 @@ namespace Sigilbound.Client
             _climb = null; _climbPending = false; // leaving the battle ends any climb (its summary has shown)
             Clear();
             App.CloseModal();
+            BattleLayout.Ring = 1; _maxWidth = 1; // the menus' arena: the classic ring
             App.Arena.Build(Mathf.Min(Chapters.Length - 1, G.S.cleared / StagesPerChapter), false);
             App.Arena.FrameMenu();
             App.Go(to);
@@ -158,6 +179,10 @@ namespace Sigilbound.Client
         bool _cinema, _skippable;  // HUD hidden while a cinematic plays; the intro can be skipped by a tap
         // Above the horn tips: from its head bone (follows it as it bows, leaps or strides), the horns'
         // height over the head (TitanSpec.HornTop) and room for the tag; else a fixed height over its feet.
+        // Where a unit's floating numbers start (Vfx.Number): its head-tag point, the same as the HUD tag's, so
+        // numbers float above the name and bars instead of on the body (art review M3). The Titan's is above its horns.
+        Vector3 NumberAnchor(Unit u, CharacterView v) => u != null && u.Titan ? TitanTagPoint(v)
+            : v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f;
         Transform _titanHead; CharacterView _titanHeadOf;
         Vector3 TitanTagPoint(CharacterView v)
         {
@@ -667,7 +692,9 @@ namespace Sigilbound.Client
                 if (!melee && !u.Titan && fx != null)
                 {
                     // Casters: a spell circle and gathering energy; ultimates on foes also flood the area and shock out.
-                    fx.CastCircle(view.transform.position, u.El); fx.Charge(view.transform, u.El, 0.5f);
+                    // The circle matches the caster's floor disc, which hides while it shows (art review M3).
+                    float foot = (float)BattleFx.Footprint(view.Model ? view.Model.localScale.x : 1f, Creatures.LineupWidth(u.Template.Id));
+                    fx.CastCircle(view.transform.position, u.El, foot); view.HideAura((float)BattleFx.CircleTime); fx.Charge(view.transform, u.El, 0.5f);
                     if (ult && tgtView != null && !support && !single)
                     {
                         var c = tgtView.transform.position; c.x *= 0.3f;
@@ -765,7 +792,7 @@ namespace Sigilbound.Client
                 switch (e.Type)
                 {
                     case EvType.Damage:
-                        if (e.Dot) { SkillFx.I?.DebuffTick(v.transform.position, "poison"); Vfx.I.Number(c, Ui.Fmt(e.Amount), new Color(0.5f, 1f, 0.45f)); break; }
+                        if (e.Dot) { SkillFx.I?.DebuffTick(v.transform.position, "poison"); Vfx.I.Number(NumberAnchor(e.Unit, v), Ui.Fmt(e.Amount), new Color(0.5f, 1f, 0.45f)); break; }
                         if (e.Amount <= 0) { v.Hit(false, true); break; } // fully absorbed by a shield: the "Shield" number says it (no "CRIT 0"); only now may it dodge
                         // weapon x armour: the attacker's weapon landing and the defender's armour answering (plate clangs,
                         // mail jingles, leather slaps, cloth thuds), heard from where the blow lands; the Titan is plate.
@@ -780,8 +807,11 @@ namespace Sigilbound.Client
                         v.Hit(e.Crit || e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp) > 0.14f);
                         if (e.Crit) SkillFx.I?.CritFlash(e.Source != null ? e.Source.El : _lastEl);
                         ArenaEvents.RaiseHit(v.transform.position, e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp), e.Crit, _ultBy != null || (e.Source != null && e.Source.Boss));
-                        Vfx.I.Number(c + Vector3.up * 0.3f, (e.Crit ? "CRIT " : "") + Ui.Fmt(e.Amount) + (e.Elem > 1 ? " WEAK!" : e.Elem < 1 ? " RESIST" : ""), // words as well as colour (UX review #4)
-                            e.Crit ? new Color(1f, 0.85f, 0.2f) : e.Elem > 1 ? new Color(1f, 0.55f, 0.3f) : e.Elem < 1 ? new Color(0.7f, 0.7f, 0.8f) : Color.white, e.Crit ? 1.3f : 1f);
+                        // Above the head tag, stacked when several land at once; WEAK!/RESIST on its own line in its own
+                        // colour (words as well as colour, UX review #4; art review M3).
+                        Vfx.I.Number(NumberAnchor(e.Unit, v), (e.Crit ? "CRIT " : "") + Ui.Fmt(e.Amount),
+                            e.Crit ? new Color(1f, 0.85f, 0.2f) : e.Elem > 1 ? new Color(1f, 0.55f, 0.3f) : e.Elem < 1 ? new Color(0.7f, 0.7f, 0.8f) : Color.white, e.Crit ? 1.3f : 1f,
+                            e.Elem > 1 ? "WEAK!" : e.Elem < 1 ? "RESIST" : null, e.Elem > 1 ? new Color(1f, 0.62f, 0.25f) : new Color(0.78f, 0.82f, 0.95f));
                         if (e.Crit) Vfx.I.Shake();
                         if (multiHit && hitsLeft.TryGetValue(e.Unit, out var left) && left > 1)
                         {
@@ -792,8 +822,8 @@ namespace Sigilbound.Client
                         }
                         else yield return new WaitForSeconds(0.12f);
                         break;
-                    case EvType.Heal: Sound.I?.PlayAt("heal", c, 0.5f); if (SkillFx.I != null) SkillFx.I.Heal(v.transform.position); else Vfx.I.Heal(v.transform.position); Vfx.I.Number(c, "+" + Ui.Fmt(e.Amount), new Color(0.45f, 1f, 0.5f)); break;
-                    case EvType.Absorb: Vfx.I.Number(c + Vector3.up * 0.5f, "Shield " + Ui.Fmt(e.Amount), new Color(0.6f, 0.85f, 1f), 0.7f); break;
+                    case EvType.Heal: Sound.I?.PlayAt("heal", c, 0.5f); if (SkillFx.I != null) SkillFx.I.Heal(v.transform.position); else Vfx.I.Heal(v.transform.position); Vfx.I.Number(NumberAnchor(e.Unit, v), "+" + Ui.Fmt(e.Amount), new Color(0.45f, 1f, 0.5f)); break;
+                    case EvType.Absorb: Vfx.I.Number(NumberAnchor(e.Unit, v), "Shield " + Ui.Fmt(e.Amount), new Color(0.6f, 0.85f, 1f), 0.7f); break;
                     case EvType.Status:
                         Sound.I?.Status(e.Fx, Sound.PanOf(c));
                         if (SkillFx.I == null) Vfx.I.Buff(v.transform.position, FxDef.IsBuff(e.Fx));
@@ -808,10 +838,10 @@ namespace Sigilbound.Client
                             Vfx.I.Shake(0.08f);
                         }
                         else v.StatusPulse(FxDef.IsBuff(e.Fx));
-                        Vfx.I.Number(c + Vector3.up * 0.6f, SkillText.EffectName(e.Fx), FxDef.IsBuff(e.Fx) ? new Color(1f, 0.85f, 0.4f) : new Color(0.8f, 0.55f, 1f), 0.7f); break;
+                        Vfx.I.Number(NumberAnchor(e.Unit, v), SkillText.EffectName(e.Fx), FxDef.IsBuff(e.Fx) ? new Color(1f, 0.85f, 0.4f) : new Color(0.8f, 0.55f, 1f), 0.7f); break;
                     case EvType.Text:
-                        if (e.Text == "Break!" || e.Text == "Broken!") Vfx.I.Number(c + Vector3.up * 0.75f, e.Text == "Break!" ? "BREAK!" : "Broken!", BreakColor, e.Text == "Break!" ? 1.35f : 0.9f); // the break banner, in the break bar's orange
-                        else Vfx.I.Number(c + Vector3.up * 0.6f, e.Text, new Color(0.8f, 0.9f, 1f), 0.7f);
+                        if (e.Text == "Break!" || e.Text == "Broken!") Vfx.I.Number(NumberAnchor(e.Unit, v), e.Text == "Break!" ? "BREAK!" : "Broken!", BreakColor, e.Text == "Break!" ? 1.35f : 0.9f); // the break banner, in the break bar's orange
+                        else Vfx.I.Number(NumberAnchor(e.Unit, v), e.Text, new Color(0.8f, 0.9f, 1f), 0.7f);
                         if (e.Text.StartsWith("Enrage")) Tips.SawEnrage = true; // the one-time Enrage tip
                         if (e.Text == "Revived!") v.Revived();
                         if (e.Text == "Counter!")

@@ -166,7 +166,7 @@ namespace Sigilbound.Client
                 for (int a = 0; a < 16; a++)
                 {
                     float ang = a * Mathf.PI / 8f;
-                    var p = ctr + new Vector3(Mathf.Cos(ang) * (float)BattleLayout.RimRx * k, 0, Mathf.Sin(ang) * (float)BattleLayout.RimRz * k);
+                    var p = ctr + new Vector3(Mathf.Cos(ang) * (float)BattleLayout.Rx * k, 0, Mathf.Sin(ang) * (float)BattleLayout.Rz * k);
                     foreach (float h in new[] { 0.3f, 1.2f, 2.4f }) targets.Add(p + Vector3.up * h);
                 }
             HideBetween(new[] { eye }, targets, null);
@@ -273,22 +273,25 @@ namespace Sigilbound.Client
             }
             // The sky (painted clouds) and the distant ridges are painted arcs built with the scenery.
 
-            // The rune circle: units stand on its rim (BattleLayout.Rim*).
-            var circle = GameObject.CreatePrimitive(PrimitiveType.Cylinder); circle.name = "Circle";
-            Destroy(circle.GetComponent<Collider>());
-            circle.transform.SetParent(_scenery.transform);
-            circle.transform.position = new Vector3((float)BattleLayout.RimCx, 0.005f, (float)BattleLayout.RimCz);
-            circle.transform.localScale = new Vector3((float)BattleLayout.RimRx * 2, 0.002f, (float)BattleLayout.RimRz * 2);
-            circle.GetComponent<Renderer>().sharedMaterial = CharacterView.Unlit(new Color(1, 1, 1, 0.05f));
-            RuneRing(1.0f, 0.06f, new Color(1f, 0.81f, 0.42f, 0.55f));
-            RuneRing(0.82f, 0.03f, new Color(1f, 0.85f, 0.5f, 0.3f));
-
             // Ground, water or lava, scatter, horizon silhouettes and motes (scenery.mjs themes).
             // Scatter density by tier; Ultra stays at High's count (budget pass after build 138: ~25k scenery triangles).
             float density = Quality.I == null ? 1f : new[] { 0.4f, 0.7f, 1f, 1f }[Quality.I.Tier];
             Scenery.Build(_scenery.transform, chapter, titan, density, bottom, top, interactive, Sun, set, hard);
             if (lair && night) LairRim(set, Scenery.ShadowColor(chapter, false));
             StaticBatch(_scenery);
+            // The rune circle, after the static batch so it can grow with the line-up (SetRing): units stand inside
+            // its rim (BattleLayout.Slot keeps every footprint in), the whole circle scaled about BattleLayout.Centre.
+            _ring = new GameObject("CircleRing").transform; _ring.SetParent(_scenery.transform, false);
+            _ring.position = new Vector3((float)BattleLayout.RimCx, 0, (float)BattleLayout.RimCz);
+            var circle = GameObject.CreatePrimitive(PrimitiveType.Cylinder); circle.name = "Circle";
+            Destroy(circle.GetComponent<Collider>());
+            circle.transform.SetParent(_ring, false);
+            circle.transform.localPosition = new Vector3(0, 0.005f, 0);
+            circle.transform.localScale = new Vector3((float)BattleLayout.RimRx * 2, 0.002f, (float)BattleLayout.RimRz * 2);
+            circle.GetComponent<Renderer>().sharedMaterial = CharacterView.Unlit(new Color(1, 1, 1, 0.05f));
+            RuneRing(1.0f, 0.06f, new Color(1f, 0.81f, 0.42f, 0.55f));
+            RuneRing(0.82f, 0.03f, new Color(1f, 0.85f, 0.5f, 0.3f));
+            SetRing((float)BattleLayout.Ring);
             HideOccluders(); // a re-built arena under an already framed camera
             Shafts(titan ? Palette.Hex("#ff9a5a") : Color.Lerp(bottom, new Color(1f, 0.95f, 0.8f), 0.7f));
         }
@@ -363,11 +366,19 @@ namespace Sigilbound.Client
             if (still.Count > 1) StaticBatchingUtility.Combine(still.ToArray(), root);
         }
 
+        // The rune circle's scale (BattleLayout.Ring): the battle sets it from its line-up before framing the camera.
+        Transform _ring;
+        public void SetRing(float k)
+        {
+            if (_ring == null) return;
+            _ring.localScale = new Vector3(k, 1, k);
+        }
+
         // A glowing ellipse on the ground at `k` times the rim size.
         void RuneRing(float k, float width, Color c)
         {
             var go = new GameObject("RuneRing");
-            go.transform.SetParent(_scenery.transform, false);
+            go.transform.SetParent(_ring, false);
             var lr = go.AddComponent<LineRenderer>();
             const int n = 96;
             lr.positionCount = n; lr.loop = true; lr.useWorldSpace = false;
@@ -376,7 +387,7 @@ namespace Sigilbound.Client
             for (int i = 0; i < n; i++)
             {
                 float a = i / (float)n * Mathf.PI * 2;
-                lr.SetPosition(i, new Vector3((float)BattleLayout.RimCx + Mathf.Sin(a) * (float)BattleLayout.RimRx * k, 0.02f, (float)BattleLayout.RimCz + Mathf.Cos(a) * (float)BattleLayout.RimRz * k));
+                lr.SetPosition(i, new Vector3(Mathf.Sin(a) * (float)BattleLayout.RimRx * k, 0.02f, Mathf.Cos(a) * (float)BattleLayout.RimRz * k)); // local to the ring (centred on BattleLayout.Centre)
             }
         }
 
@@ -390,10 +401,10 @@ namespace Sigilbound.Client
             go.GetComponent<Renderer>().sharedMaterial = m;
         }
 
-        // Battle positions: on the rune circle's rim, allies along the near arc and enemies along
-        // the far arc, 2.2 m apart; everyone idles facing the centre.
+        // Battle positions: inside the rune circle, allies along the near arc and enemies along the far arc,
+        // 2.2 m apart (BattleLayout.Slot); everyone idles facing the centre.
         public static Vector3 Slot(bool ally, int index, int count) => ToUnity(BattleLayout.Slot(ally, index, count));
-        public static Vector3 Slot(bool ally, int index, System.Collections.Generic.IList<double> widths) => ToUnity(BattleLayout.Slot(ally, index, widths));
+        public static Vector3 Slot(bool ally, int index, System.Collections.Generic.IList<double> widths, double maxWidth = 0) => ToUnity(BattleLayout.Slot(ally, index, widths, maxWidth));
         public static float FacingYaw(Vector3 p) => (float)BattleLayout.FacingCentreYaw(new V3(p.x, p.y, p.z));
     }
 }

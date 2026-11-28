@@ -22,7 +22,9 @@ namespace Sigilbound.EditorTools
         // Small built-in shaders the game creates materials from at runtime. URP Lit is NOT listed
         // (all its variants would take ages to compile); the template materials below keep the
         // variants we use, and glTFast is given our own material generator (no glTF shaders needed).
-        static readonly string[] RuntimeShaders = { "Sprites/Default", "Legacy Shaders/Particles/Additive" };
+        // Sigilbound/FxPillar (skill pillars and domes) and Sigilbound/HollowOutline (Hollow enemies) are found by name at
+        // runtime (SkillFx, HollowLook), so they must be listed too.
+        static readonly string[] RuntimeShaders = { "Sprites/Default", "Legacy Shaders/Particles/Additive", "Sigilbound/FxPillar", "Sigilbound/HollowOutline" };
         const string MaterialsDir = "Assets/Resources/SigilMaterials";
 
         public static void Apply()
