@@ -6,15 +6,30 @@ name: Sigilbound Unity
 #   web game's own code), compiles the Unity client and editor scripts against Unity reference
 #   assemblies (2021.3 nuget + stubs, then the real Unity 6 ones from the game-ci image) and
 #   compiles the HLSL shaders with DXC. No Unity license needed.
-# - android: builds an APK with game-ci and publishes it to the "unity-latest" pre-release
-#   (separate from android-latest; app id com.sigilbound.unity, so both apps install side by
-#   side). Runs only when Unity license secrets exist; otherwise it is skipped with a note.
-# - windows: after android, builds a Windows 10+ (64-bit) test build and attaches it to the same
-#   "unity-latest" release as Sigilbound-Windows.zip. Runs after android (not alongside) so the
-#   two builds never hold the Personal license seat at once.
-# - linux-preview: after windows, builds a Linux player published to the "unity-preview" release.
-#   Not for players: agents run it under xvfb with -sbShots=DIR (tools/unity-shots.sh) to take
-#   screenshots of every main screen before a build reaches the owner.
+# Order of the build jobs (one Unity license seat, so the three builds run one after another):
+#   android -> linux-preview (build + smoke tour) -> publish-android -> windows
+# - android: builds an APK with game-ci and uploads it (Sigilbound-Unity.apk and
+#   Sigilbound-Unity-<version>-build<n>.apk) as the "sigilbound-unity-android" workflow artifact only.
+#   It no longer publishes anything. Runs only when Unity license secrets exist; otherwise skipped.
+# - linux-preview: right after android, builds a Linux player and runs the screenshot tour on it
+#   headless in CI (xvfb + software GL + -sbShots=DIR, the same as tools/unity-shots.sh), checked by
+#   tools/unity-smoke-check.sh: the tour reaches DONE, the battle/titan SBBUDGET lines show skinned>0,
+#   and player.log has no Null/MissingReference or IndexOutOfRange exceptions from Sigilbound code.
+#   The shots and logs are uploaded as the "sigilbound-unity-smoke" artifact on every run, pass or
+#   fail. The Linux zip is published to the "unity-preview" release (not for players; agents use it
+#   with tools/unity-shots.sh) even when the smoke fails, so a failure can be reproduced locally; its
+#   release notes say whether the smoke passed.
+# - publish-android: only when android built and the smoke passed, downloads the APK artifact and
+#   publishes it to the "unity-latest" pre-release (the tester link; separate from android-latest; app
+#   id com.sigilbound.unity, so both apps install side by side), replacing the files in place.
+# - windows: after publish-android, builds a Windows 10+ (64-bit) test build and attaches it to the
+#   same "unity-latest" release as Sigilbound-Windows.zip, also only if the smoke passed. It waits for
+#   linux-preview so two builds never hold the Personal license seat at once, and for publish-android
+#   so the two never edit the unity-latest release at the same moment.
+# - Nothing is published unless the run is on main (github.ref == refs/heads/main): a
+#   workflow_dispatch on another branch builds and smoke-tests, and only uploads workflow artifacts.
+#   A broken build therefore never replaces the tester download; testers get each build about one
+#   Linux build + smoke tour later than before (see the linux-preview job).
 # - get-license-file: run by hand (Actions > Sigilbound Unity > Run workflow > task
 #   "get-license-file") as a fallback if account activation doesn't work; see unity/README.md.
 #
@@ -236,8 +251,152 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: sigilbound-unity-android
-          path: Sigilbound-Unity-*.apk
+          # Both names publish-android puts on the release (the fixed tester link and the versioned copy).
+          path: |
+            Sigilbound-Unity.apk
+            Sigilbound-Unity-*.apk
+          if-no-files-found: error
+
+  linux-preview:
+    # Right after android (one license seat: never two builds at once), even if the APK build failed.
+    needs: [checks, secrets, android]
+    if: ${{ !cancelled() && needs.secrets.outputs.can_build == 'true' && github.event_name != 'pull_request' && needs.checks.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    outputs:
+      smoke: ${{ steps.smoke.outputs.smoke }}
+    concurrency:
+      group: sigilbound-unity-preview-release
+      cancel-in-progress: false
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Prepare hero models
+        run: (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: unity/Library
+          key: unity-library-linux-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}-${{ hashFiles('unity/Assets/**') }}
+          restore-keys: |
+            unity-library-linux-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}-
+            unity-library-linux-
+      - name: Build the Linux preview (game-ci)
+        uses: game-ci/unity-builder@eb1b9fba120c6e62c9fb7a7a81d6c107ce004c45 # v6.0.0
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          cliVersion: v0.1.77
+          projectPath: unity
+          targetPlatform: StandaloneLinux64
+          buildName: Sigilbound
+          buildMethod: Sigilbound.EditorTools.BuildScript.Linux
+          versioning: None
+          allowDirtyBuild: true
+      - name: Zip the preview
+        id: zip
+        run: |
+          BIN=$(find build unity/build unity/Builds -name 'Sigilbound.x86_64' 2>/dev/null | head -n 1)
+          if [ -z "$BIN" ]; then echo "::error::No Linux build was produced"; exit 1; fi
+          DIR=$(dirname "$BIN")
+          sudo chown -R "$(id -u)" "$DIR" || true
+          find "$DIR" -maxdepth 1 -name '*_BurstDebugInformation_DoNotShip' -exec rm -rf {} + || true
+          rm -rf Sigilbound-Linux && cp -r "$DIR" Sigilbound-Linux
+          zip -qr9 Sigilbound-Linux.zip Sigilbound-Linux
+          ls -la Sigilbound-Linux.zip
+      - name: Install xvfb and Mesa software OpenGL (for the smoke tour)
+        run: |
+          for i in 1 2 3; do
+            sudo apt-get update -q && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+              xvfb xauth libgl1 libglx-mesa0 libgl1-mesa-dri libegl1 libglu1-mesa libxrandr2 libxcursor1 libxi6 libxinerama1 libasound2t64 \
+              && break
+            sleep 20
+          done
+          command -v xvfb-run
+      - name: Smoke tour (screenshot mode, headless; same run as tools/unity-shots.sh)
+        id: smoke
+        timeout-minutes: 30
+        run: |
+          OUT="$PWD/unity-smoke"; rm -rf "$OUT" && mkdir -p "$OUT"
+          BIN="$PWD/Sigilbound-Linux/Sigilbound.x86_64"; chmod +x "$BIN"
+          START=$(date +%s)
+          # Software GL (llvmpipe) is slow but enough for the tour. -force-glcore avoids Vulkan.
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 1500 xvfb-run -a -s "-screen 0 1280x720x24" \
+            "$BIN" -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -force-glcore \
+            -logFile "$OUT/player.log" -sbShots="$OUT" || echo "player exited with $?"
+          echo "Smoke tour took $(( $(date +%s) - START )) s; $(ls "$OUT"/*.png 2>/dev/null | wc -l) screenshots."
+          if bash tools/unity-smoke-check.sh "$OUT"; then
+            echo "smoke=passed" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Smoke tour failed (details above; shots and logs in the sigilbound-unity-smoke artifact). Nothing is published to unity-latest."
+            exit 1
+          fi
+      - name: Upload the smoke shots and logs (every run, pass or fail)
+        if: ${{ !cancelled() && steps.zip.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sigilbound-unity-smoke
+          path: unity-smoke/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Publish to the unity-preview release
+        # Main only. Published even when the smoke failed (not for players; lets agents reproduce the
+        # failure with tools/unity-shots.sh); the notes say which.
+        if: ${{ !cancelled() && steps.zip.outcome == 'success' && github.ref == 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SMOKE: ${{ steps.smoke.outputs.smoke == 'passed' && 'smoke tour passed' || 'SMOKE TOUR FAILED, not published to testers' }}
+        run: |
+          retry() { for i in 1 2 3 4 5; do "$@" && return 0; echo "retry $i: $*"; sleep $((i * 15)); done; return 1; }  # GitHub API 500s happen
+          NOTES="Linux preview build for automated screenshots (tools/unity-shots.sh), commit ${GITHUB_SHA::7} (${SMOKE}). Not for players."
+          if gh release view unity-preview >/dev/null 2>&1; then
+            retry gh release upload unity-preview Sigilbound-Linux.zip --clobber
+            retry gh release edit unity-preview --notes "$NOTES"
+          else
+            gh release create unity-preview Sigilbound-Linux.zip --prerelease --title "Sigilbound (Unity) Linux preview" --notes "$NOTES"
+          fi
+
+  # Publishes the APK that android built, but only once the Linux build of the same commit passed the
+  # smoke tour. No Unity, no license seat: it just replaces the files on the unity-latest release.
+  publish-android:
+    needs: [android, linux-preview]
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.android.result == 'success' && needs.linux-preview.outputs.smoke == 'passed' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: sigilbound-unity-latest-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          sparse-checkout: public/game/version.js
+          sparse-checkout-cone-mode: false
+      - name: Version and build number (as the android job computed them)
+        run: |
+          VERSION=$(node -p "require('fs').readFileSync('public/game/version.js','utf8').match(/version: \"([^\"]+)\"/)[1]")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD=${{ github.run_number }}" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sigilbound-unity-android
+      - name: Check the APKs are there
+        run: |
+          ls -la Sigilbound-Unity*.apk
+          test -s Sigilbound-Unity.apk && test -s "Sigilbound-Unity-$VERSION-build$BUILD.apk"
       - name: Publish to the unity-latest release
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
           NOTES_TAIL: >-
@@ -263,8 +422,10 @@ jobs:
           fi
 
   windows:
-    needs: [checks, secrets, android]
-    # Runs even if the Android build failed, so one platform's problem doesn't block the other.
+    # After linux-preview (one license seat: never two builds at once) and publish-android (never two
+    # jobs editing unity-latest at once). Builds even if the Android build or the smoke failed, so one
+    # platform's problem doesn't hide another's; only the publish step needs the smoke to have passed.
+    needs: [checks, secrets, android, linux-preview, publish-android]
     if: ${{ !cancelled() && needs.secrets.outputs.can_build == 'true' && github.event_name != 'pull_request' && needs.checks.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -330,6 +491,8 @@ jobs:
           name: sigilbound-unity-windows
           path: Sigilbound-Windows-*.zip
       - name: Publish to the unity-latest release
+        # Main only, and only when the Linux smoke tour of the same commit passed.
+        if: github.ref == 'refs/heads/main' && needs.linux-preview.outputs.smoke == 'passed'
         env:
           GH_TOKEN: ${{ github.token }}
         # Only touches the Windows files, so the Android APKs on the same release stay as they are.
@@ -343,74 +506,6 @@ jobs:
             gh release delete-asset unity-latest "$a" --yes || true
           done
           retry gh release upload unity-latest Sigilbound-Windows.zip "Sigilbound-Windows-$VERSION-build$BUILD.zip" --clobber
-
-  linux-preview:
-    needs: [checks, secrets, windows]
-    if: ${{ !cancelled() && needs.secrets.outputs.can_build == 'true' && github.event_name != 'pull_request' && needs.checks.result == 'success' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    concurrency:
-      group: sigilbound-unity-preview-release
-      cancel-in-progress: false
-    steps:
-      - name: Free disk space
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-          docker-images: false
-          swap-storage: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 22
-      - name: Prepare hero models
-        run: (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: unity/Library
-          key: unity-library-linux-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}-${{ hashFiles('unity/Assets/**') }}
-          restore-keys: |
-            unity-library-linux-${{ hashFiles('unity/Packages/manifest.json', 'unity/ProjectSettings/ProjectVersion.txt') }}-
-            unity-library-linux-
-      - name: Build the Linux preview (game-ci)
-        uses: game-ci/unity-builder@eb1b9fba120c6e62c9fb7a7a81d6c107ce004c45 # v6.0.0
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        with:
-          cliVersion: v0.1.77
-          projectPath: unity
-          targetPlatform: StandaloneLinux64
-          buildName: Sigilbound
-          buildMethod: Sigilbound.EditorTools.BuildScript.Linux
-          versioning: None
-          allowDirtyBuild: true
-      - name: Zip the preview
-        run: |
-          BIN=$(find build unity/build unity/Builds -name 'Sigilbound.x86_64' 2>/dev/null | head -n 1)
-          if [ -z "$BIN" ]; then echo "::error::No Linux build was produced"; exit 1; fi
-          DIR=$(dirname "$BIN")
-          sudo chown -R "$(id -u)" "$DIR" || true
-          find "$DIR" -maxdepth 1 -name '*_BurstDebugInformation_DoNotShip' -exec rm -rf {} + || true
-          rm -rf Sigilbound-Linux && cp -r "$DIR" Sigilbound-Linux
-          zip -qr9 Sigilbound-Linux.zip Sigilbound-Linux
-          ls -la Sigilbound-Linux.zip
-      - name: Publish to the unity-preview release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          retry() { for i in 1 2 3 4 5; do "$@" && return 0; echo "retry $i: $*"; sleep $((i * 15)); done; return 1; }  # GitHub API 500s happen
-          NOTES="Linux preview build for automated screenshots (tools/unity-shots.sh), commit ${GITHUB_SHA::7}. Not for players."
-          if gh release view unity-preview >/dev/null 2>&1; then
-            retry gh release upload unity-preview Sigilbound-Linux.zip --clobber
-            retry gh release edit unity-preview --notes "$NOTES"
-          else
-            gh release create unity-preview Sigilbound-Linux.zip --prerelease --title "Sigilbound (Unity) Linux preview" --notes "$NOTES"
-          fi
 
   # Fallback: headless web activation to get a .ulf license file (needs the Unity account's
   # two-step verification OFF, or UNITY_TOTP_KEY). Unity has been restricting manual activation
