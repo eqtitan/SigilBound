@@ -2,6 +2,9 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-28 | New heroes and a new Titan
+fix: Tansy and Corran now bend their legs like a hare and a goat, with a backward-folding hock, when they walk, crouch and kneel.
+
 ## 2026-11-27 | Fairer chapters and clearer battles
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
 change: Vex, Aurex, Brannoc, Odo and 27 more heroes have new 3D models that match their portraits.

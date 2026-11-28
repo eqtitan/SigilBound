@@ -20,6 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import ubc_parts as P  # noqa: E402
 import importlib  # noqa: E402
+import i3d_legs  # noqa: E402  (opt-in digitigrade legs: "legs": "digitigrade" in a hero's landmarks)
 # landmark tables: i3d_landmarks (the new heroes), i3d_landmarks_portrait (roster heroes remodelled from their
 # portraits) and i3d_landmarks_titan (the Titan), whichever this branch carries
 LANDMARKS = {}
@@ -116,6 +117,7 @@ def main():
     bpy.context.view_layer.update()
 
     J = {k: pt(bvh, v) for k, v in L["joints"].items()}
+    DIGI = i3d_legs.enabled(L)
     # T-pose targets in A1 (rest): arms out along +-X from the shoulder, legs straight down from the hip.
     def seg(a_, b_): return (J[b_] - J[a_]).length
     rest = {}
@@ -137,6 +139,7 @@ def main():
     bpy.ops.object.mode_set(mode="EDIT")
     eb = A1.data.edit_bones
     orig = {b.name: (b.head.copy(), b.tail.copy(), b.roll) for b in eb}
+    C = i3d_legs.canon(J, L, orig) if DIGI else None
 
     def place(name, head, tail):
         b = eb[name]; roll = b.roll
@@ -164,6 +167,7 @@ def main():
         place("foot_" + s, rest["foot_" + s], rest["ball_" + s])
         place("ball_" + s, rest["ball_" + s], rest["toe_" + s])
         lf = eb["ball_leaf_" + s]; lf.head = rest["toe_" + s]; lf.tail = rest["toe_" + s] + (rest["toe_" + s] - rest["ball_" + s]) * 0.8
+    if DIGI: i3d_legs.rest(eb, C)   # thigh -> calf -> meta -> foot -> ball on the mesh's own leg shape
     # tail chain (RigExtras sways bones named tail_01..)
     prev = eb["pelvis"]
     for i, p in enumerate(L.get("tail", [])[:-1]):
@@ -182,8 +186,8 @@ def main():
     bpy.ops.object.mode_set(mode="POSE")
     aims = []
     for s in ("l", "r"):
-        aims += [("upperarm_" + s, "elbow_" + s), ("lowerarm_" + s, "wrist_" + s), ("hand_" + s, "handend_" + s),
-                 ("thigh_" + s, "knee_" + s), ("calf_" + s, "ankle_" + s), ("foot_" + s, "toe_" + s)]
+        aims += [("upperarm_" + s, "elbow_" + s), ("lowerarm_" + s, "wrist_" + s), ("hand_" + s, "handend_" + s)]
+        aims += i3d_legs.aims(s) if DIGI else [("thigh_" + s, "knee_" + s), ("calf_" + s, "ankle_" + s), ("foot_" + s, "toe_" + s)]
     for bone, tgt in aims:
         pb = A1.pose.bones[bone]
         bpy.context.view_layer.update()
@@ -233,7 +237,7 @@ def main():
             tgt = nearest(p); filled += 1
         elif tgt is not None:
             forced += 1
-            if not any(tgt.startswith(k) for k in ("thigh", "calf", "foot", "ball", "clavicle", "upperarm", "lowerarm", "hand")):
+            if not any(tgt.startswith(k) for k in ("thigh", "calf", "meta", "foot", "ball", "clavicle", "upperarm", "lowerarm", "hand")):
                 attached.add(v.index)   # back gear, capes, halos: a rigid part on the trunk
         if tgt == "nearest_tail":
             tails = [n for n in defb if n.startswith("tail_")]
@@ -304,7 +308,7 @@ def main():
             w = v[dl] if dl else {}
             if not w: return None
             n_ = gname[max(w.items(), key=lambda kv: kv[1])[0]]
-            for pre, tag in (("thigh_", "leg"), ("calf_", "leg"), ("foot_", "leg"), ("ball_", "leg"), ("clavicle_", "arm"),
+            for pre, tag in (("thigh_", "leg"), ("calf_", "leg"), ("meta_", "leg"), ("foot_", "leg"), ("ball_", "leg"), ("clavicle_", "arm"),
                              ("upperarm_", "arm"), ("lowerarm_", "arm"), ("hand_", "arm")):
                 if n_.startswith(pre): return tag + n_[-2:]
             return None
@@ -440,6 +444,9 @@ def main():
         mat.use_nodes = True; nt = mat.node_tree; t = nt.nodes.new("ShaderNodeTexImage"); t.image = img2
         nt.links.new(t.outputs[0], nt.nodes["Principled BSDF"].inputs["Base Color"])
         bpy.ops.wm.save_as_mainfile(filepath=a.blend)
+    if DIGI:   # the shared clips baked onto the digitigrade legs, written into the GLB (Client/DigitigradeLegs.cs)
+        nb = i3d_legs.bake(A1, C, orig, path, os.path.join(HERE, "..", "models", "ubc_anims.glb"))
+        print(f"[i3d] {a.hero}: digitigrade legs, {nb} clips baked")
     tris = sum(len(p.vertices) - 2 for p in body.data.polygons)
     print(f"[i3d] {a.hero}: {tris} tris, {len(A1.data.bones)} bones, glow px {n}, {os.path.getsize(path) // 1024} KB")
 

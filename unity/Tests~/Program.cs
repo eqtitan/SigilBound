@@ -111,6 +111,7 @@ static class Program
         ReleaseTests.Run(Check);
         CachePolicyTests.Run(Check);
         ModelPackTests.Run(Check);
+        DigitigradeTests.Run(Check);
         UpdaterTests.Run(Check);
         FrameRateTests.Run(Check);
         QuitRuleTests.Run(Check);

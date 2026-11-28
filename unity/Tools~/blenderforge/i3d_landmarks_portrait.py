@@ -339,4 +339,24 @@ BATCH["astrid"] = {**_STD,
               ("spine_03", lambda p: p.y > 0.12 and p.z > 0.15 and abs(p.x) > 0.15), ("spine_03", lambda p: abs(p.x) > 0.45)],   # the glider wings
     "glow_hue": (400, 400)}
 
+
+def _digitigrade(entry, **legs):
+    """Opt-in digitigrade legs (i3d_legs.py): the true knee, the hock, the ball of the foot and the toe tip per
+    side, each (x, y, z) in the mesh's own pose. The hock doubles as the "ankle" the generic code reads."""
+    j = dict(entry["joints"])
+    for s in ("l", "r"):
+        for k in ("knee", "hock", "ball", "toe"): j[f"{k}_{s}"] = legs[f"{k}_{s}"]
+        j["ankle_" + s] = legs["hock_" + s]
+    return {**entry, "joints": j, "legs": "digitigrade"}
+
+
+# Animal-folk whose meshes stand on digitigrade legs (owner report 2026-11-28: their knees bent like a human's):
+# the hare's long hind feet and the goat's hocked legs over hoof boots. Landmarks read off side views of each leg.
+BATCH["tansy"] = _digitigrade(BATCH["tansy"],
+    knee_l=(0.17, 0.15, 0.52), hock_l=(0.22, 0.28, 0.22), ball_l=(0.25, 0.16, 0.05), toe_l=(0.28, 0.07, 0.03),
+    knee_r=(-0.11, 0.22, 0.48), hock_r=(-0.12, 0.305, 0.21), ball_r=(-0.19, 0.14, 0.05), toe_r=(-0.22, 0.03, 0.03))
+BATCH["corran"] = _digitigrade(BATCH["corran"],
+    knee_l=(0.20, 0.20, 0.55), hock_l=(0.20, 0.335, 0.22), ball_l=(0.22, 0.20, 0.05), toe_l=(0.24, 0.11, 0.015),
+    knee_r=(-0.12, 0.09, 0.52), hock_r=(-0.13, 0.13, 0.21), ball_r=(-0.15, -0.10, 0.05), toe_r=(-0.17, -0.24, 0.015))
+
 LANDMARKS.update(BATCH)

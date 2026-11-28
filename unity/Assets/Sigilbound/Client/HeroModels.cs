@@ -836,6 +836,9 @@ namespace Sigilbound.Client
             // re-apply this hero's rest-pose changes over the humanoid clips and drive the extra bones.
             bool rigExt = RigExtras.Needed(holder);
             if (rigExt) root.AddComponent<RigExtras>().Init(holder, lib.Prototype, anim);
+            // Digitigrade legs (animal-folk; blenderforge/i3d_legs.py): the hero's own baked leg clips, layered
+            // over the shared clips of the same name on the legs only.
+            if (DigitigradeLegs.Needed(holder)) root.AddComponent<DigitigradeLegs>().Init(holder, anim, bk.Gltf.GetAnimationClips());
             if (titan) root.AddComponent<HandGrip>();
             else if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
