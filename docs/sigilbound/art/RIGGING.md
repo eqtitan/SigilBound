@@ -109,3 +109,38 @@ joints after `orig`, `rest()` after the leg bones are placed, the leg aims, `met
 
 Before/after side views at the battle camera's elevation (walk, crouch, crouch idle, kneel, jog) and walk
 and crouch GIFs per hero, plus a contact sheet: scratchpad `reviews/legs/`.
+
+## Spring bones and per-hero clip overrides (character TD pilot, 2026-11-28)
+
+Owner report on the earlier clipping pass: "some of those look good in some frames but horrible in others". The
+pilot replaced weight rules with tools that hold on every frame, and checked every 2nd frame of every clip each hero
+plays (battle camera at 33 degrees from both sides, a menu front view and a face close-up; scratchpad `ctd/`).
+
+**Spring bones** (`Core/SpringSolver.cs`, `Client/SpringBones.cs`, `Core/Kit/SpringRigs.cs`; algorithm after
+UniVRM's VRMSpringBone, MIT, credited in `Models/CREDITS.md`):
+- Chains are GLB nodes `sb_<chain>_<bone>` (last node = tip), added in place to the shipped file by
+  `blenderforge/spring_rig.py` (no rebuild, nothing else changes). Run it **last**: `compress-hd.mjs` prunes empty
+  leaf nodes, which would drop the chain tips (`SpringTests` catches that).
+- The cloth is found by a layer test (a ray from the leg bone to the vertex hits nothing first = the leg's own
+  surface: trousers, boots; anything with another surface in between = robe/coat), the legs are re-skinned by
+  projection onto thigh/calf/foot, and the cloth goes onto a ring of chains round the pelvis (angular blend between
+  two chains, tent weights along them).
+- Runtime: fixed 1/60 s steps in the model holder's space (after the clip, `RigExtras` and `DigitigradeLegs`),
+  capsule colliders on thighs and calves (optional feet, hip), at most 4 catch-up steps, a long gap resets to rest.
+  Low quality: kinematic (rest direction pushed out of the legs once per frame, no swing). About 10 us per hero
+  per frame on a desktop core for 36 joints.
+- The preview solver (scratchpad `ctd/tools/springsim.py`) mirrors the C# line by line; `SpringTests` replays its
+  scripted run through the game solver (worst quaternion gap 6e-8), plus determinism, colliders, Low mode, reset,
+  catch-up and cost.
+
+**Clip overrides** (`AnimStyle.HdOverrides`, `HdAliasesFor`): a hero whose gown, robe or prop can't follow a shared
+clip plays a gentler one: kaelith and wystan move with `Walk_Formal_Loop` and take heavy hits with `Hit_Head`
+(wystan also idles with `Idle_Loop`), hask strikes with `Sword_Attack` only.
+
+**Shield slide** (`blenderforge/shield_slide.py`): the clipping review's slide toward the fist, capped (hask 20 cm;
+uncapped it was 33 cm and left the tower shield held by its top edge).
+
+What did not work, so other heroes don't repeat it: spring chains on a full kit gown (kaelith: holes in the idle,
+legs out of the skirt in Death01); chains on image-to-3D meshes whose cloth carries arm/hand weights from bone heat
+(wystan's robe, vorgrim's cape on the right upper arm and tail on the right thigh) - those need a re-rig of the
+upper body first. Results per hero: scratchpad `ctd/summary.json`.

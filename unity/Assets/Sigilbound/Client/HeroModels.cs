@@ -964,6 +964,8 @@ namespace Sigilbound.Client
             // Digitigrade legs (animal-folk; blenderforge/i3d_legs.py): the hero's own baked leg clips, layered
             // over the shared clips of the same name on the legs only.
             if (DigitigradeLegs.Needed(holder)) root.AddComponent<DigitigradeLegs>().Init(holder, anim, bk.Gltf.GetAnimationClips());
+            // Spring bones (skirts, robes, coat tails; Core/SpringSolver.cs): simulated after the clip, off the legs.
+            if (SpringBones.Needed(holder)) root.AddComponent<SpringBones>().Init(holder, id);
             if (titan) { root.AddComponent<HandGrip>(); ApplyGlowCut(holder); }
             else if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
@@ -993,7 +995,7 @@ namespace Sigilbound.Client
                 holder.localPosition += Vector3.up * lift / Mathf.Max(0.01f, holder.parent != null ? holder.parent.lossyScale.y : 1f);
             }
             done(Reveal(holder, titan ? new HeroModel(holder.gameObject, anim, (float)(spec.HornWorld / spec.ViewScale), AnimStyle.TitanHd, TitanAliases())
-                                      : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliases)));
+                                      : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliasesFor(id))));
         }
 
         // Where a model is instantiated (out of every camera) until its instance is complete.
