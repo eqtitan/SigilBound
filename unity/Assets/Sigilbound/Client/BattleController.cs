@@ -56,6 +56,7 @@ namespace Sigilbound.Client
             _spec = spec;
             if (spec.Mode == BattleMode.Arena) _arenaSlot = SlotOf(spec.Rival);
             _climbPending = false; _climbRetreat = false;
+            _titanShown = 0; // one controller lasts the session: a real Titan fight after practice must start full (in-house report, build 190)
             App.ClearLineup();
             HeroModels.TrimSoon(); // auto-replay starts battles back to back: free the last one's leftovers
             _b = spec.Mode switch

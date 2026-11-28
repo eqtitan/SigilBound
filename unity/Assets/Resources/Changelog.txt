@@ -3,6 +3,8 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-28 | New heroes and a new Titan
+fix: A battle could stop acting after an ultimate or a boss blow on some stages; it now carries on.
+fix: A Titan fight after a practice fight starts with a full health bar and whole crystals.
 new: Settings has a Phone check: one tap plays a 60-second route (team screen, a big battle, the Titan) and copies a report on smoothness, memory and battery to send to the developer. Nothing is saved or spent.
 new: The Titan moves like its new body: it knuckle-walks in on its huge fists, roars, and has its own hits and stagger.
 change: The Titan's moves are now Bedrock Hammer (a two-fist overhead slam), Faultline Leap (a leap and quake) and Heartfire Torrent (fire from its open chest). Same damage as before.
