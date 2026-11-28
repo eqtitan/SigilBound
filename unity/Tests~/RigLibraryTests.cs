@@ -53,6 +53,10 @@ static class RigLibraryTests
         check(!RigProfiles.Migrated("ysolde"), "rig library: ForceLegacy turns the per-hero flag off (before/after tour)");
         RigProfiles.ForceLegacy = false;
         check(RigProfiles.Migrated("ysolde") && !RigProfiles.Migrated("hask"), "rig library: per-hero flag (pilots migrated, the rest legacy)");
+        // owner decision 2026-11-28: the five pilots only; the roster migration waits until the owner has seen more
+        var approved = new[] { "titan", "ysolde", "augustin", "corran", "nyssa" };
+        check(RigProfiles.Table.Keys.OrderBy(k => k).SequenceEqual(approved.OrderBy(k => k)),
+              $"rig library: only the five approved pilots are on the library path ({string.Join(",", RigProfiles.Table.Keys)})");
 
         // ---- no legacy-path components on migrated heroes (the build code) ----
         var hm = Find("unity", "Assets", "Sigilbound", "Client", "HeroModels.cs");

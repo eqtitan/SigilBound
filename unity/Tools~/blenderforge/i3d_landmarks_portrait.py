@@ -270,6 +270,8 @@ BATCH["augustin"] = {**_STD,
     "glow_hue": (400, 400)}
 # separate-accessory pilot (SKELETON_LIBRARY.md 7.3, 2026-11-28): the body generated WITHOUT mace and cape
 # (artgen/prompts/base_body.txt); the mace and cape are their own meshes, attached by accessory_attach.py
+# SHIPPED as SB_Hero_augustin_HD (2026-11-28): this body + accessory_attach.py mace:hand_r cape:back:chain --hem 0.65;
+# the "augustin" entry below is the old fused-shell build, kept for reference only
 BATCH["augustin_acc"] = {**_STD,
     "joints": _hum((0.98, 1.08, 1.20, 1.32, 1.44, 1.52, 1.84), (0.27, 1.35),
                    ((0.39, 0.03, 1.10), (0.40, -0.05, 0.80), (0.37, -0.08, 0.68)), ((-0.40, 0.03, 1.10), (-0.39, -0.05, 0.80), (-0.34, -0.08, 0.66)),

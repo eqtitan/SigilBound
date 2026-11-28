@@ -24,6 +24,9 @@ namespace Sigilbound.Core
         public static readonly Dictionary<string, SpringRig> ById = new Dictionary<string, SpringRig>
         {
             ["jasper"] = new SpringRig { Stiffness = 1.5f, Drag = 0.45f, Gravity = 0f, JointRadius = 0.03f, ThighR = 0.09f, CalfR = 0.07f },
+            // the separate-parts cape (blenderforge/accessory_attach.py, 5 chains x 4 from spine_03): a little looser than a
+            // skirt so it trails; the hip sphere keeps it off the tail and seat, the legs push it back as he strides
+            ["augustin"] = new SpringRig { Stiffness = 1.2f, Drag = 0.4f, Gravity = 0f, JointRadius = 0.035f, ThighR = 0.11f, CalfR = 0.08f, HipR = 0.15f },
         };
 
         public static SpringRig Of(string heroId) => heroId != null && ById.TryGetValue(heroId, out var r) ? r : new SpringRig();

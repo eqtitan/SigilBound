@@ -270,6 +270,21 @@ two accessory textures in the right third, so the HD loader is unchanged).
   run with this model is the real check; needs a `SpringRigs` entry and the `RigProfiles` rigid/chain lines.
 Frames: scratchpad `acc_pilot/augustin_acc_compare.jpg`, `rev_sheet3.jpg`.
 
+**Augustin wired in (owner approved the parts approach, 2026-11-28; branch feat/augustin-parts).** The shipped
+`SB_Hero_augustin_HD.glb` is now the parts build: `i3d_rig` body (`augustin_acc` landmarks) + `accessory_attach.py
+... mace.glb:hand_r cape.glb:back:chain --hem 0.65`, then `compress-hd.mjs` and `compress-textures.py`; 24.4k tris,
+91 joints, 2.9 MB. The old `_mat.png` metal map no longer matches the atlas and is dropped (index_mat.txt too).
+`SpringRigs["augustin"]` drives the cape (stiffness 1.2, drag 0.4, thigh/calf capsules, a hip sphere for the tail).
+Fixes after the review:
+- Dark specks inside the cape: no face-culling rule removed every scrap of the invented wearer, so the cape is now
+  rebuilt as a sheet: a 44x76 grid of rays from behind samples the outer surface (depth + texture UV), a fresh grid
+  mesh is built from the hits (outline relaxed), and the inside is the same sheet flipped 4 mm in, painted plain in
+  the cape's own colour (the hero shader culls back faces, so the cloth needs both sides).
+- Tail through and under the cape: the cape drapes over everything behind the body (a smooth outward offset carried
+  down below obstacles, not a per-vertex push) and the hem is lowered to 65% of knee-to-ankle, so the tail stays
+  under the cloth seen from behind; it still shows beside the right leg from the side and front, as a tail should.
+Game frames come with the next build of this branch (cape swing is only visible in game).
+
 ### 7.4 Twist bones and facial basics (phase 2)
 
 - Biped gains `upperarm_twist`, `lowerarm_twist` (Unity's twist distribution already spreads twist when they are

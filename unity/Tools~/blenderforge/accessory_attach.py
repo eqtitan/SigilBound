@@ -33,7 +33,7 @@ SOCKETS = {  # name: (bone, glTFast offset)
     "head_top": ("Head", (0, 0.2, 0)),
 }
 DEFAULT_SIZE = {"hand_r": 0.8, "hand_l": 0.8, "shield_arm": 0.6, "head_top": 0.45, "back": 0.7, "hip_l": 0.7, "hip_r": 0.7}
-MAX_TRIS = {"chain": 5000, "rigid": 3500}
+MAX_TRIS = {"chain": 10 ** 9, "rigid": 3500}   # cloth is resampled as a grid sheet (cloth_shell), so sample the full mesh
 
 
 def b_off(o): return Vector((-o[0], -o[2], o[1]))
@@ -44,6 +44,7 @@ def args():
     ap = argparse.ArgumentParser()
     ap.add_argument("hero_glb"); ap.add_argument("out"); ap.add_argument("hero_id"); ap.add_argument("items", nargs="+")
     ap.add_argument("--size", action="append", default=[]); ap.add_argument("--grip", action="append", default=[])
+    ap.add_argument("--hem", type=float, default=0.0, help="cape hem: 0 = knee, 1 = ankle")
     ap.add_argument("--chains", type=int, default=5); ap.add_argument("--bones", type=int, default=4)
     a = ap.parse_args(argv)
     kv = lambda lst: {k: float(v) for k, v in (x.split("=") for x in lst)}
@@ -99,12 +100,16 @@ def item_mesh(path, max_tris):
     return o, img
 
 
-def cloth_shell(o, thick=0.02):
-    """Image-to-3D models a cape as worn by an invented mannequin (pilot 2026-11-28: a whole torso and legs inside).
-    The cape's outer side is the one that looks like a smooth sheet from outside (lowest spread of first-hit depth);
-    keep only faces that are exposed on that side or lie within `thick` of it (the cloth's own inner surface), and turn
-    the model so the outer side faces +Y (behind the hero). Returns the side it found (+1 / -1 as generated)."""
-    bm = bmesh.new(); bm.from_mesh(o.data); bm.faces.ensure_lookup_table()
+def cloth_shell(o, thick=0.02, nx=44, nz=76):
+    """Image-to-3D models a cape as worn by an invented mannequin (pilot 2026-11-28: a whole torso and legs inside, and
+    bits of it survive any face-culling rule). So the cape is rebuilt as a sheet: its outer side is the one that looks
+    like a smooth surface from outside (lowest spread of first-hit depth); an nx x nz grid of rays from that side
+    samples the first outward-facing hit (depth + texture UV), and a fresh grid mesh is built from the hits. Only what
+    shows from behind survives; folds stay as relief. The inside is that sheet again, flipped and `thick`/5 in, flagged
+    `inner` so the texture step paints it plain (the hero shader culls back faces). Ends with the outer side at +Y."""
+    from mathutils.geometry import barycentric_transform
+    bm = bmesh.new(); bm.from_mesh(o.data); bmesh.ops.triangulate(bm, faces=bm.faces); bm.faces.ensure_lookup_table()
+    uvl = bm.loops.layers.uv.active
     bvh = BVHTree.FromBMesh(bm)
     P = [v.co for v in bm.verts]; lo = Vector([min(p[i] for p in P) for i in range(3)]); hi = Vector([max(p[i] for p in P) for i in range(3)])
     def spread(sign):
@@ -117,16 +122,58 @@ def cloth_shell(o, thick=0.02):
         if len(ys) < 10: return 9.0
         m = sum(ys) / len(ys); return (sum((y - m) ** 2 for y in ys) / len(ys)) ** 0.5
     side = 1 if spread(1) <= spread(-1) else -1
-    d = Vector((0, side, 0)); kill = []
-    for f in bm.faces:
-        c = f.calc_center_median(); h = bvh.ray_cast(c + d * 1e-4, d)
-        if h[0] is not None and h[3] > thick: kill.append(f)
-    bmesh.ops.delete(bm, geom=kill, context="FACES")
-    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
-    bm.to_mesh(o.data); bm.free()
+    grid = {}
+    for i in range(nx + 1):
+        for j in range(nz + 1):
+            x = lo.x + (hi.x - lo.x) * i / nx; z = lo.z + (hi.z - lo.z) * j / nz
+            org = Vector((x, (hi.y + 1) if side > 0 else (lo.y - 1), z)); dr = Vector((0, -side, 0))
+            for _ in range(4):   # skip hits on inward-facing surfaces (inner layer seen through a gap)
+                h = bvh.ray_cast(org, dr)
+                if h[0] is None: break
+                if h[1].y * side > 0.05:
+                    f = bm.faces[h[2]]; tri = [l.vert.co for l in f.loops]; uvs = [l[uvl].uv.to_3d() for l in f.loops]
+                    uv = barycentric_transform(h[0], *tri, *uvs)
+                    grid[(i, j)] = (h[0].copy(), (uv.x, uv.y)); break
+                org = h[0] + dr * 1e-3
+    bm.free()
+    nb = bmesh.new(); ul = nb.loops.layers.uv.new("UVMap"); vid = {}
+    for k, (co, uv) in grid.items(): vid[k] = nb.verts.new(co)
+    nquads = 0
+    for i in range(nx):
+        for j in range(nz):
+            ks = [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]
+            if not all(k in vid for k in ks): continue
+            if max(grid[k][0].y for k in ks) - min(grid[k][0].y for k in ks) > 0.2: continue   # a cliff: two layers
+            vs = [vid[k] for k in ks] if side < 0 else [vid[k] for k in reversed(ks)]
+            f = nb.faces.new(vs); nquads += 1
+            for l in f.loops:
+                k = next(k for k in ks if vid[k] == l.vert); l[ul].uv = grid[k][1]
+    nb.verts.ensure_lookup_table()
+    bmesh.ops.delete(nb, geom=[v for v in nb.verts if not v.link_faces], context="VERTS")
+    # the grid's outline is a staircase: relax the boundary loop in x/z (UVs follow), a few passes
+    for _ in range(4):
+        bnd = [v for v in nb.verts if v.is_boundary]
+        new = {}
+        for v in bnd:
+            nbr = [e.other_vert(v) for e in v.link_edges if e.is_boundary]
+            if len(nbr) == 2:
+                m = (nbr[0].co + nbr[1].co) / 2; new[v] = Vector((v.co.x + (m.x - v.co.x) * 0.6, v.co.y, v.co.z + (m.z - v.co.z) * 0.6))
+        for v, c in new.items(): v.co = c
+    nb.normal_update()
+    # inside: flipped copy
+    n_out = len(nb.faces)
+    dup = bmesh.ops.duplicate(nb, geom=list(nb.faces) + list(nb.verts) + list(nb.edges))
+    bmesh.ops.reverse_faces(nb, faces=[g for g in dup["geom"] if isinstance(g, bmesh.types.BMFace)])
+    bmesh.ops.translate(nb, verts=[g for g in dup["geom"] if isinstance(g, bmesh.types.BMVert)], vec=Vector((0, -side * thick * 0.2, 0)))
+    mats = list(o.data.materials)
+    me = bpy.data.meshes.new(o.data.name + "_sheet"); nb.to_mesh(me); nb.free()
+    for m in mats: me.materials.append(m)
+    o.data = me
+    o.data.attributes.new("inner", "BOOLEAN", "FACE")
+    for i, val in enumerate(o.data.attributes["inner"].data): val.value = i >= n_out
     if side < 0:
         o.data.transform(Matrix.Rotation(math.pi, 4, "Z"))
-    print(f"[acc] cloth: outer side {'+Y' if side > 0 else '-Y'} as generated, dropped {len(kill)} hidden faces (mannequin/inside)")
+    print(f"[acc] cloth: outer side {'+Y' if side > 0 else '-Y'} as generated, rebuilt as a {nx}x{nz} sheet: {n_out} quads outside + inside")
     return side
 
 
@@ -166,14 +213,39 @@ def main():
         parts = spec.split(":"); path, sock = parts[0], parts[1]; chain = len(parts) > 2 and parts[2] == "chain"
         key = os.path.splitext(os.path.basename(path))[0]
         o, img = item_mesh(path, MAX_TRIS["chain" if chain else "rigid"])
+        if chain: cloth_shell(o)   # strip the invented wearer first: the inner side is flagged for the texture step
         # texture into the slot (right third, slot 0 top, slot 1 bottom), UVs remapped
         sx0, sy0, sw = W, slot * (H // 2), W // 2
         if img is not None:
             tmp = os.path.join(a.out, f"_tex_{slot}.png"); os.makedirs(a.out, exist_ok=True)
             img.filepath_raw = tmp; img.file_format = "PNG"; img.save()
-            atlas.paste(Image.open(tmp).convert("RGB").resize((sw, sw), Image.LANCZOS), (sx0, sy0)); os.remove(tmp)
+            atlas.paste(Image.open(tmp).convert("RGB").resize((sw, sw), Image.LANCZOS), (sx0, sy0)); tmp_img = tmp
         uvl = o.data.uv_layers.active
-        for l in uvl.data:
+        inner = o.data.attributes.get("inner")
+        if inner is not None and img is not None:
+            # the cape's colour: median texel under the outer faces; the inside gets a 16 px swatch of it, a shade darker
+            timg = Image.open(tmp_img).convert("RGB"); tw_, th_ = timg.size; px_ = timg.load(); cols = []
+            for poly, fl in zip(o.data.polygons, inner.data):
+                if fl.value: continue
+                u_, v_ = uvl.data[poly.loop_indices[0]].uv
+                cols.append(px_[min(tw_ - 1, max(0, int(u_ * tw_))), min(th_ - 1, max(0, int((1 - v_) * th_)))])
+            med = tuple(sorted(c[i] for c in cols)[len(cols) // 2] for i in range(3)) if cols else (100, 30, 30)
+            dark = tuple(int(c * 0.9) for c in med)
+            atlas.paste(Image.new("RGB", (16, 16), dark), (sx0 + sw - 16, sy0 + sw - 16))
+            su, sv = (sx0 + sw - 8) / AW, 1 - (sy0 + sw - 8) / H
+            n_in = 0
+            for poly, fl in zip(o.data.polygons, inner.data):
+                if fl.value:
+                    n_in += 1
+                    for li in poly.loop_indices: uvl.data[li].uv = (su, sv)
+            print(f"[acc] {key}: inner side painted plain {dark} on {n_in} faces")
+        swatch = set()
+        if inner is not None and img is not None:
+            for poly, fl in zip(o.data.polygons, inner.data):
+                if fl.value: swatch.update(poly.loop_indices)
+            os.remove(tmp_img)
+        for li, l in enumerate(uvl.data):
+            if li in swatch: continue
             u, v = l.uv
             u = min(max(u, 0.002), 0.998); v = min(max(v, 0.002), 0.998)
             l.uv = ((sx0 + u * sw) / AW, 1 - (sy0 + (1 - v) * sw) / H)
@@ -183,11 +255,10 @@ def main():
         size = a.size.get(key, DEFAULT_SIZE[sock])
         groups = {}
         if chain:
-            # cape: strip the invented wearer, outer side to +Y (behind the hero)
-            cloth_shell(o)
             P = verts_w(o); lo, hi = bbox(P)
             top_z = max(head("upperarm_l").z, head("upperarm_r").z) + 0.05
-            bot_z = (head("calf_l").z + head("calf_r").z) / 2
+            knee_z = (head("calf_l").z + head("calf_r").z) / 2; ankle_z = (head("foot_l").z + head("foot_r").z) / 2
+            bot_z = knee_z + (ankle_z - knee_z) * a.hem
             span = (head("upperarm_l") - head("upperarm_r")).length * 1.25
             topband = [p for p in P if p.z > hi.z - 0.12 * (hi.z - lo.z)]
             tw = max(p.x for p in topband) - min(p.x for p in topband)
@@ -196,23 +267,45 @@ def main():
             for v in o.data.vertices:
                 v.co = Vector(((v.co.x - cx) * kx, (v.co.y - lo.y) * ky, bot_z + (v.co.z - lo.z) * kz))
             P = [v.co.copy() for v in o.data.vertices]
-            # the body's back surface: max y per (x, z) cell, ignoring anything far behind the torso (a tail)
+            # the body's back surface (tail included): the cape drapes over it. Required outward offset per (x, z) cell,
+            # carried down the cape below an obstacle (cloth hanging off it) and blurred, so it bulges instead of spiking
             torso = [p for p in BP if head("spine_02").z < p.z < top_z and abs(p.x) < span / 2]
             back_y = max(p.y for p in torso)
-            cell = 0.04; grid = {}
+            cell = 0.04; surf = {}
             for p in BP:
-                if p.y > back_y + 0.06 or p.y < -0.05: continue
+                if p.y < -0.05: continue
                 k = (int(math.floor(p.x / cell)), int(math.floor(p.z / cell)))
-                grid[k] = max(grid.get(k, -9), p.y)
+                surf[k] = max(surf.get(k, -9), p.y)
             ymin_top = min(p.y for p in P if p.z > top_z - 0.15)
             dy = back_y + 0.02 - ymin_top
+            for v in o.data.vertices: v.co.y += dy
+            P = [v.co.copy() for v in o.data.vertices]
+            ix = lambda x: int(math.floor(x / cell)); kxs = range(ix(min(p.x for p in P)) - 2, ix(max(p.x for p in P)) + 3)
+            kzs = range(ix(min(p.z for p in P)) - 2, ix(max(p.z for p in P)) + 3)
+            cape_y = {}
+            for p in P:
+                k = (ix(p.x), ix(p.z)); cape_y[k] = min(cape_y.get(k, 9), p.y)
+            need = {}
+            for kx_ in kxs:
+                for kz_ in kzs:
+                    s_ = max([surf.get((kx_ + i, kz_ + j), -9) for i in (-1, 0, 1) for j in (-1, 0, 1)])
+                    c_ = cape_y.get((kx_, kz_))
+                    need[(kx_, kz_)] = max(0.0, s_ + 0.04 - c_) if c_ is not None and s_ > -9 else 0.0
+            for kx_ in kxs:   # carry down
+                run = 0.0
+                for kz_ in reversed(kzs):
+                    run = max(need[(kx_, kz_)], run * 0.96); need[(kx_, kz_)] = run
+            for _ in range(2):   # blur
+                need = {k: sum(need.get((k[0] + i, k[1] + j), 0.0) * w for (i, j), w in
+                               (((0, 0), 0.4), ((1, 0), 0.15), ((-1, 0), 0.15), ((0, 1), 0.15), ((0, -1), 0.15))) for k in need}
+            def field(x, z):
+                fx, fz = x / cell - 0.5, z / cell - 0.5; x0, z0_ = int(math.floor(fx)), int(math.floor(fz)); u, w = fx - x0, fz - z0_
+                g = lambda i, j: need.get((x0 + i, z0_ + j), 0.0)
+                return g(0, 0) * (1 - u) * (1 - w) + g(1, 0) * u * (1 - w) + g(0, 1) * (1 - u) * w + g(1, 1) * u * w
             pushed = 0
             for v in o.data.vertices:
-                v.co.y += dy
-                k0 = (int(math.floor(v.co.x / cell)), int(math.floor(v.co.z / cell)))
-                near = [grid[(k0[0] + i, k0[1] + j)] for i in (-1, 0, 1) for j in (-1, 0, 1) if (k0[0] + i, k0[1] + j) in grid]
-                if near and v.co.y < max(near) + 0.02:
-                    v.co.y = max(near) + 0.02; pushed += 1
+                d_ = field(v.co.x, v.co.z)
+                if d_ > 0.002: v.co.y += d_; pushed += 1
             # spring chains: K columns across the width, J bones from the top band to the hem
             K, J = a.chains, a.bones
             P = [v.co.copy() for v in o.data.vertices]; lo, hi = bbox(P)
