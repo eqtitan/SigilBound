@@ -3,6 +3,8 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-27 | Fairer chapters and clearer battles
+change: Easier to tap and read on phones: whole stage rows are tappable, battle buttons and text are bigger, and Continue Campaign is always visible on Home.
+fix: Menus stay clear of camera holes and rounded corners; locked buttons, the Hard and Act switches, elements and rarities no longer rely on faint text or colour alone.
 fix: The Round and Enrage banner now sits under the turn order bar instead of running beneath it.
 balance: Light and Shadow chapters are easier: Flame, Gale and Tide heroes have no edge there, so those enemies are 8% weaker.
 balance: Stage 10-1 no longer jumps in difficulty, and Act II climbs more gently to a beatable final boss.

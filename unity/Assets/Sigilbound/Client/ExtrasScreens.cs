@@ -138,9 +138,9 @@ namespace Sigilbound.Client
         }
 
         // Home card (with a ready count), under Daily Quests.
-        float AchievementsCard(float y)
+        float AchievementsCard(float y) { AchievementsCard(Row(ref y, 58)); return y; }
+        void AchievementsCard(Rect r)
         {
-            var r = Row(ref y, 58);
             Ui.Card(r);
             int n = G.AchReadyCount;
             Ui.Text(new Rect(r.x + 14, r.y + 6, 220, 24), "Achievements", 16, Palette.TrimHi, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
@@ -148,7 +148,6 @@ namespace Sigilbound.Client
             if (n > 0) { var b = new Rect(r.xMax - 96, r.y + 15, 82, 28); Ui.Round(b, Palette.Gold, null, 12); Ui.Text(b, $"{n} ready", 12, Palette.Hex("#1a1208"), FontStyle.Bold, TextAnchor.MiddleCenter); }
             else Ui.Text(new Rect(r.xMax - 40, r.y, 30, r.height), "›", 18, Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter);
             if (Ui.Button(r, "", Ui.Kind.Ghost)) Go(ScreenId.Achievements);
-            return y;
         }
 
         // ---------- hero codex ----------
