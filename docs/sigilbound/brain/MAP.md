@@ -21,8 +21,8 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 | arena | ArenaReactor, effects | L015 |
 | platform | Windows/Android specifics | L021 |
 | licensing | credits, licences | L007 |
-| docs | changelog, PLAN, roadmap | L013 |
-| process | who pushes, approvals | L014 |
+| docs | changelog, PLAN, roadmap | L013 L029 L030 |
+| process | who pushes, approvals | L014 L029 L030 |
 | tooling | keys, scripts | L012 |
 
 ```mermaid

@@ -281,3 +281,22 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Related: L017, L011
 - Evidence: docs/sigilbound/qa/evidence/8610b2b/prep-card-frames-cover-text.jpg
 
+## L029 - Parallel branches take the same lesson and PLAN step ids
+- Status: solved
+- Systems: docs, process, tests
+- Symptom: by 07:00 on 2026-11-28 three different lessons were called L023 (main, perf/textures-lod, fix/ctd-faces), perf/textures-lod also added L029-L025, and its PLAN step "119" duplicates main's 119 (UI/UX consistency).
+- Cause: each branch takes the next id from its own base; BrainTests require ids sequential from L001, so a branch cannot reserve a higher id. Collisions are guaranteed whenever two branches add lessons or steps.
+- Fix: the lead renumbers the incoming branch's lessons and steps at merge (next free id on main, update Related links, MAP.md rows and any "Lxxx" mentions in its docs); ROADMAP lists the pending renumbers.
+- Prevention: merge checklist (L013) now includes lesson ids: after merging, run BrainTests ("lesson ids are unique/sequential") and grep the branch's docs for the old ids. PMO flags colliding branches in ROADMAP "In progress".
+- Related: L013, L014
+- Evidence: git diff origin/main...origin/perf/textures-lod and ...origin/fix/ctd-faces (LESSONS.md, PLAN.md); ROADMAP.md 2026-11-28
+
+## L030 - Status can only be as good as what is pushed
+- Status: solved
+- Systems: process, docs, ci
+- Symptom: the PMO brief listed feat/physics-standard, fix/ctd-headgear and the Lazlo/Neve/Holt remodels as in flight, but none was on origin; and the testers kept NO-GO build 190 for hours while builds 191-208 of main were all cancelled by the queue (L005), so nothing merged after 190 had been seen in a real build.
+- Cause: agents work locally until done; the CI queue keeps one pending run, and branch dispatches plus frequent main merges keep cancelling main's build.
+- Fix: ROADMAP marks such work "Not on origin yet" and says which main build last completed instead of assuming merged means built.
+- Prevention: agents push a WIP branch as soon as they start (push their own branch only, L014); PMO checks `gh run list -w "Sigilbound Unity" -b main` for the last completed main build before reporting what testers have; after a hotfix for a NO-GO build, hold other merges and dispatches until main's build publishes.
+- Related: L005, L014
+- Evidence: git ls-remote --heads origin (2026-11-28 07:00); Actions runs 191-208 cancelled, 209/210 running
