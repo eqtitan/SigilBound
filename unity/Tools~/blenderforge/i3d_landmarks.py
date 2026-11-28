@@ -22,15 +22,25 @@ def _legs(hip, knee_l, knee_r, ank_l, ank_r, toe_l, toe_r):
 
 
 LANDMARKS = {
+    # 2026-11-28 remodel (owner pick: option B, half-cloak; Gemini front image -> fal TRELLIS). The mesh came out
+    # with the sword in the left hand, so i3d_prep's output is mirrored (x -> -x) and shifted 0.165 m so the body
+    # (not the tail) is centred: scratchpad ctd/i3d/rend.py "mirror", "shift0.165".
     "vorgrim": {
         "joints": {
-            "pelvis": (0, 0.92), "spine_01": (0, 1.02), "spine_02": (0, 1.14), "spine_03": (0, 1.27), "neck": (0, 1.47),
-            "head": (0, 1.56), "head_top": (0, 1.74),
-            "shoulder_l": (0.27, 1.36), "elbow_l": (0.42, 1.10), "wrist_l": (0.47, 0.88), "handend_l": (0.49, 0.80),
-            "shoulder_r": (-0.27, 1.36), "elbow_r": (-0.40, 1.10), "wrist_r": (-0.47, -0.10, 0.90), "handend_r": (-0.50, -0.12, 0.82),
-            **_legs((0.13, 0.90), (0.27, 0.46), (-0.24, 0.46), (0.33, 0.10), (-0.30, 0.10), (0.34, -0.20, 0.03), (-0.30, -0.20, 0.03)),
+            "pelvis": (0, 0.93), "spine_01": (0, 1.03), "spine_02": (0, 1.15), "spine_03": (0, 1.28), "neck": (0, 1.50),
+            "head": (0, 1.58), "head_top": (0, 1.80),
+            "shoulder_l": (0.25, 1.38), "elbow_l": (0.40, 1.08), "wrist_l": (0.41, 0.86), "handend_l": (0.41, 0.77),
+            "shoulder_r": (-0.25, 1.38), "elbow_r": (-0.40, 1.08), "wrist_r": (-0.40, 0.86), "handend_r": (-0.40, 0.77),
+            **_legs((0.13, 0.88), (0.17, 0.46), (-0.17, 0.46), (0.19, 0.10), (-0.20, 0.10), (0.21, -0.18, 0.03), (-0.22, -0.18, 0.03)),
         },
-        "rigid": [("hand_r", lambda p: p.x < -0.50 and p.z < 1.0), ("hand_r", lambda p: p.y < -0.30 and p.z < 0.85 and p.x < 0.0)],
+        "tail": [(0.0, 0.15, 0.62), (0.08, 0.25, 0.42), (0.20, 0.38, 0.20), (0.38, 0.45, 0.08), (0.58, 0.45, 0.15), (0.66, 0.42, 0.33), (0.50, 0.40, 0.47)],
+        "rigid": [("hand_r", _near_line((-0.36, -0.26, 0.86), (0.01, -0.48, 0.03), 0.065)),
+                  ("nearest_tail", lambda p: (p.x > 0.36 and p.y > 0.0 and p.z < 0.55) or (p.y > 0.36 and p.z < 0.35)),
+                  # armoured shins: bone heat gave the left shin to the tail running behind it
+                  ("calf_l", lambda p: 0.04 < p.x < 0.36 and -0.2 < p.y < 0.16 and 0.13 < p.z < 0.44),
+                  ("calf_r", lambda p: -0.36 < p.x < -0.04 and -0.2 < p.y < 0.16 and 0.13 < p.z < 0.44)],
+        # the cloak hangs from the upper back: spine weights, so it never follows an arm (spring chains: spring_rig.py)
+        "blend": [("spine_03", 0.85, lambda p: p.y > 0.14 and p.z > 0.62 and abs(p.x) < 0.38)],
         "glow_hue": (8, 45),
     },
     "talvo": {
@@ -47,20 +57,17 @@ LANDMARKS = {
                   ("nearest_tail", lambda p: p.x > 0.38 and p.z < 0.75)],
         "glow_hue": (8, 45),
     },
+    # 2026-11-28 remodel (owner pick: option A, knee-length tunic robe, no wing-sleeves; Gemini -> fal TRELLIS)
     "wystan": {
         "joints": {
-            "pelvis": (0, 0.85), "spine_01": (0, 0.95), "spine_02": (0, 1.07), "spine_03": (0, 1.20), "neck": (0, 1.44),
-            "head": (0, 1.50), "head_top": (0, 1.78),
-            "shoulder_l": (0.25, 1.33), "elbow_l": (0.38, 1.05), "wrist_l": (0.28, 0.85), "handend_l": (0.24, 0.80),
-            "shoulder_r": (-0.25, 1.33), "elbow_r": (-0.36, 1.08), "wrist_r": (-0.36, -0.15, 0.95), "handend_r": (-0.36, -0.20, 0.88),
-            **_legs((0.12, 0.80), (0.15, 0.42), (-0.15, 0.42), (0.24, 0.10), (-0.22, 0.10), (0.28, -0.15, 0.02), (-0.25, -0.15, 0.02)),
+            "pelvis": (0, 0.78), "spine_01": (0, 0.90), "spine_02": (0, 1.03), "spine_03": (0, 1.18), "neck": (0, 1.42),
+            "head": (0, 1.50), "head_top": (0, 1.80),
+            "shoulder_l": (0.28, 1.30), "elbow_l": (0.44, 1.00), "wrist_l": (0.46, 0.74), "handend_l": (0.45, 0.63),
+            "shoulder_r": (-0.28, 1.30), "elbow_r": (-0.43, -0.20, 1.00), "wrist_r": (-0.48, -0.35, 1.22), "handend_r": (-0.50, -0.40, 1.34),
+            **_legs((0.12, 0.72), (0.17, 0.38), (-0.17, 0.38), (0.18, 0.12), (-0.17, 0.12), (0.25, -0.15, 0.02), (-0.18, -0.15, 0.02)),
         },
-        # staff in the right hand; the wide wing-sleeves swing with the forearms (no stretching between arm and robe)
-        "tear": 3.5,
-        "rigid": [("hand_r", lambda p: -0.47 < p.x < -0.27 and p.y < -0.19),
-                  ("hand_r", lambda p: p.z > 0.04 and _near_line((-0.33, -0.16, 0.0), (-0.43, -0.27, 1.05), 0.05)(p)),
-                  ("hand_r", _near_line((-0.43, -0.27, 1.05), (-0.50, -0.45, 1.50), 0.09)),
-                  ("lowerarm_r", lambda p: p.x < -0.36 and 0.45 < p.z < 1.15), ("lowerarm_l", lambda p: p.x > 0.36 and 0.45 < p.z < 1.15)],
+        "rigid": [("hand_r", _near_line((-0.52, -0.36, 0.02), (-0.50, -0.38, 1.55), 0.065))],
+        "tear": 3.5, "fill_holes": True,
         "glow_hue": (400, 400),
     },
     # fal.ai TRELLIS from the owner's new front image (2026-11-27): the trident came out level, pointing forward

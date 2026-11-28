@@ -61,6 +61,9 @@ front images the owner approved through fal.ai's hosted **`fal-ai/trellis`** end
 same MIT-licensed TRELLIS model as a paid API call; the outputs are the project's own art on the same
 terms as above.
 
+Remodels 2026-11-28: Wystan Quillmere (tunic robe) and Vorgrim Ashscale (half-cloak) from new front images made
+with Google Gemini (owner-approved prompts) and turned into meshes with fal.ai `fal-ai/trellis` (MIT model), same terms.
+
 ## Spring bones (code)
 
 Skirts, robes and coat tails on some high-detail heroes swing on spring-bone chains simulated at runtime by

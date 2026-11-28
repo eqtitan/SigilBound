@@ -764,8 +764,13 @@ namespace Sigilbound.Client
         public static void SetLowDetail(bool low)
         {
             _lowDetail = low;
-            foreach (var kv in _hdLibs) NormalMapOn(kv.Value.Mat);
+            foreach (var kv in _hdLibs)
+            {
+                NormalMapOn(kv.Value.Mat);
+                if (!kv.Key.StartsWith("titan|") && kv.Value.Mat != null && kv.Value.Mat.HasProperty("_EnvStrength")) kv.Value.Mat.SetFloat("_EnvStrength", low ? 0f : EnvStrength);
+            }
         }
+        const float EnvStrength = 2.2f; // checked in previews (scratchpad ctd/mat3): steel and gold props read as metal, wood and paint stay matte
         static void NormalMapOn(Material m)
         {
             if (m == null || !m.HasProperty("_BumpMap")) return;
@@ -792,6 +797,9 @@ namespace Sigilbound.Client
             if (titan && mat.HasProperty("_Cull")) mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back);
             // The crystal ridges (mask red): dark until it attacks (TitanBody ramps _RidgeColor), with a little sheen.
             if (titan && mat.HasProperty("_RidgeColor")) { mat.SetColor("_RidgeColor", Color.black); mat.SetFloat("_Metallic", 0.35f); }
+            // Metal reflection for the accessory metal maps (hd_materials.py); never on the Titan (its mask R is the
+            // crystal ridges), off on Low quality (SetLowDetail).
+            if (mat.HasProperty("_EnvStrength")) mat.SetFloat("_EnvStrength", titan || _lowDetail ? 0f : EnvStrength);
             if (hollow) mat.name += "_Hollow";
             NormalMapOn(mat);
             return mat;

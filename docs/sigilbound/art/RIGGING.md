@@ -156,3 +156,17 @@ upper body first. Results per hero: scratchpad `ctd/summary.json`.
 - `blenderforge/hd_materials.py` + `HeroModels.MaskFromGlow`: `SB_Hero_<id>_HD_mat.png` (R metal, G smoothness)
   for the steel/gold texels of props only, listed in `index_mat.txt`. Half metal, very smooth: the painted shader
   has no reflection probe, so full metal reads dark. Head gear was left out (kit hair above the skull read as gold).
+
+## Metal reflection, remodels (character TD roster batch 2, 2026-11-28)
+
+- `SigilCharacterPainted.shader`, block "metal reflection": a procedural studio environment (sky, hot horizon
+  band, dark ground) in the reflected direction, tinted by the albedo and weighted by mask R (metal) and A
+  (smoothness); `_EnvStrength` 2.2 on heroes, 0 on the Titan (its mask R is the crystal ridges) and on Low
+  quality (`HeroModels.SetLowDetail`). Cloth and skin have metal 0, so they are unchanged.
+- `hd_materials.py` now also covers kit helms, crowns and circlets (Looks.Gear) but skips any piece coloured like
+  the hero's hair; metal maps are R 200 / G 230 on steel-grey and bright gold texels only (orange-brown wood stays matte).
+- Wystan and Vorgrim remodelled (Gemini front image -> fal TRELLIS -> `i3d_rig.py`, landmarks in `i3d_landmarks.py`).
+  Vorgrim's mesh came out mirrored (sword in the left hand) and is flipped and recentred before rigging. His cloak
+  stays on the spine and his tail on RigExtras' sway: spring chains for both were tried and were worse.
+- Tried and not shipped: rigid head gear on image-to-3D heroes (the ramp at the skull stretched more), tail spring
+  chains on tails weighted to the pelvis or a leg (they tear from the tail tip; tails need rig-time landmarks).
