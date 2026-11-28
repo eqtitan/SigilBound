@@ -27,6 +27,14 @@ for side, s in (("L", 1.0), ("R", -1.0)):
 GROUP_A = ("L1", "R2", "L3", "R4"); GROUP_B = ("R1", "L2", "R3", "L4")
 SEG = (0.10, 0.56, 1.03, 0.62)          # coxa, femur, tibia, tarsus
 TARSUS_LEAN = math.radians(9)
+SEGS, LEANS = {}, {}                    # per-leg overrides (configure)
+
+def configure(attach, rest, segs, leans, body_z):
+    """Replace the leg layout with one measured from a model (creature_i3d.py: the image-to-3D Vessa): per-leg
+    hip attach points, rest feet, segment lengths and tarsus leans (radians; + = ankle inward of the foot),
+    and the body height. Gait-unit metres, as the defaults above."""
+    global BODY_Z
+    ATTACH.update(attach); REST.update(rest); SEGS.update(segs); LEANS.update(leans); BODY_Z = body_z
 _rng = random.Random(7)
 JITTER = {(l, p): (_rng.uniform(0.0, 0.04), _rng.uniform(0.88, 1.12)) for l in LEGS for p in (0, 1)}
 
@@ -55,10 +63,11 @@ def rest_world(leg, body, spread=1.0):
 def solve_leg(leg, hip, foot):
     """Joint points hip, coxa_end, knee, ankle, foot: coxa aims at the foot, tarsus held steep, femur+tibia
     a two-bone solve with the knee up."""
+    seg = SEGS.get(leg, SEG); lean = LEANS.get(leg, TARSUS_LEAN)
     d = sub(foot, hip); out = (d[0], d[1], 0.0); r = length(out) or 1e-6; o = mul(out, 1 / r)
-    coxa_end = add(hip, mul(o, SEG[0]))
-    ankle = add(foot, (-o[0] * SEG[3] * math.sin(TARSUS_LEAN), -o[1] * SEG[3] * math.sin(TARSUS_LEAN), SEG[3] * math.cos(TARSUS_LEAN)))
-    v = sub(ankle, coxa_end); dist = length(v); a, b = SEG[1], SEG[2]
+    coxa_end = add(hip, mul(o, seg[0]))
+    ankle = add(foot, (-o[0] * seg[3] * math.sin(lean), -o[1] * seg[3] * math.sin(lean), seg[3] * math.cos(lean)))
+    v = sub(ankle, coxa_end); dist = length(v); a, b = seg[1], seg[2]
     dist_c = max(abs(a - b) + 1e-3, min(a + b - 1e-3, dist))
     A = math.acos(max(-1, min(1, (a * a + dist_c * dist_c - b * b) / (2 * a * dist_c))))
     vn = mul(v, 1 / (dist or 1e-6))

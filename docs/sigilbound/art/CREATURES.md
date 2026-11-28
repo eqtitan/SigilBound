@@ -19,6 +19,23 @@ bpyenv/bin/python creature_review.py -- DIR/vessa_creature.blend REVIEW turn sti
    - The upper body comes from the UAL clips in `models/ubc_anims.glb`, copied by bone name (`Source`), with spine and head offsets on top.
    - Vessa's clips: Idle_Loop, Walk_Loop, Turn, Attack, Attack2, Cast, Ult_Pounce, Hit, Death, Win, Stun_Loop.
 
+## Build from an image-to-3D mesh: `creature_i3d.py` (Vessa, 2026-11-27)
+
+Vessa now ships the owner's image-to-3D mesh (TRELLIS via fal.ai, from an approved front image) on the same rig and clips:
+
+```
+bpyenv/bin/python i3d_prep.py -- vessa.glb vessa DIR          # weld, drop debris, 1.85 m tall, feet at z 0
+bpyenv/bin/python creature_i3d.py -- --hero vessa --clean DIR/vessa_clean.blend --out OUT [--blend OUT/vessa_rig.blend]
+node compress-hd.mjs OUT && python3 compress-textures.py OUT   # then copy into Tools~/models/heroes_hd
+```
+
+1. **Leg layout from the mesh:** `LAYOUTS` holds each leg's hip, knee, ankle and foot read off the cleaned mesh (left side, mirrored). `creature_gait.configure` takes them as per-leg attach points, rest feet, segment lengths and tarsus leans, so the gait's rest pose is the mesh's own stance (max 6 cm off) and the legs are not reshaped.
+2. **Upper body** as `i3d_rig.py`: UBC joints moved to landmarks, the arms posed into the mesh's pose, bone heat on the upper-body bones only, then posed back to the T-pose; faces stretched more than 2.5x by that move are dropped.
+3. **Lower body rigid:** each leg vertex goes wholly to the nearest segment of the nearest leg (no smearing between segments or legs); the cephalothorax to `spider_body`, the abdomen to `abdomen`.
+4. **Clips:** `creature.bake_clips` with an identity map (gait metres = model metres), so the model carries the same `GAME_CLIPS`. No `rest_fit` marker: the clips are baked for this skeleton.
+
+Limits: one albedo from the generator (no normal or glow map); the braid bones are gone (the mesh's hair is skinned to the head and spine).
+
 ## Game: `Core/Kit/Creatures.cs` and `Client/CreatureRig.cs`
 
 - **`CreatureSpec`** fields:
