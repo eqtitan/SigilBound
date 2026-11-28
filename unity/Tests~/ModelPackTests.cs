@@ -48,7 +48,7 @@ static class ModelPackTests
                 if (idx++ % 4 == 0 && gzPlain < 6_000_000) { long g = Gz(raw); gzPlain += g; gzPacked += Math.Min(g, Gz(p)); }
             }
             check(exact == files.Count(File.Exists), $"model pack: all {exact} shipped hero/clip GLBs round-trip exactly");
-            check(gzPacked < gzPlain * 0.97, $"model pack: packing (where it helps) makes gzip {100.0 * gzPacked / gzPlain:0}% of plain");
+            check(gzPacked < gzPlain * 0.97, $"model pack: packing (where it helps) makes gzip {100.0 * gzPacked / gzPlain:0.0}% of plain");
         }
 
         // What prepare-models.mjs wrote (CI prepares it before these checks).

@@ -240,15 +240,11 @@ BATCH["neve"] = {**_STD, "arm_reach": 0.12,
               ("spine_03", lambda p: p.y > 0.1 and 1.0 < p.z < 1.55)],                         # the hair down her back
     "blend": [("pelvis", 0.6, lambda p: p.z < 1.02 and (abs(p.x) > 0.15 or abs(p.y) > 0.1))],
     "glow_hue": (400, 400)}
-BATCH["maelis"] = {**_STD,
-    "joints": _hum((0.92, 1.02, 1.15, 1.28, 1.42, 1.48, 1.68), (0.24, 1.32),
-                   ((0.33, 1.08), (0.30, 0.80), (0.30, 0.70)), ((-0.33, 1.08), (-0.36, 0.85), (-0.36, 0.75)),
-                   (0.10, 0.88), ((0.12, 0.48), (-0.12, 0.48)), ((0.14, 0.10), (-0.14, 0.10)), ((0.18, -0.18, 0.02), (-0.18, -0.18, 0.02))),
-    # the generator made the trident a long polearm with a heavy blade in front and a fin behind: all in the left hand
-    "rigid": [("hand_l", lambda p: p.x > 0.22 and (_near_line((0.30, -0.80, 0.25), (0.30, 0.80, 1.0), 0.12)(p)
-                                                   or (p.y < -0.15 and p.z < 0.6) or (p.y > 0.2 and 0.6 < p.z < 1.15))),
-              ("hand_l", lambda p: p.y < -0.25 and p.z < 0.6), ("hand_l", lambda p: p.y > 0.3 and 0.6 < p.z < 1.15),
-              ("spine_03", lambda p: p.z > 1.42 and abs(p.x) > 0.2)],
+BATCH["maelis"] = {**_STD,   # regenerated (2026-11-28): a slim trident upright beside him
+    "joints": _hum((0.95, 1.05, 1.17, 1.30, 1.45, 1.52, 1.75), (0.26, 1.35),
+                   ((0.32, 1.10), (0.40, 1.04), (0.45, 1.03)), ((-0.40, 1.05), (-0.42, 0.82), (-0.42, 0.72)),
+                   (0.10, 0.90), ((0.13, 0.48), (-0.13, 0.48)), ((0.12, 0.10), (-0.18, 0.10)), ((0.10, -0.18, 0.02), (-0.22, -0.18, 0.02))),
+    "rigid": [("hand_l", _near_line((0.40, 0.05, 0.0), (0.40, 0.05, 1.5), 0.05)), ("hand_l", lambda p: p.x > 0.22 and p.z > 1.45 and p.y > -0.1)],
     "glow_hue": (400, 400)}
 BATCH["morvoren"] = {**_STD,
     "joints": _hum((0.98, 1.08, 1.20, 1.32, 1.52, 1.58, 1.80), (0.16, 1.42),
@@ -279,17 +275,15 @@ BATCH["benedict"] = {**_STD,
     "rigid": [("hand_r", _near_line((-0.47, -0.38, 0.0), (-0.47, -0.38, 1.55), 0.05)), ("hand_r", _near((-0.48, -0.38, 1.65), 0.24)),
               ("lowerarm_l", lambda p: p.x > 0.35 and 0.35 < p.z < 1.35)],   # the sundial shield
     "glow_hue": (400, 400)}
-BATCH["poppy"] = {**_STD,
-    # the generator kept the image's backdrop as a flat card through her: faces facing +-Y on that plane are trimmed
-    "trim_faces": [lambda c, n: abs(n.y) > 0.8 and -0.08 < c.y < 0.15 and not _near((0.40, 0.03, 1.62), 0.27)(c)
-                   and not (abs(c.x) < 0.32 and 0.98 < c.z < 1.58) and not (abs(c.x) < 0.52 and 0.70 < c.z < 0.98)
-                   and not (abs(c.x) < 0.32 and 0.52 < c.z <= 0.70) and not (abs(c.x) < 0.16 and c.z <= 0.52)
-                   and not (0.26 < c.x < 0.36)],   # the flower's stem
-    "joints": _hum((0.65, 0.72, 0.82, 0.92, 1.00, 1.05, 1.40), (0.12, 0.95),
-                   ((0.22, 0.85), (0.30, 0.90), (0.32, 0.92)), ((-0.25, 0.85), (-0.42, 0.80), (-0.48, 0.80)),
-                   (0.06, 0.60), ((0.08, 0.32), (-0.08, 0.32)), ((0.08, 0.06), (-0.05, 0.06)), ((0.10, -0.10, 0.01), (-0.05, -0.10, 0.01))),
-    "rigid": [("hand_l", _near_line((0.30, 0.03, 0.0), (0.32, 0.03, 1.45), 0.05)), ("hand_l", _near((0.40, 0.03, 1.62), 0.26))],
-    "blend": [("pelvis", 0.5, lambda p: 0.5 < p.z < 0.75)],
+BATCH["poppy"] = {**_STD,   # regenerated (2026-11-28): the sunflower stem held out to her side
+    # the generator still made a flat backdrop card behind her (paper-thin at y 0.035-0.06): trimmed; the sunflower
+    # head is its own thin layer just in front (y 0.01-0.02) and stays
+    "trim_faces": [lambda c, n: abs(n.y) > 0.9 and 0.035 < c.y < 0.06],
+    "joints": _hum((0.75, 0.82, 0.90, 0.98, 1.08, 1.12, 1.48), (0.13, 1.02),
+                   ((0.30, 0.98), (0.42, 1.06), (0.46, 1.08)), ((-0.27, 0.96), (-0.40, 1.00), (-0.45, 1.00)),
+                   (0.06, 0.70), ((0.08, 0.35), (-0.02, 0.35)), ((0.10, 0.08), (0.0, 0.08)), ((0.12, -0.12, 0.01), (0.0, -0.12, 0.01))),
+    "rigid": [("hand_r", _near_line((-0.43, 0.03, 0.0), (-0.43, 0.03, 1.45), 0.05)), ("hand_r", lambda p: p.x < -0.36 and p.z > 1.1)],
+    "blend": [("pelvis", 0.7, lambda p: 0.25 < p.z < 0.85)],
     "glow_hue": (400, 400)}
 BATCH["jasper"] = {**_STD,
     "joints": _hum((0.95, 1.05, 1.17, 1.30, 1.48, 1.55, 1.72), (0.22, 1.40),
@@ -324,14 +318,12 @@ BATCH["rook"] = {**_STD,
               ("hand_l", lambda p: p.x < -0.6 and p.z < 0.75)],
     "blend": [("pelvis", 0.5, lambda p: p.z < 0.9 and (abs(p.x) > 0.2 or p.y > 0.1))],
     "glow_hue": (400, 400)}
-BATCH["nell"] = {**_STD,
-    "joints": _hum((0.85, 0.95, 1.08, 1.22, 1.42, 1.48, 1.70), (0.25, 1.30),
-                   ((0.35, 1.05), (0.42, -0.20, 1.18), (0.43, -0.28, 1.22)), ((-0.33, 1.05), (-0.35, 0.85), (-0.35, 0.76)),
-                   (0.12, 0.78), ((0.15, 0.42), (-0.15, 0.42)), ((0.15, 0.10), (-0.20, 0.10)), ((0.20, -0.18, 0.02), (-0.25, -0.18, 0.02))),
-    "rigid": [("hand_l", _near_poly([(0.30, -0.28, 0.0), (0.38, -0.30, 0.8), (0.42, -0.30, 1.22), (0.38, -0.30, 1.75)], 0.06)),
-              ("hand_l", _near_poly([(0.38, -0.30, 1.75), (0.60, -0.28, 1.68), (0.82, -0.27, 1.45)], 0.08)),
-              ("Head", lambda p: p.z > 1.5)],   # the straw hat
-    "blend": [("pelvis", 0.5, lambda p: p.z < 0.85 and (abs(p.x) > 0.22 or p.y > 0.1))],
+BATCH["nell"] = {**_STD,   # regenerated (2026-11-28): the scythe upright beside her, neat hat brim, short cloak
+    "joints": _hum((0.85, 0.95, 1.07, 1.20, 1.33, 1.38, 1.55), (0.20, 1.28),
+                   ((0.24, 0.0, 1.02), (0.29, -0.18, 1.10), (0.30, -0.25, 1.12)), ((-0.28, 0.95), (-0.30, 0.75), (-0.28, 0.66)),
+                   (0.11, 0.78), ((0.17, 0.42), (-0.15, 0.42)), ((0.18, 0.10), (-0.18, 0.10)), ((0.20, -0.15, 0.02), (-0.25, -0.15, 0.02))),
+    "rigid": [("hand_l", _near_line((0.36, -0.23, 0.0), (0.30, -0.23, 1.82), 0.05)), ("hand_l", lambda p: p.z > 1.57),
+              ("Head", lambda p: p.z > 1.40)],
     "glow_hue": (400, 400)}
 BATCH["aveline"] = {**_STD,
     "joints": _hum((1.00, 1.08, 1.20, 1.32, 1.50, 1.56, 1.78), (0.15, 1.40),
