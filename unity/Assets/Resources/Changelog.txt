@@ -2,6 +2,14 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-28 | A journey to every lair
+new: Every campaign stop has its own scene, built around the battle cameras: the road leads toward the chapter's landmark, which draws nearer stop by stop until you fight at its foot.
+new: Hand-painted landmarks: the drowned mill, the leaning bell tower, the Stormcrown crag, the lighthouse, the sea-cliff throne, the sunken cathedral and more.
+fix: Scenery never stands between the camera and your heroes, and each chapter's landmark is now in view behind the enemies instead of cut off at the edge.
+fix: Heroes stay bright and readable at dusk and at night; the world darkens around them instead.
+change: Rolling ground, trees and rocks framing the edges, and skylines that match each land.
+change: On boss stages the camera looks up a little, so the whole lair and the sky above it are in view.
+
 ## 2026-11-28 | New heroes and a new Titan
 fix: A battle could stop acting after an ultimate or a boss blow on some stages; it now carries on.
 fix: A Titan fight after a practice fight starts with a full health bar and whole crystals.

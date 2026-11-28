@@ -51,6 +51,12 @@ namespace Sigilbound.Client
         public static Texture2D Ramp(Color[] rows, Color shadowTint, Color lightTint)
         {
             var t = Tex(RampW, Rows * 4, "SceneryRamp", false, TextureWrapMode.Clamp);
+            t.SetPixels32(RampPixels(rows, shadowTint, lightTint)); t.Apply(false, true);
+            return t;
+        }
+        // The ramp's pixels (kept on the CPU to paint the generated landmarks).
+        public static Color32[] RampPixels(Color[] rows, Color shadowTint, Color lightTint)
+        {
             var px = new Color32[RampW * Rows * 4];
             for (int r = 0; r < Rows; r++)
             {
@@ -66,7 +72,34 @@ namespace Sigilbound.Client
                     for (int k = 0; k < 4; k++) px[(r * 4 + k) * RampW + i] = o32;
                 }
             }
-            t.SetPixels32(px); t.Apply(false, true);
+            return px;
+        }
+
+        // An image-to-3D landmark's texture (SceneryKit.LandmarkData): each texel's (shade, material row) looked up in the
+        // chapter's ramp, the same gradient map as the procedural props. 256 x 256 takes about 1 ms.
+        // Row 16 marks glowing texels (a rose window, a shard): painted in `glow` and returned as an emission mask.
+        public const int GlowRow = 16;
+        public static Texture2D LandmarkTexture(byte[] shade, byte[] row, int w, int h, Color32[] ramp) => LandmarkTexture(shade, row, w, h, ramp, Color.white, out _);
+        public static Texture2D LandmarkTexture(byte[] shade, byte[] row, int w, int h, Color32[] ramp, Color glow, out Texture2D glowMask)
+        {
+            var t = Tex(w, h, "LandmarkPaint", true, TextureWrapMode.Clamp);
+            var px = new Color32[w * h]; Color32[] mask = null;
+            var g32 = C32(glow);
+            for (int i = 0; i < px.Length; i++)
+            {
+                if (row[i] >= GlowRow)
+                {
+                    mask ??= new Color32[w * h];
+                    float k = 0.6f + 0.4f * shade[i] / 255f;
+                    px[i] = new Color32((byte)(g32.r * k), (byte)(g32.g * k), (byte)(g32.b * k), 255); mask[i] = new Color32(255, 255, 255, 255);
+                    continue;
+                }
+                int r = Mathf.Min(row[i], Rows - 1), x = shade[i] * (RampW - 1) / 255;
+                px[i] = ramp != null ? ramp[(r * 4 + 1) * RampW + x] : new Color32(shade[i], shade[i], shade[i], 255);
+            }
+            t.SetPixels32(px); t.Apply(true, true);
+            glowMask = null;
+            if (mask != null) { glowMask = Tex(w, h, "LandmarkGlow", true, TextureWrapMode.Clamp); glowMask.SetPixels32(mask); glowMask.Apply(true, true); }
             return t;
         }
 
@@ -172,7 +205,11 @@ namespace Sigilbound.Client
         // trodden rim and pebbles, flagstones in the ruins, wet sand toward water ----------
         // horizon: the colour the field fades to where it meets the near ridge card (z 28, x +-30),
         // so the ground runs into the painted hills instead of ending on a hard line.
-        public static Texture2D Ground(Color g1, Color g2, Color worn, Color rock, uint seed, bool flag, Color wet, float waterZ, Color horizon, int n = 256, float extent = 45f)
+        // path: the road toward the landmark (x, z pairs, Core.SceneGen); world/lane: the stage's mood tint outside and inside the
+        // ring (the lane keeps more of its value); lift: raises a very dark biome's worn ring; spots: leaf litter, ash or
+        // shingle blotches in the biome's colour (alpha = amount), seeded per stage.
+        public static Texture2D Ground(Color g1, Color g2, Color worn, Color rock, uint seed, bool flag, Color wet, float waterZ, Color horizon, int n = 256, float extent = 45f,
+                                       float[] path = null, float world = 1f, float lane = 1f, float lift = 1f, Color spots = default)
         {
             var t = Tex(n, n, "GroundPaint", true, TextureWrapMode.Clamp);
             var px = new Color32[n * n];
@@ -185,13 +222,29 @@ namespace Sigilbound.Client
                     float big = Fbm(wx * 0.06f + sd, wz * 0.06f, 11, 4), mid = Fbm(wx * 0.35f, wz * 0.35f + sd, 23, 3);
                     Color c = L(g1, g2, Smooth(0.3f, 0.7f, big * 0.7f + mid * 0.3f));
                     c *= 0.9f + 0.2f * Fbm(wx * 2.2f + wz * 0.6f, wz * 0.5f - wx * 0.2f, 37, 2); // painted strokes
+                    // stage blotches: leaf litter, ash, shingle (seeded per stage)
+                    if (spots.a > 0) c = L(c, spots, Smooth(0.62f, 0.72f, Fbm(wx * 0.45f + sd * 0.37f, wz * 0.45f, 97, 3)) * spots.a);
+                    // the road toward the landmark: worn soil with a ragged edge and two darker ruts
+                    if (path != null && path.Length >= 4)
+                    {
+                        float pd = PathDist(path, wx, wz) + (Fbm(wx * 0.7f, wz * 0.7f, 101, 2) - 0.5f) * 0.7f;
+                        if (pd < 2f)
+                        {
+                            Color soil = L(worn, worn * 0.8f, Fbm(wx * 1.3f, wz * 1.3f, 103, 3));
+                            c = L(c, soil, Smooth(1.5f, 0.9f, pd) * 0.85f);
+                            float rut = Mathf.Exp(-Mathf.Pow((Mathf.Abs(pd) - 0.45f) / 0.09f, 2));
+                            c *= 1 - 0.12f * rut * Smooth(1.5f, 0.9f, pd);
+                        }
+                    }
                     float e = Mathf.Sqrt(Mathf.Pow(wx / 5.4f, 2) + Mathf.Pow((wz - 0.6f) / 5.0f, 2));
+                    float tint = world;
                     if (e < 2.2f)
                     {
                         float en = Fbm(wx * 0.8f, wz * 0.8f, 41, 3);
                         float wk = Smooth(1.42f, 1.0f, e + (en - 0.5f) * 0.35f);
-                        Color soil = L(worn, worn * 0.78f, Fbm(wx * 1.6f, wz * 1.6f, 53, 3));
+                        Color soil = L(worn, worn * 0.78f, Fbm(wx * 1.6f, wz * 1.6f, 53, 3)) * lift;
                         c = L(c, soil, wk * 0.92f);
+                        tint = world + (lane - world) * Smooth(1.6f, 1.0f, e);   // the ring keeps more of its value at dusk and night
                         float rim = Mathf.Exp(-Mathf.Pow((e - 1.05f - (en - 0.5f) * 0.3f) / 0.07f, 2)); // the trodden rim
                         c *= 1 - 0.18f * rim;
                         if (Fbm(wx * 4.5f, wz * 4.5f, 61, 2) > 0.7f) c = L(c, rock, wk * 0.5f); // pebbles
@@ -205,13 +258,26 @@ namespace Sigilbound.Client
                         }
                     }
                     if (waterZ > 0) c = L(c, wet, Smooth(waterZ - 3f, waterZ - 0.5f, wz));
-                    c *= 0.94f + 0.12f * Fbm(wx * 3, wz * 3, 83, 2);
+                    c *= (0.94f + 0.12f * Fbm(wx * 3, wz * 3, 83, 2)) * tint;
                     float hn = (Fbm(wx * 0.3f, wz * 0.3f, 91, 2) - 0.5f) * 3f;
                     c = L(c, horizon, Mathf.Max(Smooth(21f, 27.5f, wz + hn), Smooth(23f, 29.5f, Mathf.Abs(wx) + hn)) * 0.75f);
                     px[y * n + x] = C32(c);
                 }
             t.SetPixels32(px); t.Apply(true, true);
             return t;
+        }
+
+        static float PathDist(float[] p, float x, float z)
+        {
+            float best = 1e9f;
+            for (int i = 0; i + 3 < p.Length; i += 2)
+            {
+                float ax = p[i], az = p[i + 1], dx = p[i + 2] - ax, dz = p[i + 3] - az;
+                float u = Mathf.Clamp01(((x - ax) * dx + (z - az) * dz) / Mathf.Max(1e-6f, dx * dx + dz * dz));
+                float ex = x - ax - dx * u, ez = z - az - dz * u;
+                best = Mathf.Min(best, Mathf.Sqrt(ex * ex + ez * ez));
+            }
+            return best;
         }
 
         // ---------- water and lava strips (the 90 x 16 m plane beyond the arena; v = 0 at the far edge) ----------

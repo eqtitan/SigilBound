@@ -2,6 +2,9 @@
 // command-line argument -sbShots=<folder> (or "-sbShots <folder>"). It starts a fresh throwaway
 // game (nothing is saved, the real save is never read or written), walks the main screens and a
 // short auto battle, writes a PNG of each to the folder, prints "SBSHOTS DONE <n>" and quits.
+// Add -sbShotsScenes for the campaign scene tour as well (SceneTour: every chapter's stops 1, 3 and 6 in battle
+// and its lair reveal, plus two Hard lairs by night). It adds several minutes on software GL, so the per-commit CI
+// smoke leaves it off; the workflow's "scenes" input (workflow_dispatch) turns it on.
 // Used by tools/unity-shots.sh on the Linux preview build (see docs/sigilbound/PLAN.md, step 3).
 using System;
 using System.Collections;
@@ -43,6 +46,8 @@ namespace Sigilbound.Client
             try { Directory.CreateDirectory(dir); File.WriteAllText(Path.Combine(dir, "shots.log"), $"started {DateTime.Now:O}\n"); } catch (Exception) { }
             StartCoroutine(RunShots(dir));
         }
+
+        static bool ScenesArg() => Environment.GetCommandLineArgs().Any(a => a == "-sbShotsScenes");
 
         void ShotLog(string line)
         {
@@ -194,6 +199,8 @@ namespace Sigilbound.Client
             }
             G.S.settings.auto = true;
 
+            if (ScenesArg()) yield return SceneTour();
+
             // Creature heroes (Core/Kit/Creatures.cs): Vessa in the team, on the home lineup and in a battle
             // (wider slot, her own clips, planted feet). A throwaway hero in the throwaway save.
             {
@@ -225,6 +232,50 @@ namespace Sigilbound.Client
 
             ShotLog($"DONE {_shotCount}");
             Application.Quit(0);
+        }
+
+        // The campaign scenes (CAMPAIGN_SCENES_PLAN.md, M3), with -sbShotsScenes: for every chapter, stops 1, 3 and 6 as a
+        // real fight frames them (throwaway battles, auto off, ended before anyone wins: nothing rewarded or saved), and on
+        // stop 6 the lair reveal's middle key first, then the tilted boss view it settles into. Two Hard lairs (night)
+        // check the tilt and the lanterns after dark. Each battle frame logs its camera pitch and SBBUDGET line.
+        IEnumerator SceneTour()
+        {
+            ShotLog("scenes on");
+            BattleController.ForgetLairReveals();
+            G.S.settings.auto = false; G.S.settings.speed = 1;
+            // Throwaway save: the team at level 60 so a late chapter's foes don't win before the frame (build 182 shot three
+            // defeat screens), and every stage and Hard stage open (Begin refuses a locked Hard stage).
+            var keepLv = G.S.team.Select(uid => G.HeroByUid(uid)).Where(h => h != null).Select(h => (h, h.level)).ToList();
+            foreach (var (h, _) in keepLv) h.level = 60;
+            int keepCleared = G.S.cleared, keepHard = G.S.hardCleared;
+            G.S.cleared = GameData.TotalStages; G.S.hardCleared = GameData.TotalStages - 1;
+            var stops = new System.Collections.Generic.List<(int c, int st, bool hard)>();
+            for (int c = 0; c < GameData.Chapters.Length; c++) foreach (int st in new[] { 0, 2, GameData.StagesPerChapter - 1 }) stops.Add((c, st, false));
+            stops.Add((1, GameData.StagesPerChapter - 1, true)); stops.Add((GameData.Chapters.Length - 1, GameData.StagesPerChapter - 1, true));
+            foreach (var (c, st, hard) in stops)
+            {
+                CloseModal(); Go(ScreenId.Home); yield return new WaitForSecondsRealtime(0.4f);
+                int idx = c * GameData.StagesPerChapter + st;
+                bool boss = st == GameData.StagesPerChapter - 1;
+                string tag = $"scene-{c + 1:00}-{st + 1}{(hard ? "H" : "")}";
+                Battle.Begin(hard ? BattleSpec.ForHard(idx) : BattleSpec.ForStage(idx));
+                if (hard && !G.HardOpen(idx)) ShotLog($"scene {tag}: Hard stage still locked");
+                if (boss && !hard)
+                {
+                    yield return new WaitForSecondsRealtime(0.35f);   // Shot waits 0.8 s more: the reveal's middle key (~1.1 s in)
+                    yield return Shot(tag + "-reveal");
+                    yield return new WaitForSecondsRealtime(2.2f);    // the reveal ends at 2.5 s and blends into the battle view
+                }
+                else yield return new WaitForSecondsRealtime(2.5f);
+                var fwd = Arena.Cam.transform.forward;
+                ShotLog($"scene {GameData.Chapters[c]} stage {st + 1}{(hard ? " hard" : "")}: {StoryScenes.Of(c, st)?.Name} cam pitch {Mathf.Asin(Mathf.Clamp(-fwd.y, -1f, 1f)) * Mathf.Rad2Deg:0.0} tilt {(Arena.BossTilt ? "on" : "off")} landmark {Arena.Layout?.Landmark?.Mesh}");
+                yield return Shot(tag);
+                LogBudget(tag);
+                Battle.End(ScreenId.Home);
+            }
+            foreach (var (h, lv) in keepLv) h.level = lv;
+            G.S.cleared = keepCleared; G.S.hardCleared = keepHard;
+            G.S.settings.auto = true;
         }
 
         // Scene budget probe (PLAN step 81): what the current frame asks of a phone. Logged as

@@ -4,7 +4,8 @@
 # DIR holds the tour's shots.log and player.log. Passes when:
 #   - shots.log has the "DONE <n>" line (the tour reached its end),
 #   - the battle-mid and titan-* SBBUDGET lines are there and each reports skinned>0
-#     (hero models actually loaded and animated, not stand-ins),
+#     (hero models actually loaded and animated, not stand-ins); with the scene tour (-sbShotsScenes,
+#     shots.log says "scenes on") also every scene-* line (47 stops: 15 chapters x 3, plus 2 Hard lairs),
 #   - every gallery hero's pose is sane: shots.log has SBBOUNDS lines and none says BAD (a body flung
 #     into the sky or smeared into a sheet still counts as a "real model" with skinned>0; build 180),
 #   - player.log has no NullReferenceException / MissingReferenceException /
@@ -25,7 +26,13 @@ else
 fi
 
 if [ -f "$SHOTS" ]; then
-  for want in battle titan; do
+  wants="battle titan"
+  if grep -q '^scenes on' "$SHOTS"; then
+    wants="$wants scene"
+    n=$(grep -cE '^SBBUDGET scene-' "$SHOTS" || true)
+    if [ "$n" -lt 47 ]; then bad "scene tour: only $n of 47 scene-* SBBUDGET lines"; else echo "ok: scene tour has $n stops"; fi
+  fi
+  for want in $wants; do
     lines=$(grep -E "^SBBUDGET ${want}-" "$SHOTS" || true)
     if [ -z "$lines" ]; then bad "no SBBUDGET ${want}-* line in shots.log"; continue; fi
     while IFS= read -r l; do
