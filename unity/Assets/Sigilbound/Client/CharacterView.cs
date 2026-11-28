@@ -16,6 +16,9 @@ namespace Sigilbound.Client
         public Unit Unit;
         public GearLook Gear;             // equipped gear shown on the model (rarity and set)
         public HeroModel Hero => _model;
+        // True from the start of a model load until HeroModels.Build has revealed it (or the block stand-in shows):
+        // the menus draw a soft placeholder there meanwhile (LoadingPlaceholder, in-house report S4), never a gap.
+        public bool AwaitingModel { get; private set; }
         public Vector3 Home => _home;
         // Thrown back from `from` by `dist` metres and back again (Titan finishers): out 0.14 s, hold, back 0.5 s.
         public void Shove(Vector3 from, float dist) { if (!gameObject.activeInHierarchy) return; if (_hitCo != null) { StopCoroutine(_hitCo); _hitCo = null; } StartCoroutine(ShoveRoutine(from, dist)); }
@@ -173,6 +176,7 @@ namespace Sigilbound.Client
             var holder = new GameObject("GLB").transform;
             holder.SetParent(Model, false);
             HeroModel built = null;
+            AwaitingModel = true;
             // The block stand-in stays hidden while the real model loads (owner report 2026-11-26: the menu
             // heroes and the Titan showed the old figures first, then swapped). It only appears if the load
             // is slow or fails, so a unit is never invisible for long.
@@ -180,7 +184,7 @@ namespace Sigilbound.Client
             bool finished = false;
             StartCoroutine(StandInIfSlow(() => finished, giveUp));
             yield return HeroModels.Build(Unit, Gear, holder, m => built = m);
-            finished = true;
+            finished = true; AwaitingModel = false;
             Debug.Log($"SBMODEL view {Unit?.Template?.Id}: {(built != null ? "model shown" : "kept the stand-in")}");
             if (this == null) yield break;
             if (built == null) { if (holder) Destroy(holder.gameObject); ShowStandIn(true); yield break; }
@@ -212,6 +216,7 @@ namespace Sigilbound.Client
         // The block stand-in (every child of Model except the HeadTop marker and a loaded model).
         void ShowStandIn(bool on)
         {
+            if (on) AwaitingModel = false;
             foreach (Transform child in Model) if (child != HeadTop && child.name != "GLB") child.gameObject.SetActive(on);
         }
         IEnumerator StandInIfSlow(System.Func<bool> finished, float giveUp)
