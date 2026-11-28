@@ -134,7 +134,7 @@ static class SpringTests
             var o = kv.Value; var st = AnimStyle.Hd(kv.Key);
             var names = new[] { o.Idle, o.Run }.Concat(o.BigHit ?? new string[0]).Concat(o.Strike ?? new string[0]).Where(x => x != null).ToList();
             bool real = names.All(n => AnimStyle.HdClips.Contains(n));
-            bool applied = (o.Idle == null || st.Idle == o.Idle) && (o.Run == null || AnimStyle.HdAliasesFor(kv.Key)["Run"] == o.Run) && (o.Strike == null || st.Strike.SequenceEqual(o.Strike)) && (o.BigHit == null || st.BigHit.SequenceEqual(o.BigHit));
+            bool applied = (o.Idle == null || st.Idle == o.Idle) && (o.Run == null || AnimStyle.HdAliasesFor(kv.Key)["Run"] == o.Run) && (o.Strike == null || st.Strike.SequenceEqual(o.Strike)) && (o.BigHit == null || st.BigHit.SequenceEqual(o.BigHit)) && (!o.NoBlock || st.Block == null);
             check(real && applied, $"clip override {kv.Key}: {string.Join(",", names)}");
         }
         check(AnimStyle.HdAliasesFor("aldric")["Run"] == "Jog_Fwd_Loop" && ReferenceEquals(AnimStyle.HdAliasesFor("aldric"), AnimStyle.HdAliases), "clip override: other heroes keep the shared aliases");
