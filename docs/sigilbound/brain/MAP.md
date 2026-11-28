@@ -4,7 +4,7 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 
 | System | What it covers | Lessons |
 |---|---|---|
-| hero-models | GLBs, rigs, weights, meshes, materials | L002 L003 L004 L008 L010 L018 L019 L022 |
+| hero-models | GLBs, rigs, weights, meshes, materials | L002 L003 L004 L008 L010 L018 L019 L022 L023 |
 | animation | clips, retargeting, Animation/Animator | L002 L003 L022 |
 | rig-runtime | RigExtras, DigitigradeLegs, SpringBones, CreatureRig | L002 L003 L015 L022 |
 | titan | Titan model, clips, TitanSpec, TitanBody | L003 L022 |
@@ -37,6 +37,7 @@ graph LR
   L003 --> L004
   L001[L001 stale models] --> L007[L007 credits overwrite]
   L001 --> L010[L010 mesh fix not in game]
+  L010 --> L023[L023 missing maps fall back to shader defaults]
   L006[L006 Act II pool] --> L020[L020 balance ripples]
   L008[L008 frames vs averages] --> L019[L019 tight face locks]
   L008 --> L018
