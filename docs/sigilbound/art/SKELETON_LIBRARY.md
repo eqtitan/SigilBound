@@ -358,3 +358,12 @@ built from those real frames. Results are recorded below per build.
     end pose and on the way back, now 6.5 cm by the offline check, events and impact window unchanged); **Titan_Slam
     accepted** (the hunch over the fists around the overhead slam, not visible at battle distance); **Augustin
     Ult_Volley accepted** (never played by Augustin, whose ult is Ult_Blessing). Both accepts are in move_baseline.txt.
+- **Run 46126451038** (050271e, confirm build): Android and Windows built, smoke tour to the end, no exceptions; red
+  only on SBMOVE. Titan_Sweep measures 5.5 cm in the game (was 21; ok). Naming the muscle showed the joint-range
+  rule is not a break detector: 156 flags, led by UpperChest Front-Back (72), right wrist In-Out (30) and shoulder
+  Front-Back (31), all authored poses of the shared source clips measured against Unity's narrow default muscle
+  ranges, and the same on the legacy path. Joint range is now an advisory `warn:` (until it measures degrees against
+  anatomical limits), and every failing reason is listed, which surfaced clips the joint flag had hidden: Titan_Land
+  (landing crouch over the fists, 9.3 cm), Nyssa's Ult_TwinFlurry cross-slash (8.3 cm), and three clips the hero never
+  plays (ysolde Ult_TwinFlurry and Pistol_Aim_Down, titan Punch_Cross): all looked at and accepted in
+  move_baseline.txt. Replayed against this run's log, the gate passes.
