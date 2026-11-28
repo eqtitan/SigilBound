@@ -91,8 +91,8 @@ namespace Sigilbound.Client
             Slider(ref y, b, "Music", st.musicVol, v => { st.musicVol = v; Sound.I?.ApplyVolumes(); });
             Slider(ref y, b, "Sound effects", st.sfxVol, v => { st.sfxVol = v; Sound.I?.ApplyVolumes(); });
             var cams = BattleLayout.Cameras;
-            SettingRow(ref y, b, "Camera angle", "Also switchable during battle with Cam.");
-            Chips(ref y, b, System.Array.ConvertAll(cams, c => c.Name), System.Array.FindIndex(cams, c => c.Key == BattleLayout.Camera(st.cam).Key), i => { st.cam = cams[i].Key; Save(); Toast("Camera: " + cams[i].Name); });
+            SettingRow(ref y, b, "Battle view", "Also switchable during battle with the View button.");
+            Chips(ref y, b, System.Array.ConvertAll(cams, c => c.Name), System.Array.FindIndex(cams, c => c.Key == BattleLayout.Camera(st.cam).Key), i => { st.cam = cams[i].Key; Save(); Toast("View: " + cams[i].Name); });
 
             if (Updater.Included && (Application.platform == RuntimePlatform.Android || Application.isEditor))
             {
@@ -122,6 +122,24 @@ namespace Sigilbound.Client
             });
             Ui.Text(new Rect(b.x, y - 6, b.width, 18), "Auto-replay always runs at 30 fps.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
             y += 14;
+
+            if (Background.Supported)
+            {
+                // Desktop only: Windows used to freeze battles whenever the window lost focus.
+                SettingRow(ref y, b, "When the window isn't focused", Background.KeepRunning ? "The game keeps running, so battles and auto-replay carry on." : "The game pauses until you click back into it.");
+                Chips(ref y, b, new[] { "Keep running", "Pause" }, Background.KeepRunning ? 0 : 1, i =>
+                {
+                    Background.KeepRunning = i == 0; Toast(i == 0 ? "Keeps running in the background" : "Pauses when not focused");
+                });
+                if (Background.KeepRunning)
+                {
+                    SettingRow(ref y, b, "Sound in the background", Background.MuteWhenUnfocused ? "Muted while you're in another window." : "Keeps playing while you're in another window.");
+                    Chips(ref y, b, new[] { "Mute", "Keep playing" }, Background.MuteWhenUnfocused ? 0 : 1, i =>
+                    {
+                        Background.MuteWhenUnfocused = i == 0; Toast(i == 0 ? "Background sound: muted" : "Background sound: on");
+                    });
+                }
+            }
 
             SettingRow(ref y, b, "Screen shake", "How much the camera shakes on big hits.");
             string[] shakes = { "full", "reduced", "off" };
@@ -180,6 +198,14 @@ namespace Sigilbound.Client
                 if (Ui.Button(new Rect(b.x + (bw + 6) * 2, y, bw, Tap), "Copy mine", Ui.Kind.Secondary, 13))
                 { GUIUtility.systemCopyBuffer = ExportSaveCode(); Toast("Save code copied"); }
                 y += Tap + 10;
+
+                // Danger zone (UX review #17: "Reset save" sat on Home beside "How to play").
+                y += 6;
+                GUI.DrawTexture(new Rect(b.x, y, b.width, 1), Ui.Solid(new Color(Palette.Bad.r, Palette.Bad.g, Palette.Bad.b, 0.5f)));
+                y += 10;
+                SettingRow(ref y, b, "Danger zone", "Start over from the beginning on this device.");
+                if (Ui.Button(new Rect(b.x, y, 170, Tap), "Reset save…", Ui.Kind.Red, 13)) AskResetSave();
+                y += Tap + 10;
             }
             _settingsH = y + 8;
             Scroller.End();
@@ -187,6 +213,25 @@ namespace Sigilbound.Client
                 GUI.DrawTexture(new Rect(view.x, view.yMax - 18, view.width, 18), Ui.GradientTex(new Color(0, 0, 0, 0), new Color(0, 0, 0, 0.45f), null, 2));
             Ui.Text(new Rect(outer.x, outer.yMax - 70, outer.width, 18), $"Sigilbound (Unity) v{Application.version}{(Updater.MyBuild > 0 ? $" · build {Updater.MyBuild}" : "")}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
             if (Ui.Button(new Rect(outer.x, outer.yMax - 46, outer.width, 44), "Done")) CloseModal();
+        }
+
+        // Two steps: Settings > Reset save…, then this confirm. The save goes through SaveStore as usual, so the
+        // progress being replaced stays in its rolling backup (sigilbound.save.v1.bak) until the next save.
+        void AskResetSave()
+        {
+            Modal("Reset all progress?", 270, b =>
+            {
+                Ui.Text(new Rect(b.x, b.y, b.width, 100), "This starts a new game on this device: heroes, gear and campaign progress are gone.\n\nCopy your save code first if you might want this game back.", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
+                if (Ui.Button(new Rect(b.x, b.yMax - 96, b.width, 44), "Copy my save code", Ui.Kind.Secondary, 13)) { GUIUtility.systemCopyBuffer = ExportSaveCode(); Toast("Save code copied"); }
+                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) OpenSettings();
+                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Reset", Ui.Kind.Red))
+                {
+                    Store?.AcceptFresh(); G = new Game(new SaveData()); G.EnsureDaily(); Save(); ClearLineup(); CloseModal();
+                    _undo = null; _rp = RosterPanel.None;
+                    _firstLaunch = true; MarkChangelogSeen(); // a new player again: no What's New
+                    Go(ScreenId.Intro);
+                }
+            });
         }
 
         void ConfirmLoad()

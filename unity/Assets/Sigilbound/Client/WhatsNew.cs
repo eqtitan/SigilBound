@@ -23,15 +23,33 @@ namespace Sigilbound.Client
             return _changelog;
         }
 
-        // Called from the home screen: once per launch, opens the window if there are unseen entries.
-        void MaybeShowWhatsNew()
+        // Once per launch after an update, on the home screen, when the pop-up queue says it's its turn
+        // (App.CheckPopups). Never on the very first launch: that marks every note seen instead.
+        List<ChangelogEntry> _unseenNotes;
+        bool WhatsNewPending()
         {
-            if (_whatsNewChecked || ModalOpen || NoSave) return;
+            if (_whatsNewChecked || NoSave) return false;
+            _unseenNotes ??= Changelog.Unseen(ChangelogAll(), PlayerPrefs.GetString(SeenPref, ""));
+            if (PopupQueue.WhatsNewOwed(_firstLaunch, _unseenNotes.Count)) return true;
+            if (_firstLaunch) MarkChangelogSeen();
             _whatsNewChecked = true;
-            var all = ChangelogAll();
-            var unseen = Changelog.Unseen(all, PlayerPrefs.GetString(SeenPref, ""));
-            if (all.Count > 0) { PlayerPrefs.SetString(SeenPref, all[0].Key); PlayerPrefs.Save(); }
+            return false;
+        }
+
+        void ShowWhatsNewOnce()
+        {
+            if (_whatsNewChecked) return;
+            _whatsNewChecked = true;
+            var unseen = _unseenNotes ?? Changelog.Unseen(ChangelogAll(), PlayerPrefs.GetString(SeenPref, ""));
+            MarkChangelogSeen();
             if (unseen.Count > 0) OpenWhatsNew(unseen, "What's New");
+        }
+
+        void MarkChangelogSeen()
+        {
+            if (NoSave) return;
+            var all = ChangelogAll();
+            if (all.Count > 0) { PlayerPrefs.SetString(SeenPref, all[0].Key); PlayerPrefs.Save(); }
         }
 
         void OpenWhatsNew() => OpenWhatsNew(ChangelogAll(), "Update History");

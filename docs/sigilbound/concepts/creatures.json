@@ -1,0 +1,110 @@
+[
+ {
+  "id": "vessa",
+  "name": "Vessa Silkmourne",
+  "title": "the Weaver of Wraithmoor",
+  "element": "Shadow",
+  "role": "Attack",
+  "rarity": "Legendary",
+  "sex": "female",
+  "species": "elf spider-folk",
+  "creature": "spider",
+  "body": {
+   "height": 1.0,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "#a2a2c6",
+  "hair": {
+   "style": "custom:one long black braid down the back, tied with silk",
+   "colour": "#0e0c12"
+  },
+  "facial": "none",
+  "outfit": {
+   "arms": "Female_Ranger_Arms (black leather, silver web stitching)",
+   "body": "Female_Ranger_Body (black leather bodice, silver spider-web filigree)",
+   "legs": "none",
+   "feet": "none",
+   "head": "none",
+   "acc": [
+    "custom:spiked black leather pauldrons with silver web filigree"
+   ]
+  },
+  "palette": {
+   "main": "#141218",
+   "secondary": "#2a2236",
+   "accent": "#c8cad8",
+   "metal": "#b8bccc",
+   "glow": "#8a4cff"
+  },
+  "kit": [
+   "custom:silver sickle in the right hand",
+   "custom:glowing violet silk thread spooling from the left hand"
+  ],
+  "weapon": "sickle",
+  "silhouette": "a slender woman rising from a black spider body on eight long violet-banded legs, a huge egg-shaped abdomen behind",
+  "signature": "four small violet eyes above her own, and violet silk that drifts around her",
+  "pose": "legs planted wide, sickle low, a strand of silk glowing in her open hand",
+  "fx": "violet silk strands and web glyphs, glowing joint bands, shadow wisps",
+  "story": "The barrows of Wraithmoor hold more than dead kings. Vessa weaves the silk that binds the Hollow in their graves, and lately she has had to weave faster.",
+  "act": 2,
+  "skills": [
+   {
+    "name": "Silk Snare",
+    "target": "Enemy",
+    "mult": 1.0,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 0,
+    "effects": [
+     {
+      "type": "Slow",
+      "turns": 2,
+      "chance": 0.4
+     }
+    ]
+   },
+   {
+    "name": "Widow's Venom",
+    "target": "AllEnemies",
+    "mult": 0.7,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 3,
+    "effects": [
+     {
+      "type": "Poison",
+      "turns": 2,
+      "chance": 0.5
+     },
+     {
+      "type": "Stun",
+      "turns": 1,
+      "chance": 0.15
+     }
+    ]
+   },
+   {
+    "name": "Silkfall Pounce",
+    "target": "Enemy",
+    "mult": 3.0,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 4,
+    "effects": [
+     {
+      "type": "Poison",
+      "turns": 2
+     },
+     {
+      "type": "Stun",
+      "turns": 1,
+      "chance": 0.35
+     }
+    ]
+   }
+  ],
+  "notes_for_3d": "Creature rig (spider): the human upper body is the UBC skeleton above the pelvis; below it a spider cephalothorax, egg abdomen and eight four-bone legs. Clips are her own (Tools~/blenderforge/creature.py); feet plant at runtime (Client/CreatureRig.cs).",
+  "ult_clip": "Ult_LeapSlam"
+ }
+]

@@ -275,7 +275,7 @@ namespace Sigilbound.Client
                     int i = row * cols + c; if (i >= cards.Count) break;
                     var h = cards[i];
                     var r = new Rect(Pad + c * (cw + cg), gridTop + row * (ch + cg), cw, ch);
-                    if (ReviewCard(r, h, _relKeep.Contains(h.uid)))
+                    if (ReviewCard(r, h, _relKeep.Contains(h.uid), plan))
                     {
                         if (!_relKeep.Remove(h.uid)) _relKeep.Add(h.uid);
                     }
@@ -294,10 +294,11 @@ namespace Sigilbound.Client
             if (go) DoRelease(plan);
         }
 
-        bool ReviewCard(Rect r, HeroSave h, bool kept)
+        bool ReviewCard(Rect r, HeroSave h, bool kept, ReleasePlan plan)
         {
             var t = Hero(h.id);
-            bool risky = t.Rarity >= Rarity.Epic || G.CopiesOf(h.id) <= 1;
+            // "!" on Epic+ and on every card of a hero whose copies all go (not only a single copy owned).
+            bool risky = t.Rarity >= Rarity.Epic || plan.LastCopyIds.Contains(h.id);
             Ui.SmallCard(r, kept ? Palette.Hex("#16251b") : Palette.Panel2, kept ? Palette.Good : Palette.Rarity(t.Rarity), 10);
             Ui.RarityTab(r, t.Rarity, 15);
             float fs = Mathf.Min(44, r.width - 30);

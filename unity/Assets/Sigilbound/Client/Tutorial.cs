@@ -16,6 +16,9 @@ namespace Sigilbound.Client
             set { PlayerPrefs.SetInt("sb.tutorial", value); PlayerPrefs.Save(); }
         }
         public static bool Active => Step > 0;
+        // Its coach panel is (or is about to be) on screen: other pop-ups wait (Core/PopupQueue). Step 9 is the
+        // free play in the first battle, with no panel.
+        public static bool Blocking => Active && Step != 9;
         public static void Start() { if (!PlayerPrefs.HasKey("sb.tutorialDone")) Step = 1; }
         public static void Finish() { Step = 0; PlayerPrefs.SetInt("sb.tutorialDone", 1); PlayerPrefs.Save(); }
 

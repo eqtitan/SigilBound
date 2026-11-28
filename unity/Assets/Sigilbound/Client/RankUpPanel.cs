@@ -59,7 +59,7 @@ namespace Sigilbound.Client
 
         float DrawRankTarget(float y, HeroSave h)
         {
-            float T = RosterLayout.Tap, G6 = RosterLayout.Gap;
+            float T = RosterLayout.Tap;
             var t = Hero(h.id);
             int cap = MaxLevelFor(h.stars); bool atCap = h.level >= cap, maxed = h.stars >= MaxStars;
             // Target card.
@@ -192,7 +192,7 @@ namespace Sigilbound.Client
                 Ui.SmallCard(r, Palette.Panel, danger ? Palette.Bad : warn != null ? Palette.Hex("#e8b45a") : Palette.Rarity(t.Rarity), 12);
                 HeroFace(new Rect(r.x + 10, r.y + (rh - 42) / 2, 42, 42), t);
                 Ui.Text(new Rect(r.x + 62, r.y + 6, r.width - 180, 24), $"{Ui.ColorTag(Ui.Stars(f.stars), Palette.Gold)} {t.ShortName}  {Ui.ColorTag("Lv" + f.level, Palette.Dim)}", 14, Palette.Text, FontStyle.Bold);
-                Ui.Text(new Rect(r.x + 62, r.y + 30, r.width - 180, 20), $"{Ui.ColorTag(t.Rarity.ToString(), Palette.Rarity(t.Rarity))} · {t.Element} · {t.Role}" + (G.CopiesOf(f.id) > 1 ? $" · ×{G.CopiesOf(f.id)}" : ""), 11, Palette.Dim);
+                Ui.Text(new Rect(r.x + 62, r.y + 30, r.width - 180, 20), $"{Ui.ColorTag(t.Rarity.ToString(), Palette.Rarity(t.Rarity))} · {t.Element} · {GameData.RoleName(t.Role)}" + (G.CopiesOf(f.id) > 1 ? $" · ×{G.CopiesOf(f.id)}" : ""), 11, Palette.Dim);
                 Ui.Text(new Rect(r.xMax - 118, r.y, 108, rh), warn ?? "Safe pick", 12, danger ? Palette.Bad : warn != null ? Palette.Hex("#e8b45a") : Palette.Good, FontStyle.Bold, TextAnchor.MiddleRight, true);
                 if (Ui.Button(r, "", Ui.Kind.Ghost))
                 {

@@ -4,7 +4,7 @@ Owned by the **character-mechanics** agent (`.claude/agents/character-mechanics.
 spec for how heroes move and react in battle: beats, states, clips, timing, hit-stop, frame
 rate and the animation tests the owner approves. PLAN.md phase G implements it.
 
-_Last updated: 2026-11-27 (combat rules section 9 added and the step 97-99 rules brought into sections 1, 3.1 and 4.5; first version 2026-11-25, written from genre knowledge)._
+_Last updated: 2026-11-28 (section 9.8: Slow/SpdUp ±20% and the gear speed cap, PLAN step 109; combat rules section 9 added 2026-11-27; first version 2026-11-25, written from genre knowledge)._
 
 **Ground rules (apply to everything below):**
 - **Time, not frames.** All times are in seconds at **1x battle speed**, and all event times are
@@ -462,6 +462,8 @@ Status column: **pending** until the owner approves, rejects or asks for changes
   Hit_Big note, enrage/Break/stack feedback rows, section 1 turn start; the owner review moved to
   section 10 (it was a second "8.").
 - **2026-11-28:** Section 11 (release and rank-up rules, PLAN step 107).
+- **2026-11-28:** Section 9.8 (PLAN step 109): Slow and SpdUp ±20%, gear speed capped at +50, the
+  balance band extended to the original 24 heroes, 54 heroes retuned, 13-6 and 15-6 eased.
 
 
 ## 9. Combat rules (2026-11-27)
@@ -479,7 +481,7 @@ of battles reach round 10.
 | Turn meter | full at 1000; each tick adds speed × 0.7; the highest full meter acts, ties to the faster unit | `NextActor`, `PredictTurns` | turn-order bar (next 7) |
 | Starting meter | speed × 3 + random 0-40 (the fastest unit acts first about 70% of the time) | `StartTm` | |
 | New wave | allies' meters are capped at 60% | `CheckEnd` | "Wave N!" banner |
-| Speed | 95 + 2 × rarity tier + role + `RoleSpdShift` + (stars − 1); SpdUp +30%, Slow −30% | `Game.BaseStats`, `Speed` | |
+| Speed | 95 + 2 × rarity tier + role + `RoleSpdShift` + (stars − 1); gear adds at most `Game.GearSpdCap` (+50, **Unity-only**); SpdUp +20%, Slow −20% (`Battle.SpeedFx`, ±30% until step 109). Section 9.8 | `Game.BaseStats`, `Game.HeroStats`, `Speed` | |
 | Role speed (**Unity-only** shift) | Attack +8, Defense −2, HP −4, Support 0 (Support already has +6 in `Mods`, so its total is +6). Was ±8 until step 99, which gave Support +14 | `GameData.RoleSpdShift` | |
 | Pace | every hit, heal, regen, shield and DoT tick × 1.6; HP is not scaled. 1.0 in the Titan fight | `Battle.Pace` | |
 | Hit damage | stat × skill multiplier × Skill Tome boost (+8%/level to 3) × element × 650 / (650 + target DEF) × enrage × Pace, × (1 + Rage × missing HP share) for Rage skills, × crit, × 0.95-1.05; at least 1. The stat is ATK, DEF or max HP by the skill's `Scale` | `HitBase`, `Hit` | damage number, Hit or Hit_Big |
@@ -530,7 +532,7 @@ of battles reach round 10.
 ### 9.7 Campaign curve and rewards (step 99)
 
 - Enemy multiplier: Act I follows the web curve (`Curve.Start`..`End`, `Shape`, chapter factors `Curve.Chapter`); Act II is `End × (1 + Act2Ramp × (stage − 59))` with `Act2Ramp` 0.015 (was 0.02).
-- **Unity-only `Game.CampaignEase`** on top (campaign and Hard stages, not dungeons): Light/Shadow chapters × `LSEase` 0.92 (a Flame/Gale/Tide team has no advantage there), chapter 10's factor 0.98 in place of 1.04 (`ChapterFix`), and `StageEase` per stage in both acts: 14-4 × 0.926, 15-6 × 0.90.
+- **Unity-only `Game.CampaignEase`** on top (campaign and Hard stages, not dungeons): Light/Shadow chapters × `LSEase` 0.92 (a Flame/Gale/Tide team has no advantage there), chapter 10's factor 0.98 in place of 1.04 (`ChapterFix`), and `StageEase` per stage in both acts: 13-6 × 0.92 and 15-6 × 0.85 (step 109; 15-6 was 0.90), 14-4 × 0.926.
 - Gold and XP per clear grow 2% per stage past the level cap (stage index 61): 15-6 pays 5,928 gold and 18,065 XP (was 3,800 and 11,580, flat for the last 29 stages).
 - Titan reward tiers (**Unity-only** thresholds): 0 / 15k / 40k / 80k / 140k / 220k (was up to 400k and 1M, never reached). A maxed team (6 stars, level 60, Mythic +10) has median 112k and p90 186k damage: 29% reach 140k, 3% reach 220k.
 
@@ -545,6 +547,53 @@ of battles reach round 10.
 | Median battle (combatstats) | 67 turns | 65 turns |
 
 Mid team: Ysolde, Corvan, Hask, Kaito. Strong team: Maelis, Oriel, Aurelia, Vaelith (the suite's lineups).
+
+### 9.8 Speed trim and gear speed cap (step 109)
+
+Speed was the strongest stat (mechanics review #6). Two changes, measured with `Tests~ -- speed`
+(same four random heroes on both sides, Epic, one element, level 40, 4 stars; 3,000 battles a row;
+sides swap every other battle):
+
+- **Slow and SpdUp ±20%** (`Battle.SpeedFx`, was ±30%). They were the biggest single levers; heroes
+  whose kits lean on them (Oriel's Ascend, Tamsin's Tailwind) were retuned with the band below.
+- **Gear speed cap +50** (`Game.GearSpdCap`, **Unity-only**): `HeroStats` caps final SPD at the
+  hero's SPD without gear + 50. Flat SPD, SPD substats and the share of % bonuses (Haste set) all
+  count towards it. Enemies (stage specs) are not affected.
+
+| Probe | Before (±30%, no cap) | After (±20%, cap +50) |
+|---|---|---|
+| +10 SPD on every hero / +10% HP / +10% ATK | 73.9% / 71.5% / 63.8% | 74.6% / 73.7% / 64.8% |
+| +20 SPD / +20% HP / +20% ATK | 90.7% / 85.8% / 75.5% | 90.7% / 86.3% / 76.2% |
+| Gear SPD on a maxed hero (bare 112): random Mythic +10 sets | median +40, p90 +57, max +86 | 81% of sets under the cap |
+| Speed-stacked Haste set (best SPD piece per slot of 40 drops) | median +110 | capped at +50 (loses 60) |
+| Speed-stacked team against the same heroes in ordinary gear (+40) | 99.6% (at +110) | 68.5% (at +50) |
+
+Why +50: at +50 a dedicated speed build keeps an edge about the size of +10% of another stat (68.5%,
+against 74% for +10% HP and 65% for +10% ATK in the mirror probe), +60 would still win 82%, and 8 in
+10 ordinary Mythic +10 sets never reach it, so only speed stacking is cut. +10 SPD stays within 1-2
+points of +10% HP, the review's target.
+
+**Balance band for all heroes.** `RosterTests` now checks every hero (the original 24 included)
+against the classic hero(es) of its rarity and role, 40-60% (`RosterTests.Peers`; a classic hero
+counts itself among its peers, as the `balance` probe always has, so a classic hero alone in its
+slot reads 50%). Skill power retuned with `retune.py` (classic and hand-written heroes) and
+`newheroes.py --tune` (phase H): 9 classic heroes (Brannoc ×1.16, Kettle ×0.79, Nyx ×1.13, Tamsin
+×1.43 over three passes, Sable ×1.33, Oriel ×0.72, Corvan ×1.29 over two passes, Wren ×0.90,
+Ysolde ×1.13), 25 hand-written and 20 phase H heroes (Crusk, new on main, ×1.75). The classic heroes are each other's yardstick,
+so they were tuned first until all 24 held 42-58%, then the rest. Their skill numbers now differ from
+the web game's `data.js` (`GameData.UnityTuned`; the parity test checks that list is exact).
+
+| Hero (balance score) | Before | After the speed trim | Final |
+|---|---|---|---|
+| Kettle | 0.732 | 0.735 | 0.450 |
+| Oriel | 0.688 | 0.665 | 0.530 |
+| Corvan (starter) | 0.387 | 0.452 | 0.435 |
+| Brannoc | 0.365 | 0.365 | 0.518 |
+| Sable | 0.317 | 0.347 | 0.423 |
+| Tamsin | 0.463 | 0.398 | 0.452 |
+| Nyx | 0.388 | 0.388 | 0.457 |
+| Maelis | 0.390 | 0.455 | 0.447 |
+| Heroes outside 40-60% (of 157) | 7 | about 31 | 0 |
 
 ## 10. Owner review of the animation tests (2026-11-25)
 
@@ -572,3 +621,21 @@ Code: `Core/Roster.cs` (`IsProtected`, `PlanRelease`, `ReleaseMany`, `UndoReleas
 - Auto-fill order: lowest rarity, then spare copies (owned more than once) before singletons, then lowest level, then oldest.
 - Rank-up cost: `2000 × stars` gold and `stars` fodder heroes at the same stars; the level is kept (train to the new cap). Rank up all: strongest heroes first, fodder never reused, a promoted hero never becomes fodder, stops when gold runs out; "train to cap" adds `ceil(XP to cap / TrainXpPerGold)` gold per step.
 - Presets save in the optional `"roster"` key; the red danger toggles are never saved (presets load with them off = protected).
+
+## 12. Auto Climb (2026-11-28, PLAN step 111)
+
+Code: `Core/AutoClimb.cs` (rules, `ClimbLog`), `Client/AutoClimbUi.cs` (switches, pause, summary).
+
+| Area | Next fight after a win | Stops when |
+|---|---|---|
+| Campaign (Normal) | the next stage in order, across chapters and into Act II | last stage cleared (reached the end); next stage not unlocked (locked) |
+| Campaign (Hard) | the next Hard stage | last stage; next Hard stage locked (its Normal stage isn't cleared) |
+| Dungeon (Vault, Hall of Echoes, Forge) | the next floor of the same dungeon | no winning runs left today (out of runs); floor 10 cleared (reached the end) |
+| Arena | the same slot (Easy, Even or Hard) of the new rivals | no fights left today (out of tries; each try is used when its fight starts) |
+
+- Every area stops on the first loss, when a modal other than the results screen opens during the pause (a message needs you), or when the player stops it: the Stop button on the results screen, Back, Leave mid-fight (an arena retreat still counts as a loss, as always), switching Climb off or Replay on.
+- Between fights nothing else happens: no upgrades, no team or gear changes. The pause is 3 s of real time (not sped up by 2x/3x), the same as auto-replay.
+- Climb and Replay are mutually exclusive; turning Climb on turns Auto battle on, and Auto stays on while Climb is on. The switch is saved (`settings.autoClimb`, only written when on) and applies to the next fight the player starts too.
+- Story: the one-time Act II intro plays once when a Normal climb crosses into Act II, then the climb continues. Lair reveals play once per session (as without climbing); while climbing, a boss stage cleared before skips its reveal too.
+- Frame rate: 30 fps while climbing (the auto-replay rule). On desktop the climb continues in the background when "keep running" is on.
+- The Climb Summary totals are the sum of each won fight's rewards (gold, XP each, worn/mystic/radiant shards, essence, Skill Tomes, gear pieces); losses add a fight but no rewards.

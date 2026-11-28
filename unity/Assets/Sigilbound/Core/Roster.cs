@@ -89,6 +89,8 @@ namespace Sigilbound.Core
     {
         public Protect Protect = Protect.Always;
         public List<HeroSave> Release = new List<HeroSave>();
+        // Heroes whose every remaining copy is in Release (the review grid marks each of those cards with "!").
+        public HashSet<string> LastCopyIds = new HashSet<string>();
         public List<(HeroSave h, string why)> Protected = new List<(HeroSave, string)>(); // matched but kept by a rule
         public List<HeroSave> Kept = new List<HeroSave>();   // matched, kept by a tap on the review screen
         public int Essence, GearReturned, LastCopies, HighRarity;
@@ -203,7 +205,8 @@ namespace Sigilbound.Core
             plan.Essence = EssenceFor(plan.Release);
             plan.GearReturned = plan.Release.Sum(h => (h.weapon != 0 ? 1 : 0) + (h.helm != 0 ? 1 : 0) + (h.chest != 0 ? 1 : 0) + (h.boots != 0 ? 1 : 0));
             plan.HighRarity = plan.Release.Count(h => Hero(h.id).Rarity >= Rarity.Epic);
-            plan.LastCopies = plan.Release.GroupBy(h => h.id).Count(g => g.Count() >= CopiesOf(g.Key));
+            plan.LastCopyIds = new HashSet<string>(plan.Release.GroupBy(h => h.id).Where(g => g.Count() >= CopiesOf(g.Key)).Select(g => g.Key));
+            plan.LastCopies = plan.LastCopyIds.Count;
             plan.ByRarity = new int[4];
             foreach (var h in plan.Release) plan.ByRarity[(int)Hero(h.id).Rarity]++;
         }
@@ -224,16 +227,19 @@ namespace Sigilbound.Core
         {
             if (plan == null) return null;
             var u = new ReleaseUndo { At = Now() };
+            // Undo puts everything back at its original index (ascending), so record positions in the
+            // roster and presets as they were before this release, not after the earlier removals.
+            var heroOrder = S.heroes.ToList();
+            var teamOrder = S.teams.Select(t => t.uids.ToList()).ToList();
             foreach (var h in plan.Release.ToList())
             {
-                int idx = S.heroes.IndexOf(h);
+                int idx = S.heroes.Contains(h) ? heroOrder.IndexOf(h) : -1;
                 if (idx < 0 || S.heroes.Count <= 1 || IsProtected(h, plan.Protect & ~Protect.LastCopy)) continue;
                 if ((plan.Protect & Protect.LastCopy) != 0 && CopiesOf(h.id) <= 1) continue;
                 foreach (Slot s in Enum.GetValues(typeof(Slot)))
                     if (h.GetGear(s) != 0) { u.Gear.Add((h.uid, s, h.GetGear(s))); h.SetGear(s, 0); }
                 for (int i = 0; i < S.teams.Count; i++)
-                    for (int k = S.teams[i].uids.Count - 1; k >= 0; k--)
-                        if (S.teams[i].uids[k] == h.uid) { u.Presets.Add((i, k, h.uid)); S.teams[i].uids.RemoveAt(k); }
+                    if (S.teams[i].uids.RemoveAll(x => x == h.uid) > 0) u.Presets.Add((i, teamOrder[i].IndexOf(h.uid), h.uid));
                 u.Heroes.Add((h, idx));
                 u.Essence += Release(h);
             }

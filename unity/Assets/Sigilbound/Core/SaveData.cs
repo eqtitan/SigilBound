@@ -40,6 +40,7 @@ namespace Sigilbound.Core
     [Serializable] public sealed class SettingsSave
     {
         public int speed = 1; public bool auto; public bool autoReplay;
+        public bool autoClimb;            // Auto Climb (AutoClimb.cs): written to the save only when on
         public string cam = "angle";      // battle camera preset (Three-quarter is the default)
         public int fpsCap = 60;           // 30 (cooler) or 60 (smoother)
         public string quality = "auto";   // auto | Ultra | High | Medium | Low

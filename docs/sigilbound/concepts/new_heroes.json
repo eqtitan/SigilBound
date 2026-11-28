@@ -951,7 +951,7 @@
     "mult": 0,
     "scale": "Atk",
     "hits": 1,
-    "cooldown": 6,
+    "cooldown": 4,
     "effects": [
      {
       "type": "Shield",
@@ -959,7 +959,7 @@
      },
      {
       "type": "Taunt",
-      "turns": 1,
+      "turns": 2,
       "to": "Self"
      },
      {
@@ -2769,7 +2769,7 @@
     "mult": 0,
     "scale": "Atk",
     "hits": 1,
-    "cooldown": 5,
+    "cooldown": 4,
     "effects": [
      {
       "type": "Shield",
@@ -2778,6 +2778,11 @@
      {
       "type": "Regen",
       "turns": 2
+     },
+     {
+      "type": "Taunt",
+      "turns": 1,
+      "to": "Self"
      }
     ]
    },
@@ -4791,7 +4796,7 @@
     "mult": 0,
     "scale": "Atk",
     "hits": 1,
-    "cooldown": 5,
+    "cooldown": 4,
     "effects": [
      {
       "type": "Shield",
@@ -4803,7 +4808,7 @@
      },
      {
       "type": "Taunt",
-      "turns": 1,
+      "turns": 2,
       "to": "Self"
      }
     ]
@@ -4829,5 +4834,669 @@
    }
   ],
   "notes_for_3d": "Regular female with dark moss-green skin paint. The gown and root skirt hide the legs (alpha-clip root cards at the hem; the legs are still skinned so clips play). The lily crown petals have 1 bone each so they open. Wisps are VFX."
+ },
+ {
+  "id": "vorgrim",
+  "name": "Vorgrim Ashscale",
+  "title": "the Molten Warlord",
+  "element": "Flame",
+  "role": "Attack",
+  "rarity": "Legendary",
+  "sex": "male",
+  "species": "drake-folk (dragonborn)",
+  "body": {
+   "height": 1.14,
+   "bulk": 1.25,
+   "head": 1.0
+  },
+  "skin": "#9a2a1e",
+  "hair": {
+   "style": "none (scaled dragon head)",
+   "colour": "#7a1e16"
+  },
+  "facial": "custom:dragon snout with fangs and glowing ember eyes",
+  "outfit": {
+   "arms": "Male_Knight_Arms",
+   "body": "Male_Knight_Body_Armor",
+   "legs": "Male_Knight_Legs",
+   "feet": "Male_Knight_Feet_Armor",
+   "head": "custom:red dragon head with large swept-back horns",
+   "acc": [
+    "custom:dragon-head pauldrons with glowing eyes",
+    "custom:glowing molten veins in the armour",
+    "custom:torn crimson tabard",
+    "custom:long ragged black cape with burning ember edges",
+    "custom:scaled dragon tail with ember glow"
+   ]
+  },
+  "palette": {
+   "main": "#2a2422",
+   "secondary": "#8a1e1a",
+   "accent": "#d8402a",
+   "metal": "#3a3230",
+   "glow": "#ff6a1a"
+  },
+  "kit": [
+   "custom:lava-veined greatsword with a cracked molten blade"
+  ],
+  "weapon": "lava-veined greatsword",
+  "silhouette": "a towering horned dragon in black plate with a burning cape and a huge glowing blade",
+  "signature": "a greatsword split by molten veins that brightens with every kill",
+  "pose": "greatsword lowered, cape smouldering",
+  "fx": "embers drift off the cape and blade; the veins in his armour pulse when he attacks",
+  "story": "The last of the drake-lords of Ashgrave, Vorgrim slept under the pass for a hundred years. The Hollow woke him by digging up his kin, and he has been burning them out of the mountain ever since.",
+  "act": 1,
+  "skills": [
+   {
+    "name": "Cinder Cleave",
+    "target": "Enemy",
+    "mult": 1.2,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 0,
+    "effects": [
+     {
+      "type": "Burn",
+      "turns": 2,
+      "chance": 0.5
+     }
+    ]
+   },
+   {
+    "name": "Dragon's Wrath",
+    "target": "AllEnemies",
+    "mult": 1.0,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 3,
+    "effects": [
+     {
+      "type": "DefDown",
+      "turns": 2,
+      "chance": 0.5
+     },
+     {
+      "type": "Burn",
+      "turns": 2,
+      "chance": 0.4
+     }
+    ]
+   },
+   {
+    "name": "Molten Execution",
+    "target": "Enemy",
+    "mult": 3.1,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 4,
+    "effects": [
+     {
+      "type": "Burn",
+      "turns": 2
+     },
+     {
+      "type": "AtkUp",
+      "turns": 2,
+      "to": "Self"
+     }
+    ]
+   }
+  ],
+  "notes_for_3d": "Big male knight with a custom dragon head (snout, fangs, swept horns), dragon-head pauldrons, torn tabard, a ragged ember-edged cape and a lizard tail with a glowing tip. Lava greatsword.",
+  "rig": {
+   "neck": 0.07,
+   "jaw": true,
+   "tail": 7,
+   "legs": "digitigrade"
+  }
+ },
+ {
+  "id": "talvo",
+  "name": "Talvo Brassfang",
+  "title": "the Ember Duelist",
+  "element": "Flame",
+  "role": "Attack",
+  "rarity": "Epic",
+  "sex": "male",
+  "species": "drake-folk (dragonkin)",
+  "body": {
+   "height": 1.02,
+   "bulk": 0.95,
+   "head": 1.0
+  },
+  "skin": "#c8501e",
+  "hair": {
+   "style": "none (scaled dragon head)",
+   "colour": "#a03a14"
+  },
+  "facial": "custom:slender dragon snout with a brass monocle",
+  "outfit": {
+   "arms": "Male_Ranger_Arms",
+   "body": "custom:long dark greatcoat with brass trim and buckled straps",
+   "legs": "Male_Peasant_Legs",
+   "feet": "Male_Ranger_Feet_Boots",
+   "head": "custom:orange dragon head with large swept-back horns and a brass monocle",
+   "acc": [
+    "custom:long dark greatcoat with brass trim and coat tails",
+    "custom:brass-buckled bandolier",
+    "custom:scaled dragon tail with ember glow"
+   ]
+  },
+  "palette": {
+   "main": "#2a2624",
+   "secondary": "#3a302a",
+   "accent": "#c8963a",
+   "metal": "#b8863a",
+   "glow": "#ff8a2a"
+  },
+  "kit": [
+   "custom:flaming cutlass with a brass knuckle guard"
+  ],
+  "weapon": "flaming cutlass",
+  "silhouette": "a lean dragon in a long coat with a curling ember tail and a burning sabre",
+  "signature": "a monocled drake who duels with a cutlass that never stops burning",
+  "pose": "cutlass flicked out, free hand on his coat",
+  "fx": "fire trails from the cutlass; his tail sheds sparks when he dashes",
+  "story": "Talvo keeps the Saltreach docks honest the old way: a challenge, a bow, and a blade that leaves the loser's coat smouldering. When the Hollow came up the harbour steps he simply bowed again.",
+  "act": 2,
+  "skills": [
+   {
+    "name": "Flick of Flame",
+    "target": "Enemy",
+    "mult": 1.0,
+    "scale": "Atk",
+    "hits": 2,
+    "cooldown": 0,
+    "effects": [
+     {
+      "type": "Burn",
+      "turns": 2,
+      "chance": 0.3
+     }
+    ]
+   },
+   {
+    "name": "Riposte",
+    "target": "Self",
+    "mult": 0,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 3,
+    "effects": [
+     {
+      "type": "Counter",
+      "turns": 2
+     },
+     {
+      "type": "SpdUp",
+      "turns": 2
+     }
+    ]
+   },
+   {
+    "name": "Blazing Flourish",
+    "target": "Enemy",
+    "mult": 2.4,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 4,
+    "effects": [
+     {
+      "type": "Burn",
+      "turns": 2
+     },
+     {
+      "type": "Tm",
+      "val": 0.3,
+      "to": "Self"
+     }
+    ]
+   }
+  ],
+  "notes_for_3d": "Slim male with a custom dragon head (narrow snout, small horns) and a brass monocle over the right eye; a long greatcoat with brass trim; lizard tail with glowing cracks. Cutlass with a knuckle guard and a glowing blade.",
+  "rig": {
+   "neck": 0.06,
+   "jaw": true,
+   "tail": 8,
+   "tail_len": 1.15,
+   "legs": "digitigrade"
+  }
+ },
+ {
+  "id": "wystan",
+  "name": "Wystan Quillmere",
+  "title": "the Owl Archivist",
+  "element": "Gale",
+  "role": "Support",
+  "rarity": "Epic",
+  "sex": "male",
+  "species": "owl-folk",
+  "body": {
+   "height": 1.0,
+   "bulk": 1.3,
+   "head": 1.08
+  },
+  "skin": "#b88a5a",
+  "hair": {
+   "style": "custom:speckled brown feathers with tufted ear plumes",
+   "colour": "#9a6a3a"
+  },
+  "facial": "custom:round owl face disc with a small hooked beak and round brass spectacles",
+  "outfit": {
+   "arms": "custom:feathered wing-sleeves",
+   "body": "custom:long moss-green hooded robe trimmed with leaves over a cream inner robe",
+   "legs": "Male_Wizard_Legs",
+   "feet": "custom:taloned bird feet",
+   "head": "custom:owl head with ear tufts and round brass spectacles",
+   "acc": [
+    "custom:long moss-green robe with leaf-trimmed hem and flowing sleeves and a sash",
+    "custom:broad owl-feather capelet that flares like folded wings",
+    "custom:wide leather belt hung with scrolls and pouches",
+    "custom:fluffy pale feathered bib on the chest"
+   ]
+  },
+  "palette": {
+   "main": "#4a6a2e",
+   "secondary": "#e8dcc0",
+   "accent": "#a87a4a",
+   "metal": "#b89a5a",
+   "glow": "#9ae8c8"
+  },
+  "kit": [
+   "custom:driftwood staff hung with crystal wind chimes and feathers"
+  ],
+  "weapon": "driftwood wind chime staff",
+  "silhouette": "a round owl in long green robes with a tall crooked staff of chimes",
+  "signature": "a staff of crystal wind chimes that rings the wind into a healing breeze",
+  "pose": "staff held out, chimes swinging",
+  "fx": "a pale green wind ribbon and drifting leaves when he casts",
+  "story": "Wystan has catalogued every scroll in the Thornwick archive twice. The second time he noticed the pages that were missing, all of them about the Sigil, and went looking for whoever took them.",
+  "act": 1,
+  "skills": [
+   {
+    "name": "Gust of Pages",
+    "target": "Enemy",
+    "mult": 1.0,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 0,
+    "effects": [
+     {
+      "type": "Slow",
+      "turns": 2,
+      "chance": 0.3
+     }
+    ]
+   },
+   {
+    "name": "Chime of Clarity",
+    "target": "AllAllies",
+    "mult": 0,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 4,
+    "effects": [
+     {
+      "type": "Heal",
+      "pct": 0.2
+     },
+     {
+      "type": "Cleanse"
+     }
+    ]
+   },
+   {
+    "name": "Tailwind Treatise",
+    "target": "AllAllies",
+    "mult": 0,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 5,
+    "effects": [
+     {
+      "type": "Tm",
+      "val": 0.25
+     },
+     {
+      "type": "SpdUp",
+      "turns": 2
+     }
+    ]
+   }
+  ],
+  "notes_for_3d": "Male owl-folk: owl face plate, beak and ear tufts, round spectacles, a long green robe with a feather capelet and flowing sleeves, scrolls on the belt, talons. Gnarled staff with hanging chimes.",
+  "rig": {
+   "legs": "digitigrade"
+  }
+ },
+ {
+  "id": "crusk",
+  "name": "Crusk Brineclaw",
+  "title": "the Tidewarden",
+  "element": "Tide",
+  "role": "Defense",
+  "rarity": "Epic",
+  "sex": "male",
+  "species": "crab-folk",
+  "body": {
+   "height": 0.92,
+   "bulk": 1.45,
+   "head": 0.95
+  },
+  "skin": "#b8502a",
+  "hair": {
+   "style": "none (crab shell head)",
+   "colour": "#8a3a1e"
+  },
+  "facial": "custom:shell face plate with glowing teal eyes",
+  "outfit": {
+   "arms": "Male_Knight_Arms",
+   "body": "Male_Knight_Body_Armor",
+   "legs": "Male_Knight_Legs",
+   "feet": "custom:spiny shell foot covers",
+   "head": "custom:barnacled crab carapace hood with seaweed",
+   "acc": [
+    "custom:great barnacled crab shell over the shoulders",
+    "custom:seaweed sash",
+    "custom:fishing net hanging from the belt"
+   ]
+  },
+  "palette": {
+   "main": "#c8602a",
+   "secondary": "#1e5a5a",
+   "accent": "#5ae8e0",
+   "metal": "#4a6a6a",
+   "glow": "#5ae8ff"
+  },
+  "kit": [
+   "custom:spiral nautilus shell shield with glowing pearls",
+   "custom:short bronze trident"
+  ],
+  "weapon": "nautilus shell shield",
+  "silhouette": "a wide hunched shell with two giant claws and a round spiral shield",
+  "signature": "a nautilus shell shield whose pearls glow brighter with every blow it takes",
+  "pose": "hunched behind the shell shield, claws raised",
+  "fx": "a ring of spray and glowing pearls when he shields",
+  "story": "Crusk has guarded the Saltreach breakwater since before the harbour had a name. He does not talk much. He does not need to: nothing has ever got past the shield.",
+  "act": 2,
+  "skills": [
+   {
+    "name": "Pincer Snap",
+    "target": "Enemy",
+    "mult": 0.95,
+    "scale": "Def",
+    "hits": 1,
+    "cooldown": 0,
+    "effects": [
+     {
+      "type": "AtkDown",
+      "turns": 2,
+      "chance": 0.35
+     }
+    ]
+   },
+   {
+    "name": "Shell Wall",
+    "target": "AllAllies",
+    "mult": 0,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 4,
+    "effects": [
+     {
+      "type": "Shield",
+      "pct": 0.06
+     },
+     {
+      "type": "Taunt",
+      "turns": 2,
+      "to": "Self"
+     }
+    ]
+   },
+   {
+    "name": "Undertow",
+    "target": "AllEnemies",
+    "mult": 0.8,
+    "scale": "Def",
+    "hits": 1,
+    "cooldown": 5,
+    "effects": [
+     {
+      "type": "Slow",
+      "turns": 2,
+      "chance": 0.35
+     }
+    ]
+   }
+  ],
+  "notes_for_3d": "Wide male with a crab head (shell face plate, glowing eyes), a big barnacled carapace over the back and head, giant claws on both forearms, a nautilus shell shield, net skirt and seaweed sash."
+ },
+ {
+  "id": "hartwin",
+  "name": "Hartwin Sunhorn",
+  "title": "the Stag of Bellspire",
+  "element": "Light",
+  "role": "Hp",
+  "rarity": "Legendary",
+  "sex": "male",
+  "species": "stag-folk",
+  "body": {
+   "height": 1.12,
+   "bulk": 1.2,
+   "head": 1.0
+  },
+  "skin": "#b8905a",
+  "hair": {
+   "style": "none (short stag fur)",
+   "colour": "#a07a4a"
+  },
+  "facial": "custom:stag muzzle",
+  "outfit": {
+   "arms": "Male_Knight_Arms",
+   "body": "Male_Knight_Body_Armor",
+   "legs": "Male_Knight_Legs",
+   "feet": "custom:cloven hooves",
+   "head": "custom:stag head with great golden antlers hung with little bells",
+   "acc": [
+    "Male_Knight_Acc_Pauldron_Round (gold)",
+    "custom:white tabard with a golden sun",
+    "custom:long white cape",
+    "custom:white plate with gold trim and a sun emblem"
+   ]
+  },
+  "palette": {
+   "main": "#f0ece2",
+   "secondary": "#f2eee4",
+   "accent": "#f0d070",
+   "metal": "#e8e2d4",
+   "glow": "#ffe070"
+  },
+  "kit": [
+   "custom:golden halo ring behind the antlers",
+   "custom:marble sun hammer with a glowing sun"
+  ],
+  "weapon": "marble sun hammer",
+  "silhouette": "a tall stag knight in white and gold with a vast spread of antlers and a halo",
+  "signature": "golden antlers hung with bells that toll a blessing over his allies",
+  "pose": "hammer planted, head high, antler bells ringing",
+  "fx": "the antler bells chime and a golden light pulses from the halo when he heals",
+  "story": "The bells of Bellspire fell silent a century ago, but the white stag still walks the ruins, his antlers hung with the last of them. Where he goes, the bells ring again.",
+  "act": 1,
+  "skills": [
+   {
+    "name": "Sunhammer",
+    "target": "Enemy",
+    "mult": 0.1,
+    "scale": "Hp",
+    "hits": 1,
+    "cooldown": 0,
+    "effects": [
+     {
+      "type": "AtkDown",
+      "turns": 2,
+      "chance": 0.25
+     }
+    ]
+   },
+   {
+    "name": "Toll of Dawn",
+    "target": "AllAllies",
+    "mult": 0,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 4,
+    "effects": [
+     {
+      "type": "Heal",
+      "pct": 0.12
+     },
+     {
+      "type": "Regen",
+      "turns": 2
+     },
+     {
+      "type": "Taunt",
+      "turns": 1,
+      "to": "Self"
+     }
+    ]
+   },
+   {
+    "name": "Radiant Antlers",
+    "target": "AllEnemies",
+    "mult": 0.07,
+    "scale": "Hp",
+    "hits": 1,
+    "cooldown": 5,
+    "effects": [
+     {
+      "type": "Stun",
+      "turns": 1,
+      "chance": 0.15
+     },
+     {
+      "type": "DefUp",
+      "turns": 2,
+      "to": "Allies"
+     }
+    ]
+   }
+  ],
+  "notes_for_3d": "Tall male knight in white and gold plate with a stag head (muzzle, ears), great golden antlers hung with small bells, a halo ring behind them, a sun tabard, a long white cape. Marble hammer with a glowing sun.",
+  "rig": {
+   "neck": 0.08,
+   "legs": "digitigrade"
+  }
+ },
+ {
+  "id": "nyssa",
+  "name": "Nyssa Duskwing",
+  "title": "the Moth of Wraithmoor",
+  "element": "Shadow",
+  "role": "Attack",
+  "rarity": "Legendary",
+  "sex": "female",
+  "species": "human",
+  "body": {
+   "height": 1.02,
+   "bulk": 0.9,
+   "head": 1.0
+  },
+  "skin": "fair",
+  "hair": {
+   "style": "custom:short black hair under the hood",
+   "colour": "#1a1620"
+  },
+  "facial": "custom:black cloth mask over the lower face and pale violet eyes",
+  "outfit": {
+   "arms": "Female_Ranger_Arms",
+   "body": "Female_Ranger_Body",
+   "legs": "Female_Ranger_Legs",
+   "feet": "Female_Ranger_Feet",
+   "head": "custom:grey hood with feathered moth antennae and a black cloth half mask over the lower face",
+   "acc": [
+    "custom:large tattered grey moth wings with glowing violet eye spots",
+    "Female_Ranger_Acc_Pauldrons"
+   ]
+  },
+  "palette": {
+   "main": "#6a6474",
+   "secondary": "#24202a",
+   "accent": "#a060ff",
+   "metal": "#8a8a96",
+   "glow": "#a050ff"
+  },
+  "kit": [
+   "custom:twin curved daggers with violet edges"
+  ],
+  "weapon": "twin curved daggers",
+  "silhouette": "a slim hooded figure behind two huge tattered moth wings dotted with glowing eyes",
+  "signature": "moth wings whose violet eye spots open and stare when she strikes from the dark",
+  "pose": "low crouch, daggers reversed, wings half open",
+  "fx": "violet smoke and drifting moth dust; the eye spots flare on a critical hit",
+  "story": "The barrow-folk of Wraithmoor say the moths there carry the dreams of the dead. Nyssa was the one who learned to follow them, and now she carries their grudges too.",
+  "act": 2,
+  "skills": [
+   {
+    "name": "Dusk Slash",
+    "target": "Enemy",
+    "mult": 1.0,
+    "scale": "Atk",
+    "hits": 2,
+    "cooldown": 0,
+    "effects": [
+     {
+      "type": "Poison",
+      "turns": 2,
+      "chance": 0.35
+     }
+    ]
+   },
+   {
+    "name": "Eyes in the Dark",
+    "target": "AllEnemies",
+    "mult": 0.8,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 3,
+    "effects": [
+     {
+      "type": "AtkDown",
+      "turns": 2,
+      "chance": 0.5
+     },
+     {
+      "type": "Slow",
+      "turns": 2,
+      "chance": 0.4
+     }
+    ]
+   },
+   {
+    "name": "Deathmoth Strike",
+    "target": "Enemy",
+    "mult": 3.0,
+    "scale": "Atk",
+    "hits": 1,
+    "cooldown": 4,
+    "effects": [
+     {
+      "type": "Poison",
+      "turns": 2
+     },
+     {
+      "type": "SpdUp",
+      "turns": 2,
+      "to": "Self"
+     }
+    ],
+    "pierce": true
+   }
+  ],
+  "notes_for_3d": "Slim female ranger in black leather and steel plates; a grey hood with feathered moth antennae and a lower-face mask; big tattered insect wings with glowing violet eye spots (the wing kit's moth type). Twin curved daggers with glowing edges.",
+  "rig": {
+   "wings": true
+  }
  }
 ]

@@ -15,7 +15,15 @@ namespace Sigilbound.Client
 
     public static class Palette
     {
-        public static Color Hex(string hex) { ColorUtility.TryParseHtmlString(hex, out var c); return c; }
+        // Parsed once per literal: the draw code calls Hex("#...") inside OnGUI (performance review #5).
+        static readonly Dictionary<string, Color> _hex = new Dictionary<string, Color>();
+        public static Color Hex(string hex)
+        {
+            if (hex != null && _hex.TryGetValue(hex, out var c)) return c;
+            ColorUtility.TryParseHtmlString(hex, out c);
+            if (hex != null && _hex.Count < 4096) _hex[hex] = c;
+            return c;
+        }
 
         // The web game's gilded skin (style.css :root).
         public static readonly Color Bg = Hex("#0f0c15"), Panel = Hex("#1b1624"), Panel2 = Hex("#251e31"), Line = Hex("#4a3d2e");

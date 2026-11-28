@@ -40,7 +40,11 @@ namespace Sigilbound.Client
         string _lineupKey = "";
 
         // modal + toasts
-        string _modalTitle; Action<Rect> _modalBody; float _modalHeight = 260;
+        string _modalTitle; Action<Rect> _modalBody; float _modalHeight = 260, _modalMaxW = ModalW;
+        // Modals keep a readable width on wide screens (UX review #10: they stretched to about 1040 units);
+        // the results screens get more room for their hero columns.
+        public const float ModalW = 560, WideModalW = 900;
+        float _modalClosedAt = -10f;
         readonly List<(string text, float until)> _toasts = new List<(string, float)>();
 
         void Awake()
@@ -57,8 +61,9 @@ namespace Sigilbound.Client
             Arena = Arena.Create();
             // Frame-rate cap (60, or 30 to run cooler) and graphics tier mapped to URP settings.
             Quality.Create(gameObject, G.S.settings.quality, Quality.SavedFpsMode(G.S.settings.fpsCap)).Sun = Arena.Sun;
+            Background.Apply(); // desktop: keep running when the window loses focus (Settings)
             Quality.Busy = () => Battle != null && Battle.InProgress; // Auto holds tier changes until the battle ends
-            Quality.ReplayCapped = () => Screen == ScreenId.Battle && Battle != null && Battle.Replaying; // auto-replay runs at 30 fps
+            Quality.ReplayCapped = () => Screen == ScreenId.Battle && Battle != null && Battle.Replaying; // auto-replay and Auto Climb run at 30 fps
             Quality.I.Apply();
             Quality.Notice = Toast; // thermal fallback messages
             Vfx.ShakeSetting = () => Quality.SavedShake; // Settings > Screen shake
@@ -72,6 +77,8 @@ namespace Sigilbound.Client
             Online = gameObject.AddComponent<Online>();
             Online.App = this;
             Screen = G.S.started ? ScreenId.Home : ScreenId.Intro;
+            _firstLaunch = !G.S.started; // no save yet: What's New waits for the next update (PopupQueue)
+            if (_firstLaunch) MarkChangelogSeen();
             Tips.Seed(G); // existing players skip beginner tips for things they've done
             Arena.Build(Math.Min(GameData.Chapters.Length - 1, G.S.cleared / GameData.StagesPerChapter), false);
             Arena.FrameMenu();
@@ -161,11 +168,13 @@ namespace Sigilbound.Client
         }
         public string ExportSaveCode() { Save(); return SaveCodec.ToCode(G.S); }
         void OnApplicationPause(bool paused) { if (paused) Save(); }
+        void OnApplicationFocus(bool focused) => Background.OnFocus(focused);
         void OnApplicationQuit() => Save();
 
         public void Toast(string text) => _toasts.Add((text, Time.unscaledTime + 2.4f));
-        public void Modal(string title, float height, Action<Rect> body) { _modalTitle = title; _modalHeight = height; _modalBody = body; }
-        public void CloseModal() { _modalBody = null; _modalTitle = null; }
+        public void Modal(string title, float height, Action<Rect> body, float maxWidth = ModalW) { _modalTitle = title; _modalHeight = height; _modalBody = body; _modalMaxW = maxWidth; ModalSerial++; }
+        public int ModalSerial { get; private set; } // counts modals opened: Auto Climb notices one that isn't its results screen
+        public void CloseModal() { if (_modalBody != null) _modalClosedAt = Time.unscaledTime; _modalBody = null; _modalTitle = null; }
         public bool ModalOpen => _modalBody != null;
 
         public void Go(ScreenId s)
@@ -181,7 +190,7 @@ namespace Sigilbound.Client
             if (Input.GetKeyDown(KeyCode.Escape)) Back(); // Android back button
             if (Screen != ScreenId.Battle) UpdateLineup();
             if (Screen == ScreenId.Hero && !ModalOpen) UpdateHeroViewer();
-            CheckTips();
+            CheckPopups();
             UpdatePower();
         }
 
@@ -214,25 +223,51 @@ namespace Sigilbound.Client
             }
         }
 
-        // ---------- first-time tips (modes.js checkTips) ----------
-        float _tipAt;
-        void CheckTips()
+        // ---------- pop-ups, one at a time (QA review #8: Core/PopupQueue.cs) ----------
+        // What's New, the Act II intro, first-time tips (modes.js checkTips) and the update banner all ask the
+        // queue, so only one shows, in order, and never over the tutorial's coach panel.
+        float _tipAt; bool _firstLaunch, _bannerOk;
+        public bool UpdateBannerAllowed => _bannerOk; // Updater.cs draws its banner only when this is true
+        void CheckPopups()
         {
-            if (ModalOpen || Time.unscaledTime < _tipAt) return;
+            if (Time.unscaledTime < _tipAt) return;
             _tipAt = Time.unscaledTime + 0.35f;
-            bool inBattle = Screen == ScreenId.Battle && Battle.InProgress;
-            if (Screen == ScreenId.Battle && !inBattle) return;
-            var tip = Tips.Next(G, Screen == ScreenId.Home, inBattle);
-            if (tip == null) return;
-            Save();
-            Modal(tip.Title, 300, b =>
+            bool battleScreen = Screen == ScreenId.Battle, inBattle = battleScreen && Battle.InProgress;
+            // The tutorial already walks a new player through Home and the battle screen.
+            if (Tutorial.Step >= 6) Tips.MarkShown(G, "welcome");
+            if (Tutorial.Step >= 8) Tips.MarkShown(G, "battle");
+            var ctx = new PopupContext
             {
-                Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), tip.Body, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
-                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Got it")) CloseModal();
-            });
+                ModalOpen = ModalOpen, TutorialBlocking = Tutorial.Blocking, FirstLaunch = _firstLaunch,
+                InBattle = battleScreen, OnHome = Screen == ScreenId.Home, OnMap = Screen == ScreenId.Campaign,
+                WhatsNewPending = WhatsNewPending(), Act2Pending = Act2IntroPending(),
+                TipPending = (!battleScreen || inBattle) && Tips.Peek(G, Screen == ScreenId.Home, inBattle) != null,
+                UpdateAvailable = Updater.LatestBuild > 0,
+                SinceClose = Time.unscaledTime - _modalClosedAt,
+            };
+            var next = PopupQueue.Next(ctx);
+            _bannerOk = next == Popup.UpdateBanner;
+            switch (next)
+            {
+                case Popup.WhatsNew: ShowWhatsNewOnce(); break;
+                case Popup.Act2Intro: ShowAct2Intro(); break;
+                case Popup.Tip:
+                    var tip = Tips.Next(G, Screen == ScreenId.Home, inBattle);
+                    if (tip == null) break;
+                    Save();
+                    Modal(tip.Title, 300, b =>
+                    {
+                        Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), tip.Body, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                        if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Got it")) CloseModal();
+                    });
+                    break;
+            }
         }
 
         // ---------- 3D lineup behind the menus ----------
+        // Menu lineup x: 1.4 m per gap for normal heroes, more next to wide ones (Creatures.LineupXs).
+        static float LineupX(List<string> ids, int i) => ids.Count <= 1 ? 0 : (float)Creatures.LineupXs(ids)[i];
+
         void UpdateLineup()
         {
             List<(HeroDef def, Element el)> want;
@@ -271,7 +306,7 @@ namespace Sigilbound.Client
             for (int i = 0; i < want.Count; i++)
             {
                 var u = new Unit { Template = want[i].def, Name = want[i].def.Name, El = want[i].el, Ally = true, Key = "L" + i };
-                var pos = single ? new Vector3(0, 0, 0.4f) : new Vector3(-2.1f + i * (4.2f / Math.Max(1, want.Count - 1)) * (want.Count > 1 ? 1 : 0), 0, 0.6f + (i % 2) * 0.5f);
+                var pos = single ? new Vector3(0, 0, 0.4f) : new Vector3(LineupX(want.Select(x => x.def.Id).ToList(), i), 0, 0.6f + (i % 2) * 0.5f);
                 if (want.Count == 1 && !single) pos = new Vector3(0, 0, 0.6f);
                 var toCam = Arena.Cam.transform.position - pos; toCam.y = 0;
                 var v = CharacterView.Create(u, pos, Quaternion.LookRotation(toCam, Vector3.up).eulerAngles.y, scale, GearAt(i));
@@ -313,9 +348,20 @@ namespace Sigilbound.Client
         }
 
         // ---------- GUI ----------
+        public static bool Running { get; private set; }
+        void OnEnable() => Running = true;
+        void OnDisable() => Running = false;
+
+        // Everything the game draws, then the update banner last so it always sits on top (Updater.Overlay).
         void OnGUI()
         {
             if (_shotNoUi) return;
+            try { DrawGui(); }
+            finally { GUI.enabled = true; GUI.matrix = Matrix4x4.identity; Updater.Overlay(); }
+        }
+
+        void DrawGui()
+        {
             // Battle, the modes hub and (in landscape) Home, the map and team setup use the whole width; menus a column.
             bool wide = Screen == ScreenId.Battle || Screen == ScreenId.Modes || ((Screen == ScreenId.Campaign || Screen == ScreenId.Prep || Screen == ScreenId.Home) && Ui.Landscape);
             Ui.Begin(wide);
@@ -371,16 +417,15 @@ namespace Sigilbound.Client
             {
                 var w = Mathf.Max(48, text.Length * 7.4f + 30);
                 Ui.Panel(new Rect(x, r.y + 8, w, 28), Palette.Hex("#0d0a12"), Palette.Bronze, 13);
-                // The owner's painted coin / shard / essence when the skin is on; shards keep a tint ring for their kind.
+                // The owner's painted coin / essence / one painted crystal per shard kind (worn, mystic, radiant) when the skin is on.
                 if (painted == null || !Icons.Painted(new Rect(x + 3, r.y + 10, 24, 24), painted)) Icons.Draw(new Rect(x + 8, r.y + 15, 14, 14), icon, c);
-                else if (icon == Icon.Shard) Ui.Round(new Rect(x + 21, r.y + 26, 8, 8), c, Palette.Hex("#0d0a12"), 4);
                 Ui.Text(new Rect(x + 24, r.y + 8, w - 30, 28), text, 12, c, FontStyle.Bold, TextAnchor.MiddleCenter);
                 x += w + 5;
             }
             Chip(Icon.Coin, Ui.Fmt(G.S.gold), Palette.Gold, "coin");
-            Chip(Icon.Shard, G.S.shardCommon.ToString(), Palette.Hex("#c9a37b"), "shard");
-            Chip(Icon.Shard, G.S.shardMystic.ToString(), Palette.Blue, "shard");
-            Chip(Icon.Shard, G.S.shardRadiant.ToString(), Palette.Hex("#ffb02e"), "shard");
+            Chip(Icon.Shard, G.S.shardCommon.ToString(), Palette.Hex("#c9a37b"), "shard_worn");
+            Chip(Icon.Shard, G.S.shardMystic.ToString(), Palette.Blue, "shard_mystic");
+            Chip(Icon.Shard, G.S.shardRadiant.ToString(), Palette.Hex("#ffb02e"), "shard_radiant");
             Chip(Icon.Essence, G.S.essence.ToString(), Palette.Hex("#8fd8ff"), "essence");
             // The menu button: 44 wide and the bar's full height to tap, the plate as before.
             float mx1 = Ui.Landscape ? sc.xMax : Mathf.Min(Ui.W - 8, sc.xMax);
@@ -445,7 +490,8 @@ namespace Sigilbound.Client
             {
                 GUI.DrawTexture(Ui.Screen01, Ui.Solid(new Color(0, 0, 0, 0.7f)));
                 float mx0 = Mathf.Max(16, Ui.Safe.x + 16), mx1 = Mathf.Min(Ui.W - 16, Ui.Safe.xMax - 16); // inside the safe area
-                var box = new Rect(mx0, Mathf.Max(Ui.Safe.y + 20, (Ui.H - _modalHeight) / 2), mx1 - mx0, _modalHeight);
+                float mw = Mathf.Min(mx1 - mx0, _modalMaxW); // centred, at most ModalW (or WideModalW) wide
+                var box = new Rect((mx0 + mx1) / 2 - mw / 2, Mathf.Max(Ui.Safe.y + 20, (Ui.H - _modalHeight) / 2), mw, _modalHeight);
                 Ui.Card(box, true); // the web's framed .mbox
                 if (!string.IsNullOrEmpty(_modalTitle)) Ui.Heading(new Rect(box.x, box.y + 14, box.width, 34), _modalTitle, 24, TextAnchor.MiddleCenter);
                 _modalBody?.Invoke(new Rect(box.x + 16, box.y + 56, box.width - 32, box.height - 72));

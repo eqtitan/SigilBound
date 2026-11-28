@@ -10,6 +10,7 @@
 // the web save); music plays at 0.55 of its slider, ambience at 0.6 of the effects slider.
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Sigilbound.Core;
 
@@ -73,28 +74,58 @@ namespace Sigilbound.Client
 
         public static Sound Create(App app)
         {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var s = app.gameObject.AddComponent<Sound>();
             s._app = app; I = s;
-            foreach (var kv in Files)
-            {
-                var set = new List<AudioClip>();
-                var c0 = Resources.Load<AudioClip>("Audio/" + kv.Value); if (c0 != null) set.Add(c0);
-                for (int v = 2; v <= MaxVariants && c0 != null; v++) { var c = Resources.Load<AudioClip>("Audio/" + kv.Value + "_" + v); if (c == null) break; set.Add(c); }
-                if (set.Count > 0) s._clips[kv.Key] = set.ToArray();
-            }
+            // Effects load lazily (performance review #4): loading all 206 clips here decoded about 21 MB of
+            // PCM (135 short one-shots, 122 s of stereo) before the first frame. Warm() loads one cue per frame
+            // after start-up, the menu taps first, and the import rules decode them off the main thread
+            // (AudioImportRules: loadInBackground); a cue played before its turn loads on the spot.
             foreach (var kv in Tracks) { var c = Resources.Load<AudioClip>("Audio/" + kv.Value); if (c != null) s._tracks[kv.Key] = c; }
             AudioSource Src(bool loop) { var a = app.gameObject.AddComponent<AudioSource>(); a.loop = loop; a.playOnAwake = false; return a; }
             s._a = Src(true); s._b = Src(true); s._sting = Src(false); s._amb = Src(true); s._ambOld = Src(true);
             for (int i = 0; i < 16; i++) s._sfx.Add(Src(false));   // hits are two layers (weapon + armour)
             s.Music("menu");
+            s.StartCoroutine(s.Warm());
+            Debug.Log($"SBPERF sound: created in {sw.Elapsed.TotalMilliseconds:0.0} ms (effects load after start-up)");
             return s;
+        }
+
+        static readonly AudioClip[] NoClips = new AudioClip[0];
+        // A cue's clip and its variants (sfx_x, sfx_x_2 ...), loaded the first time the cue is wanted.
+        AudioClip[] Clips(string name)
+        {
+            if (name == null) return NoClips;
+            if (_clips.TryGetValue(name, out var set)) return set;
+            if (!Files.TryGetValue(name, out var file)) return NoClips;   // unknown cue: silence, and not cached
+            var list = new List<AudioClip>();
+            var c0 = Resources.Load<AudioClip>("Audio/" + file); if (c0 != null) list.Add(c0);
+            for (int v = 2; v <= MaxVariants && c0 != null; v++) { var c = Resources.Load<AudioClip>("Audio/" + file + "_" + v); if (c == null) break; list.Add(c); }
+            set = list.Count > 0 ? list.ToArray() : NoClips;
+            _clips[name] = set;
+            return set;
+        }
+        static readonly string[] WarmFirst = { "tap", "confirm", "reward", "coin" };
+        IEnumerator Warm()
+        {
+            yield return null; // after the first frame
+            var sw = new System.Diagnostics.Stopwatch(); double worst = 0, total = 0; int frames = 0, clips = 0;
+            foreach (var name in WarmFirst.Concat(Files.Keys))
+            {
+                if (_clips.ContainsKey(name)) continue;
+                sw.Restart(); clips += Clips(name).Length; double ms = sw.Elapsed.TotalMilliseconds;
+                total += ms; worst = Mathf.Max((float)worst, (float)ms); frames++;
+                yield return null;
+            }
+            Debug.Log($"SBPERF sound: {clips} effect clips loaded over {frames} frames, {total:0} ms main thread in all (longest frame {worst:0.0} ms)");
         }
 
         // play(name, { volume, rate, jitter }) from audio.js; pan -1 (left) .. 1 (right). A random variant,
         // never the same one twice running.
         public void Play(string name, float volume = 1, float rate = 1, float jitter = 0.06f, float pan = 0)
         {
-            if (SfxVol <= 0 || name == null || !_clips.TryGetValue(name, out var set)) return;   // unknown cue: silence
+            if (SfxVol <= 0 || name == null) return;
+            var set = Clips(name); if (set.Length == 0) return;   // unknown cue or missing file: silence
             int i = 0;
             if (set.Length > 1)
             {
@@ -122,7 +153,7 @@ namespace Sigilbound.Client
         // Unknown names (or a missing file) play nothing: Play looks the name up and returns quietly.
         public void PlayAt(string name, Vector3 world, float volume = 1, float rate = 1, float jitter = 0.06f)
         {
-            if (string.IsNullOrEmpty(name) || !_clips.ContainsKey(name)) return;
+            if (string.IsNullOrEmpty(name) || Clips(name).Length == 0) return;
             Play(name, volume, rate, jitter, PanOf(world));
         }
 

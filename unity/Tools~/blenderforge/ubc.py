@@ -232,7 +232,7 @@ def body_bvh(include=()):
         o.evaluated_get(dg).to_mesh_clear()
     return BVHTree.FromPolygons(verts, polys)
 
-def make_cape(arm, mat, clasp_mat, long_=True, train=False):
+def make_cape(arm, mat, clasp_mat, long_=True, train=False, ember=None, ragged=False):
     """A cape fitted to this body: the top drapes OVER the shoulders and fastens with two clasps at the
     collarbones; the sheet follows the back's curve (ray-cast onto the dressed body), keeps clear of
     the shoulder blades, hips and calves, and flares toward an open front. Weights: the top row follows
@@ -280,6 +280,11 @@ def make_cape(arm, mat, clasp_mat, long_=True, train=False):
         z = (hit[0].z + gap * 0.6) if hit[0] is not None else top_z + 0.02
         z = min(z, top_z + 0.03)   # never ride up the neck or into the hair: the yoke sits on the shoulders
         yoke.append(Vector((x, nh.y - 0.06 - 0.05 * (1 - abs(u)), z)))
+    if ragged:   # a torn hem: tongues of cloth of uneven length
+        for c in range(cols + 1):
+            k = (c * 7) % 5 / 4.0
+            for r_, f in ((-1, 1.0), (-2, 0.5)): verts[r_][c].z += (0.02 + 0.08 * k) * f
+    hem_pts = [Vector(v) for v in verts[-1]]
     verts.insert(0, yoke)
     flat_v = [v for row in verts for v in row]
     faces = []
@@ -310,6 +315,15 @@ def make_cape(arm, mat, clasp_mat, long_=True, train=False):
         w["thigh_l"] = low * 0.3 * side; w["thigh_r"] = low * 0.3 * (1 - side)
         tot = sum(w.values()); return {k: v / tot for k, v in w.items() if v > 1e-4}
     out = [bind(o, arm, cape_w)]
+    if ember is not None:   # burning edge: glowing tongues licking up from the torn hem
+        import kit_geo as G_
+        bits = []
+        for i, p in enumerate(hem_pts):
+            h = 0.05 + 0.05 * ((i * 5) % 3) / 2
+            bits.append(G_.sweep([p + Vector((0, 0.008, -0.004)), p + Vector((0, 0.01, h * 0.5)), p + Vector((0, 0.012, h))], [0.022, 0.012, 0.0008], ember, segs=6))
+            bits.append(G_.sweep([p + Vector((0, -0.006, -0.004)), p + Vector((0, -0.008, h * 0.4))], [0.016, 0.0008], ember, segs=5))
+        eo = G_.join(bits, "Kit_Cape")
+        out.append(bind(eo, arm, cape_w))
     for sx, c_ in ((1, cl), (-1, cr)):   # small clasps on the collarbones, on the body's surface
         cz = top_z + 0.005; cx = nh.x + 0.075 * sx
         hit = bvh.ray_cast(Vector((cx, nh.y - 0.6, cz)), Vector((0, 1, 0)), 1.0)[0]
@@ -321,7 +335,9 @@ def make_cape(arm, mat, clasp_mat, long_=True, train=False):
 
 def kit(c, arm):
     pal = c.get("palette", {}); el = P.hexc(ELEM.get(c.get("element"), pal.get("glow")))
-    mats = {"metal": P.flat("K_Metal", P.hexc(pal.get("metal", "#aab0b8")), metal=0.9, rough=0.3),
+    _mc = P.hexc(pal.get("metal", "#aab0b8")); _light = (0.3 * _mc[0] + 0.59 * _mc[1] + 0.11 * _mc[2]) > 0.72
+    # a light palette metal (white-and-gold plate) is enamel, not a mirror: a mirror-white reflects the dark scene and reads black
+    mats = {"metal": P.flat("K_Metal", _mc, metal=0.3 if _light else 0.9, rough=0.35 if _light else 0.3),
             "acc": P.flat("K_Accent", P.hexc(pal.get("accent")), metal=0.3, rough=0.4),
             "main": P.flat("K_Main", P.hexc(pal.get("main")), rough=0.6),
             "glow": P.flat("K_Glow", el, emit=4),
@@ -359,8 +375,9 @@ def kit(c, arm):
     if KC.needs_gown(c, text):
         out += KC.make_gown(c, arm, mats, bind)
     if has(text, "cape", "cloak", "mantle"):
-        out += make_cape(arm, mats["main"], mats["metal"], long_=not has(text, "short cape", "half cape", "shoulder cape", "mantle", "half-cape", "capelet"),
-                         train=has(text, "train"))
+        out += make_cape(arm, mats["second"] if has(text, "crimson cape", "red cape") else mats["main"], mats["metal"], long_=not has(text, "short cape", "half cape", "shoulder cape", "mantle", "half-cape", "capelet"),
+                         train=has(text, "train"), ember=mats["glow"] if has(text, "ember edge", "burning edge", "burning ember") else None,
+                         ragged=has(text, "ragged cape", "tattered cape", "ragged black cape", "torn cape"))
     out += KC.make_wings(c, arm, mats, bind, hb)
     out += KH.species(c, arm, mats, sys.modules[__name__])   # ears, beaks, tails, shells, golem stone (kit_head.py)
     out += KA.accessories(c, arm, mats, sys.modules[__name__])   # belts, sashes, pauldrons, back items... (kit_acc.py)
@@ -522,6 +539,8 @@ def main():
     os.makedirs(a.out, exist_ok=True)
     c = normalise_parts({d["id"]: d for d in json.load(open(a.design))}[a.hero])
     arm = P.build(c, pose=False)
+    import kit_rig as KR
+    KH.RIG = KR.extend(c, arm, head_box)   # creature rig extensions (tail, jaw, neck, digitigrade legs, wing bones)
     pieces = kit(c, arm)
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     for x in bpy.context.selected_objects: x.select_set(False)

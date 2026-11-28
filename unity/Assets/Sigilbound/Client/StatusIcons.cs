@@ -50,14 +50,14 @@ namespace Sigilbound.Client
                 if (e.Stacks > 1)
                 {
                     var sr = new Rect(r.xMax + 1, r.y, sw, size);
-                    Ui.Text(new Rect(sr.x + 1, sr.y + 1, sr.width, sr.height), "\u00d7" + e.Stacks, fs, new Color(0, 0, 0, 0.85f), FontStyle.Bold, TextAnchor.MiddleLeft);
-                    Ui.Text(sr, "\u00d7" + e.Stacks, fs, new Color(1f, 0.85f, 0.45f), FontStyle.Bold, TextAnchor.MiddleLeft);
+                    Ui.Text(new Rect(sr.x + 1, sr.y + 1, sr.width, sr.height), NumText.Times(e.Stacks), fs, new Color(0, 0, 0, 0.85f), FontStyle.Bold, TextAnchor.MiddleLeft);
+                    Ui.Text(sr, NumText.Times(e.Stacks), fs, new Color(1f, 0.85f, 0.45f), FontStyle.Bold, TextAnchor.MiddleLeft);
                 }
                 if (e.Turns > 0 && e.Type != FxType.Shield)
                 {
                     var n = new Rect(r.xMax - bsz * 0.65f, r.yMax - bsz * 0.65f, bsz, bsz);
                     Ui.Round(n, new Color(0.07f, 0.05f, 0.09f, 0.95f), FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#a05ae0"), Mathf.RoundToInt(bsz / 2));
-                    Ui.Text(n, e.Turns.ToString(), Mathf.Max(10, Mathf.RoundToInt(bsz * 0.8f)), Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+                    Ui.Text(n, NumText.Of(e.Turns), Mathf.Max(10, Mathf.RoundToInt(bsz * 0.8f)), Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
             }
             return new Rect(x0, y, Mathf.Max(0, w), size);

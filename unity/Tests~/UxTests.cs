@@ -46,6 +46,22 @@ static class UxTests
             "ux: stage list rows are at least 48 dp, the whole row taps, the list scrolls, and the close button is 48 dp");
         check(bc.Contains("float bs = Mathf.Max(48, Ui.Tap)") && !Regex.IsMatch(bc, "RoundButton\\(new Rect\\([^)]*, 40, 40\\)"), "ux: battle corner buttons are 48 dp (no 40-unit buttons left)");
 
+        // Portrait (phone held upright) follows the same rules (PLAN step 111, in-house report S3): the battle HUD's
+        // portrait path, its turn bar and the portrait campaign list.
+        string Between(string src, string from, string to) { int a = src.IndexOf(from, StringComparison.Ordinal); if (a < 0) return ""; int b = src.IndexOf(to, a + from.Length, StringComparison.Ordinal); return b < 0 ? "" : src.Substring(a, b - a); }
+        string extras = Src("ExtrasScreens.cs");
+        var tall = Between(bc, "public void DrawHud()", "void ToggleAutoReplay()");
+        var turnBar = Between(bc, "void DrawTurnBar(float y)", "void ShowAutoSummary(");
+        check(tall.Contains("if (Ui.Landscape) { DrawHudWide(); return; }") && tall.Contains("float bs = Mathf.Max(48, Ui.Tap)") && tall.Contains("Icon.Pause") && tall.Contains("TogglePause()")
+              && !Regex.IsMatch(tall, "Ui\\.Button\\(new Rect\\([^;]*, (3[0-9]|4[0-7])\\), \"") && !tall.Contains("\"X\", Ui.Kind") && tall.Contains("!Auto && !_paused"),
+            "ux: portrait battle HUD has 48 dp round buttons and a Pause button (no 34-unit buttons left)");
+        check(turnBar.Contains("Icon.Shield : Icon.Skull") && turnBar.Contains("Icons.ForElement(u.El)"), "ux: portrait turn chips mark allies and enemies by glyph and show the element icon");
+        var tabs = Between(extras, "float CampaignTabs(float y)", "void DrawHardCampaign");
+        var tallMap = Between(home, "void DrawCampaign(Rect area)", "public void EditTeam");
+        check(tabs.Contains("DrawCampaignSwitches(") && tabs.Contains("Mathf.Max(48, Ui.Tap)") && !tabs.Contains("Ui.Kind.ChipOn") && tallMap.Contains("ChapterCard(") && !tallMap.Contains("locked ? 0.5f")
+              && tallMap.Contains("Mathf.Max(48, Ui.Tap)") && extras.Contains("static Color ChapterCard(") && !extras.Contains("locked ? 0.5f : 0.95f"),
+            "ux: portrait campaign uses the segmented Normal/Hard and Act switches, 48 dp stage chips and opaque locked chapter cards");
+
         // Home: the main call to action is pinned (not inside the scroll), the switches are a segmented control.
         var wide = home.Substring(home.IndexOf("void DrawHomeWide", StringComparison.Ordinal));
         wide = wide.Substring(0, wide.IndexOf("string HomeSubtitle", StringComparison.Ordinal));

@@ -28,6 +28,16 @@ static class RosterTests
         return Battle.MakeUnit(ally, t, new Stats { El = Element.Flame, Hp = (int)s.Hp, Atk = (int)s.Atk, Def = (int)s.Def, Spd = (int)s.Spd, Crit = (int)s.Crit, Cdmg = (int)s.Cdmg });
     }
 
+    // The yardstick (also the `balance` probe that retune.py and newheroes.py tune with): the classic
+    // hero(es) of the same rarity and role, or of the same role when there is none. A classic hero counts
+    // itself among its peers (a 50% pairing), as the shipped probe always has.
+    public static List<HeroDef> Peers(HeroDef h)
+    {
+        var peers = Classic.Where(x => x.Rarity == h.Rarity && x.Role == h.Role).ToList();
+        if (peers.Count == 0) peers = Classic.Where(x => x.Role == h.Role).ToList();
+        return peers;
+    }
+
     // Win rate of the team holding `hero` against the same team holding `peer` instead, both ways round.
     // A peer of a lower rarity (no classic hero of the same rarity and role) is raised to the hero's rarity.
     public static double WinRate(HeroDef hero, HeroDef peer, int seeds = 150)
@@ -82,11 +92,11 @@ static class RosterTests
         int act2Roster = Enumerable.Range(ClassicStages, TotalStages - ClassicStages).Sum(i => Game.StageWaves(i).Sum(w => w.Count(e => !classicIds.Contains(e.Template.Id))));
         check(Chapters.Length == 15 && act2Roster > 0, $"act 2: chapters 11-15, with {act2Roster} roster heroes among its enemies");
 
-        // Balance: each new hero against the classic hero(es) of its rarity and role.
-        foreach (var h in Heroes.Skip(24))
+        // Balance: each new hero against the classic hero(es) of its rarity and role, and the original 24
+        // against each other the same way (mechanics review #7: six of them sat outside the band unchecked).
+        foreach (var h in Heroes)
         {
-            var peers = Classic.Where(x => x.Rarity == h.Rarity && x.Role == h.Role).ToList();
-            if (peers.Count == 0) peers = Classic.Where(x => x.Role == h.Role).ToList();
+            var peers = Peers(h);
             var rates = peers.Select(p => (p.Id, rate: WinRate(h, p))).ToList();
             double avg = rates.Average(r => r.rate);
             check(avg >= 0.4 && avg <= 0.6, $"balance: {h.Id} wins {avg:P0} against {string.Join(", ", rates.Select(r => $"{r.Id} {r.rate:P0}"))} (aim 40–60%)");

@@ -18,14 +18,75 @@ namespace Sigilbound.Client
 
         static List<List<EnemySpec>> WavesFor(int stage, bool hard) => hard ? Game.HardWaves(stage) : Game.StageWaves(stage);
 
+        // ---------- what team setup is for: a campaign stage (normal or Hard), the Titan, or a dungeon floor ----------
+        // Dungeon floors go through team setup too (UX review #17: a tap on the floor row started the run).
+        bool _prepDungeon; DungeonKey _prepDKey; int _prepFloor;
+        void OpenDungeonPrep(DungeonKey key, int floor)
+        {
+            _prepDungeon = true; _prepDKey = key; _prepFloor = floor;
+            _prepStage = -1; _prepTitan = _prepPractice = _prepHard = false; _prepBack = ScreenId.Dungeon;
+            Go(ScreenId.Prep);
+        }
+        List<List<EnemySpec>> PrepWaves() => _prepTitan ? null : _prepDungeon ? Trials.DungeonWaves(_prepDKey, _prepFloor, G.TodayElement) : WavesFor(_prepStage, _prepHard);
+        string PrepTitle() => _prepTitan ? "Titan Challenge" : _prepDungeon ? $"{Trials.Dungeon(_prepDKey).Name} · Floor {_prepFloor + 1}"
+            : $"{(_prepHard ? "Hard " : "Stage ")}{Game.StageLabel(_prepStage)} · {StoryScenes.StopName(_prepStage) ?? Chapters[Game.ChapterOf(_prepStage)]}";
+        string PrepSub(List<List<EnemySpec>> waves)
+        {
+            if (_prepTitan) return _prepPractice ? $"{TitanElement(DateTime.Now)} Titan · Practice: no rewards, no try used" : $"{TitanElement(DateTime.Now)} Titan today · {G.S.daily.titanTries} tries left";
+            if (_prepDungeon)
+            {
+                int runs = G.DungeonRunsLeft(_prepDKey), lv = waves.Count > 0 ? waves.SelectMany(w => w).Max(e => e.ShownLevel) : 0;
+                return $"Enemy Lv {lv} · {waves.Count} waves{(Trials.IsBossFloor(_prepFloor) ? " · Boss" : "")} · {runs} run{(runs == 1 ? "" : "s")} left today";
+            }
+            return $"Enemy Lv {Game.StageLevel(_prepStage) + (_prepHard ? Game.HardLvl : 0)} · {waves.Count} waves{(Game.IsBossStage(_prepStage) ? " · Boss" : "")}{(_prepHard ? " · Hard" : "")}";
+        }
+        string PrepGoLabel() => _prepTitan ? (_prepPractice ? "Practice vs the Titan" : "Challenge the Titan") : _prepDungeon ? $"Fight floor {_prepFloor + 1}" : _prepHard ? "Battle (Hard)" : "Battle";
+        bool PrepCanGo() => G.Team.Count > 0 && (!_prepTitan || _prepPractice || G.S.daily.titanTries > 0) && (!_prepDungeon || G.CanEnterFloor(_prepDKey, _prepFloor));
+        void PrepGo()
+        {
+            if (_prepTitan && _prepPractice) Battle.Begin(BattleSpec.TitanPractice());
+            else if (_prepDungeon) Battle.Begin(BattleSpec.ForDungeon(_prepDKey, _prepFloor));
+            else if (_prepHard) Battle.Begin(BattleSpec.ForHard(_prepStage));
+            else Battle.Begin(_prepTitan ? -1 : _prepStage);
+        }
+
+        // Preset Save asks before replacing a different saved team (UX review #17: it overwrote silently).
+        void AskSavePreset(int k)
+        {
+            var ph = G.PresetHeroes(k);
+            if (ph.Count == 0 || ph.Select(h => h.uid).SequenceEqual(G.S.team)) { G.TeamSave(k); Save(); Toast($"Saved as team {k + 1}"); return; }
+            string was = string.Join(", ", ph.Select(h => Hero(h.id).ShortName));
+            string now = G.Team.Count == 0 ? "an empty team" : string.Join(", ", G.Team.Select(h => Hero(h.id).ShortName));
+            Modal($"Replace team {k + 1}?", 230, b =>
+            {
+                Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), $"Team {k + 1} is {was}.\nSave {now} over it?", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
+                float t = Mathf.Max(44, Ui.Tap);
+                if (Ui.Button(new Rect(b.x, b.yMax - t, b.width / 2 - 5, t), "Keep it", Ui.Kind.Secondary)) CloseModal();
+                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - t, b.width / 2 - 5, t), "Replace")) { G.TeamSave(k); Save(); CloseModal(); Toast($"Saved as team {k + 1}"); }
+            });
+        }
+
         // Enemy chip: the element's icon on a dark disc (its shape reads without colour: UX review #4), name and
-        // level; gold ring for a boss.
+        // level; gold ring for a boss. When "Name LvN" doesn't fit on one line (the in-house report's "Tamsin Lv"),
+        // the level goes under the name, and the font steps down to 10 before a long name is cut with an ellipsis.
+        static readonly GUIContent _chipText = new GUIContent();
+        static float TextW(string t, int size) { _chipText.text = t; return Ui.Label(size).CalcSize(_chipText).x; }
         static void EnemyChip(Rect r, EnemySpec e, int size = 12)
         {
             float d = Mathf.Min(24, r.height);
             var disc = new Rect(r.x, r.y + (r.height - d) / 2, d, d);
-            Ui.ElementBadge(disc, e.El, e.Boss ? Palette.Gold : (Color?)null);
-            Ui.Text(new Rect(disc.xMax + 4, r.y, r.width - d - 4, r.height), $"{e.Template.ShortName} {Ui.ColorTag("Lv" + e.ShownLevel, Palette.Dim)}", size, Palette.Text); // the boss is marked by its gold ring (the word "Boss" cut names off)
+            Ui.ElementBadge(disc, e.El, e.Boss ? Palette.Gold : (Color?)null); // the boss is marked by its gold ring (the word "Boss" cut names off)
+            var tr = new Rect(disc.xMax + 4, r.y, r.width - d - 4, r.height);
+            string name = e.Template.ShortName, lv = "Lv" + e.ShownLevel;
+            if (TextW(name + " " + lv, size) <= tr.width) { Ui.Text(tr, $"{name} {Ui.ColorTag(lv, Palette.Dim)}", size, Palette.Text); return; }
+            bool stack = r.height >= 28;
+            int fs = size; string n = name;
+            while (fs > 10 && TextW(stack ? n : n + " " + lv, fs) > tr.width) fs--;
+            while (n.Length > 3 && TextW(stack ? n : n + " " + lv, fs) > tr.width) n = n.Substring(0, n.Length - 2) + "…";
+            if (!stack) { Ui.Text(tr, $"{n} {Ui.ColorTag(lv, Palette.Dim)}", fs, Palette.Text); return; }
+            float hh = Mathf.Min(16, tr.height / 2);
+            Ui.Text(new Rect(tr.x, tr.center.y - hh, tr.width, hh), n, fs, Palette.Text, FontStyle.Normal, TextAnchor.LowerLeft);
+            Ui.Text(new Rect(tr.x, tr.center.y, tr.width, hh), lv, Mathf.Min(fs, 11), Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
         }
 
         // ---------- stage list (on the world map, when a chapter is chosen) ----------
@@ -97,7 +158,8 @@ namespace Sigilbound.Client
                 // IMGUI, so the button, then the row behind it).
                 var b = new Rect(row.xMax - 86, row.y + 3, 82, row.height - 6);
                 if (b.x - 4 - dx > 30) Ui.Text(new Rect(dx, row.y, b.x - 4 - dx, row.height), $"{(b.x - dx > 72 ? "Gear " : "")}{(Game.IsBossStage(idx) ? 90 : 45)}%", 12, Palette.Dim);
-                bool tapped = Ui.Button(b, next ? "Battle" : clear ? "Replay" : "Locked", next ? Ui.Kind.Primary : Ui.Kind.Secondary, 13, open);
+                // It opens team setup, so it says so (UX review #14: it read "Battle"); a cleared stage has its check mark.
+                bool tapped = Ui.Button(b, open ? "Team ▶" : "Locked", next ? Ui.Kind.Primary : Ui.Kind.Secondary, 13, open);
                 tapped |= Ui.Button(row, "", Ui.Kind.Ghost);
                 if (tapped)
                 {
@@ -130,7 +192,7 @@ namespace Sigilbound.Client
             var M = new Rect(L.xMax + gap, L.y, mw - gap, L.height);
             var R = new Rect(M.xMax + gap, L.y, area.xMax - pad - (M.xMax + gap), L.height);
             var team = G.Team;
-            List<List<EnemySpec>> waves = _prepTitan ? null : WavesFor(_prepStage, _prepHard);
+            List<List<EnemySpec>> waves = PrepWaves();
 
             // ---- left: back and team tools, title, team, battle, presets (every control 48 dp: UX review #1) ----
             float tap = Mathf.Max(44, Ui.Tap);
@@ -138,9 +200,7 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(L.xMax - 214, L.y, 104, tap), "Best team", Ui.Kind.Chip, 13)) { G.TeamBest(); Save(); Toast("Strongest 4 heroes selected"); }
             if (Ui.Button(new Rect(L.xMax - 106, L.y, 106, tap), "Auto-equip", Ui.Kind.Chip, 13)) { G.AutoEquipTeam(); Save(); Toast("Best gear equipped on your team"); }
             float ly = L.y + tap + 4;
-            string title = _prepTitan ? "Titan Challenge" : $"{(_prepHard ? "Hard " : "Stage ")}{Game.StageLabel(_prepStage)} · {StoryScenes.StopName(_prepStage) ?? Chapters[Game.ChapterOf(_prepStage)]}";
-            string sub = _prepTitan ? (_prepPractice ? $"{TitanElement(DateTime.Now)} Titan · Practice: no rewards, no try used" : $"{TitanElement(DateTime.Now)} Titan today · {G.S.daily.titanTries} tries left")
-                : $"Enemy Lv {Game.StageLevel(_prepStage) + (_prepHard ? Game.HardLvl : 0)} · {waves.Count} waves{(Game.IsBossStage(_prepStage) ? " · Boss" : "")}{(_prepHard ? " · Hard" : "")}";
+            string title = PrepTitle(), sub = PrepSub(waves);
             Ui.Text(new Rect(L.x, ly, L.width, 22), title, 15, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
             Ui.Text(new Rect(L.x, ly + 22, L.width, 18), $"{sub} · {Ui.ColorTag($"Power {Ui.Fmt(G.TeamPower)}", Palette.Gold)}", 12, Palette.Hex("#c9bda6"));
             float sw = (L.width - 3 * 6) / 4f, sy = ly + 44;
@@ -165,13 +225,7 @@ namespace Sigilbound.Client
                     Icons.Draw(new Rect(slot.center.x - 10, slot.center.y - 10, 20, 20), Icon.Plus, Palette.Bronze);
                 }
             }
-            bool can = team.Count > 0 && (!_prepTitan || _prepPractice || G.S.daily.titanTries > 0);
-            if (Ui.Button(new Rect(L.x, sy + 74, L.width, Mathf.Max(48, tap)), _prepTitan ? (_prepPractice ? "Practice vs the Titan" : "Challenge the Titan") : _prepHard ? "Battle (Hard)" : "Battle", Ui.Kind.Primary, 17, can))
-            {
-                if (_prepTitan && _prepPractice) Battle.Begin(BattleSpec.TitanPractice());
-                else if (_prepHard) Battle.Begin(BattleSpec.ForHard(_prepStage));
-                else Battle.Begin(_prepTitan ? -1 : _prepStage);
-            }
+            if (Ui.Button(new Rect(L.x, sy + 74, L.width, Mathf.Max(48, tap)), PrepGoLabel(), Ui.Kind.Primary, 17, PrepCanGo())) PrepGo();
             // Presets side by side: the name and members, then Load and Save at full tap height.
             float py = sy + 74 + Mathf.Max(48, tap) + 8;
             float pw = (L.width - 2 * 6) / Game.TeamPresets, bh = Mathf.Min(tap, Mathf.Max(36, L.yMax - py - 38));
@@ -183,7 +237,7 @@ namespace Sigilbound.Client
                 Ui.Text(new Rect(px + 6, py + 17, pw - 12, 16), ph.Count == 0 ? "empty" : string.Join(", ", ph.Select(h => Hero(h.id).ShortName)), 11, Palette.Hex("#c9bda6"));
                 float hw = (pw - 10) / 2;
                 if (Ui.Button(new Rect(px + 3, py + 35, hw, bh), "Load", Ui.Kind.Chip, 12)) { if (G.TeamLoad(k)) { Save(); Toast($"Team {k + 1} loaded"); } else Toast("That preset is empty. Build a team, then tap Save."); }
-                if (Ui.Button(new Rect(px + 7 + hw, py + 35, hw, bh), "Save", Ui.Kind.Chip, 12)) { G.TeamSave(k); Save(); Toast($"Saved as team {k + 1}"); }
+                if (Ui.Button(new Rect(px + 7 + hw, py + 35, hw, bh), "Save", Ui.Kind.Chip, 12)) AskSavePreset(k);
             }
 
             // ---- middle: element wheel, matchup, enemy waves ----

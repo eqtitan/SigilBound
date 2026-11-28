@@ -6,6 +6,7 @@
 // (Cinzel, OFL, bundled in Resources/Fonts; see OFL.txt there).
 using System.Collections.Generic;
 using UnityEngine;
+using Sigilbound.Core;
 
 namespace Sigilbound.Client
 {
@@ -106,6 +107,7 @@ namespace Sigilbound.Client
         {
             int rad = Mathf.RoundToInt(Mathf.Min(r.width, r.height) / 2);
             Round(r, Color.Lerp(Palette.Element(e), Color.black, 0.6f), ring ?? Palette.Element(e), rad);
+            if (Icons.PaintedElement(new Rect(r.x + 2, r.y + 2, r.width - 4, r.height - 4), e)) return; // element ring stays visible
             float k = Mathf.Min(r.width, r.height) * 0.64f;
             Icons.Draw(new Rect(r.center.x - k / 2, r.center.y - k / 2, k, k), Icons.ForElement(e), Color.Lerp(Palette.Element(e), Color.white, 0.35f));
         }
@@ -145,8 +147,15 @@ namespace Sigilbound.Client
         // A pressed painted plate shrinks a little (3%), so the tap reads even on art without a pressed variant.
         static Rect Pressed(Rect r) { float dx = r.width * 0.03f, dy = r.height * 0.05f; return new Rect(r.x + dx, r.y + dy, r.width - 2 * dx, r.height - 2 * dy); }
 
-        static readonly Dictionary<string, Texture2D> _tex = new Dictionary<string, Texture2D>();
-        static readonly Dictionary<string, GUIStyle> _styles = new Dictionary<string, GUIStyle>();
+        // Generated textures and styles, keyed by a UiKey struct (Core/UiCache.cs): no string building, boxing or
+        // closures per call (performance review #5). Kinds:
+        const int KRound = 1, KGrad = 2, KSolid = 3, KGoldRule = 4, KLabel = 5, KRoundStyle = 6, KGradStyle = 7, KBox = 8, KCard = 9, KButton = 10, KField = 11;
+        static readonly Dictionary<UiKey, Texture2D> _tex = new Dictionary<UiKey, Texture2D>();
+        static readonly Dictionary<UiKey, GUIStyle> _kstyles = new Dictionary<UiKey, GUIStyle>();
+        static readonly Dictionary<string, GUIStyle> _styles = new Dictionary<string, GUIStyle>(); // Style(string, make) for other screens
+        static uint Rgba(Color c) => UiKey.Rgba(c.r, c.g, c.b, c.a);
+        static uint Rgba(Color? c) => c.HasValue ? Rgba(c.Value) : 0u;
+        static int Has(Color? c, int shift) => UiKey.Bits(c.HasValue, shift);
         static Font _font, _serif, _serifBold;
         public static Font Serif => _serif;
 
@@ -174,7 +183,7 @@ namespace Sigilbound.Client
         // Rounded-rect texture, used 9-sliced so corners stay crisp at any size.
         public static Texture2D RoundTex(Color fill, Color? border = null, int radius = 12)
         {
-            string key = $"{ColorUtility.ToHtmlStringRGBA(fill)}|{(border.HasValue ? ColorUtility.ToHtmlStringRGBA(border.Value) : "")}|{radius}";
+            var key = new UiKey(KRound, Rgba(fill), Rgba(border), x: radius, y: Has(border, 0));
             if (_tex.TryGetValue(key, out var t) && t != null) return t;
             int size = radius * 2 + 4;
             t = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
@@ -197,7 +206,8 @@ namespace Sigilbound.Client
         // Vertical gradient with rounded corners and an optional border (gilded plates, panels).
         public static Texture2D GradientTex(Color top, Color bottom, Color? border, int radius, Color? midA = null, float midAt = 0.5f, Color? midB = null)
         {
-            string key = $"grad{ColorUtility.ToHtmlStringRGBA(top)}{ColorUtility.ToHtmlStringRGBA(bottom)}{(border.HasValue ? ColorUtility.ToHtmlStringRGBA(border.Value) : "")}{radius}{midA}{midAt}{midB}";
+            var key = new UiKey(KGrad, Rgba(top), Rgba(bottom), Rgba(border), Rgba(midA), Rgba(midB), radius,
+                Has(border, 0) | Has(midA, 1) | Has(midB, 2) | Mathf.RoundToInt(midAt * 1000) << 3);
             if (_tex.TryGetValue(key, out var t) && t != null) return t;
             int w = radius * 2 + 4, h = Mathf.Max(48, radius * 2 + 4);
             t = new Texture2D(w, h, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
@@ -228,7 +238,7 @@ namespace Sigilbound.Client
         // Thin gold rule that fades out at both ends (under the top bar, above the nav).
         public static void GoldRule(Rect r)
         {
-            var key = "goldrule";
+            var key = new UiKey(KGoldRule);
             if (!_tex.TryGetValue(key, out var t) || t == null)
             {
                 t = new Texture2D(64, 1, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
@@ -246,7 +256,7 @@ namespace Sigilbound.Client
 
         public static Texture2D Solid(Color c)
         {
-            string key = "solid" + ColorUtility.ToHtmlStringRGBA(c);
+            var key = new UiKey(KSolid, Rgba(c));
             if (_tex.TryGetValue(key, out var t) && t != null) return t;
             t = new Texture2D(1, 1, TextureFormat.RGBA32, false);
             t.SetPixel(0, 0, c); t.Apply();
@@ -254,7 +264,7 @@ namespace Sigilbound.Client
             return t;
         }
 
-        public static void ClearStyles() => _styles.Clear(); // after the skin is switched on or off
+        public static void ClearStyles() { _styles.Clear(); _kstyles.Clear(); } // after the skin is switched on or off
         public static GUIStyle Style(string key, System.Func<GUIStyle> make)
         {
             if (!_styles.TryGetValue(key, out var s) || s == null) { s = make(); _styles[key] = s; }
@@ -268,7 +278,15 @@ namespace Sigilbound.Client
             if (Event.current.type != EventType.Repaint) return;
             var tex = RoundTex(fill, border, radius);
             if (Mathf.Min(r.width, r.height) <= radius * 2 + 6) { GUI.DrawTexture(r, tex); return; }
-            Style($"round{tex.GetInstanceID()}", () => new GUIStyle { normal = { background = tex }, border = new RectOffset(radius + 2, radius + 2, radius + 2, radius + 2) }).Draw(r, false, false, false, false);
+            SliceStyle(KRoundStyle, tex, radius).Draw(r, false, false, false, false);
+        }
+        // A texture drawn 9-sliced with radius+2 borders (Round, GradientBox).
+        static GUIStyle SliceStyle(int kind, Texture2D tex, int radius)
+        {
+            var key = new UiKey(kind, x: tex.GetInstanceID(), y: radius);
+            if (!_kstyles.TryGetValue(key, out var s) || s == null)
+                _kstyles[key] = s = new GUIStyle { normal = { background = tex }, border = new RectOffset(radius + 2, radius + 2, radius + 2, radius + 2) };
+            return s;
         }
 
         static GUIStyle BoxStyle(Color fill, Color? border, int radius) => new GUIStyle
@@ -279,12 +297,15 @@ namespace Sigilbound.Client
         public static GUIStyle Label(int size = 15, Color? color = null, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleLeft, bool wrap = false, bool serif = false)
         {
             var c = color ?? Palette.Text;
-            return Style($"lbl{size}{ColorUtility.ToHtmlStringRGBA(c)}{fs}{align}{wrap}{serif}", () => new GUIStyle
-            {
-                // Bold serif uses Cinzel's real bold face rather than a synthesized one.
-                fontSize = size, fontStyle = serif && fs == FontStyle.Bold ? FontStyle.Normal : fs, alignment = align, wordWrap = wrap, richText = true, clipping = TextClipping.Clip,
-                normal = { textColor = c }, font = serif ? (fs == FontStyle.Bold ? _serifBold : _serif) : _font,
-            });
+            var key = new UiKey(KLabel, Rgba(c), x: size, y: (int)fs | (int)align << 4 | UiKey.Bits(wrap, 12) | UiKey.Bits(serif, 13));
+            if (!_kstyles.TryGetValue(key, out var s) || s == null)
+                _kstyles[key] = s = new GUIStyle
+                {
+                    // Bold serif uses Cinzel's real bold face rather than a synthesized one.
+                    fontSize = size, fontStyle = serif && fs == FontStyle.Bold ? FontStyle.Normal : fs, alignment = align, wordWrap = wrap, richText = true, clipping = TextClipping.Clip,
+                    normal = { textColor = c }, font = serif ? (fs == FontStyle.Bold ? _serifBold : _serif) : _font,
+                };
+            return s;
         }
 
         // Cinzel only covers Latin text; strings with symbols it lacks (★ ≡ ✕ ◆ …) use the built-in
@@ -311,22 +332,26 @@ namespace Sigilbound.Client
         {
             // Painted skin (Skin.cs) for the plain panel; tinted or recoloured panels keep the drawn look.
             if (fill == null && border == null && Skin.DrawFrame(r, "panel")) return;
-            GUI.Box(r, GUIContent.none, Style($"box{fill}{border}{radius}", () => BoxStyle(fill ?? Palette.Panel, border ?? Palette.Line, radius)));
+            var key = new UiKey(KBox, Rgba(fill), Rgba(border), x: radius, y: Has(fill, 0) | Has(border, 1));
+            if (!_kstyles.TryGetValue(key, out var st) || st == null) _kstyles[key] = st = BoxStyle(fill ?? Palette.Panel, border ?? Palette.Line, radius);
+            GUI.Box(r, GUIContent.none, st);
         }
 
         // The web's framed ".card": dark violet gradient, bronze edge, gold corner studs.
         public static void Card(Rect r, bool highlight = false)
         {
             if (Skin.DrawFrame(r, highlight ? "card_highlight" : "card")) return;
-            var s = Style($"card{highlight}", () => new GUIStyle
-            {
-                normal = { background = GradientTex(Palette.Hex("#221b2e"), Palette.Hex("#1a1523"), highlight ? Palette.Gold : Palette.Hex("#5c4a30"), 12) },
-                border = new RectOffset(14, 14, 14, 14),
-            });
+            var key = new UiKey(KCard, x: highlight ? 1 : 0);
+            if (!_kstyles.TryGetValue(key, out var s) || s == null)
+                _kstyles[key] = s = new GUIStyle
+                {
+                    normal = { background = GradientTex(Palette.Hex("#221b2e"), Palette.Hex("#1a1523"), highlight ? Palette.Gold : Palette.Hex("#5c4a30"), 12) },
+                    border = new RectOffset(14, 14, 14, 14),
+                };
             GUI.Box(r, GUIContent.none, s);
             var stud = RoundTex(Palette.TrimHi, null, 2);
-            foreach (var p in new[] { new Vector2(r.x + 5, r.y + 5), new Vector2(r.xMax - 9, r.y + 5), new Vector2(r.x + 5, r.yMax - 9), new Vector2(r.xMax - 9, r.yMax - 9) })
-                GUI.DrawTexture(new Rect(p.x, p.y, 4, 4), stud);
+            GUI.DrawTexture(new Rect(r.x + 5, r.y + 5, 4, 4), stud); GUI.DrawTexture(new Rect(r.xMax - 9, r.y + 5, 4, 4), stud);
+            GUI.DrawTexture(new Rect(r.x + 5, r.yMax - 9, 4, 4), stud); GUI.DrawTexture(new Rect(r.xMax - 9, r.yMax - 9, 4, 4), stud);
         }
 
         // A screen title on the owner's painted ribbon (skin "banner"); today's gold heading without it.
@@ -366,7 +391,7 @@ namespace Sigilbound.Client
         {
             if (Event.current.type != EventType.Repaint) return;
             var tex = GradientTex(top, bottom, border, radius);
-            Style($"gbox{tex.GetInstanceID()}", () => new GUIStyle { normal = { background = tex }, border = new RectOffset(radius + 2, radius + 2, radius + 2, radius + 2) }).Draw(r, false, false, false, false);
+            SliceStyle(KGradStyle, tex, radius).Draw(r, false, false, false, false);
         }
 
         // Section heading in serif gold (h2 in the web skin).
@@ -382,7 +407,12 @@ namespace Sigilbound.Client
         public enum Kind { Primary, Secondary, Blue, Red, Chip, ChipOn, Ghost }
         static GUIStyle ButtonStyle(Kind k, int size, bool serif = true, bool off = false)
         {
-            return Style($"btn{k}{size}{serif}{off}", () =>
+            var key = new UiKey(KButton, x: size, y: (int)k | UiKey.Bits(serif, 4) | UiKey.Bits(off, 5));
+            if (!_kstyles.TryGetValue(key, out var st) || st == null) _kstyles[key] = st = MakeButtonStyle(k, size, serif, off);
+            return st;
+        }
+        static GUIStyle MakeButtonStyle(Kind k, int size, bool serif, bool off)
+        {
             {
                 // Gilded plates as in style.css: gradient stops top / upper-mid / lower-mid / bottom.
                 (Color top, Color midA, Color midB, Color bottom, Color text, Color? border) = k switch
@@ -416,7 +446,7 @@ namespace Sigilbound.Client
                 // overwritten; it would wrap labels on narrow buttons, so the plates keep 6 at the sides).
                 s.padding = new RectOffset(6, 6, 4, 4); s.font = display ? _serifBold : _font;
                 return s;
-            });
+            }
         }
 
         // Buttons ignore the release that ends a drag-scroll.
@@ -461,7 +491,9 @@ namespace Sigilbound.Client
             return hit;
         }
 
-        static string SkinName(Kind k) => "button_" + k.ToString().ToLowerInvariant();
+        // The painted plate per Kind ("button_primary" ...), built once instead of three strings per button per pass.
+        static readonly string[] _skinNames = System.Array.ConvertAll((Kind[])System.Enum.GetValues(typeof(Kind)), k => "button_" + k.ToString().ToLowerInvariant());
+        static string SkinName(Kind k) => _skinNames[(int)k];
 
         public static void Text(Rect r, string text, int size = 15, Color? color = null, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleLeft, bool wrap = false, bool serif = false) =>
             GUI.Label(r, text, Label(size, color, fs, align, wrap, serif && SerifCanDraw(text)));
@@ -469,13 +501,15 @@ namespace Sigilbound.Client
         // Multi-line text box (save codes, promo codes). Tapping it opens the phone keyboard.
         public static string Field(Rect r, string value, int maxLength, bool multiline)
         {
-            var st = Style($"field{multiline}", () => new GUIStyle(multiline ? GUI.skin.textArea : GUI.skin.textField)
-            {
-                fontSize = 13, wordWrap = multiline, padding = new RectOffset(8, 8, 6, 6), font = _font,
-                normal = { background = RoundTex(Palette.Hex("#0d0a12"), Palette.Hex("#5c4a30"), 8), textColor = Palette.Text },
-                focused = { background = RoundTex(Palette.Hex("#120e19"), Palette.Gold, 8), textColor = Palette.Text },
-                border = new RectOffset(10, 10, 10, 10),
-            });
+            var key = new UiKey(KField, x: multiline ? 1 : 0);
+            if (!_kstyles.TryGetValue(key, out var st) || st == null)
+                _kstyles[key] = st = new GUIStyle(multiline ? GUI.skin.textArea : GUI.skin.textField)
+                {
+                    fontSize = 13, wordWrap = multiline, padding = new RectOffset(8, 8, 6, 6), font = _font,
+                    normal = { background = RoundTex(Palette.Hex("#0d0a12"), Palette.Hex("#5c4a30"), 8), textColor = Palette.Text },
+                    focused = { background = RoundTex(Palette.Hex("#120e19"), Palette.Gold, 8), textColor = Palette.Text },
+                    border = new RectOffset(10, 10, 10, 10),
+                };
             return multiline ? GUI.TextArea(r, value ?? "", maxLength, st) : GUI.TextField(r, value ?? "", maxLength, st);
         }
 

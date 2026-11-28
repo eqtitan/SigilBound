@@ -35,6 +35,10 @@ static class Program
         if (args.Length > 0 && args[0] == "campaign") { CombatProbes.Campaign(args.Length > 1 ? int.Parse(args[1]) : 60); return 0; }
         if (args.Length > 0 && args[0] == "roles") { CombatProbes.Roles(args.Length > 1 ? int.Parse(args[1]) : 1500); return 0; }
         if (args.Length > 0 && args[0] == "titandmg") { CombatProbes.TitanDamage(); return 0; }
+        if (args.Length > 0 && args[0] == "speed") { SpeedProbe.Run(args.Length > 1 ? int.Parse(args[1]) : 3000); return 0; }
+        // `dotnet run --project Tests~ -- stageenemies > fixtures/stage-enemies.json`: the golden enemy ids of every
+        // campaign stage (MechanicsTests checks the game against it). Regenerate only for a deliberate pool change.
+        if (args.Length > 0 && args[0] == "stageenemies") { Console.WriteLine(MechanicsTests.StageEnemiesJson()); return 0; }
         if (args.Length > 0 && args[0] == "combatstats") { CombatStats.Run(); return 0; }
         // `dotnet run --project Tests~ -- scenes OUT.json [tier]`: every campaign stage's generated layout (Tools~/scenery/scene_preview.py).
         if (args.Length > 1 && args[0] == "scenes") { SceneGenTests.Dump(args[1], args.Length > 2 ? int.Parse(args[2]) : 2); return 0; }
@@ -59,9 +63,7 @@ static class Program
             foreach (var id in args.Skip(1))
             {
                 var nh = Heroes.First(x => x.Id == id);
-                var peers = Classic.Where(x => x.Rarity == nh.Rarity && x.Role == nh.Role).ToList();
-                if (peers.Count == 0) peers = Classic.Where(x => x.Role == nh.Role).ToList();
-                Console.WriteLine($"RATE {id} {peers.Average(pp => RosterTests.WinRate(nh, pp)):0.000}");
+                Console.WriteLine($"RATE {id} {RosterTests.Peers(nh).Average(pp => RosterTests.WinRate(nh, pp)):0.000}");
             }
             return 0;
         }
@@ -115,6 +117,7 @@ static class Program
         ChangelogTests.Run(Check);
         HdClipTests.Run(Check);
         ImpactTests.Run(Check);
+        CreatureTests.Run(Check);
         ApkSizeTests.Run(Check);
         FlightTests.Run(Check);
         HdClipFileTests.Run(Check);
@@ -129,10 +132,14 @@ static class Program
         ReleaseTests.Run(Check);
         CachePolicyTests.Run(Check);
         ModelPackTests.Run(Check);
+        DigitigradeTests.Run(Check);
         UpdaterTests.Run(Check);
         FrameRateTests.Run(Check);
         QuitRuleTests.Run(Check);
         UxTests.Run(Check);
+        PolishTests.Run(Check);
+        HotPathTests.Run(Check);
+        AutoClimbTests.Run(Check);
 
         // Win-rate sweep like the web sim's fixed-team check (geared team at stage level).
         Console.WriteLine("\nStage win rates (fixed teams at stage level, 30 runs):");

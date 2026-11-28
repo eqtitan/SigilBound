@@ -47,15 +47,26 @@ namespace Sigilbound.Core
         // The next tip to show (and marks it shown), or null.
         public static Tip Next(Game g, bool onHome, bool inBattle)
         {
+            var t = Peek(g, onHome, inBattle);
+            if (t != null) g.EnsureModes().tips.Add(t.Id);
+            return t;
+        }
+        // The tip that would show next, without marking it (the pop-up queue asks first: PopupQueue).
+        public static Tip Peek(Game g, bool onHome, bool inBattle)
+        {
             if (!g.S.started) return null;
             var M = g.EnsureModes();
             foreach (var t in All)
-            {
-                if (M.tips.Contains(t.Id) || !When(t, g, onHome, inBattle)) continue;
-                M.tips.Add(t.Id);
-                return t;
-            }
+                if (!M.tips.Contains(t.Id) && When(t, g, onHome, inBattle)) return t;
             return null;
+        }
+        // A tip whose ground another guide already covered (the first-time tutorial walks through Home and the
+        // battle screen, so "welcome" and "battle" would repeat it).
+        public static void MarkShown(Game g, string id)
+        {
+            if (!g.S.started) return;
+            var M = g.EnsureModes();
+            if (!M.tips.Contains(id)) M.tips.Add(id);
         }
 
         // Existing players shouldn't see beginner tips for things they've clearly done (seedTips).
@@ -88,8 +99,8 @@ namespace Sigilbound.Core
         {
             var parts = new List<string> { $"{Battles} battle{(Battles == 1 ? "" : "s")} · {Wins} won · {Losses} lost", $"{Gold:N0} gold · {Xp:N0} XP each" };
             var shards = new List<string>();
-            if (Common > 0) shards.Add($"{Common} worn"); if (Mystic > 0) shards.Add($"{Mystic} mystic"); if (Radiant > 0) shards.Add($"{Radiant} radiant");
-            if (shards.Count > 0) parts.Add("Shards: " + string.Join(", ", shards));
+            if (Common > 0) shards.Add($"{Common} {GameData.ShardName(GameData.Shard.Common, Common)}"); if (Mystic > 0) shards.Add($"{Mystic} {GameData.ShardName(GameData.Shard.Mystic, Mystic)}"); if (Radiant > 0) shards.Add($"{Radiant} {GameData.ShardName(GameData.Shard.Radiant, Radiant)}");
+            if (shards.Count > 0) parts.Add(string.Join(", ", shards));
             if (Gear > 0) parts.Add($"{Gear} gear piece{(Gear == 1 ? "" : "s")}");
             if (LevelUps.Count > 0) parts.Add("Level ups: " + string.Join(", ", LevelUps.Distinct().Take(6)));
             return string.Join("\n", parts);

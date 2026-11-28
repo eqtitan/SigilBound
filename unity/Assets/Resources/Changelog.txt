@@ -9,14 +9,59 @@ fix: Scenery never stands between the camera and your heroes, and each chapter's
 fix: Heroes stay bright and readable at dusk and at night; the world darkens around them instead.
 change: Rolling ground, trees and rocks framing the edges, and skylines that match each land.
 
+## 2026-11-28 | New heroes and a new Titan
+fix: Act II stages have the same enemies as before the new heroes arrived, so its gentler climb (12-6, 14-6 and 15-5) is back.
+fix: Undo after releasing heroes puts them back in your saved teams in the same order.
+fix: Holding the phone upright, battles get the big round buttons, a Pause button and turn chips with ally and enemy marks.
+fix: Holding the phone upright, the campaign has the Normal/Hard and Act I/II switches, bigger stage buttons and solid locked chapters.
+fix: Enemy names on the stage list are no longer cut off; the level moves under a long name.
+fix: The release review marks every copy of a hero with "!" when you release all of them.
+fix: The Titan's arrival is filmed between your heroes, so none of them blocks its face, and its name tag keeps clear of the skill banner.
+fix: Wide heroes (Vorgrim, Talvo, Wystan, Crusk, Hartwin, Nyssa, Vessa) get more room in the Home line-up.
+fix: Heroes no longer flash in a T-pose on Home while their models load.
+new: Auto Climb: tap Climb in battle or on the results screen and, after each win, the next stage, Hard stage, dungeon floor or arena fight starts by itself until you lose or run out, then a summary shows what you earned. The game remembers your choice.
+fix: The update banner on Windows stays on top after you tap the bottom bar instead of slipping behind the screen.
+new: On Windows the game now keeps running when you click into another window, so battles don't freeze (Settings lets you pause instead, and mute the sound in the background).
+new: Six new heroes join the summon pool: Vorgrim Ashscale, Talvo Brassfang, Wystan Quillmere, Crusk Brineclaw, Hartwin Sunhorn and Nyssa Duskwing.
+new: A new Legendary hero: Vessa Silkmourne, the spider-folk Weaver of Wraithmoor, on eight legs that step and plant like a real spider's.
+new: Vessa's skills: Silk Snare slows, Widow's Venom poisons every enemy, and Silkfall Pounce leaps on a foe.
+change: The Titan has a new look: a hunched basalt colossus with huge fists, crystal ridges and molten seams that glow in its element's colour.
+change: The Titan's arena is now a caldera with lava veins and a crater rim.
+fix: The Titan's arrival is filmed from behind your heroes looking up at its face, its jump keeps the ground in view, and its name tag clears its horns.
+change: Brannoc, Vex and Aurex have new 3D models that match their portraits.
+change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
+change: Painted icons for the Gale, Light and Shadow elements on the campaign map, and each shard type has its own coloured crystal.
+change: Battle skill buttons show the skill's name instead of A1/A2/A3, and a skill on cooldown says how many turns are left.
+new: Picking a target shows WEAK or RESIST for the chosen skill, and a Status button explains the status icons on any turn, yours included.
+change: Hard, Titan and dungeon results use the full results screen, with each hero's damage, damage taken and healing.
+change: Pop-ups keep a readable width on wide screens.
+change: Dungeon floors open team setup before the fight, like the campaign and the Titan.
+change: Saving a team preset over a different team asks first.
+change: Reset save moved from Home to Settings, under Danger zone, behind a confirm.
+change: Clearer names: one name per shard (Worn, Mystic and Radiant Shard), the HP role, the View button, Replay for auto-replay, and Team on the stage list.
+fix: The tutorial, What's New, the update notice, tips and the Act II intro now show one at a time, and What's New no longer opens on your very first launch.
+fix: The turn order bar always matches who really acts next.
+change: Smoother team screen: hero models now load bit by bit over several frames instead of freezing the screen for a moment per hero.
+change: Faster first launch: sounds and effect textures now load in the background.
+fix: Fewer small stutters in long sessions: menus and the battle screen create much less throwaway data every frame.
+balance: Slow and Speed Up now change speed by 20% (was 30%).
+balance: Gear can add at most +50 speed to a hero.
+balance: Kettle, Oriel and Wren toned down; Corvan, Ysolde, Brannoc, Nyx, Tamsin and Sable strengthened.
+balance: 45 more heroes retuned for the new speeds.
+balance: Stage 13-6 and the final stage 15-6 are a little easier.
+
 ## 2026-11-27 | Fairer chapters and clearer battles
+fix: Tansy and Corran now bend their legs like a hare and a goat, with a backward-folding hock, when they walk, crouch and kneel.
+
+## 2026-11-27 | Fairer chapters and clearer battles
+change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
+change: Vex, Aurex, Brannoc, Odo and 27 more heroes have new 3D models that match their portraits.
 new: Release Heroes: filter by rarity, stars, element, role and level, keep the best copies, save presets, review before you release, and undo within 2 minutes.
 new: Rank Up shows the fodder it will use; change any slot, Auto-fill with the cheapest safe heroes, or Rank up all to a chosen star with a cost preview.
 fix: Rank-up no longer offers a newly summoned Epic or Legendary before your levelled Commons, and the confirm shows each hero's rarity and stars.
 change: The Heroes list remembers your sort choice.
 change: Easier to tap and read on phones: whole stage rows are tappable, battle buttons and text are bigger, and Continue Campaign is always visible on Home.
 fix: Menus stay clear of camera holes and rounded corners; locked buttons, the Hard and Act switches, elements and rarities no longer rely on faint text or colour alone.
-fix: The Titan's arrival is now filmed from behind your heroes looking up at its face, its jump keeps the ground in view, the caldera has lava veins and a crater rim, and its name tag clears its horns.
 fix: The Round and Enrage banner now sits under the turn order bar instead of running beneath it.
 balance: Light and Shadow chapters are easier: Flame, Gale and Tide heroes have no edge there, so those enemies are 8% weaker.
 balance: Stage 10-1 no longer jumps in difficulty, and Act II climbs more gently to a beatable final boss.

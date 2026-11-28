@@ -11,33 +11,38 @@ namespace Sigilbound.Client
     {
         bool _hardTab, _prepHard, _codex;
 
-        // ---------- campaign: Normal / Hard switch ----------
-        // Returns the y below the switch.
+        // ---------- campaign: Normal / Hard and Act switches (portrait) ----------
+        // The same segmented switches as the landscape top bar (DrawCampaignSwitches, PLAN step 106), at least
+        // 48 dp tall. Returns the y below them.
         float CampaignTabs(float y)
         {
-            if (Ui.Button(new Rect(Pad, y, 90, 32), "Normal", _hardTab ? Ui.Kind.Chip : Ui.Kind.ChipOn, 13)) { _hardTab = false; _chapterOpen = -1; }
-            if (Ui.Button(new Rect(Pad + 96, y, 90, 32), "Hard", _hardTab ? Ui.Kind.ChipOn : Ui.Kind.Chip, 13, G.S.cleared > 0)) { _hardTab = true; _chapterOpen = -1; }
-            if (_hardTab) Ui.Text(new Rect(Ui.W - 160, y, 144, 32), $"Hard {G.S.hardCleared}/{G.S.cleared}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
-            return y + 42;
+            float h = Mathf.Max(48, Ui.Tap);
+            DrawCampaignSwitches(new Rect(Pad, y, Ui.W - Pad * 2, h));
+            return y + h + 10;
         }
+        // The chapters of the act the switch shows, and a locked chapter card's colour: dimmed but opaque, so
+        // the Home heroes behind the list don't show through its text.
+        (int from, int to) ActChapters(bool hard) => MapAct(hard) == 2 ? (ClassicChapters, Chapters.Length) : (0, ClassicChapters);
+        static Color ChapterCard(Color c, bool locked) => locked ? Color.Lerp(c, new Color(0.05f, 0.04f, 0.07f), 0.45f) : new Color(c.r, c.g, c.b, 0.95f);
 
         void DrawHardCampaign(Rect area)
         {
             int hc = G.S.hardCleared;
-            int open = _chapterOpen >= 0 ? _chapterOpen : Mathf.Min(Chapters.Length - 1, hc / StagesPerChapter);
-            float content = 140 + Chapters.Length * 70 + 70;
+            var (c0, c1) = ActChapters(true);
+            int open = _chapterOpen >= 0 ? _chapterOpen : Mathf.Clamp(hc / StagesPerChapter, c0, c1 - 1);
+            float content = 160 + (c1 - c0) * 70 + 70;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = CampaignTabs(8);
             Ui.Banner(new Rect(Ui.W / 2 - 140, y + 2, 280, 30), "Hard Campaign", 19); y += 40;
-            Ui.Text(new Rect(Pad, y, Ui.W - Pad * 2, 48), "Replay stages you've cleared on Normal. Enemies are about 60% stronger and 10 levels higher, but pay double gold, extra XP and better gear.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
+            Ui.Text(new Rect(Pad, y, Ui.W - Pad * 2, 48), $"Replay stages you've cleared on Normal ({hc}/{G.S.cleared} done). Enemies are about 60% stronger and 10 levels higher, but pay double gold, extra XP and better gear.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
             y += 54;
-            for (int c = 0; c < Chapters.Length; c++)
+            for (int c = c0; c < c1; c++)
             {
                 int first = c * StagesPerChapter;
                 bool locked = first >= G.S.cleared || first > hc;
                 bool isOpen = open == c && !locked;
-                var r = Row(ref y, isOpen ? 124 : 60);
-                Ui.Panel(r, Color.Lerp(Palette.Hex("#1a0a0a"), Palette.Panel, 0.4f) * new Color(1, 1, 1, locked ? 0.5f : 0.95f), Palette.Hex("#7a2a2a"));
+                var r = Row(ref y, isOpen ? 76 + Mathf.Max(48, Ui.Tap) : 60);
+                Ui.Panel(r, ChapterCard(Color.Lerp(Palette.Hex("#1a0a0a"), Palette.Panel, 0.4f), locked), Palette.Hex("#7a2a2a"));
                 int done = Mathf.Clamp(hc - first, 0, StagesPerChapter);
                 Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 60, 24), $"Hard {c + 1}. {Chapters[c]}", 16, locked ? Palette.Dim : Palette.Text, FontStyle.Bold);
                 Ui.Text(new Rect(r.x + 14, r.y + 32, r.width - 60, 20), $"Lv {Game.StageLevel(first) + Game.HardLvl}–{Game.StageLevel(first + 5) + Game.HardLvl} · {done}/{StagesPerChapter}", 12, Palette.Dim);
@@ -48,7 +53,7 @@ namespace Sigilbound.Client
                 for (int s = 0; s < StagesPerChapter; s++)
                 {
                     int idx = first + s;
-                    var b = new Rect(r.x + 14 + s * (sw + 6), r.y + 64, sw, 48);
+                    var b = new Rect(r.x + 14 + s * (sw + 6), r.y + 64, sw, Mathf.Max(48, Ui.Tap));
                     bool can = G.HardOpen(idx);
                     var kind = idx < hc ? Ui.Kind.Secondary : can ? Ui.Kind.Red : Ui.Kind.Chip;
                     if (Ui.Button(b, Game.IsBossStage(idx) ? "Boss" : Game.StageLabel(idx), kind, 13, can)) OpenPrep(idx, false, ScreenId.Campaign, true);
@@ -72,7 +77,7 @@ namespace Sigilbound.Client
                 Ui.Text(new Rect(r.x + 74, ry, r.width - 74 - 150, 32), heroes.Count == 0 ? "empty" : string.Join(", ", heroes.Select(h => Hero(h.id).ShortName)), 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleLeft);
                 int k = i;
                 if (Ui.Button(new Rect(r.xMax - 146, ry, 64, 32), "Load", Ui.Kind.Secondary, 12)) { if (G.TeamLoad(k)) { Save(); Toast($"Team {k + 1} loaded"); } else Toast("That preset is empty. Build a team, then tap Save."); }
-                if (Ui.Button(new Rect(r.xMax - 78, ry, 64, 32), "Save", Ui.Kind.Secondary, 12)) { G.TeamSave(k); Save(); Toast($"Saved as team {k + 1}"); }
+                if (Ui.Button(new Rect(r.xMax - 78, ry, 64, 32), "Save", Ui.Kind.Secondary, 12)) AskSavePreset(k);
             }
             if (Ui.Button(new Rect(r.x + 14, r.yMax - 38, r.width - 28, 30), "Auto-equip whole team", Ui.Kind.Secondary, 12)) { G.AutoEquipTeam(); Save(); Toast("Best gear equipped on your team"); }
             return y;

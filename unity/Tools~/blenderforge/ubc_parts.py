@@ -46,8 +46,9 @@ DEFAULT = {"male": {"arms": "Male_Peasant_Arms", "body": "Male_Peasant_Body", "l
            "female": {"arms": "Female_Peasant_Arms", "body": "Female_Peasant_Body", "legs": "Female_Peasant_Legs", "feet": "Female_Peasant_Feet"}}
 FEMALE_ALT = {"Knight": "Ranger", "Noble": "Ranger", "Wizard": "Peasant"}
 
-def tint_material(mat, color, k):
-    """Base colour = mix(texture, grey(texture) * colour * 1.8, k)."""
+def tint_material(mat, color, k, boost=1.0):
+    """Base colour = mix(texture, grey(texture) * colour * 1.9 * boost, k). A light colour on a dark
+    texture (white plate on the dark knight armour) needs the boost to reach it."""
     if not mat or not mat.use_nodes: return
     nt = mat.node_tree
     bsdf = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
@@ -57,11 +58,31 @@ def tint_material(mat, color, k):
         bsdf.inputs["Base Color"].default_value = color; return
     src = link.from_socket
     bw = nt.nodes.new("ShaderNodeRGBToBW"); nt.links.new(src, bw.inputs[0])
+    if boost > 1.0:
+        # light plate on a dark pack texture: keep only its shading (texture brightness remapped into a
+        # narrow light band) times the colour, so white-and-gold armour reads white, not grey
+        mr = nt.nodes.new("ShaderNodeMapRange"); mr.clamp = True
+        mr.inputs[1].default_value = 0.0; mr.inputs[2].default_value = 0.35; mr.inputs[3].default_value = 0.72; mr.inputs[4].default_value = 1.0
+        nt.links.new(bw.outputs[0], mr.inputs[0])
+        mul = nt.nodes.new("ShaderNodeMix"); mul.data_type = "RGBA"; mul.blend_type = "MULTIPLY"; mul.inputs[0].default_value = 1.0
+        nt.links.new(mr.outputs[0], mul.inputs[6]); mul.inputs[7].default_value = tuple(color[:3]) + (1,)
+        nt.links.new(mul.outputs[2], bsdf.inputs["Base Color"])
+        try:
+            for l in [l for l in nt.links if l.to_socket == bsdf.inputs["Metallic"]]: nt.links.remove(l)
+            bsdf.inputs["Metallic"].default_value = 0.2; bsdf.inputs["Roughness"].default_value = 0.4
+        except Exception: pass
+        return
     mul = nt.nodes.new("ShaderNodeMix"); mul.data_type = "RGBA"; mul.blend_type = "MULTIPLY"; mul.inputs[0].default_value = 1.0
-    nt.links.new(bw.outputs[0], mul.inputs[6]); mul.inputs[7].default_value = tuple(min(1, c * 1.9) for c in color[:3]) + (1,)
+    nt.links.new(bw.outputs[0], mul.inputs[6]); mul.inputs[7].default_value = tuple(min(1, c * 1.9 * boost) for c in color[:3]) + (1,)
     mix = nt.nodes.new("ShaderNodeMix"); mix.data_type = "RGBA"; mix.inputs[0].default_value = k
     nt.links.new(src, mix.inputs[6]); nt.links.new(mul.outputs[2], mix.inputs[7])
     nt.links.new(mix.outputs[2], bsdf.inputs["Base Color"])
+    if boost > 1.0:   # light plate: polished white enamel, not a dark mirror (the pack's metallic steel)
+        try:
+            bsdf.inputs["Metallic"].default_value = min(bsdf.inputs["Metallic"].default_value, 0.25)
+            for l in [l for l in nt.links if l.to_socket == bsdf.inputs["Metallic"]]: nt.links.remove(l)
+            bsdf.inputs["Roughness"].default_value = 0.4
+        except Exception: pass
 
 def flat(name, color, emit=0.0, metal=0.0, rough=0.5):
     m = bpy.data.materials.new(name); m.use_nodes = True
@@ -154,7 +175,10 @@ def build(c, pose=True):
                            "headgear": pal.get("metal"), "acc": pal.get("accent")}.get(slot, pal.get("main"))
                     # Under a gown the fallback top is the gown's bodice: dyed to the gown's colour.
                     gown = str(o.get("body", "")).startswith("custom") and any(k in str(o.get("body", "")).lower() for k in ("robe", "gown", "dress", "habit"))
-                    tint_material(mat, hexc(col), 0.93 if gown and slot in ("body", "arms") else 0.7)
+                    cc = hexc(col); light = (0.3 * cc[0] + 0.59 * cc[1] + 0.11 * cc[2]) > 0.72
+                    # light plate (white and gold paladins): a near-full tint with a boost so the dark
+                    # pack texture only lends its shading
+                    tint_material(mat, cc, 0.97 if light else 0.93 if gown and slot in ("body", "arms") else 0.7, boost=2.6 if light else 1.0)
             if master is not None and arm is not None:
                 for md in m.modifiers:
                     if md.type == "ARMATURE": md.object = master

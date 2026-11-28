@@ -8,6 +8,7 @@
 // The player can turn the skin off in Settings (PlayerPrefs, not the save, like fps and shake).
 using System.Collections.Generic;
 using UnityEngine;
+using Sigilbound.Core;
 
 namespace Sigilbound.Client
 {
@@ -17,10 +18,13 @@ namespace Sigilbound.Client
         static readonly Dictionary<string, Texture2D> _tex = new Dictionary<string, Texture2D>();
         static bool? _any;
 
+        // Read from PlayerPrefs once, not on every Tex() call (dozens per GUI pass; a native call that can
+        // cross JNI on Android; code review M5).
+        static bool? _on;
         public static bool On
         {
-            get => PlayerPrefs.GetInt("sb.skin", 1) == 1;
-            set { PlayerPrefs.SetInt("sb.skin", value ? 1 : 0); PlayerPrefs.Save(); Ui.ClearStyles(); }
+            get => _on ??= PlayerPrefs.GetInt("sb.skin", 1) == 1;
+            set { _on = value; PlayerPrefs.SetInt("sb.skin", value ? 1 : 0); PlayerPrefs.Save(); Ui.ClearStyles(); }
         }
 
         // True when at least one skin image ships (the Settings row only shows then).
@@ -36,17 +40,16 @@ namespace Sigilbound.Client
         // 9-slice scaled so the texture's full height maps to r.height (borders keep their proportions).
         public static void Draw9(Rect r, Texture2D t, RectOffset b)
         {
-            float k = r.height / t.height, W = t.width, H = t.height;
+            float k = r.height / t.height;
             float l = b.left * k, rr = b.right * k, tp = b.top * k, bt = b.bottom * k;
             if (l + rr > r.width) { float s = r.width / (l + rr); l *= s; rr *= s; }
-            float[] dx = { r.x, r.x + l, r.xMax - rr, r.xMax }, dy = { r.y, r.y + tp, r.yMax - bt, r.yMax };
-            float[] u = { 0, b.left / W, 1 - b.right / W, 1 }, v = { 1, 1 - b.top / H, b.bottom / H, 0 }; // GUI y down, UV y up
+            var n = NineSlice.Of(r.x, r.y, r.width, r.height, l, rr, tp, bt, t.width, t.height, b.left, b.right, b.top, b.bottom); // no per-draw arrays
             for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 3; j++)
                 {
-                    var dst = new Rect(dx[i], dy[j], dx[i + 1] - dx[i], dy[j + 1] - dy[j]);
+                    var dst = new Rect(n.X(i), n.Y(j), n.X(i + 1) - n.X(i), n.Y(j + 1) - n.Y(j));
                     if (dst.width <= 0 || dst.height <= 0) continue;
-                    GUI.DrawTextureWithTexCoords(dst, t, new Rect(u[i], v[j + 1], u[i + 1] - u[i], v[j] - v[j + 1]));
+                    GUI.DrawTextureWithTexCoords(dst, t, new Rect(n.U(i), n.V(j + 1), n.U(i + 1) - n.U(i), n.V(j) - n.V(j + 1)));
                 }
         }
 
@@ -67,30 +70,36 @@ namespace Sigilbound.Client
             float k = Mathf.Min(maxK, Mathf.Min(r.width / (b.left + b.right), r.height / (b.top + b.bottom)) * 0.85f);
             float pad = around ? Mathf.Min(b.left, b.top) * k * 0.55f : 0f;
             r = new Rect(r.x - pad, r.y - pad, r.width + 2 * pad, r.height + 2 * pad);
-            float W = t.width, H = t.height;
             float l = b.left * k, rr = b.right * k, tp = b.top * k, bt = b.bottom * k;
-            float[] dx = { r.x, r.x + l, r.xMax - rr, r.xMax }, dy = { r.y, r.y + tp, r.yMax - bt, r.yMax };
-            float[] u = { 0, b.left / W, 1 - b.right / W, 1 }, v = { 1, 1 - b.top / H, b.bottom / H, 0 };
+            var n = NineSlice.Of(r.x, r.y, r.width, r.height, l, rr, tp, bt, t.width, t.height, b.left, b.right, b.top, b.bottom);
             for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 3; j++)
                 {
-                    var dst = new Rect(dx[i], dy[j], dx[i + 1] - dx[i], dy[j + 1] - dy[j]);
+                    var dst = new Rect(n.X(i), n.Y(j), n.X(i + 1) - n.X(i), n.Y(j + 1) - n.Y(j));
                     if (dst.width <= 0 || dst.height <= 0) continue;
                     var keep = GUI.color;
                     if (i == 1 && j == 1) GUI.color = keep * new Color(0.62f, 0.62f, 0.66f, 1f); // a darker centre so text reads
-                    GUI.DrawTextureWithTexCoords(dst, t, new Rect(u[i], v[j + 1], u[i + 1] - u[i], v[j] - v[j + 1]));
+                    GUI.DrawTextureWithTexCoords(dst, t, new Rect(n.U(i), n.V(j + 1), n.U(i + 1) - n.U(i), n.V(j) - n.V(j + 1)));
                     GUI.color = keep;
                 }
             return true;
         }
 
         // A painted button: plate (pressed variant while held) plus its centre ornament. False if no art.
+        // The variant names of a plate ("_pressed", "_pressed_orn", "_orn"), built once per plate, not per draw.
+        static readonly Dictionary<string, (string pressed, string pressedOrn, string orn)> _variants = new Dictionary<string, (string, string, string)>();
+        static (string pressed, string pressedOrn, string orn) Variants(string name)
+        {
+            if (!_variants.TryGetValue(name, out var v)) _variants[name] = v = (name + "_pressed", name + "_pressed_orn", name + "_orn");
+            return v;
+        }
         public static bool DrawButton(Rect r, string name, bool pressed)
         {
             var t = Tex(name); if (t == null) return false;
-            var tp = pressed ? Tex(name + "_pressed") : null;
-            Draw9(r, tp ?? t, Border(tp != null ? name + "_pressed" : name, 24));
-            var orn = (tp != null ? Tex(name + "_pressed_orn") : null) ?? Tex(name + "_orn");
+            var vn = Variants(name);
+            var tp = pressed ? Tex(vn.pressed) : null;
+            Draw9(r, tp ?? t, Border(tp != null ? vn.pressed : name, 24));
+            var orn = (tp != null ? Tex(vn.pressedOrn) : null) ?? Tex(vn.orn);
             if (orn != null) { float w = orn.width * r.height / orn.height; GUI.DrawTexture(new Rect(r.center.x - w / 2, r.y, w, r.height), orn); }
             return true;
         }
@@ -109,7 +118,8 @@ namespace Sigilbound.Client
                             _borders[p[0]] = new RectOffset(l, r, tp, b);
                     }
             }
-            return _borders.TryGetValue(name, out var o) ? o : new RectOffset(fallback, fallback, fallback, fallback);
+            if (!_borders.TryGetValue(name, out var o)) _borders[name] = o = new RectOffset(fallback, fallback, fallback, fallback); // once, not per call
+            return o;
         }
     }
 }

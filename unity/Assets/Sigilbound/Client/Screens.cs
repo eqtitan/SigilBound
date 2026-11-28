@@ -16,7 +16,7 @@ namespace Sigilbound.Client
             var t = Hero(h.id);
             return $"{Ui.ColorTag(Ui.Stars(h.stars), Palette.Gold)}  {t.Name}  {Ui.ColorTag($"Lv {h.level}", Palette.Dim)}";
         }
-        string Tag(HeroDef t) => $"{Ui.ColorTag(t.Rarity.ToString(), Palette.Rarity(t.Rarity))} · {Ui.ColorTag(t.Element.ToString(), Palette.Element(t.Element))} · {t.Role}";
+        string Tag(HeroDef t) => $"{Ui.ColorTag(t.Rarity.ToString(), Palette.Rarity(t.Rarity))} · {Ui.ColorTag(t.Element.ToString(), Palette.Element(t.Element))} · {RoleName(t.Role)}";
 
         // ---------- intro ----------
         void DrawIntro(Rect area)
@@ -59,7 +59,6 @@ namespace Sigilbound.Client
 
         void DrawHome(Rect area)
         {
-            MaybeShowWhatsNew(); // the "What's new" window, once after an update (WhatsNew.cs)
             if (Ui.Landscape) { DrawHomeWide(area); return; }
             float ctaH = Mathf.Max(56, Ui.Tap + 8);
             var cta = new Rect(Pad, area.yMax - ctaH - 8, Ui.W - Pad * 2, ctaH);
@@ -152,19 +151,12 @@ namespace Sigilbound.Client
             }
         }
 
+        // Reset save moved to Settings > Danger zone (UX review #17: it sat beside How to play).
         void HomeChips(Rect r)
         {
-            float third = (r.width - 10) / 3;
-            if (Ui.Button(new Rect(r.x, r.y, third, r.height), "Settings", Ui.Kind.Chip, 13)) OpenSettings();
-            if (Ui.Button(new Rect(r.x + third + 5, r.y, third, r.height), "How to play", Ui.Kind.Chip, 13)) ShowHelp();
-            if (Ui.Button(new Rect(r.x + (third + 5) * 2, r.y, third, r.height), "Reset save", Ui.Kind.Chip, 13))
-                Modal("Reset all progress?", 200, b =>
-                {
-                    Ui.Text(new Rect(b.x, b.y, b.width, 50), "This deletes your save on this device. It can't be undone.", 14, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
-                    if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
-                    if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Reset", Ui.Kind.Red))
-                    { Store?.AcceptFresh(); G = new Game(new SaveData()); G.EnsureDaily(); Save(); ClearLineup(); CloseModal(); Go(ScreenId.Intro); }
-                });
+            float half = (r.width - 5) / 2;
+            if (Ui.Button(new Rect(r.x, r.y, half, r.height), "Settings", Ui.Kind.Chip, 13)) OpenSettings();
+            if (Ui.Button(new Rect(r.x + half + 5, r.y, half, r.height), "How to play", Ui.Kind.Chip, 13)) ShowHelp();
         }
 
         void ShowHelp() => Modal("How to play", 470, b =>
@@ -181,19 +173,20 @@ namespace Sigilbound.Client
         // ---------- campaign ----------
         void DrawCampaign(Rect area)
         {
-            int open = _chapterOpen >= 0 ? _chapterOpen : Mathf.Min(Chapters.Length - 1, G.S.cleared / StagesPerChapter);
-            float content = 92 + Chapters.Length * 70 + 70;
+            var (c0, c1) = ActChapters(false);
+            int open = _chapterOpen >= 0 ? _chapterOpen : Mathf.Clamp(G.S.cleared / StagesPerChapter, c0, c1 - 1);
+            float content = 108 + (c1 - c0) * 70 + 70;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = CampaignTabs(8);
             Ui.Banner(new Rect(Ui.W / 2 - 130, y + 2, 260, 30), "Campaign", 19); y += 42;
-            for (int c = 0; c < Chapters.Length; c++)
+            for (int c = c0; c < c1; c++)
             {
                 int first = c * StagesPerChapter;
                 bool locked = first > G.S.cleared;
                 bool isOpen = open == c && !locked;
-                var r = Row(ref y, isOpen ? 124 : 60);
+                var r = Row(ref y, isOpen ? 76 + Mathf.Max(48, Ui.Tap) : 60);
                 var sc = Palette.Scene(c);
-                Ui.Panel(r, Color.Lerp(sc.top, Palette.Panel, 0.6f) * new Color(1, 1, 1, locked ? 0.5f : 0.95f), Palette.Line);
+                Ui.Panel(r, ChapterCard(Color.Lerp(sc.top, Palette.Panel, 0.6f), locked), Palette.Line);
                 int done = Mathf.Clamp(G.S.cleared - first, 0, StagesPerChapter);
                 Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 60, 24), $"{c + 1}. {Chapters[c]}", 16, locked ? Palette.Dim : Palette.Text, FontStyle.Bold);
                 Ui.Text(new Rect(r.x + 14, r.y + 32, r.width - 60, 20), $"{Game.ChapterElement(c)} · Lv {Game.StageLevel(first)}–{Game.StageLevel(first + 5)} · {done}/{StagesPerChapter}", 12, Palette.Dim);
@@ -205,7 +198,7 @@ namespace Sigilbound.Client
                     for (int s = 0; s < StagesPerChapter; s++)
                     {
                         int idx = first + s;
-                        var b = new Rect(r.x + 14 + s * (sw + 6), r.y + 64, sw, 48);
+                        var b = new Rect(r.x + 14 + s * (sw + 6), r.y + 64, sw, Mathf.Max(48, Ui.Tap));
                         var kind = idx < G.S.cleared ? Ui.Kind.Secondary : idx == G.S.cleared ? Ui.Kind.Primary : Ui.Kind.Chip;
                         if (Ui.Button(b, Game.IsBossStage(idx) ? "Boss" : Game.StageLabel(idx), kind, 13, idx <= G.S.cleared)) OpenPrep(idx, false, ScreenId.Campaign);
                     }
@@ -216,6 +209,7 @@ namespace Sigilbound.Client
 
         // ---------- team prep ----------
         public void EditTeam(int stage, bool hard = false) => OpenPrep(stage, false, ScreenId.Campaign, hard); // from the results screen
+        public void EditDungeonTeam(DungeonKey key, int floor) => OpenDungeonPrep(key, floor);
         // While the player picks a team, start loading this fight's enemy models (their Hollow copies, the
         // same for Hard) and the Titan, so they arrive as themselves when the battle starts.
         void PreloadStage(int stage, bool titan)
@@ -230,7 +224,7 @@ namespace Sigilbound.Client
             }
             catch (System.Exception e) { Debug.LogWarning("Sigilbound: preload failed: " + e.Message); }
         }
-        void OpenPrep(int stage, bool titan, ScreenId back, bool hard = false, bool practice = false) { PreloadStage(stage, titan); _prepStage = stage; _prepTitan = titan; _prepPractice = titan && practice; _prepHard = hard && !titan; _prepBack = back; Go(ScreenId.Prep); }
+        void OpenPrep(int stage, bool titan, ScreenId back, bool hard = false, bool practice = false) { PreloadStage(stage, titan); _prepDungeon = false; _prepStage = stage; _prepTitan = titan; _prepPractice = titan && practice; _prepHard = hard && !titan; _prepBack = back; Go(ScreenId.Prep); }
 
         void DrawPrep(Rect area)
         {
@@ -241,20 +235,12 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(Pad, y, 80, 34), "‹ Back", Ui.Kind.Secondary, 13)) Go(_prepBack);
             Ui.Text(new Rect(Ui.W - 200, y, 184, 34), $"Power {Ui.Fmt(G.TeamPower)}", 13, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
             y += 44;
-            string title = _prepTitan ? "Titan Challenge" : $"{(_prepHard ? "Hard " : "Stage ")}{Game.StageLabel(_prepStage)} · {StoryScenes.StopName(_prepStage) ?? Chapters[Game.ChapterOf(_prepStage)]}";
-            string sub = _prepTitan ? (_prepPractice ? $"{TitanElement(System.DateTime.Now)} Titan · Practice: no rewards, no try used" : $"{TitanElement(System.DateTime.Now)} Titan today · {G.S.daily.titanTries} tries left")
-                : $"Enemy Lv {Game.StageLevel(_prepStage) + (_prepHard ? Game.HardLvl : 0)} · {(Game.IsBossStage(_prepStage) ? "3 waves · Boss" : "2 waves")}{(_prepHard ? " · Hard" : "")}";
+            string title = PrepTitle(), sub = PrepSub(PrepWaves());
             Ui.Text(new Rect(Pad, y, Ui.W - 32, 28), title, 19, Palette.Text, FontStyle.Bold); y += 28;
             Ui.Text(new Rect(Pad, y, Ui.W - 32, 20), sub, 13, Palette.Dim); y += 30;
             var team = G.Team;
             Ui.Text(new Rect(Pad, y, Ui.W - 32, 20), $"Team ({team.Count}/4): " + (team.Count == 0 ? "tap heroes below" : string.Join(", ", team.Select(h => Hero(h.id).ShortName))), 13, Palette.Text); y += 30;
-            bool can = team.Count > 0 && (!_prepTitan || _prepPractice || G.S.daily.titanTries > 0);
-            if (Ui.Button(Row(ref y, 50), _prepTitan ? (_prepPractice ? "Practice vs the Titan" : "Challenge the Titan") : _prepHard ? "Battle (Hard)!" : "Battle!", Ui.Kind.Primary, 18, can))
-            {
-                if (_prepTitan && _prepPractice) Battle.Begin(BattleSpec.TitanPractice());
-                else if (_prepHard) Battle.Begin(BattleSpec.ForHard(_prepStage));
-                else Battle.Begin(_prepTitan ? -1 : _prepStage);
-            }
+            if (Ui.Button(Row(ref y, 50), PrepGoLabel(), Ui.Kind.Primary, 18, PrepCanGo())) PrepGo();
             y += 4;
             y = DrawPresets(y);
             Ui.Text(new Rect(Pad, y - 4, Ui.W - 32, 18), "Tap a hero to add them", 11, Palette.Dim); y += 18;
@@ -310,7 +296,7 @@ namespace Sigilbound.Client
                 Ui.RarityTab(new Rect(r.x + 20, r.y + 4, tx > 22 ? 48 : 16, 16), t.Rarity, 15); // rarity as a letter too, not only the frame colour (UX review #4)
                 int ti = G.S.team.IndexOf(h.uid);
                 // Team tag above the power on the right, so the name keeps room (the portrait took 48 px).
-                if (ti >= 0) Ui.Text(new Rect(r.xMax - 84, r.y + 6, 74, 20), $"Team {ti + 1}", 12, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight);
+                if (ti >= 0) Ui.Text(new Rect(r.xMax - 84, r.y + 6, 74, 20), $"In team #{ti + 1}", 12, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight); // "Team 1-3" are the presets (UX review #14)
                 Ui.Text(new Rect(r.xMax - 84, ti >= 0 ? r.y + 26 : r.y, 74, ti >= 0 ? 22 : 54), Ui.Fmt(G.Power(h)), 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
                 Ui.Text(new Rect(r.x + tx, r.y + 4, r.width - 90 - tx, 24), HeroLine(h), 14, Palette.Text, FontStyle.Bold);
                 Ui.Text(new Rect(r.x + tx, r.y + 28, r.width - 90 - tx, 20), Tag(t), 12, Palette.Dim);
@@ -446,7 +432,7 @@ namespace Sigilbound.Client
                 var rates = ShardRates(s);
                 Color c = s == Shard.Common ? Palette.Hex("#c9a37b") : s == Shard.Mystic ? Palette.Blue : Palette.Hex("#ffb02e");
                 Ui.Panel(r, new Color(0.12f, 0.1f, 0.17f, 0.94f), c);
-                string name = s == Shard.Common ? "Worn Shard" : s == Shard.Mystic ? "Mystic Shard" : "Radiant Shard";
+                string name = ShardName(s);
                 Ui.Text(new Rect(r.x + 14, r.y + 8, r.width - 28, 24), $"{name}  {Ui.ColorTag($"owned {G.ShardCount(s)}", Palette.Dim)}", 16, c, FontStyle.Bold);
                 string rateText = string.Join(" · ", Enumerable.Range(0, 4).Where(i => rates[i] > 0).Select(i => Ui.ColorTag($"{(Rarity)i} {rates[i]}%", Palette.Rarity((Rarity)i))));
                 Ui.Text(new Rect(r.x + 14, r.y + 34, r.width - 28, 20), rateText, 12, Palette.Text);
@@ -461,8 +447,8 @@ namespace Sigilbound.Client
             foreach (Shard s in System.Enum.GetValues(typeof(Shard)))
             {
                 int cost = ExchangeCost(s);
-                if (Ui.Button(new Rect(e.x + 14 + k * ((e.width - 40) / 3 + 6), e.y + 42, (e.width - 40) / 3, 54), $"{s}\n{cost} essence", Ui.Kind.Secondary, 12, G.S.essence >= cost))
-                { if (G.Exchange(s)) { Save(); Toast($"+1 {s} shard"); } }
+                if (Ui.Button(new Rect(e.x + 14 + k * ((e.width - 40) / 3 + 6), e.y + 42, (e.width - 40) / 3, 54), $"{ShardName(s)}\n{cost} essence", Ui.Kind.Secondary, 12, G.S.essence >= cost))
+                { if (G.Exchange(s)) { Save(); Toast($"+1 {ShardName(s)}"); } }
                 k++;
             }
             Scroller.End();

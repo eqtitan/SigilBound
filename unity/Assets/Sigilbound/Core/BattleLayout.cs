@@ -2,6 +2,7 @@
 // is testable outside Unity. Coordinates here are Unity's (left-handed, +Z away from the default
 // camera): the web's three.js (x, y, z) maps to (x, y, -z), which keeps the same picture on screen.
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Sigilbound.Core
@@ -47,6 +48,20 @@ namespace Sigilbound.Core
             double half = n <= 1 ? 0 : Math.Min(70 * Math.PI / 180, step * (n - 1) / 2);
             double t = n <= 1 ? 0 : -half + i * (2 * half / (n - 1));
             double a = ally ? t : Math.PI - t;               // 0 = near side (camera), PI = far side
+            return new V3(RimCx + Math.Sin(a) * RimRx, 0, RimCz - Math.Cos(a) * RimRz);
+        }
+
+        // As Slot, with per-unit widths (Creatures.SlotWidth: a spider-folk takes more room): each gap is
+        // Spacing x the mean width of its two neighbours, the row stays centred and within the same 140 degrees.
+        public static V3 Slot(bool ally, int i, IList<double> widths)
+        {
+            int n = widths.Count;
+            if (n <= 1) return Slot(ally, 0, 1);
+            double step = Spacing / ((RimRx + RimRz) / 2), total = 0; var at = new double[n];
+            for (int k = 1; k < n; k++) { total += step * (widths[k - 1] + widths[k]) / 2; at[k] = total; }
+            double half = total / 2, scale = Math.Min(1.0, 70 * Math.PI / 180 / Math.Max(1e-6, half));
+            double t = (at[i] - half) * scale;
+            double a = ally ? t : Math.PI - t;
             return new V3(RimCx + Math.Sin(a) * RimRx, 0, RimCz - Math.Cos(a) * RimRz);
         }
 
@@ -211,14 +226,29 @@ namespace Sigilbound.Core
         // the foreground) looking up the Titan's front. Key A: 3.2 m behind the row at 1.1 m, aimed at its
         // waist (feet to chest in frame, the heroes' heads low in the foreground). Key B (the roar): 1.2 m behind
         // the row, between the two middle heroes, at 0.8 m, aimed up at its face (TitanFace). Then it blends into the view.
-        public static (CamView a, CamView b) TitanIntroKeys(double aspect)
+        // heroXs: the team's x positions. The camera stands in the gap nearest the middle, so with an odd team
+        // (3 heroes: the middle one at x = 0) it no longer sits right behind a hero's back (in-house report,
+        // 2026-11-28: Pell's back filled the frame and hid the Titan's face).
+        public static (CamView a, CamView b) TitanIntroKeys(double aspect, IList<double> heroXs = null)
         {
             var ts = TitanSlot(); double row = Slot(true, 1, 4).Z; bool portrait = aspect < 0.75;
-            var a = new CamView { Eye = new V3(0, 1.1, row - 3.2), Target = new V3(0, TitanHead * 0.42, ts.Z), Fov = portrait ? 70 : 52 };
-            var b = new CamView { Eye = new V3(0, 0.8, row - 1.2), Target = new V3(0, TitanFace, ts.Z), Fov = portrait ? 74 : 56 };
+            double ex = IntroGapX(heroXs);
+            var a = new CamView { Eye = new V3(ex, 1.1, row - 3.2), Target = new V3(ex * 0.5, TitanHead * 0.42, ts.Z), Fov = portrait ? 70 : 52 };
+            var b = new CamView { Eye = new V3(ex, 0.8, row - 1.2), Target = new V3(0, TitanFace, ts.Z), Fov = portrait ? 74 : 56 };
             // Both keep the ground in frame: the aim drops just enough (the face then sits above the centre).
             a.Target = ClampTargetForGround(a.Eye, a.Target, a.Fov); b.Target = ClampTargetForGround(b.Eye, b.Target, b.Fov);
             return (a, b);
+        }
+
+        // The x of the gap between neighbouring heroes nearest the middle (0 with no team or an even one).
+        public static double IntroGapX(IList<double> heroXs)
+        {
+            if (heroXs == null || heroXs.Count == 0) return 0;
+            var xs = heroXs.OrderBy(x => x).ToList();
+            if (xs.Count == 1) return xs[0] + (xs[0] > 0 ? -1 : 1) * Spacing / 2;
+            double best = 0, bestD = double.MaxValue;
+            for (int i = 1; i < xs.Count; i++) { double m = (xs[i - 1] + xs[i]) / 2; if (Math.Abs(m) < bestD) { bestD = Math.Abs(m); best = m; } }
+            return best;
         }
 
         // A cinematic camera keeps the ground in frame (77-titan-4 showed the Titan alone in an empty sky):
