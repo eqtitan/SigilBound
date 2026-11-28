@@ -324,9 +324,20 @@ namespace Sigilbound.Client
         }
 
         // ---------- GUI ----------
+        public static bool Running { get; private set; }
+        void OnEnable() => Running = true;
+        void OnDisable() => Running = false;
+
+        // Everything the game draws, then the update banner last so it always sits on top (Updater.Overlay).
         void OnGUI()
         {
             if (_shotNoUi) return;
+            try { DrawGui(); }
+            finally { GUI.enabled = true; GUI.matrix = Matrix4x4.identity; Updater.Overlay(); }
+        }
+
+        void DrawGui()
+        {
             // Battle, the modes hub and (in landscape) Home, the map and team setup use the whole width; menus a column.
             bool wide = Screen == ScreenId.Battle || Screen == ScreenId.Modes || ((Screen == ScreenId.Campaign || Screen == ScreenId.Prep || Screen == ScreenId.Home) && Ui.Landscape);
             Ui.Begin(wide);
