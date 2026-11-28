@@ -202,7 +202,7 @@ time with builds as the bottleneck (one CI build at a time, ~1 hour).
 | glTFast + Humanoid at runtime: avatar build fails on a skeleton | Same checks as AvatarBuilder offline (`RigLibraryTests`); runtime falls back to legacy and logs `SBMODEL <id>: rig LEGACY` |
 | Baked clips wrong (curve names, root handling) | Editor round-trip check logs error per clip; the game falls back if no clip set loads; real-build tour judges frames |
 | Muscle offsets sign (front/back) wrong for a gait | small values, checked in the tour frames; table is data |
-| APK size | Humanoid clips are muscle curves only (~70 clips); digitigrade baked leg clips go away at batch 7 |
+| APK size | 70 Humanoid clips = 6.4 MB uncompressed (keyed every frame; keyframe reduction can roughly halve it); APK 172.7 MB in run 208; digitigrade baked leg clips go away at batch 7 |
 | Phone performance | One Animator + a 4-input mixer + one job per hero; Humanoid evaluation is a native multi-threaded job. 10 units in battle is well within mobile budgets; measured in the smoke `SBBUDGET` lines; Low quality can skip the posture job |
 | Mixed roster during migration | Per-hero flag; legacy path untouched |
 | Code stripping on IL2CPP removes Animator/Director code used only from scripts | `link.xml` keeps the Animation and Director modules |
@@ -301,4 +301,9 @@ built from those real frames. Results are recorded below per build.
 
 ### Build log
 
-(filled in from the real builds)
+- **Run 208** (commit 4045b0a): the editor baked 70 Humanoid clips (59 shared + 11 Titan; 6.4 MB uncompressed in
+  Resources); all five pilots loaded as `rig humanoid` in the player (52 human bones each; Corran
+  BipedDigitigrade, Titan Brute), no exceptions, smoke passed, every gallery `SBBOUNDS` ok, APK 172.7 MB (budget 190).
+  Gallery and Titan-fight shots show the pilots on the new path (scratchpad `skel_pilot/stage1/`). The pilot tour
+  itself photographed the still-running Titan practice fight instead of the pilots (L024); fixed in ba8fde8.
+- **Run 211** (ba8fde8, with the physics standard and the tour fix): cancelled to free the queue for main.
