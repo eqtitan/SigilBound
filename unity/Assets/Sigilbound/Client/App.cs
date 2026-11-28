@@ -34,7 +34,7 @@ namespace Sigilbound.Client
 
         // screen state
         int _heroUid; GameData.Slot _slot; int _chapterOpen = -1; int _prepStage = -1; bool _prepTitan, _prepPractice; ScreenId _prepBack;
-        Vector2 _scroll; string _sort = "power";
+        Vector2 _scroll; // the hero-list sort (_sort) is saved: RosterUi.cs
         readonly List<CharacterView> _lineup = new List<CharacterView>();
         List<string> _shotLineup; bool _shotNoUi; // screenshot mode: a chosen lineup, menus hidden (ShotsMode gallery)
         string _lineupKey = "";
@@ -152,6 +152,7 @@ namespace Sigilbound.Client
             Store?.AcceptFresh(); // the player chose this save over the unreadable one
             G = new Game(s);
             G.EnsureDaily();
+            _undo = null; _rp = RosterPanel.None; // a pending release undo belongs to the old save
             Save();
             _lineupKey = "";
             Quality.I?.Set(G.S.settings.quality, Quality.SavedFpsMode(G.S.settings.fpsCap));
@@ -171,6 +172,7 @@ namespace Sigilbound.Client
         {
             if (s != Screen) HeroModels.TrimSoon(); // let go of hero models the new screen doesn't show
             Screen = s; _scroll = Vector2.zero; CloseModal();
+            _rp = RosterPanel.None; // a roster panel closes when you go anywhere (RosterUi.cs)
         }
 
         void Update()
@@ -198,6 +200,7 @@ namespace Sigilbound.Client
         {
             if (Screen == ScreenId.Battle) { Battle.BackPressed(); return; }
             if (ModalOpen) { CloseModal(); return; }
+            if (RosterBack()) return; // Release Heroes / Rank Up panels step back inside the Heroes screen
             switch (Screen)
             {
                 case ScreenId.Titan: case ScreenId.Dungeon: case ScreenId.ArenaPvp: Go(ScreenId.Trials); break;

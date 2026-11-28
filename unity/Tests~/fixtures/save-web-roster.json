@@ -1,0 +1,19 @@
+{
+  "v": 1, "started": true, "nextUid": 5, "gold": 1234, "essence": 7,
+  "heroes": [{"uid": 1, "id": "pell", "level": 3, "xp": 0, "stars": 1, "gear": {}, "locked": false},
+             {"uid": 2, "id": "pell", "level": 1, "xp": 0, "stars": 1, "gear": {}, "locked": true}],
+  "gear": [], "team": [1],
+  "webOnly": {"twoD": true},
+  "roster": {
+    "presets": [
+      {"name": "Everything", "rarity": 255, "stars": 255, "element": 0, "role": 0, "minLv": -5, "maxLv": 99, "dupes": false, "keep": 9, "protect": 0},
+      {"name": "A very long preset name indeed", "rarity": 1, "stars": 1, "keep": 1, "protect": 4},
+      {"name": "", "rarity": 2, "stars": 2, "minLv": 40, "maxLv": 10, "keep": -2, "protect": 4096},
+      {"name": "Fine", "rarity": 1, "stars": 3, "keep": 1, "protect": 255},
+      {"name": "Fifth", "rarity": 1, "stars": 3},
+      5
+    ],
+    "active": 7, "sort": "zzz", "rankTarget": 9, "rankTeamOnly": true,
+    "futureKey": [1, 2, 3]
+  }
+}

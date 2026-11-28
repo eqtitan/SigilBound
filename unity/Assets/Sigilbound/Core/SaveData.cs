@@ -84,6 +84,7 @@ namespace Sigilbound.Core
         public SettingsSave settings = new SettingsSave();
         public ModesSave modes = new ModesSave();
         public int wins, summons; public long titanBestAllTime;
+        public RosterPrefs roster = new RosterPrefs();        // release presets, hero sort, rank-up-all choices (Roster.cs; optional "roster" key)
         public string playerName = "";
         public string gameVersion = "";
         // The JSON this save was read from. Fields the Unity app doesn't use (sound volumes,

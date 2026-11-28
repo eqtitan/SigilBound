@@ -107,6 +107,8 @@ static class Program
         StoryScenesTests.Run(Check);
         LairRevealTests.Run(Check);
         SaveSafetyTests.Run(Check);
+        RankUpTests.Run(Check);
+        ReleaseTests.Run(Check);
         CachePolicyTests.Run(Check);
         ModelPackTests.Run(Check);
         UpdaterTests.Run(Check);
