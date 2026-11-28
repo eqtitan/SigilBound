@@ -94,7 +94,7 @@ sweeps, review sheets, `before_after.jpg`, `motion.gif`), summary `physics/summa
 
 | Batch | Heroes | Result |
 |---|---|---|
-| 1 | kit capes, worst cape severity first: wick, nocturne, imogen, sprig, aurelia, tallow, dunstan, kaija, hilde, bastian | 1 SHIP, 9 SHIP WITH NOTE, 0 REVERT (preview sweeps; real build pending the CI queue). Legs no longer split the capes in the run, idles, kneels and lying poses (cape depth inside the body over every swept frame down 70-100% per hero). Notes: in Death01 the cape trails below the falling body for a few frames; kaija needs 5 chains x 4 bones. 15-20 spring joints per hero. |
+| 1 | kit capes, worst cape severity first: wick, nocturne, imogen, sprig, aurelia, tallow, dunstan, kaija, hilde, bastian | 10 SHIP: owner approved for the in-game check (2026-11-28) and chose to keep the natural Death01 cape lag (no pinning); real build pending the CI queue. Legs no longer split the capes in the run, idles, kneels and lying poses (cape depth inside the body over every swept frame down 70-100% per hero). Accepted: in Death01 the cape trails below the falling body for a few frames; kaija needs 5 chains x 4 bones. 15-20 spring joints per hero. |
 
 Tuning history (batch 1, so the next batch starts from the right defaults - L033): the skirt pilot's settings made
 capes sag into the legs when a hero lay face down (gravity), get squeezed by the floor under a lying hero (ground
