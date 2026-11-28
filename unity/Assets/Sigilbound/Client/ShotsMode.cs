@@ -306,7 +306,8 @@ namespace Sigilbound.Client
         // owner can judge the sun and moon against the real sky. Each case: the battle view (shadow direction, band and
         // colour) and "-up", the same eye turned toward the sun or moon (the battle camera looks 30 degrees down and
         // its frame ends below the horizon, so the disc itself only shows in low views). A night-by-design lair at
-        // noon must stay night. Logged as "SBSKY <case> <sky> band .. light pitch/yaw .. disc el/yaw .. moon ..".
+        // noon must stay night. Logged as "SBSKY <case> <sky> band .. light pitch/yaw .. disc el/yaw .. moon .." and
+        // "SBSKY <case> edge glow <0..1>": the battle-view frames show the edge glow (owner: NY 12:00 and 17:30 must).
         // The rest of the tour runs under SkyClock's fixed moment (midsummer noon, New York): shots never change with the hour.
         IEnumerator SkyTour()
         {
@@ -330,6 +331,7 @@ namespace Sigilbound.Client
                 yield return new WaitForSecondsRealtime(boss ? 3.2f : 2.5f);   // boss stages: after the lair reveal
                 var li = Arena.Light; var sky = SkyClock.Current;
                 ShotLog($"SBSKY {k.name} {sky} band {li?.Mood} light pitch {li?.SunPitch:0.0} yaw {li?.SunYaw:0.0} disc el {li?.DiscElevation:0.0} yaw {li?.DiscYaw:0.0} (compass {(sky != null && li != null ? SolarClock.AzimuthOf(li.DiscYaw, sky.Lat) : 0):0}) {(li != null && li.DiscMoon ? "moon" : "sun")}{(li != null && li.DesignNight ? " night-by-design" : "")}");
+                ShotLog($"SBSKY {k.name} edge glow {(Arena.Sky != null ? Arena.Sky.EdgeGlow : 0f):0.00} in the battle view");
                 yield return Shot("sky-" + k.name);
                 if (Arena.Sky != null)
                 {

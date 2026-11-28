@@ -24,7 +24,7 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 | docs | changelog, PLAN, roadmap | L013 L029 L030 |
 | process | who pushes, approvals | L014 L029 L030 L031 |
 | tooling | keys, scripts | L012 |
-| sky | real sun and moon: Core/SolarClock.cs (SolarClock NOAA sun + moon, bands, face-the-equator yaw; SkyState; SkyClock fixed tour clock; LocationGuess), SceneGen.LightOf(sky), Client/SkySun.cs (clock, coarse location, Settings > Sky), Client/SkyDisc.cs + Shaders/SigilSkyGlow.shader (disc and halo), Editor/AndroidLocationPermission.cs, ShotsMode SkyTour, Tests~/SkyTests.cs | L032 L033 L034 |
+| sky | real sun and moon: Core/SolarClock.cs (SolarClock NOAA sun + moon, bands, face-the-equator yaw; SkyState; SkyClock fixed tour clock; LocationGuess), SceneGen.LightOf(sky), Client/SkySun.cs (clock, coarse location, Settings > Sky), Client/SkyDisc.cs + Shaders/SigilSkyGlow.shader (disc, halo, edge glow and beams; Core/SkyEdge), Editor/AndroidLocationPermission.cs, ShotsMode SkyTour, Tests~/SkyTests.cs | L032 L033 L034 |
 
 ```mermaid
 graph LR

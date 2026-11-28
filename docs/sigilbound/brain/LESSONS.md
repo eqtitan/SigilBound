@@ -312,12 +312,13 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Evidence: mobile/android/app/build.gradle (applicationId "com.sigilbound.game"); unity/Assets/Sigilbound/Editor/ProjectSetup.cs; docs/sigilbound/store/READINESS.md item 5
 
 ## L032 - The battle cameras never see the sky
-- Status: open
+- Status: solved
 - Systems: sky, scenes
 - Symptom: the owner asked for a sun disc "in view for most of the day"; placed at its true elevation it is off screen in the menu and every default battle view, at any hour.
 - Cause: by design (Scenery.cs ridge comment, art review M1) the menu camera looks 30 degrees down with a 42 degree lens and the Three-quarter battle view 30 degrees down with 50 degrees, so the top of the frame is 5-10 degrees below the horizon (the boss tilt adds 6, reaching about +1); painted ridges fill the top. Only low views (Cinematic, portrait's wider lens, the lair reveal, the Titan's views) show sky. Also: the sky arc and ridges are Sprites/Default (no depth write, no fog), so their order is purely the render queue, and the arena's linear fog would erase anything ~42 m out drawn with a fogged shader.
 - Fix: branch feat/real-sun keeps the disc exactly on the light's line (owner rule) and draws it at 42 m from the camera with its own unfogged additive shader (Shaders/SigilSkyGlow.shader, queue 2996 between the sky 2995 and the ridges 2997-2999); the shadows show the sun's direction in every view. ShotsMode's SkyTour adds a "-up" frame per case, the same eye turned toward the disc.
-- Prevention: before promising something "visible" in the arena, project it through BattleLayout.View for the default preset at 16:9 and portrait (SkyTests does this for left/right); owner decision needed if the disc should also show in the default view (a raised "visual" elevation, or a higher boss-style tilt), which would break the light/disc alignment rule.
+- Fix (owner decision 2026-11-28): the disc stays exactly true; when it is outside the frame an edge glow (warm radial glow plus 3-5 slow beams from the top edge on its side; faint and cool by moonlight; storms dim it; no beams on Low) stands in, from Core/SkyEdge (out-of-frame angle and strength) drawn by SkyDisc at queue 3100, under the IMGUI HUD.
+- Prevention: before promising something "visible" in the arena, project it through BattleLayout.View for the default preset at 16:9 and portrait; SkyTests checks the edge glow shows in the default battle view at NY 12:00 and 17:30 and is off when the disc is truly in frame.
 - Related: L004, L034
 - Evidence: Core/BattleLayout.cs Cameras (angle: pitch 30, FovFor 50), Arena.FrameMenu (pitch ~30.5, fov 42), Client/Scenery.cs backdrop comment; branch feat/real-sun SkyTour
 

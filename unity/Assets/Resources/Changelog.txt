@@ -3,7 +3,7 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-28 | The real sun
-new: The sun now shines in the sky above the arena, with a soft glow, right where the light and shadows come from. At night you see the moon.
+new: The sun now shines in the sky above the arena, with a soft glow, right where the light and shadows come from. At night you see the moon. When the sun is above the view, its warm glow and soft beams come in from the top of the screen on its side.
 new: The sky follows your real time of day: morning light, a high noon sun, golden evenings and moonlit nights. Story stages that are set at night stay night.
 new: Settings > Sky: turn Real sun at my location on or off, or tap Use my location. Your location stays on your device and is never sent anywhere; without it, your time zone places the sun.
 change: The arena now faces the sun's path across the sky, so the sun rises on one side, crosses and sets on the other.

@@ -65,7 +65,7 @@ static class SkyTests
     public static void Run(Action<bool, string> check)
     {
         var keep = SkyClock.Current; SkyClock.Current = null;
-        try { Sun(check); Moon(check); Bands(check); Mapping(check); Guess(check); Light(check); Tour(check); Popups(check); Sources(check); }
+        try { Sun(check); Moon(check); Bands(check); Mapping(check); Guess(check); Light(check); Edge(check); Tour(check); Popups(check); Sources(check); }
         finally { SkyClock.Current = keep; }
     }
 
@@ -210,6 +210,45 @@ static class SkyTests
         check(!SceneGen.Generate(0, 1).Light.Real, "sky light: with SkyClock cleared the layout is authored again");
     }
 
+    // ---------- the edge glow (owner decision: the disc stays true; a glow and beams from the top edge) ----------
+    static V3 Dir(double yawDeg, double elDeg)
+    {
+        double y = yawDeg * Math.PI / 180, e = elDeg * Math.PI / 180;
+        return new V3(Math.Sin(y) * Math.Cos(e), Math.Sin(e), Math.Cos(y) * Math.Cos(e));
+    }
+    static (double outDeg, double x, bool behind) InView(CamView v, double aspect, V3 dir)
+    {
+        var f = (v.Target - v.Eye).Normalized; var r = new V3(0, 1, 0).Cross(f).Normalized; var u = f.Cross(r);
+        return SkyEdge.Frame(dir, r, u, f, v.Fov, aspect);
+    }
+
+    static void Edge(Action<bool, string> check)
+    {
+        check(SkyEdge.Strength(0, 30, false, false).glow == 0 && SkyEdge.Strength(20, -3, false, false).glow == 0, "edge glow: none while the disc is in frame or below the horizon");
+        var near = SkyEdge.Strength(10, 25, false, false); var far = SkyEdge.Strength(80, 25, false, false);
+        check(near.glow > far.glow && far.glow > 0.2 && near.beams == near.glow, $"edge glow: weaker the farther the sun is outside the frame, never gone while it is up ({near.glow:0.00} vs {far.glow:0.00})");
+        check(SkyEdge.Strength(30, 70, false, false).glow < SkyEdge.Strength(30, 25, false, false).glow * 0.7, "edge glow: weaker for a high noon sun");
+        var moon = SkyEdge.Strength(30, 25, true, false);
+        check(moon.beams == 0 && moon.glow > 0 && moon.glow < SkyEdge.Strength(30, 25, false, false).glow * 0.5, "edge glow: a faint moon glow with no beams");
+        check(SkyEdge.Strength(30, 25, false, true).glow < SkyEdge.Strength(30, 25, false, false).glow * 0.5, "edge glow: storms dim it");
+        // The default battle view (16:9) at the owner's cases: NY 12:00 (sun ahead, above the frame) and 17:30 (moon).
+        var view = BattleLayout.View(BattleLayout.DefaultCamera, 16.0 / 9, false);
+        foreach (var (name, utc, minGlow) in new[] { ("NY 12:00", U(2026, 11, 28, 17), 0.5), ("NY 17:30", U(2026, 11, 28, 22, 30), 0.08) })
+        {
+            var li = SceneGen.LightOf(0, 1, false, false, SkyState.At(utc, 40.7, -74));
+            var (o, x, _) = InView(view, 16.0 / 9, Dir(li.DiscYaw, li.DiscElevation));
+            var g = SkyEdge.Strength(o, li.DiscElevation, li.DiscMoon, false);
+            check(o > 0 && g.glow >= minGlow, $"edge glow: the default battle view shows it at {name} ({(li.DiscMoon ? "moon" : "sun")} {o:0}° outside, glow {g.glow:0.00}, from x {x:0.00})");
+        }
+        // The glow comes from the sun's side; in a low view (Cinematic) a low sun inside the frame is the disc, not a glow.
+        var left = InView(view, 16.0 / 9, Dir(SolarClock.CameraHeading - 30, 20));
+        check(left.x < 0.5 && InView(view, 16.0 / 9, Dir(SolarClock.CameraHeading + 30, 20)).x > 0.5, "edge glow: enters on the sun's side of the top edge");
+        var low = BattleLayout.View("low", 16.0 / 9, false);
+        var lf = (low.Target - low.Eye).Normalized; double lowYaw = Math.Atan2(lf.X, lf.Z) * 180 / Math.PI;
+        var inLow = InView(low, 16.0 / 9, Dir(lowYaw, 3));
+        check(inLow.outDeg == 0 && SkyEdge.Strength(inLow.outDeg, 3, false, false).glow == 0, "edge glow: none when the disc is truly in frame (Cinematic, low sun ahead)");
+    }
+
     // ---------- the screenshot tour and the tests never depend on the hour ----------
     static void Tour(Action<bool, string> check)
     {
@@ -266,6 +305,8 @@ static class SkyTests
             "sky: the disc's additive shader ships (always-included list)");
         var sh = File.ReadAllText(Path.Combine(root, "Assets", "Sigilbound", "Client", "Shaders", "SigilSkyGlow.shader"));
         check(sh.Contains("Blend One One") && sh.Contains("ZWrite Off") && !sh.Contains("multi_compile_fog"), "sky: the disc is unlit additive light with no fog and no depth write");
+        check(disc.Contains("EdgeQueue = 3100") && disc.Contains("tier >= 2 ? 5 : tier == 1 ? 3 : 0") && disc.Contains("int beams = Moon ? 0") && shots.Contains("edge glow"),
+            "edge glow: drawn over the 3D scene and under the HUD, 5 beams (3 on Medium, none on Low or by moonlight), logged by the tour");
         check(scen.Contains("SkyDisc.Queue - 1") && disc.Contains("Queue = 2996") && scen.Contains("2996 + i"), "sky: the disc draws after the painted sky and before the backdrop ridges");
     }
 }

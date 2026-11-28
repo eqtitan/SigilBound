@@ -167,6 +167,42 @@ namespace Sigilbound.Core
         public static SkyState Fixed() => SkyState.At(FixedUtc, FixedLat, FixedLon, "fixed");
     }
 
+    // The edge glow (owner decision 2026-11-28): the disc stays exactly true, so when the sun (or moon) is above or beside
+    // the frame - always, in the default battle and menu views, which end below the horizon (L032) - a warm glow and a few
+    // soft beams come in from the top edge on its side. How far outside the frame and how strong (Client/SkyDisc).
+    public static class SkyEdge
+    {
+        // Angles of a direction in a camera's frame: right, up and forward are the camera's unit axes; vfov in degrees.
+        // out: degrees between the direction and the nearest frame edge (0 inside); x: the screen x (0..1) the glow comes
+        // from, on the body's side (clamped inside the top edge); behind: the body is behind the camera.
+        public static (double outDeg, double x, bool behind) Frame(V3 dir, V3 right, V3 up, V3 forward, double vfov, double aspect)
+        {
+            double lx = dir.Dot(right), ly = dir.Dot(up), lz = dir.Dot(forward);
+            double ax = Math.Atan2(lx, lz) * 180 / Math.PI, ay = Math.Asin(Math.Max(-1, Math.Min(1, ly))) * 180 / Math.PI;
+            double hv = vfov / 2, hx = Math.Atan(Math.Tan(hv * Math.PI / 180) * aspect) * 180 / Math.PI;
+            double ox = Math.Max(0, Math.Abs(ax) - hx), oy = Math.Max(0, Math.Abs(ay) - hv);
+            double x = 0.5 + 0.5 * Math.Tan(Math.Max(-80, Math.Min(80, ax)) * Math.PI / 180) / Math.Tan(hx * Math.PI / 180);
+            return (Math.Sqrt(ox * ox + oy * oy), Math.Max(0.06, Math.Min(0.94, x)), lz < 0);
+        }
+
+        // Strength of the glow and of the beams (0..1 before colour). Zero while the disc is truly in frame (it fades in over
+        // the first 4 degrees outside, so the two never double up) or below the horizon; weaker the farther outside (never
+        // gone while the body is up: a sun behind the camera still warms the top edge a little); weaker for a high noon
+        // sun; the moon a faint cool glow with no beams; storms dim both.
+        public static (double glow, double beams) Strength(double outDeg, double elevation, bool moon, bool storm)
+        {
+            if (elevation < -1.5 || outDeg <= 0) return (0, 0);
+            double enter = Smooth(0, 4, outDeg);
+            double far = 1 - 0.65 * Smooth(5, 90, outDeg);
+            double high = 1 - 0.5 * Smooth(30, 75, elevation);
+            double low = Smooth(-1.5, 2, elevation);
+            double k = enter * far * high * low * (storm ? 0.45 : 1);
+            return moon ? (k * 0.45, 0) : (k, k);
+        }
+
+        static double Smooth(double a, double b, double v) { double t = Math.Max(0, Math.Min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); }
+    }
+
     // Where the player probably is, without asking (and the fallback when they say no or there is no fix).
     public static class LocationGuess
     {
