@@ -15,47 +15,13 @@ namespace Sigilbound.Client
 {
     public static class Scenery
     {
-        sealed class Theme
+        // The biome table moved to Core/Biomes.cs (the scene generator and its tests read it too).
+        static ArenaReactor.Hazard HazardOf(string vent) => vent switch
         {
-            public string Name, Grass, Grass2, Worn, Hill, Rock, Bark, Tuft, Cloth, Sil, Water, Motes, MoteColor; public string[] Leaves, Strata; public bool Crystals, Mushrooms;
-            // Act 2 scatter: pier posts and crates, glowing lantern posts, bare dead trees, reeds,
-            // standing stones and barrow mounds; and glowing leaves (the ember groves).
-            public bool Posts, Lanterns, DeadTrees, Reeds, Stones, GlowLeaves;
-            // Painted backdrop and mood (SCENERY.md): ridge style (hills, forest, peaks, mesas, sea, ruins,
-            // volcano), worked ruins (flagstones, columns, walls), storm (lightning on boss stages), the
-            // boss stages' vent eruptions, and the fog range.
-            public string Style = "hills"; public bool Ruins, Storm; public ArenaReactor.Hazard Vent = ArenaReactor.Hazard.Dust;
-            public float FogNear = 26, FogFar = 64, Clouds = 0.5f;
-            public bool Pines; // conifers only (the Stormcrown crag)
-        }
-        // scenery.mjs THEMES and TITAN_THEME.
-        static readonly Theme[] Themes =
-        {
-            new Theme { Name = "dusk forest", Grass = "#4f6a2a", Grass2 = "#6f7432", Worn = "#8a6844", Hill = "#41582a", Rock = "#7d746a", Bark = "#4e3726", Leaves = new[] { "#3c6a26", "#557a2a", "#a8702a", "#b8522a" }, Tuft = "#5f7a2c", Cloth = "#7a2a22", Sil = "#2e2c46", Motes = "leaves", MoteColor = "#e08a3a", Style = "forest" },
-            new Theme { Name = "teal shore", Grass = "#c2a87e", Grass2 = "#b39b72", Worn = "#8c7a5e", Hill = "#a8956a", Rock = "#6a7078", Bark = "#9a8a76", Leaves = new[] { "#4a6a3a", "#5a7a40" }, Tuft = "#8f9a52", Water = "#1f5f6c", Cloth = "#d8d0b8", Sil = "#24404e", Motes = "spray", MoteColor = "#e8f6ff", Style = "sea", Vent = ArenaReactor.Hazard.Water },
-            new Theme { Name = "red badlands", Grass = "#94503a", Grass2 = "#ad6844", Worn = "#c09070", Hill = "#8a4632", Rock = "#a0553a", Bark = "#5e4636", Strata = new[] { "#8a4430", "#b06a46", "#6e3426", "#c4885a" }, Tuft = "#857040", Cloth = "#d0a040", Sil = "#44201f", Motes = "dust", MoteColor = "#ffc890", Style = "mesas", FogNear = 30, FogFar = 72, Clouds = 0.3f },
-            new Theme { Name = "green marsh", Grass = "#3a5630", Grass2 = "#4f6236", Worn = "#6e5a40", Hill = "#34502e", Rock = "#58605a", Bark = "#433a30", Leaves = new[] { "#4a5a30" }, Tuft = "#7a8a44", Water = "#22402f", Cloth = "#5a4a30", Sil = "#223c36", Motes = "fireflies", MoteColor = "#d8ff7a", Style = "hills", Vent = ArenaReactor.Hazard.Water, FogNear = 20, FogFar = 56 },
-            new Theme { Name = "gold ruins", Grass = "#58652f", Grass2 = "#76763c", Worn = "#8e8474", Hill = "#4c5a2c", Rock = "#a49a88", Bark = "#5a4636", Leaves = new[] { "#4c682c", "#667a32" }, Tuft = "#6a7a34", Cloth = "#7a2a4a", Sil = "#36304c", Motes = "sparks", MoteColor = "#ffd27a", Crystals = true, Style = "ruins", Ruins = true, Vent = ArenaReactor.Hazard.Crystal },
-            new Theme { Name = "blossom forest", Grass = "#557636", Grass2 = "#748646", Worn = "#977660", Hill = "#4a6a34", Rock = "#8a8088", Bark = "#4a3036", Leaves = new[] { "#e89ac0", "#f0b0cc", "#d880aa", "#f8cade" }, Tuft = "#6a8a3c", Cloth = "#5a3a7a", Sil = "#463858", Motes = "petals", MoteColor = "#ffc0dc", Style = "forest", Clouds = 0.4f },
-            new Theme { Name = "moonlit shore", Grass = "#a39c8c", Grass2 = "#958e80", Worn = "#77705f", Hill = "#8a8474", Rock = "#5c6272", Bark = "#8a8478", Leaves = new[] { "#3a5a4a" }, Tuft = "#6a7a5a", Water = "#1a3658", Cloth = "#c8d0e0", Sil = "#1a2642", Motes = "spray", MoteColor = "#cfe2ff", Style = "sea", Vent = ArenaReactor.Hazard.Water },
-            new Theme { Name = "amethyst badlands", Grass = "#5e4e6c", Grass2 = "#6f5c80", Worn = "#9584a6", Hill = "#54466a", Rock = "#5e4c70", Bark = "#4a3c4e", Strata = new[] { "#56466c", "#6f5c86", "#463a5a", "#88729e" }, Tuft = "#6a5a7a", Cloth = "#3a2a5a", Sil = "#221a36", Motes = "sparks", MoteColor = "#c890ff", Crystals = true, Style = "mesas", Vent = ArenaReactor.Hazard.Crystal, FogNear = 28, FogFar = 70 },
-            new Theme { Name = "glow marsh", Grass = "#2c4846", Grass2 = "#385850", Worn = "#5e586c", Hill = "#284242", Rock = "#4a5460", Bark = "#38384a", Leaves = new[] { "#2a4a4a" }, Tuft = "#4a7a6a", Water = "#123040", Cloth = "#2a3a5a", Sil = "#122838", Motes = "fireflies", MoteColor = "#80e8ff", Mushrooms = true, Style = "hills", Vent = ArenaReactor.Hazard.Spores, FogNear = 20, FogFar = 56 },
-            new Theme { Name = "burning ruins", Grass = "#665834", Grass2 = "#7a6238", Worn = "#8a7a6a", Hill = "#5a4a30", Rock = "#7a6e64", Bark = "#4a3a2e", Leaves = new[] { "#5a5a2a", "#7a5a26" }, Tuft = "#7a6a3a", Cloth = "#6a1a1a", Sil = "#381410", Motes = "embers", MoteColor = "#ff8a3a", Crystals = true, Style = "ruins", Ruins = true, Vent = ArenaReactor.Hazard.Lava, Clouds = 0.6f },
-            // Act 2 (GameData.ThemeOf: chapters 11-15).
-            new Theme { Name = "saltreach harbor", Grass = "#8a8070", Grass2 = "#9a907c", Worn = "#6e6658", Hill = "#7a7262", Rock = "#5a5c62", Bark = "#5a4632", Tuft = "#7a7a5a", Water = "#163a4a", Cloth = "#c8b890", Sil = "#1e2c3a", Motes = "spray", MoteColor = "#e0f0ff", Posts = true, Lanterns = true, Style = "sea", Vent = ArenaReactor.Hazard.Water },
-            new Theme { Name = "black fens", Grass = "#1e2a20", Grass2 = "#26322a", Worn = "#3a3a30", Hill = "#1a2620", Rock = "#3a4038", Bark = "#2a2620", Tuft = "#3a4a30", Water = "#0a1410", Cloth = "#2a3020", Sil = "#0e1812", Motes = "fireflies", MoteColor = "#b0ff6a", DeadTrees = true, Reeds = true, Mushrooms = true, Style = "forest", Vent = ArenaReactor.Hazard.Spores, FogNear = 16, FogFar = 50, Clouds = 0.6f },
-            new Theme { Name = "wraithmoor barrows", Grass = "#56584a", Grass2 = "#626452", Worn = "#7a7868", Hill = "#4a4c40", Rock = "#6a6c70", Bark = "#3a3632", Tuft = "#6a6a52", Cloth = "#3a3a4a", Sil = "#202230", Motes = "dust", MoteColor = "#d8e0f0", Stones = true, DeadTrees = true, Style = "hills", FogNear = 18, FogFar = 54, Clouds = 0.65f },
-            new Theme { Name = "ember groves", Grass = "#3a3230", Grass2 = "#4a3c34", Worn = "#5a4a40", Hill = "#34302e", Rock = "#4a4440", Bark = "#2a2220", Leaves = new[] { "#ff7a2a", "#ffaa3a", "#e04a1a" }, Tuft = "#5a4a3a", Cloth = "#6a1a10", Sil = "#2a0e0a", Motes = "embers", MoteColor = "#ff9a3a", GlowLeaves = true, Style = "forest", Vent = ArenaReactor.Hazard.Lava },
-            new Theme { Name = "storm coast", Grass = "#4a5052", Grass2 = "#565c5c", Worn = "#6a6a66", Hill = "#3e4446", Rock = "#3a3e46", Bark = "#3a3432", Tuft = "#5a6456", Water = "#0e2234", Cloth = "#8a9aa8", Sil = "#0e1622", Motes = "rain", MoteColor = "#b8d0ff", Stones = true, Style = "peaks", Storm = true, Vent = ArenaReactor.Hazard.Water, FogNear = 20, FogFar = 58, Clouds = 0.8f },
+            "water" => ArenaReactor.Hazard.Water, "lava" => ArenaReactor.Hazard.Lava, "crystal" => ArenaReactor.Hazard.Crystal, "spores" => ArenaReactor.Hazard.Spores, _ => ArenaReactor.Hazard.Dust,
         };
-        // Themes 15 and 16 (GameData.GlassTheme, CragTheme): their own lands for The Glass Wastes and Stormcrown Heights.
-        static readonly Theme GlassDesert = new Theme { Name = "glass desert", Grass = "#b8aa8a", Grass2 = "#c8bc9c", Worn = "#9a8e76", Hill = "#a89a7c", Rock = "#8a8478", Bark = "#5a4e44", Tuft = "#9a9070", Cloth = "#6a8aa0", Sil = "#3a4458", Motes = "sparks", MoteColor = "#c8f4ff", Crystals = true, DeadTrees = true, Style = "dunes", Vent = ArenaReactor.Hazard.Crystal, FogNear = 30, FogFar = 74, Clouds = 0.3f };
-        static readonly Theme StormcrownCrag = new Theme { Name = "stormcrown crag", Grass = "#5a6260", Grass2 = "#6a706c", Worn = "#7a7a74", Hill = "#4a5052", Rock = "#5a5e66", Bark = "#3a3430", Leaves = new[] { "#2e4a3a", "#3a5240" }, Tuft = "#6a7062", Cloth = "#4a5a7a", Sil = "#141c2c", Motes = "dust", MoteColor = "#e8f0ff", Stones = true, Pines = true, Style = "peaks", Storm = true, Vent = ArenaReactor.Hazard.Dust, FogNear = 22, FogFar = 60, Clouds = 0.75f };
-        static Theme[] _all;
-        static Theme[] All => _all ??= new List<Theme>(Themes) { GlassDesert, StormcrownCrag }.ToArray();
-        static readonly Theme TitanTheme = new Theme { Name = "titan caldera", Grass = "#3a3436", Grass2 = "#463e3e", Worn = "#6a625e", Hill = "#332e30", Rock = "#2e2a2e", Bark = "#2a2222", Tuft = "#3a3030", Cloth = "#5a1a10", Sil = "#1e0c0a", Motes = "embers", MoteColor = "#ff7a2a", Style = "volcano", Storm = true, Vent = ArenaReactor.Hazard.Lava, Clouds = 0.6f };
         public static string ThemeName(int chapter, bool titan) => ThemeOf(chapter, titan).Name;
-        static Theme ThemeOf(int chapter, bool titan) => titan ? TitanTheme : All[Mathf.Clamp(GameData.ThemeOf(chapter), 0, All.Length - 1)];
+        static Biome ThemeOf(int chapter, bool titan) => Biomes.Of(chapter, titan);
         public static Color ShadowColor(int chapter, bool titan) => Palette.Hex(ThemeOf(chapter, titan).Sil);
         public static (float near, float far) FogRange(int chapter, bool titan) { var th = ThemeOf(chapter, titan); return (th.FogNear, th.FogFar); }
         public static bool Stormy(int chapter, bool titan) => ThemeOf(chapter, titan).Storm;
@@ -67,6 +33,8 @@ namespace Sigilbound.Client
         static string _paintKey; static readonly List<Object> _paint = new List<Object>();
         static Material _groundMat, _waterMat, _ramp, _farRamp, _glow, _fire; static Material[] _backMats; static Mesh[] _arcs;
         static readonly Dictionary<string, Material> _glows = new Dictionary<string, Material>();
+        static Color32[] _rampPx, _farRampPx;                                       // the ramps on the CPU, to paint generated landmarks
+        static readonly Dictionary<string, Material> _landmarkMats = new Dictionary<string, Material>();
         static T Keep<T>(T o) where T : Object { _paint.Add(o); return o; }
 
         // Builds the arena under `root`. density: scatter density (quality tier). top/fog: the sky's
@@ -74,9 +42,11 @@ namespace Sigilbound.Client
         // (ArenaReactor). set: the campaign stop (Core.StoryScenes) whose set-pieces stand here; night: Hard
         // mode, the same stops by night with lanterns lit.
         public static void Build(Transform root, int chapter, bool titan, float density, Color fog, Color top = default, bool interactive = false, Light sun = null,
-                                 StageSet set = null, bool night = false)
+                                 StageSet set = null, bool night = false, SceneLayout layout = null)
         {
             var th = ThemeOf(chapter, titan);
+            if (titan) layout = null;   // the Titan keeps its caldera build (Caldera, the scatter loop below)
+            float tint = layout?.Light.WorldTint ?? 1f;
             var rng = new System.Random(titan ? 1337 : 101 + chapter * 7);
             float R(float a, float b) => a + (float)rng.NextDouble() * (b - a);
             if (top == default) top = Color.Lerp(fog, Color.black, 0.6f);
@@ -84,14 +54,19 @@ namespace Sigilbound.Client
             bool kit = SceneryKit.Ready;
             float waterZ = th.Water != null || titan ? 10f : -1f;
 
-            string key = $"{th.Name}/{chapter}/{titan}/{kit}/{ColorUtility.ToHtmlStringRGB(fog)}{ColorUtility.ToHtmlStringRGB(top)}"; // the mood changes sky and ridges
+            string key = $"{th.Name}/{chapter}/{layout?.Stage ?? -1}/{titan}/{kit}/{ColorUtility.ToHtmlStringRGB(fog)}{ColorUtility.ToHtmlStringRGB(top)}"; // per stage: the road and the mood // the mood changes sky and ridges
             if (key != _paintKey)
             {
                 foreach (var o in _paint) if (o != null) Object.Destroy(o);
-                _paint.Clear(); _paintKey = key;
+                _paint.Clear(); _paintKey = key; _landmarkMats.Clear();
                 uint seed = (uint)(titan ? 1337 : 101 + chapter * 7);
                 var horizon = Color.Lerp(D(th.Hill, AG), fog * 0.6f, 0.5f);
-                var groundTex = Keep(SceneryPaint.Ground(D(th.Grass, AG), D(th.Grass2, AG), D(th.Worn, AG * 0.9f), D(th.Rock, 0.5f), (uint)(chapter % 7), th.Ruins, D(th.Worn, 0.25f), waterZ, horizon));
+                float[] path = null;
+                if (layout != null) { path = new float[layout.Path.Count * 2]; for (int i = 0; i < layout.Path.Count; i++) { path[i * 2] = layout.Path[i].x; path[i * 2 + 1] = layout.Path[i].z; } }
+                // leaf litter, ash or shingle blotches in the biome's colour, seeded per stage
+                Color spots = th.Leaves != null ? D(th.Leaves[th.Leaves.Length - 1], AG) : D(th.Rock, AG); spots.a = layout != null ? 0.35f : 0f;
+                var groundTex = Keep(SceneryPaint.Ground(D(th.Grass, AG), D(th.Grass2, AG), D(th.Worn, AG * 0.9f), D(th.Rock, 0.5f), layout != null ? layout.Seed % 97u : (uint)(chapter % 7), th.Ruins, D(th.Worn, 0.25f), waterZ, horizon,
+                                                         path: path, world: tint, lane: layout?.Light.LaneTint ?? 1f, lift: layout?.Light.LaneLift ?? 1f, spots: spots));
                 _groundMat = Keep(new Material(Materials.Lit(Color.white, 0, 0.08f)) { name = "GroundPaint", mainTexture = groundTex });
                 if (_groundMat.HasProperty("_BaseMap")) _groundMat.SetTexture("_BaseMap", groundTex);
                 // sky and three ridge layers: painted strips around the arena, pre-hazed and unlit. The nearest
@@ -127,13 +102,15 @@ namespace Sigilbound.Client
                 }
                 if (kit)
                 {
-                    var ramp = Keep(SceneryPaint.Ramp(Rows(th), Palette.Hex(th.Sil), sunTint));
+                    _rampPx = SceneryPaint.RampPixels(Rows(th, tint), Palette.Hex(th.Sil), sunTint);
+                    var ramp = Keep(SceneryPaint.Ramp(Rows(th, tint), Palette.Hex(th.Sil), sunTint));
                     _ramp = Keep(new Material(Materials.Lit(Color.white, 0, 0.12f)) { name = "SceneryRamp", mainTexture = ramp });
                     if (_ramp.HasProperty("_BaseMap")) _ramp.SetTexture("_BaseMap", ramp);
                     // Landmarks on the horizon: the same painting pushed toward the ridges' shadow colour and darkened,
                     // so after the fog they still read as a silhouette instead of washing out (owner check, build 133).
-                    var sil = Palette.Hex(th.Sil); var rows = Rows(th);
+                    var sil = Palette.Hex(th.Sil); var rows = Rows(th, tint);
                     for (int i = 0; i < rows.Length; i++) { var c = Color.Lerp(rows[i], sil, 0.55f) * 0.7f; c.a = 1; rows[i] = c; }
+                    _farRampPx = SceneryPaint.RampPixels(rows, sil, Color.Lerp(sil, sunTint, 0.3f));
                     var farRamp = Keep(SceneryPaint.Ramp(rows, sil, Color.Lerp(sil, sunTint, 0.3f)));
                     _farRamp = Keep(new Material(Materials.Lit(Color.white, 0, 0.05f)) { name = "SceneryFarRamp", mainTexture = farRamp });
                     if (_farRamp.HasProperty("_BaseMap")) _farRamp.SetTexture("_BaseMap", farRamp);
@@ -152,6 +129,7 @@ namespace Sigilbound.Client
             Object.Destroy(ground.GetComponent<Collider>());
             ground.name = "Ground"; ground.transform.SetParent(root, false);
             ground.transform.localScale = new Vector3(9, 1, 9);
+            if (layout != null && layout.Relief > 0) Terrain(ground, layout);
             ground.GetComponent<Renderer>().sharedMaterial = _groundMat;
             ground.GetComponent<Renderer>().receiveShadows = true;
             var far = GameObject.CreatePrimitive(PrimitiveType.Plane);
@@ -180,12 +158,23 @@ namespace Sigilbound.Client
             if (interactive)
             {
                 react = root.gameObject.AddComponent<ArenaReactor>();
-                react.Kind = th.Vent; react.Storm = th.Storm; react.NoCracks = titan; // the Titan's own moves crack the ground (SkillFx)
+                react.Kind = HazardOf(th.Vent); react.Storm = th.Storm; react.NoCracks = titan; // the Titan's own moves crack the ground (SkillFx)
                 react.Tint = Palette.Hex(th.MoteColor); react.Ramp = _ramp; react.Sun = sun;
                 react.Tier = Quality.I != null ? Quality.I.Tier : 2;
             }
 
             if (!kit) ScatterSimple(root, th, titan, density, R);
+            else if (layout != null)
+            {
+                // ---- the generated scene (Core/SceneGen): every placement already checked against every camera ----
+                SceneryKit.EnsurePack(GameData.ActOf(chapter) == 1 ? "story_act1" : "story_act2");
+                foreach (var it in layout.Items) PlaceItem(root, it, react);
+                if (react != null)
+                {
+                    react.Vents.Add(new Vector3(-6.8f, 0, 8f)); react.Vents.Add(new Vector3(6.8f, 0, 8f));
+                    react.Vents.Add(new Vector3(R(-2f, 2f), 0, waterZ > 0 ? waterZ + 0.8f : 11.5f));
+                }
+            }
             else
             {
                 // ---- scatter (kept off the arena ellipse and the camera side) ----
@@ -267,7 +256,7 @@ namespace Sigilbound.Client
             }
             return false;
         }
-        static void Caldera(Transform root, Theme th)
+        static void Caldera(Transform root, Biome th)
         {
             var parent = new GameObject("Caldera").transform; parent.SetParent(root, false);
             // Lava veins: the lake's material on long narrow planes (u along the vein), just above the ground.
@@ -341,6 +330,103 @@ namespace Sigilbound.Client
             return mesh;
         }
 
+        // One generated placement: the near or far ramp, the stop's glow, an image-to-3D landmark's own painted texture,
+        // and the boss-stage behaviours (sway, flare, toll, spin ...) handed to the reactor.
+        static void PlaceItem(Transform root, Placement it, ArenaReactor react)
+        {
+            bool far = it.Far || it.Layer == Layer.Skyline;
+            var pc = new Piece { Mesh = it.Mesh, Glow = it.Glow, Fx = it.Fx, FxY = it.FxY, Scale = it.Scale };
+            var glow = GlowFor(pc);
+            bool pulses = react != null && (it.Fx == LairFx.Chime || it.Fx == LairFx.Drip || it.Fx == LairFx.Pulse || it.Fx == LairFx.Beam || it.Fx == LairFx.Snuff);
+            if (pulses) glow = Keep(new Material(glow));
+            var lm = SceneryKit.Landmark(it.Mesh);
+            GameObject go;
+            if (lm != null)
+            {
+                string mk = it.Mesh + (far ? "/far" : "");
+                if (!_landmarkMats.TryGetValue(mk, out var mat) || mat == null)
+                {
+                    var gc = Palette.Hex(StoryScenes.GlowHex(it.Glow) ?? "#ffd890");
+                    var tex = Keep(SceneryPaint.LandmarkTexture(lm.Shade, lm.Row, lm.W, lm.H, far ? _farRampPx : _rampPx, gc, out var mask));
+                    if (mask != null)
+                    {
+                        // glowing texels: a glow material with the mask as its emission map (the reactor's pulse drives its colour)
+                        Keep(mask);
+                        mat = Keep(new Material(Materials.Glow(Color.white, gc, far ? 0.6f : 1.1f)) { name = "Landmark_" + it.Mesh, mainTexture = tex });
+                        if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", Color.white);
+                        if (mat.HasProperty("_EmissionMap")) { mat.EnableKeyword("_EMISSION"); mat.SetTexture("_EmissionMap", mask); }
+                    }
+                    else mat = Keep(new Material(Materials.Lit(Color.white, 0, far ? 0.05f : 0.12f)) { name = "Landmark_" + it.Mesh, mainTexture = tex });
+                    if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
+                    _landmarkMats[mk] = mat;
+                }
+                go = SceneryKit.PlaceMesh(root, lm.Mesh, it.Mesh, new Vector3(it.X, it.Y, it.Z), it.Scale, it.Yaw, mat);
+                if (pulses && mat.HasProperty("_EmissionMap") && mat.GetTexture("_EmissionMap") != null) { mat = Keep(new Material(mat)); go.GetComponent<MeshRenderer>().sharedMaterial = mat; glow = mat; }
+            }
+            else go = SceneryKit.Place(root, it.Mesh, new Vector3(it.X, it.Y, it.Z), it.Scale, it.Yaw, far ? _farRamp : _ramp, glow);
+            if (go == null) { Debug.LogWarning("[scenery] mesh missing: " + it.Mesh); return; }
+            bool story = it.Layer == Layer.SetPiece || it.Layer == Layer.Landmark || it.Layer == Layer.LandmarkPart;
+            if (story) go.name = "Story_" + it.Mesh;
+            if (it.Mesh == "banner_pole") Banner(root, go, react);
+            if (react == null) return;
+            if (it.Mesh == "brazier") { go.AddComponent<SceneryMoves>(); react.Braziers.Add(go.transform); return; }
+            if (it.Fx == LairFx.Sway || (!story && it.Sway)) { go.AddComponent<SceneryMoves>(); react.Sway.Add(go.transform); }
+            else if (it.Fx == LairFx.Vent) react.Vents.Add(go.transform.position);
+            else if (it.Fx != LairFx.None)
+            {
+                go.AddComponent<SceneryMoves>();
+                react.Lair.Add(new ArenaReactor.LairPart { T = go.transform, Fx = it.Fx, Anchor = go.transform.position + Vector3.up * it.FxY * it.Scale, Glow = pulses ? glow : null });
+            }
+        }
+
+        // The ground's relief (Core/SceneGen.TerrainHeight): the 90 m field as a grid, flat in the lane, on the road and
+        // at the shore. The texture mapping is copied from Unity's Plane (fitted to its own vertices), so the painted
+        // ground lines up exactly as before.
+        static readonly Dictionary<string, Mesh> _terrain = new Dictionary<string, Mesh>();
+        static void Terrain(GameObject ground, SceneLayout layout)
+        {
+            var mf = ground.GetComponent<MeshFilter>();
+            string key = $"{layout.Chapter}/{layout.Stage}/{layout.Tier}";
+            if (!_terrain.TryGetValue(key, out var mesh) || mesh == null)
+            {
+                if (_terrain.Count > 6) { foreach (var m in _terrain.Values) if (m != null) Object.Destroy(m); _terrain.Clear(); }
+                // uv = a + b*x + c*z on the plane (it is affine), solved from three of its vertices
+                var pv = mf.sharedMesh.vertices; var pu = mf.sharedMesh.uv;
+                int i0 = 0, i1 = 0, i2 = 0;
+                for (int i = 0; i < pv.Length; i++)
+                {
+                    if (pv[i].x < pv[i0].x - 1e-3f || (Mathf.Abs(pv[i].x - pv[i0].x) < 1e-3f && pv[i].z < pv[i0].z)) i0 = i;
+                }
+                for (int i = 0; i < pv.Length; i++) { if (Mathf.Abs(pv[i].z - pv[i0].z) < 1e-3f && pv[i].x > pv[i1].x) i1 = i; }
+                i1 = i1 == i0 ? 1 : i1;
+                for (int i = 0; i < pv.Length; i++) { if (Mathf.Abs(pv[i].x - pv[i0].x) < 1e-3f && pv[i].z > pv[i2].z) i2 = i; }
+                float dxp = pv[i1].x - pv[i0].x, dzp = pv[i2].z - pv[i0].z;
+                Vector2 du = (pu[i1] - pu[i0]) / dxp, dv = (pu[i2] - pu[i0]) / dzp;
+                int n = SceneGen.TerrainGrid[layout.Tier] + 1;
+                var verts = new Vector3[n * n]; var uv = new Vector2[n * n]; var tris = new int[(n - 1) * (n - 1) * 6];
+                for (int z = 0; z < n; z++)
+                    for (int x = 0; x < n; x++)
+                    {
+                        float wx = -45f + 90f * x / (n - 1), wz = -45f + 90f * z / (n - 1);
+                        float lx = wx / 9f, lz = wz / 9f;   // the plane is scaled 9x
+                        verts[z * n + x] = new Vector3(lx, layout.Height(wx, wz), lz);
+                        uv[z * n + x] = pu[i0] + du * (lx - pv[i0].x) + dv * (lz - pv[i0].z);
+                    }
+                int t = 0;
+                for (int z = 0; z < n - 1; z++)
+                    for (int x = 0; x < n - 1; x++)
+                    {
+                        int a = z * n + x;
+                        tris[t++] = a; tris[t++] = a + n; tris[t++] = a + 1; tris[t++] = a + 1; tris[t++] = a + n; tris[t++] = a + n + 1;
+                    }
+                mesh = new Mesh { name = "Terrain" };
+                mesh.vertices = verts; mesh.uv = uv; mesh.triangles = tris; mesh.RecalculateNormals(); mesh.RecalculateBounds();
+                _terrain[key] = mesh;
+            }
+            // heights are in world metres; the plane's 9x scale is on x and z only
+            mf.sharedMesh = mesh;
+        }
+
         // An unlit painted arc (sky or ridge): no shadows, never hidden as an occluder ("Sky" names).
         static void Backdrop(Transform root, string name, Mesh mesh, Material m)
         {
@@ -406,7 +492,7 @@ namespace Sigilbound.Client
         }
 
         // Material rows of the prop ramp from the theme's colours (make_props.py rows).
-        static Color[] Rows(Theme th)
+        static Color[] Rows(Biome th, float tint = 1f)
         {
             var r = new Color[SceneryPaint.Rows];
             Color H(string h) => Palette.Hex(h);
@@ -419,12 +505,12 @@ namespace Sigilbound.Client
             r[SceneryKit.Cloth] = H(th.Cloth); r[SceneryKit.Metal] = H("#3c3a40"); r[SceneryKit.Cap] = H(th.MoteColor) * 0.5f; r[SceneryKit.Stem] = H("#d8cdb0");
             r[SceneryKit.Reed] = Color.Lerp(H(th.Tuft), H(th.Worn), 0.3f); r[SceneryKit.Earth] = th.Strata != null ? H(th.Strata[1]) : H(th.Hill);
             r[SceneryKit.Trim] = H("#c9a24a"); r[SceneryKit.Coal] = H("#2a1a14");
-            for (int i = 0; i < r.Length; i++) { var c = r[i] * AP; c.a = 1; r[i] = c; }
+            for (int i = 0; i < r.Length; i++) { var c = r[i] * AP * tint; c.a = 1; r[i] = c; }
             return r;
         }
 
         // What grows or stands in each theme: (kit prefix, weight, scale range, sways on boss stages).
-        static List<(string prefix, float w, float lo, float hi, bool sway)> Picks(Theme th)
+        static List<(string prefix, float w, float lo, float hi, bool sway)> Picks(Biome th)
         {
             var l = new List<(string, float, float, float, bool)> { ("rock", 3f, 0.7f, 1.8f, false), ("tuft", 1.2f, 0.8f, 1.3f, false) };
             if (th.Leaves != null && th.Pines) { l.Add(("pine", 3.5f, 0.8f, 1.3f, true)); l.Add(("bush", 0.6f, 0.7f, 1.0f, true)); }
@@ -443,7 +529,7 @@ namespace Sigilbound.Client
         }
 
         // Without the prop kit (missing Resources/Scenery/props.bytes): the original primitive scatter.
-        static void ScatterSimple(Transform root, Theme th, bool titan, float density, System.Func<float, float, float> R)
+        static void ScatterSimple(Transform root, Biome th, bool titan, float density, System.Func<float, float, float> R)
         {
             bool Clear(float x, float z) => Mathf.Pow(x / 6.2f, 2) + Mathf.Pow((z - 0.6f) / 5.6f, 2) < 1 || z < -7;
             int n = Mathf.RoundToInt(70 * density);
@@ -482,7 +568,7 @@ namespace Sigilbound.Client
         // Faceted low-poly trees as in scenery.mjs: a broadleaf (tapered trunk, clustered faceted
         // canopy) or, about a third of the time, a pine of stacked cones.
         // Act 2 scatter. Returns true when it placed something for this slot.
-        static bool Act2Prop(Transform root, Theme th, Vector3 p, float s, float pick, Material bark, Material rock, System.Func<float, float, float> R)
+        static bool Act2Prop(Transform root, Biome th, Vector3 p, float s, float pick, Material bark, Material rock, System.Func<float, float, float> R)
         {
             if (th.Posts && pick < 0.3f)
             {
@@ -584,7 +670,7 @@ namespace Sigilbound.Client
 
         // Ground texture: noise between the two grass tones, the worn ellipse around the rune circle,
         // and the dirt path from the camera side into the background (scenery.mjs terrain).
-        static Texture2D GroundTexture(Theme th, int chapter)
+        static Texture2D GroundTexture(Biome th, int chapter)
         {
             const int N = 256; const float extent = 45f; // the plane is 90 m wide
             var t = new Texture2D(N, N, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
@@ -621,7 +707,7 @@ namespace Sigilbound.Client
             return t;
         }
 
-        static void Motes(Transform root, Theme th, float density)
+        static void Motes(Transform root, Biome th, float density)
         {
             var go = new GameObject("Motes"); go.transform.SetParent(root, false); go.transform.localPosition = new Vector3(0, 2, 2);
             var ps = go.AddComponent<ParticleSystem>();

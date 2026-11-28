@@ -36,6 +36,23 @@ static class Program
         if (args.Length > 0 && args[0] == "roles") { CombatProbes.Roles(args.Length > 1 ? int.Parse(args[1]) : 1500); return 0; }
         if (args.Length > 0 && args[0] == "titandmg") { CombatProbes.TitanDamage(); return 0; }
         if (args.Length > 0 && args[0] == "combatstats") { CombatStats.Run(); return 0; }
+        // `dotnet run --project Tests~ -- scenes OUT.json [tier]`: every campaign stage's generated layout (Tools~/scenery/scene_preview.py).
+        if (args.Length > 1 && args[0] == "scenes") { SceneGenTests.Dump(args[1], args.Length > 2 ? int.Parse(args[2]) : 2); return 0; }
+        // `-- scenedebug CHAPTER`: each stop's landmark, its framing in the default view, placements and refusals.
+        if (args.Length > 0 && args[0] == "scenedebug")
+        {
+            int ch = int.Parse(args[1]);
+            for (int st = 0; st < 6; st++)
+            {
+                var L = SceneGen.Generate(ch, st); var m = L.Landmark;
+                Console.Write($"{ch + 1}-{st + 1} {m.Mesh} at ({m.X:0.0},{m.Z:0.0}) top {L.LandmarkTop:0.0} err {SceneRules.FrameError(L, m, L.LandmarkTop):0.00} items {L.Items.Count} tris {L.Tris} rejects " + string.Join(",", L.Rejects.Select(kv => kv.Key + "=" + kv.Value)) + " |");
+                foreach (var c in L.Cams.Where(k => k.Default)) { var q = SceneCameras.Project(c.View, c.Aspect, new V3(m.X, m.Y + L.LandmarkTop * 0.5, m.Z)); Console.Write($" {c.Aspect:0.00}:({q?.x:0.00},{q?.y:0.00}) eye {c.View.Eye}"); }
+                Console.WriteLine();
+            }
+            return 0;
+        }
+        // `-- scenetests`: only the scene generator checks (Core/SceneGen.cs).
+        if (args.Length > 0 && args[0] == "scenetests") { SceneGenTests.Run(Check); Console.WriteLine(failures == 0 ? "All checks passed." : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
         // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).
         if (args.Length > 0 && args[0] == "balance")
         {
@@ -106,6 +123,7 @@ static class Program
         TitanCameraTests.Run(Check);
         StoryScenesTests.Run(Check);
         LairRevealTests.Run(Check);
+        SceneGenTests.Run(Check);
         SaveSafetyTests.Run(Check);
         RankUpTests.Run(Check);
         ReleaseTests.Run(Check);

@@ -223,6 +223,9 @@ namespace Sigilbound.Client
             // Once per lair per session: the arrival is the point; replays of the same boss skip it.
             if (!_lairsRevealed.Add(chapter)) yield break;
             var (pc, top) = rv.Value;
+            // the generator may have moved the landmark to frame it for the default view (Core/SceneGen)
+            var lmk = App.Arena.Layout?.Landmark;
+            if (lmk != null) { pc = new Piece { Mesh = lmk.Mesh, X = lmk.X, Z = lmk.Z, Scale = lmk.Scale }; top = App.Arena.Layout.LandmarkTop; }
             var arena = App.Arena; float keepSpeed = Time.timeScale; Time.timeScale = 1;
             _cinema = _skippable = true;
             _revealTitle = StoryScenes.LairTitle(chapter); _revealSub = Chapters[chapter];

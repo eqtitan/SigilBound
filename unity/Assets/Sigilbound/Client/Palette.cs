@@ -38,22 +38,8 @@ namespace Sigilbound.Client
         // Chapter scenery: sky top, sky bottom/fog, ground, prop colour.
         public static (Color top, Color bottom, Color ground, Color prop) Scene(int chapter)
         {
-            string[,] s =
-            {
-                { "#1f2b46", "#c9805a", "#2a2a22", "#16141f" }, { "#16283a", "#4f7c8a", "#1c2a2a", "#0e1a22" },
-                { "#2a1a1e", "#a8483a", "#2e1a1c", "#160c0e" }, { "#1a2e2a", "#7fa088", "#23362a", "#101c16" },
-                { "#28203a", "#c8a870", "#2c2640", "#14101e" }, { "#2a2438", "#e0b0d0", "#3a2e4a", "#ffd0f0" },
-                { "#101a2e", "#5a7ab0", "#1a2440", "#0c1220" }, { "#0e0a16", "#3a2a5a", "#180f26", "#b080ff" },
-                { "#0e1a2a", "#2a5a7a", "#10283c", "#80e0ff" }, { "#1a0a0a", "#ff6a2a", "#24100c", "#100606" },
-                // act 2: harbor dusk, black fens, barrow mist, ember groves, storm coast
-                { "#1a2436", "#c89060", "#22262a", "#ffcf70" }, { "#080e0a", "#2a3a28", "#0e160e", "#b0ff6a" },
-                { "#1a1c26", "#8a8e9a", "#24262c", "#d8e0f0" }, { "#140806", "#c04a1a", "#1e100c", "#ff9a3a" },
-                { "#0a1018", "#3a4a5e", "#141a22", "#b8d0ff" },
-                // themes 15, 16: the glass desert (The Glass Wastes) and the Stormcrown crag (Stormcrown Heights)
-                { "#2a3a4e", "#d8c8a8", "#3a3630", "#a8f0ff" }, { "#0c1424", "#6a7a92", "#1a2030", "#c8dcff" },
-            };
-            int c = GameData.ThemeOf(chapter); // act 2 chapters use their own theme picks
-            return (Hex(s[c, 0]), Hex(s[c, 1]), Hex(s[c, 2]), Hex(s[c, 3]));
+            var b = Biomes.Of(chapter); // Core/Biomes.cs: act 2 chapters and themes 15-16 use their own picks
+            return (Hex(b.SkyTop), Hex(b.SkyBottom), Hex(b.SceneGround), Hex(b.SceneProp));
         }
 
         static Look L(string skin, string hair, string armor, string accent, Headgear gear, Prop prop, bool beard = false, bool longHair = false, string glow = null) =>

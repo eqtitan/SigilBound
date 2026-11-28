@@ -210,12 +210,18 @@ namespace Sigilbound.Client
         // interactive: a campaign boss stage or the Titan; the backdrop answers the fight (ArenaReactor).
         // stage: the stage within the chapter (0-5) for a campaign battle, -1 otherwise: picks the route stop
         // (Core.StoryScenes) and its time of day. hard: Hard mode, the same stops by night.
+        // The generated layout of the arena last built (Core/SceneGen): the lair reveal reads its landmark from it.
+        public SceneLayout Layout { get; private set; }
+
         public void Build(int chapter, bool titan, bool interactive = false, int stage = -1, bool hard = false)
         {
             var set = titan || stage < 0 ? null : StoryScenes.Of(chapter, stage);
-            var mood = titan ? Mood.Day : hard ? Mood.Night : set?.Mood ?? Mood.Day;
-            var (moodLight, dusk, fogK) = StoryScenes.MoodOf(mood);
-            bool night = mood == Mood.Night;
+            int tier = Quality.I == null ? 2 : Quality.I.Tier;
+            // The procedural scene (CAMPAIGN_SCENES_PLAN.md): campaign stops, and the chapter's ground for other modes.
+            Layout = titan ? null : SceneGen.Generate(chapter, stage, hard, tier);
+            var li = SceneGen.LightOf(chapter, stage, hard, titan);
+            var mood = li.Mood; float dusk = li.Dusk, fogK = li.FogK;
+            bool night = li.Night;
             PostFx.SetArena(chapter, titan, true, night); // per-arena colour grade (postfx2 presets), cooler by night
             if (_scenery) Destroy(_scenery);
             _scenery = new GameObject("Scenery");
@@ -233,15 +239,16 @@ namespace Sigilbound.Client
             var (fogNear, fogFar) = Scenery.FogRange(chapter, titan);
             RenderSettings.fogStartDistance = fogNear * fogK; RenderSettings.fogEndDistance = fogFar * fogK;
             bool lair = set != null && stage == GameData.StagesPerChapter - 1;
-            // Night lairs keep more ambient (the throne and crag must read in the dark); other night stops dim it.
-            RenderSettings.ambientLight = Color.Lerp(bottom, Color.white, 0.35f) * 0.55f * (night ? (lair ? 1.0f : 0.85f) : 1f - dusk * 0.25f);
-            // The sun takes a little of the horizon's colour (warm dusks, cold storms); kept close to white so the
-            // heroes' painted look holds. Storms are dimmer.
+            // Hero exposure stays constant (art review M2): the ambient and sun keep a floor on every stop, night included;
+            // the mood darkens the world's albedo (SceneLight.WorldTint, painted into the ground and the ramps) and the sky.
+            RenderSettings.ambientLight = Color.Lerp(bottom, Color.white, 0.35f) * li.Ambient;
             if (Sun != null)
             {
                 Sun.color = Color.Lerp(Color.white, Color.Lerp(bottom, Color.white, 0.4f), 0.35f);
-                Sun.intensity = (Scenery.Stormy(chapter, titan) && !titan ? 0.9f : 1.15f) * (night && lair ? Mathf.Max(moodLight, 0.78f) : moodLight);
+                Sun.intensity = li.Sun;
                 if (night) Sun.color = Color.Lerp(Sun.color, new Color(0.7f, 0.8f, 1f), 0.5f); // moonlight
+                // time of day: the sun drops and swings to the side along the route (the Titan keeps its fixed sun)
+                Sun.transform.rotation = Quaternion.Euler(titan ? 48 : li.SunPitch, titan ? -30 : li.SunYaw, 0);
             }
             // The sky (painted clouds) and the distant ridges are painted arcs built with the scenery.
 
@@ -257,8 +264,8 @@ namespace Sigilbound.Client
 
             // Ground, water or lava, scatter, horizon silhouettes and motes (scenery.mjs themes).
             // Scatter density by tier; Ultra stays at High's count (budget pass after build 138: ~25k scenery triangles).
-            float density = Quality.I == null ? 1f : new[] { 0.4f, 0.7f, 1f, 1f }[Quality.I.Tier];
-            Scenery.Build(_scenery.transform, chapter, titan, density, bottom, top, interactive, Sun, set, hard);
+            float density = SceneGen.Density[tier];
+            Scenery.Build(_scenery.transform, chapter, titan, density, bottom, top, interactive, Sun, set, hard, Layout);
             if (lair && night) LairRim(set, Scenery.ShadowColor(chapter, false));
             StaticBatch(_scenery);
             HideOccluders(); // a re-built arena under an already framed camera
@@ -272,6 +279,8 @@ namespace Sigilbound.Client
             Piece main = null;
             foreach (var p in set.Pieces) if (!p.Far && (main == null || p.R * p.Scale > main.R * main.Scale)) main = p;
             if (main == null) return;
+            var lm = Layout?.Landmark;   // where the generator put it
+            if (lm != null) main = new Piece { X = lm.X, Z = lm.Z, Scale = lm.Scale, R = main.R };
             var l = new GameObject("LairRim").AddComponent<Light>();
             l.transform.SetParent(_scenery.transform, false);
             l.transform.position = new Vector3(main.X * 0.8f, 5.5f * main.Scale + 1.5f, main.Z - main.R - 2.5f);
