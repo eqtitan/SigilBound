@@ -3,6 +3,7 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-28 | Screens that match
+fix: Quill's band and the crowns of Vaelith, Ondessa and Pell now sit snugly on their hair instead of hovering around it.
 fix: Faces no longer warp in battle: 31 remodelled heroes' faces move as one piece with their heads, and the chins of 54 more stay put.
 change: Every button is at least a finger wide to tap, including hero detail, gear, skill upgrades, presets, achievements, friends and the Trials screens.
 change: Sub-screens share one header: a Back button and the screen's title. Back returns to where you came from, so the Titan, dungeons and arena go back to the Battle tab when you opened them there.
