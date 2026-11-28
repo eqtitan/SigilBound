@@ -154,6 +154,11 @@ stones and is broken by noise. Glowing parts use the glow material:
   appear only far out, with emission ×1.1 from a vein mask. Before, a flat plane glowed at full
   emission and read as an overexposed yellow band.
 - Both water and lava run 90 × 16 m from a shore line at z 10, with wet sand before the water.
+- **Caldera** (Titan, art review H3). The crater ridge is a basalt wall ring centred at (0, 6), with its foot at 17 m,
+  crest at 19.5 m (4–7 m high) and back at 22 m. It runs from −15° to 195°, so it stays open toward the camera side.
+  A thin glowing lava line runs along its foot. It is built as 14 chunks so the occluder pass can hide a chunk that
+  blocks a camera. Two lava-vein strips (the lake's crust-and-vein material, 15 × 2.2 m) run in from the flanks at
+  x ±9.6 toward the lake. Scatter keeps off both. Code: `Scenery.Caldera`.
 
 ## 5. Budgets and quality tiers
 

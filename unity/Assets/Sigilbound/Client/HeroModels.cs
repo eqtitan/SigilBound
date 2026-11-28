@@ -457,12 +457,13 @@ namespace Sigilbound.Client
             Trace($"build {id} base={baseModel} hollow={hollow}");
             if (titan)
             {
-                // The high-detail Titan (heroes_hd/SB_Hero_titan_HD.glb), else the old stone yeti below.
+                // The high-detail Titan (heroes_hd/SB_Hero_<TitanSpec.Model>_HD.glb, from titan.json), else the old stone yeti below.
                 yield return EnsureHdIndex();
-                if (_hd != null && _hd.Contains("titan"))
+                string tid = TitanSpec.Current.Model;
+                if (_hd != null && _hd.Contains(tid))
                 {
                     HeroModel hd = null;
-                    yield return BuildHd(unit, new BodySpec(), parent, m => hd = m, "titan");
+                    yield return BuildHd(unit, new BodySpec(), parent, m => hd = m, tid, false, true);
                     Trace($"hd titan: {(hd != null ? "ok" : "FAILED, falling back")}");
                     if (hd != null) { done(hd); yield break; }
                 }
@@ -665,6 +666,15 @@ namespace Sigilbound.Client
                 foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
                     if (line.Trim().Length > 0) set.Add(line.Trim());
             _hd = set;
+            // The Titan's model hookup (TitanSpec): which GLB, its size, face, horns, feet, reach and seams.
+            bytes = null;
+            yield return ReadRaw(Path.Combine("heroes_hd", "titan.json"), b => bytes = b, false);
+            if (bytes != null)
+            {
+                try { TitanSpec.Current = TitanSpec.Parse(System.Text.Encoding.UTF8.GetString(bytes)); }
+                catch (Exception e) { Debug.LogWarning("Sigilbound: heroes_hd/titan.json unreadable, keeping the defaults: " + e.Message); }
+            }
+            bytes = null;
             // Heroes that ship a LOD1 mesh for the Low tier (prepare-models.mjs). None do yet; without the
             // list every Low-tier load asked for a missing file first (166 misses in one tour).
             var lod = new HashSet<string>(); bytes = null;
@@ -705,7 +715,7 @@ namespace Sigilbound.Client
             if (!_lowDetail && m.GetTexture("_BumpMap") != null) m.EnableKeyword("_NORMALMAP"); else m.DisableKeyword("_NORMALMAP");
         }
 
-        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D glow, Element el, bool hollow, out Texture2D maskTex)
+        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D glow, Element el, bool hollow, out Texture2D maskTex, bool titan = false)
         {
             maskTex = null;
             var sh = Shader.Find("Sigilbound/CharacterPainted");
@@ -721,12 +731,51 @@ namespace Sigilbound.Client
                 for (int i = 0; i < g.Length; i++) { byte lum = (byte)Mathf.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2); mask[i] = new Color32(0, 255, lum, 90); }
                 var mt = new Texture2D(glow.width, glow.height, TextureFormat.RGBA32, true, true); mt.SetPixels32(mask); mt.Apply(true, true);
                 mat.SetTexture("_MaskMap", mt); maskTex = mt;
-                if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", (hollow ? Palette.Hex("#ff3355") : Palette.Element(el)) * 2.2f);
+                if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", titan ? TitanSeam(el) * (float)TitanSpec.Current.GlowGain : (hollow ? Palette.Hex("#ff3355") : Palette.Element(el)) * 2.2f);
             }
-            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", hollow ? Palette.Hex("#ff3355") : Palette.Element(el));
+            if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", titan ? TitanSeam(el) : hollow ? Palette.Hex("#ff3355") : Palette.Element(el));
+            // The Titan's seams and visor glow only on front faces (art review H3): single-sided, whatever the
+            // template says, so no glow island can show through the far side of a plate.
+            if (titan && mat.HasProperty("_Cull")) mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back);
             if (hollow) mat.name += "_Hollow";
             NormalMapOn(mat);
             return mat;
+        }
+
+        // The Titan's seam colour for the day's element: titan.json "seams", else the element colour.
+        public static Color TitanSeam(Element el) { var h = TitanSpec.Current.SeamHex(el); return h != null ? Palette.Hex(h) : Palette.Element(el); }
+
+        // Gives the triangles inside TitanSpec.GlowCut boxes a non-glowing texel (copies of the meshes, cached).
+        static readonly Dictionary<int, Mesh> _glowCut = new Dictionary<int, Mesh>();
+        static void ApplyGlowCut(Transform holder)
+        {
+            var spec = TitanSpec.Current;
+            if (spec.GlowCut.Count == 0) return;
+            foreach (var r in holder.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                var src = r.sharedMesh;
+                if (src == null || !src.isReadable) continue;
+                if (!_glowCut.TryGetValue(src.GetInstanceID(), out var cut))
+                {
+                    var v = src.vertices; var uv = new List<Vector2>(); src.GetUVs(0, uv);
+                    if (uv.Count != v.Length) continue;
+                    var to = new Vector2((float)spec.GlowCutUv[0], (float)spec.GlowCutUv[1]); int n = 0;
+                    for (int sm = 0; sm < src.subMeshCount; sm++)
+                    {
+                        var t = src.GetTriangles(sm);
+                        for (int i = 0; i < t.Length; i += 3)
+                        {
+                            var c = (v[t[i]] + v[t[i + 1]] + v[t[i + 2]]) / 3f;
+                            if (!spec.InGlowCut(c.x, c.y, c.z)) continue;
+                            uv[t[i]] = uv[t[i + 1]] = uv[t[i + 2]] = to; n++;
+                        }
+                    }
+                    cut = UnityEngine.Object.Instantiate(src); cut.name = src.name + "_glowcut"; cut.SetUVs(0, uv);
+                    _glowCut[src.GetInstanceID()] = cut;
+                    Trace($"titan glow cut: {n} triangles");
+                }
+                r.sharedMesh = cut;
+            }
         }
 
         // Reads and parses one high-detail model and its textures into the cache (a shared job: it runs
@@ -760,7 +809,7 @@ namespace Sigilbound.Client
                 var nrmTex = LoadPng(nrm, true, false);
                 var glowTex = LoadPng(glow, false, true);
                 var e = new HdEntry { Gltf = gltf, Used = Time.unscaledTime };
-                e.Mat = HdMaterial(id, albTex, nrmTex, glowTex, el, hollow, out var maskTex);
+                e.Mat = HdMaterial(id, albTex, nrmTex, glowTex, el, hollow, out var maskTex, cacheKey.StartsWith("titan|"));
                 if (glowTex != null) UnityEngine.Object.Destroy(glowTex);
                 e.Tex.Add(albTex); e.Tex.Add(nrmTex); e.Tex.Add(maskTex);
                 _hdLibs[cacheKey] = e;
@@ -776,14 +825,15 @@ namespace Sigilbound.Client
             foreach (var u in units)
             {
                 var (id, el, titan, hollow) = u;
-                string hid = titan ? "titan" : id;
                 string key = HdKey(id, el, titan, hollow);
-                Kick("preload:" + key, () => PreloadOne(hid, key, el, hollow));
+                Kick("preload:" + key, () => PreloadOne(titan ? null : id, key, el, hollow));
             }
         }
+        // id null: the Titan, whose model id comes from titan.json (read with the index).
         static IEnumerator PreloadOne(string id, string key, Element el, bool hollow)
         {
             yield return EnsureHdIndex();
+            if (id == null) id = TitanSpec.Current.Model;
             if (_hd == null || !_hd.Contains(id)) yield break;
             yield return EnsureLibrary("ubc");
             yield return Shared("hd:" + key, () => LoadHd(id, key, el, hollow));
@@ -798,10 +848,9 @@ namespace Sigilbound.Client
             _loader.StartCoroutine(RunJob(key, work()));
         }
 
-        static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done, string hdId = null, bool hollow = false)
+        static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done, string hdId = null, bool hollow = false, bool titan = false)
         {
             string id = hdId ?? unit.Template.Id;
-            bool titan = id == "titan";
             string cacheKey = HdKey(id, unit.El, titan, hollow);
             yield return EnsureLibrary("ubc");
             var lib = Lib("ubc");
@@ -830,24 +879,70 @@ namespace Sigilbound.Client
             // With the Animation on Armature itself no path matched and every hero stood in its bind pose.
             var root = holder.Find("Armature") != null ? holder.gameObject : holder.GetChild(0).gameObject;
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
-            foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose")) anim.AddClip(c, c.name);
+            var spec = titan ? TitanSpec.Current : null;
+            // A separately rigged Titan brings its own clips ("clips": "embedded"); the shared UAL set is added
+            // too, and only clips whose names the model doesn't have.
+            if (spec != null && spec.Clips == "embedded")
+                foreach (var c in bk.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose")) anim.AddClip(c, c.name);
+            foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose") && anim.GetClip(c.name) == null) anim.AddClip(c, c.name);
             anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
-            if (titan) root.AddComponent<HandGrip>();
+            if (titan) { root.AddComponent<HandGrip>(); ApplyGlowCut(holder); }
             else if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
             float headY = 1.6f;
-            var head = BodyShaper.Find(holder, "Head");
+            var head = BodyShaper.Find(holder, spec != null ? spec.HeadBone : "Head");
             if (head != null) headY = Mathf.Max(0.5f, holder.InverseTransformPoint(head.position).y);
+            else if (spec != null) { float top = MeshTop(holder); if (top > 0.1f) headY = top / (float)spec.HornTop; } // no head bone: the mesh top is the horn tips
             // Height and build from the approved design (heroes_hd/body.json): gnomes stand short, golems tall and broad.
             yield return EnsureHdBodies();
             float hgt = (float)body.H, bulk = 1f;
             if (_hdBody != null && _hdBody.TryGetValue(id, out var hb)) { hgt = hb.h; bulk = hb.b; }
-            // The high-detail Titan towers over the team: head at BattleLayout.TitanHead (4.8 m; heroes 1.85).
-            float k = (titan ? (float)BattleLayout.TitanHead : 1.85f) / headY * hgt;
-            if (titan) bulk = 1.18f; // a broad stone colossus, not a stretched hero
+            // The high-detail Titan towers over the team: its head lands at TitanSpec.Head in the battle (6.24 m;
+            // heroes 1.85). The model sits inside the view's own Titan scale (ViewScale, 1.3), so it is built to
+            // Head / ViewScale here; it used to take the full 6.24 m and the view scaled it again to 8.1 m,
+            // which put its horns through its name tag and out of every framed camera (art review H3).
+            float k = (titan ? (float)spec.ModelHead : 1.85f * hgt) / headY;
+            if (titan) bulk = (float)spec.Bulk; // a broad stone colossus, not a stretched hero
             holder.localScale = new Vector3(k * bulk, k, k * bulk);
-            done(titan ? new HeroModel(holder.gameObject, anim, (float)BattleLayout.TitanHead * 1.25f, AnimStyle.TitanHd, AnimStyle.TitanHdAliases)
+            // Feet on the ground: the lowest point of the mesh at y 0, plus the data's offset.
+            if (titan)
+            {
+                float lift = (float)spec.FootOffset;
+                if (spec.AutoGround) { float low = MeshBottom(holder); if (!float.IsNaN(low)) lift -= low; }
+                holder.localPosition += Vector3.up * lift / Mathf.Max(0.01f, holder.parent != null ? holder.parent.lossyScale.y : 1f);
+            }
+            done(titan ? new HeroModel(holder.gameObject, anim, (float)(spec.HornWorld / spec.ViewScale), AnimStyle.TitanHd, TitanAliases())
                        : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliases));
+        }
+
+        static Dictionary<string, string> TitanAliases()
+        {
+            var d = new Dictionary<string, string>(AnimStyle.TitanHdAliases);
+            foreach (var kv in TitanSpec.Current.Aliases) d[kv.Key] = kv.Value;
+            return d;
+        }
+        // Lowest / highest point of a model's meshes in world metres above the view's root, NaN / 0 if none.
+        static float MeshBottom(Transform holder)
+        {
+            float low = float.PositiveInfinity; var root = holder.parent != null ? holder.parent : holder;
+            // From the meshes' bind-pose bounds (a renderer's world bounds aren't refreshed until it is drawn).
+            foreach (var r in holder.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (r.sharedMesh == null) continue;
+                var b = r.sharedMesh.bounds;
+                for (int i = 0; i < 4; i++)
+                {
+                    var corner = new Vector3((i & 1) == 0 ? b.min.x : b.max.x, b.min.y, (i & 2) == 0 ? b.min.z : b.max.z);
+                    low = Mathf.Min(low, r.transform.TransformPoint(corner).y - root.position.y);
+                }
+            }
+            return float.IsInfinity(low) ? float.NaN : low;
+        }
+        static float MeshTop(Transform holder)
+        {
+            float top = 0;
+            foreach (var r in holder.GetComponentsInChildren<SkinnedMeshRenderer>(true)) if (r.sharedMesh != null) top = Mathf.Max(top, r.sharedMesh.bounds.max.y);
+            return top;
         }
 
         // ---------- baked free-path heroes ----------

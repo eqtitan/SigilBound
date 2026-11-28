@@ -9,6 +9,7 @@ fix: Rank-up no longer offers a newly summoned Epic or Legendary before your lev
 change: The Heroes list remembers your sort choice.
 change: Easier to tap and read on phones: whole stage rows are tappable, battle buttons and text are bigger, and Continue Campaign is always visible on Home.
 fix: Menus stay clear of camera holes and rounded corners; locked buttons, the Hard and Act switches, elements and rarities no longer rely on faint text or colour alone.
+fix: The Titan's arrival is now filmed from behind your heroes looking up at its face, its jump keeps the ground in view, the caldera has lava veins and a crater rim, and its name tag clears its horns.
 fix: The Round and Enrage banner now sits under the turn order bar instead of running beneath it.
 balance: Light and Shadow chapters are easier: Flame, Gale and Tide heroes have no edge there, so those enemies are 8% weaker.
 balance: Stage 10-1 no longer jumps in difficulty, and Act II climbs more gently to a beatable final boss.
