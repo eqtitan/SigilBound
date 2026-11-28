@@ -71,6 +71,13 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
+      - name: Restore the KTX2 hero textures encoded by earlier runs (prepare-models encodes only new or changed ones)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: unity/Tools~/models/.ktx-cache
+          key: hero-ktx-${{ hashFiles('unity/Tools~/models/heroes_hd/*.jpg', 'unity/Tools~/models/heroes_hd/*.png', 'unity/Tools~/models/heroes_hd/titan.json', 'unity/Tools~/models/ktx-worker.mjs', 'unity/Tools~/models/package-lock.json') }}
+          restore-keys: |
+            hero-ktx-
       - name: Prepare hero models (so the APK budget and packed-model checks run; CI fails them if skipped)
         run: (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)
       - name: Game-core tests (rules, web parity, save codes, Trials, looks, layout, APK budget)
@@ -174,6 +181,13 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
+      - name: Restore the KTX2 hero textures encoded by earlier runs (prepare-models encodes only new or changed ones)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: unity/Tools~/models/.ktx-cache
+          key: hero-ktx-${{ hashFiles('unity/Tools~/models/heroes_hd/*.jpg', 'unity/Tools~/models/heroes_hd/*.png', 'unity/Tools~/models/heroes_hd/titan.json', 'unity/Tools~/models/ktx-worker.mjs', 'unity/Tools~/models/package-lock.json') }}
+          restore-keys: |
+            hero-ktx-
       - name: Prepare hero models and build number
         run: |
           (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)
@@ -282,6 +296,13 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
+      - name: Restore the KTX2 hero textures encoded by earlier runs (prepare-models encodes only new or changed ones)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: unity/Tools~/models/.ktx-cache
+          key: hero-ktx-${{ hashFiles('unity/Tools~/models/heroes_hd/*.jpg', 'unity/Tools~/models/heroes_hd/*.png', 'unity/Tools~/models/heroes_hd/titan.json', 'unity/Tools~/models/ktx-worker.mjs', 'unity/Tools~/models/package-lock.json') }}
+          restore-keys: |
+            hero-ktx-
       - name: Prepare hero models
         run: (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -446,6 +467,13 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
+      - name: Restore the KTX2 hero textures encoded by earlier runs (prepare-models encodes only new or changed ones)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: unity/Tools~/models/.ktx-cache
+          key: hero-ktx-${{ hashFiles('unity/Tools~/models/heroes_hd/*.jpg', 'unity/Tools~/models/heroes_hd/*.png', 'unity/Tools~/models/heroes_hd/titan.json', 'unity/Tools~/models/ktx-worker.mjs', 'unity/Tools~/models/package-lock.json') }}
+          restore-keys: |
+            hero-ktx-
       - name: Prepare hero models and version
         run: |
           (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)
@@ -547,6 +575,13 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
+      - name: Restore the KTX2 hero textures encoded by earlier runs (prepare-models encodes only new or changed ones)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: unity/Tools~/models/.ktx-cache
+          key: hero-ktx-${{ hashFiles('unity/Tools~/models/heroes_hd/*.jpg', 'unity/Tools~/models/heroes_hd/*.png', 'unity/Tools~/models/heroes_hd/titan.json', 'unity/Tools~/models/ktx-worker.mjs', 'unity/Tools~/models/package-lock.json') }}
+          restore-keys: |
+            hero-ktx-
       - name: Prepare hero models and build number
         run: |
           (cd unity/Tools~/models && npm ci --no-audit --no-fund && node prepare-models.mjs)

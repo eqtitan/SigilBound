@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- Compile check for the Unity runtime code (Core + Client) without a Unity editor or license.
        References Unity's engine module reference assemblies from nuget.org (UnityEngine.Modules) and
-       small hand-written stubs for the packages we use (URP, glTFast), whose signatures were copied
+       small hand-written stubs for the packages we use (URP, glTFast, KTX for Unity), whose signatures were copied
        from the packages' source. Run from the repo root:
          dotnet build unity/Tests~/CompileCheck/Editor.csproj
        (building the editor project also builds this one). Unity ignores folders ending in ~. -->
@@ -15,9 +15,9 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <!-- Unity-style code: fields assigned by the engine, obsolete-but-working APIs. -->
     <NoWarn>CS0649;CS0414;CS0618;CS0169;CS1998;CS0436</NoWarn>
-    <!-- Same symbols the asmdef versionDefines set when the packages are installed. -p:ExtraDefines=SB_STORE
+    <!-- Same symbols the asmdef versionDefines set when the packages are installed (SB_KTX: com.unity.cloud.ktx). -p:ExtraDefines=SB_STORE
          compiles the Play Store variant (no in-app updater). -->
-    <DefineConstants>$(DefineConstants);UNITY_ANDROID;SB_URP;SB_GLTFAST;SB_COMPILE_CHECK;$(ExtraDefines)</DefineConstants>
+    <DefineConstants>$(DefineConstants);UNITY_ANDROID;SB_URP;SB_GLTFAST;SB_KTX;SB_COMPILE_CHECK;$(ExtraDefines)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" PrivateAssets="all" Condition="'$(UnityManaged)' == ''" />

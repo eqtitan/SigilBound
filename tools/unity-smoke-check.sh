@@ -6,7 +6,9 @@
 #   - the battle-mid and titan-* SBBUDGET lines are there and each reports skinned>0
 #     (hero models actually loaded and animated, not stand-ins),
 #   - player.log has no NullReferenceException / MissingReferenceException /
-#     IndexOutOfRangeException whose message or stack trace is in Sigilbound code.
+#     IndexOutOfRangeException whose message or stack trace is in Sigilbound code,
+#   - the high-detail heroes' KTX2 maps loaded (SBPERF hd lines say "KTX2 maps", no
+#     "KTX2 map not loaded" warning) and no LOD1 was refused by its mesh.
 set -uo pipefail
 DIR="${1:?usage: unity-smoke-check.sh DIR}"
 SHOTS="$DIR/shots.log"; PLAYER="$DIR/player.log"
@@ -51,6 +53,19 @@ else
   else
     echo "ok: no Null/MissingReference or IndexOutOfRange exceptions from Sigilbound code in player.log"
   fi
+fi
+
+if [ -f "$PLAYER" ]; then
+  ktx=$(grep -c 'SBPERF hd .*KTX2 maps' "$PLAYER" || true)
+  jpg=$(grep -c 'SBPERF hd .*JPEG maps' "$PLAYER" || true)
+  nok=$(grep -cE 'Sigilbound: KTX2 (map not loaded|transcoding failed)' "$PLAYER" || true)
+  lodbad=$(grep -cE "Sigilbound: LOD1 of .*(doesn't match|not built|unreadable)" "$PLAYER" || true)
+  lod=$(grep -c 'SBPERF hd .*LOD1 ' "$PLAYER" || true)
+  if [ "$nok" -gt 0 ] || { [ "$jpg" -gt 0 ] && [ "$ktx" -eq 0 ]; }; then
+    bad "hero KTX2 maps: $ktx loaded as KTX2, $jpg as JPEG, $nok load warnings"; grep -m 3 -E 'Sigilbound: KTX2' "$PLAYER" | sed 's/^/    /'
+  else echo "ok: $ktx high-detail loads used KTX2 maps ($jpg JPEG)"; fi
+  if [ "$lodbad" -gt 0 ]; then bad "hero LOD1: $lodbad refused"; grep -m 3 -E 'Sigilbound: LOD1 of' "$PLAYER" | sed 's/^/    /'
+  else echo "ok: $lod high-detail loads used a LOD1 mesh, none refused"; fi
 fi
 
 if [ "$fail" -eq 0 ]; then echo "SMOKE PASSED"; else echo "SMOKE FAILED"; fi

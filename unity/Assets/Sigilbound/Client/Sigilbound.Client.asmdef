@@ -4,6 +4,7 @@
   "references": [
     "Sigilbound.Core",
     "glTFast",
+    "Ktx",
     "Unity.RenderPipelines.Universal.Runtime",
     "Unity.RenderPipelines.Core.Runtime"
   ],
@@ -14,6 +15,7 @@
   "noEngineReferences": false,
   "versionDefines": [
     { "name": "com.unity.render-pipelines.universal", "expression": "17.0.0", "define": "SB_URP" },
-    { "name": "com.unity.cloud.gltfast", "expression": "6.0.0", "define": "SB_GLTFAST" }
+    { "name": "com.unity.cloud.gltfast", "expression": "6.0.0", "define": "SB_GLTFAST" },
+    { "name": "com.unity.cloud.ktx", "expression": "3.0.0", "define": "SB_KTX" }
   ]
 }

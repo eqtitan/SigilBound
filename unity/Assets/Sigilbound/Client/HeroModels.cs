@@ -587,9 +587,10 @@ namespace Sigilbound.Client
 
         // ---------- high-detail heroes (phase F) ----------
         static HashSet<string> _hd, _hdLod1, _hdMat;
+        static Dictionary<string, string> _hdKtx; // hero id -> its KTX2 maps ("a" albedo, "n" normal, "m" mask)
 
         // The parsed high-detail models, by cache key (hero id, "|hollow" for enemy copies, "titan|<element>",
-        // and "|lo" on the Low tier, which loads no normal map and the LOD1 mesh where one ships).
+        // "|l1" for the LOD1 mesh (Low and Medium, and every Hollow enemy), and "|lo" on the Low tier, which loads no normal map).
         // Bounded (code review H1, performance review #1): an entry counts the figures built from it (HdRef);
         // entries no figure uses are kept up to HdIdleCap, least recently used first out, and an evicted entry
         // frees its glTF meshes, material and textures. Before this every hero ever shown stayed in memory
@@ -598,6 +599,7 @@ namespace Sigilbound.Client
         {
             public GLTFast.GltfImport Gltf; public Material Mat;
             public readonly List<Texture2D> Tex = new List<Texture2D>();
+            public Mesh Full, Lod; // the LOD1 mesh (HdLod) put on each figure in place of the full one
             public int Live; public float Used;
         }
         static readonly Dictionary<string, HdEntry> _hdLibs = new Dictionary<string, HdEntry>();
@@ -617,11 +619,15 @@ namespace Sigilbound.Client
         {
             if (key != null && _hdLibs.TryGetValue(key, out var e)) { e.Live = Math.Max(0, e.Live - 1); e.Used = Time.unscaledTime; }
         }
-        static bool LowTier => Quality.I != null && Quality.I.Tier == 0;
+        static int Tier => Quality.I != null ? Quality.I.Tier : 2;
+        // The LOD1 mesh (about 45% of the triangles, PLAN P2-2) on Low and Medium, and for Hollow enemies on every
+        // tier (they stand farther from the camera). The LOD is part of the key, so a tier change never reuses a
+        // model loaded at the other detail. Heroes without a LOD1 file load the full mesh under the "|l1" key.
         static string HdKey(string id, Element el, bool titan, bool hollow)
         {
             string k = titan ? $"titan|{el}" : hollow ? id + "|hollow" : id; // the Titan's runes take its current element
-            return LowTier ? k + "|lo" : k;
+            if (!titan && (hollow || Tier <= 1)) k += "|l1";
+            return Tier == 0 ? k + "|lo" : k;
         }
 
         // Frees models no figure uses beyond the cap, then (at most every few seconds) unused assets
@@ -650,6 +656,7 @@ namespace Sigilbound.Client
             ForgetHdJobs(key);
             try { e.Gltf?.Dispose(); } catch (Exception ex) { Debug.LogWarning($"Sigilbound: disposing {key}: {ex.Message}"); }
             if (e.Mat != null) UnityEngine.Object.Destroy(e.Mat);
+            if (e.Lod != null) UnityEngine.Object.Destroy(e.Lod);
             foreach (var t in e.Tex) if (t != null) UnityEngine.Object.Destroy(t);
             Trace($"hd cache: evicted {key} ({_hdLibs.Count} left)");
         }
@@ -699,8 +706,7 @@ namespace Sigilbound.Client
                 catch (Exception e) { Debug.LogWarning("Sigilbound: heroes_hd/titan.json unreadable, keeping the defaults: " + e.Message); }
             }
             bytes = null;
-            // Heroes that ship a LOD1 mesh for the Low tier (prepare-models.mjs). None do yet; without the
-            // list every Low-tier load asked for a missing file first (166 misses in one tour).
+            // Heroes that ship a LOD1 (SB_Hero_<id>_HD_LOD1.sbl, prepare-models.mjs); only these are asked for one.
             var lod = new HashSet<string>(); bytes = null;
             yield return ReadRaw(Path.Combine("heroes_hd", "index_lod1.txt"), b => bytes = b, false);
             if (bytes != null)
@@ -714,28 +720,25 @@ namespace Sigilbound.Client
                 foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
                     if (line.Trim().Length > 0) mats.Add(line.Trim());
             _hdMat = mats;
+            // Heroes whose maps ship as KTX2 (GPU-compressed once transcoded): "<id> <maps>", maps from "anm".
+            var ktx = new Dictionary<string, string>(); bytes = null;
+            yield return ReadRaw(Path.Combine("heroes_hd", "index_ktx.txt"), b => bytes = b, false);
+            if (bytes != null)
+                foreach (var line in System.Text.Encoding.UTF8.GetString(bytes).Split('\n'))
+                {
+                    var parts = line.Trim().Split(' ');
+                    if (parts.Length == 2 && parts[1].Contains("a")) ktx[parts[0]] = parts[1];
+                }
+            _hdKtx = ktx;
         }
 
-        // The painted-character material for the baked atlas: albedo, tangent normal, and a mask whose
-        // blue channel is the glow (from the _glow PNG) so the eyes, runes and auras light up.
-        // The Hollow look on a painted albedo (as Recolour does for the old models): half desaturated and
-        // pulled halfway toward deep violet, so enemy copies read as shadows of the hero.
-        // Pixel loops only (no Unity calls), so they run on a worker thread: 1M pixels for the tint, 262k for the mask.
-        static void HollowTint(Color32[] px)
-        {
-            var v = new Color32(0x2e, 0x1f, 0x33, 255);
-            for (int i = 0; i < px.Length; i++)
-            {
-                var c = px[i]; int g = (c.r * 3 + c.g * 6 + c.b) / 10;
-                int r = (c.r + g) / 2, gg = (c.g + g) / 2, b = (c.b + g) / 2;
-                px[i] = new Color32((byte)((r + v.r) / 2), (byte)((gg + v.g) / 2), (byte)((b + v.b) / 2), c.a);
-            }
-        }
         // The mask's blue channel is the glow (eyes, runes, auras), from the _glow PNG's brightness. Metal (R) and
         // smoothness (A) come from the hero's _mat PNG (R metal, G smoothness; blenderforge/hd_materials.py: blades,
         // shield rims, helmets and crowns), sampled at the mask's size; without one everything is matte (metal 0, smooth 90).
         // The Titan's PNG also carries its crystal ridges in the alpha (255 - ridge; blenderforge/titan_moves.py): they go to the
         // red channel instead of metal, which its material reads as the ridge glow (_RidgeColor) and a little sheen.
+        // Heroes with KTX2 maps get this mask built ahead of time (ktx-worker.mjs buildMask, the same rule); this is
+        // for any hero still on JPEG/PNG maps. A pixel loop only (no Unity calls), so it runs on a worker thread.
         static Color32[] MaskFromGlow(Color32[] g, int w, int h, Color32[] mat = null, int mw = 0, int mh = 0, bool ridges = false)
         {
             var mask = new Color32[w * h];
@@ -792,7 +795,9 @@ namespace Sigilbound.Client
             if (titan && mat.HasProperty("_Cull")) mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back);
             // The crystal ridges (mask red): dark until it attacks (TitanBody ramps _RidgeColor), with a little sheen.
             if (titan && mat.HasProperty("_RidgeColor")) { mat.SetColor("_RidgeColor", Color.black); mat.SetFloat("_Metallic", 0.35f); }
-            if (hollow) mat.name += "_Hollow";
+            // The Hollow look (half desaturated, pulled halfway toward deep violet) is the shader's _Hollow switch: it used
+            // to be a 1M-pixel loop over a readable copy of the albedo, which a GPU-compressed map doesn't have.
+            if (hollow) { mat.name += "_Hollow"; if (mat.HasProperty("_Hollow")) mat.SetFloat("_Hollow", 1f); }
             NormalMapOn(mat);
             return mat;
         }
@@ -839,78 +844,248 @@ namespace Sigilbound.Client
         {
             if (_hdLibs.ContainsKey(cacheKey)) yield break;
             {
-                byte[] glb = null, alb = null, nrm = null, glow = null;
-                bool low = cacheKey.EndsWith("|lo"), lod1 = low && _hdLod1 != null && _hdLod1.Contains(id);
-                if (lod1) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_LOD1.glb"), b => glb = b);
-                if (glb == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD.glb"), b => glb = b);
-                // Textures ship as JPEG (blenderforge/compress); PNG is still read for older builds.
-                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.jpg"), b => alb = b);
-                if (alb == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.png"), b => alb = b);
-                if (!low) // Low draws no normal maps (SetLowDetail), so it doesn't load them
+                byte[] glb = null, alb = null, nrm = null, glow = null, maskb = null, lodb = null, matb = null;
+                bool low = cacheKey.EndsWith("|lo"), wantLod = cacheKey.Contains("|l1") && _hdLod1 != null && _hdLod1.Contains(id);
+                string maps = null;
+                bool ktx = KtxAvailable && _hdKtx != null && _hdKtx.TryGetValue(id, out maps);
+                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD.glb"), b => glb = b);
+                if (wantLod) yield return ReadRaw(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_LOD1.sbl"), b => lodb = b, true);
+                if (ktx)
                 {
-                    yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.jpg"), b => nrm = b);
-                    if (nrm == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.png"), b => nrm = b);
+                    // KTX2 (prepare-models.mjs): transcoded to a GPU format on a worker, no decode on the main thread,
+                    // and the mask is built ahead of time.
+                    yield return ReadRaw(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.ktx2"), b => alb = b, true);
+                    if (!low && maps.Contains("n")) yield return ReadRaw(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.ktx2"), b => nrm = b, true);
+                    if (maps.Contains("m")) yield return ReadRaw(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_mask.ktx2"), b => maskb = b, true);
                 }
-                yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_glow.png"), b => glow = b);
-                byte[] matb = null;
-                if (_hdMat != null && _hdMat.Contains(id)) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_mat.png"), b => matb = b);
+                else
+                {
+                    // Textures ship as JPEG (blenderforge/compress); PNG is still read for older builds.
+                    yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.jpg"), b => alb = b);
+                    if (alb == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_albedo.png"), b => alb = b);
+                    if (!low) // Low draws no normal maps (SetLowDetail), so it doesn't load them
+                    {
+                        yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.jpg"), b => nrm = b);
+                        if (nrm == null) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_normal.png"), b => nrm = b);
+                    }
+                    yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_glow.png"), b => glow = b);
+                    if (_hdMat != null && _hdMat.Contains(id)) yield return ReadBytes(Path.Combine("heroes_hd", $"SB_Hero_{id}_HD_mat.png"), b => matb = b);
+                }
                 if (glb == null || alb == null) { yield break; }
+                HdLod lod = null;
+                if (lodb != null)
+                {
+                    var job = System.Threading.Tasks.Task.Run(() => HdLod.Parse(Inflate(lodb)));
+                    while (!job.IsCompleted) yield return null;
+                    if (job.IsFaulted) Debug.LogWarning($"Sigilbound: LOD1 of {id} unreadable, using the full mesh: {job.Exception?.GetBaseException().Message}");
+                    else lod = job.Result;
+                }
                 var gltf = new GLTFast.GltfImport(null, null, new SigilMaterialGenerator());
                 var load = gltf.LoadGltfBinary(glb, null, new GLTFast.ImportSettings { AnimationMethod = GLTFast.AnimationMethod.Legacy, GenerateMipMaps = false });
                 while (!load.IsCompleted) yield return null;
                 if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the high-detail {id}"); gltf.Dispose(); yield break; }
-                // GPU copies only: the albedo stays readable just long enough for the Hollow tint, and the glow
-                // map only until the mask is built (it used to stay in memory, unused).
-                // Spread over frames (performance review #4): each decode or upload takes its own HeavySlot frame
-                // and the pixel loops run on a worker, where all of it used to run in the one frame after the parse
-                // (estimated 100-200 ms per hero on a mid-range phone). SBPERF lines log each step's main-thread time.
-                var sw = System.Diagnostics.Stopwatch.StartNew(); double tAlb, tTint = 0, tNrm, tGlow, tMask = 0;
-                yield return HeavySlot(); sw.Restart();
-                var albTex = LoadPng(alb, false, hollow);
-                tAlb = sw.Elapsed.TotalMilliseconds;
-                if (hollow && albTex != null)
+                // GPU copies only (no CPU copy of any map). Spread over frames (performance review #4): each upload
+                // or decode takes its own HeavySlot frame. SBPERF lines log each step's main-thread time.
+                var sw = System.Diagnostics.Stopwatch.StartNew(); double tAlb = 0, tNrm = 0, tGlow = 0, tMask = 0, tLod = 0;
+                Texture2D albTex = null, nrmTex = null, maskTex = null;
+                if (ktx)
                 {
-                    var px = albTex.GetPixels32();
-                    yield return OnWorker(() => HollowTint(px));
-                    yield return HeavySlot(); sw.Restart();
-                    if (albTex != null) { albTex.SetPixels32(px); albTex.Apply(true, true); } // upload, then drop the CPU copy
-                    tTint = sw.Elapsed.TotalMilliseconds;
+                    yield return LoadKtx(alb, false, t => albTex = t, ms => tAlb = ms);
+                    if (nrm != null) yield return LoadKtx(nrm, true, t => nrmTex = t, ms => tNrm = ms);
+                    if (maskb != null) yield return LoadKtx(maskb, true, t => maskTex = t, ms => tMask = ms);
                 }
-                yield return HeavySlot(); sw.Restart();
-                var nrmTex = LoadPng(nrm, true, false);
-                tNrm = sw.Elapsed.TotalMilliseconds;
-                yield return HeavySlot(); sw.Restart();
-                var glowTex = LoadPng(glow, false, true);
-                Color32[] glowPx = null; int gw = 0, gh = 0;
-                if (glowTex != null) { glowPx = glowTex.GetPixels32(); gw = glowTex.width; gh = glowTex.height; UnityEngine.Object.Destroy(glowTex); }
-                var matTex = LoadPng(matb, false, true);
-                Color32[] matPx = null; int mw = 0, mh = 0;
-                if (matTex != null) { matPx = matTex.GetPixels32(); mw = matTex.width; mh = matTex.height; UnityEngine.Object.Destroy(matTex); }
-                if (glowPx == null && matPx != null) { gw = mw; gh = mh; }
-                tGlow = sw.Elapsed.TotalMilliseconds;
-                Texture2D maskTex = null;
-                if (glowPx != null || matPx != null)
+                else
                 {
-                    Color32[] mask = null;
-                    bool ridges = cacheKey.StartsWith("titan|");
-                    yield return OnWorker(() => mask = MaskFromGlow(glowPx, gw, gh, matPx, mw, mh, ridges));
                     yield return HeavySlot(); sw.Restart();
-                    if (mask != null) { maskTex = new Texture2D(gw, gh, TextureFormat.RGBA32, true, true); maskTex.SetPixels32(mask); maskTex.Apply(true, true); }
-                    tMask = sw.Elapsed.TotalMilliseconds;
+                    albTex = LoadPng(alb, false);
+                    tAlb = sw.Elapsed.TotalMilliseconds;
+                    yield return HeavySlot(); sw.Restart();
+                    nrmTex = LoadPng(nrm, true, false);
+                    tNrm = sw.Elapsed.TotalMilliseconds;
+                    yield return HeavySlot(); sw.Restart();
+                    var glowTex = LoadPng(glow, false, true);
+                    Color32[] glowPx = null; int gw = 0, gh = 0;
+                    if (glowTex != null) { glowPx = glowTex.GetPixels32(); gw = glowTex.width; gh = glowTex.height; UnityEngine.Object.Destroy(glowTex); }
+                    var matTex = LoadPng(matb, false, true);
+                    Color32[] matPx = null; int mw = 0, mh = 0;
+                    if (matTex != null) { matPx = matTex.GetPixels32(); mw = matTex.width; mh = matTex.height; UnityEngine.Object.Destroy(matTex); }
+                    if (glowPx == null && matPx != null) { gw = mw; gh = mh; }
+                    tGlow = sw.Elapsed.TotalMilliseconds;
+                    if (glowPx != null || matPx != null)
+                    {
+                        Color32[] mask = null;
+                        bool ridges = cacheKey.StartsWith("titan|");
+                        yield return OnWorker(() => mask = MaskFromGlow(glowPx, gw, gh, matPx, mw, mh, ridges));
+                        yield return HeavySlot(); sw.Restart();
+                        if (mask != null) { maskTex = new Texture2D(gw, gh, TextureFormat.RGBA32, true, true); maskTex.SetPixels32(mask); maskTex.Apply(true, true); }
+                        tMask = sw.Elapsed.TotalMilliseconds;
+                    }
                 }
-                double longest = Math.Max(Math.Max(tAlb, tTint), Math.Max(tNrm, Math.Max(tGlow, tMask)));
-                Debug.Log($"SBPERF hd {cacheKey}: main thread albedo {tAlb:0.0} ms, tint {tTint:0.0}, normal {tNrm:0.0}, glow {tGlow:0.0}, mask {tMask:0.0}; longest frame step {longest:0.0} ms of {tAlb + tTint + tNrm + tGlow + tMask:0.0} ms (inflate and pixel loops on a worker)");
+                if (albTex == null) { Debug.LogWarning($"Sigilbound: the high-detail {id} has no albedo"); gltf.Dispose(); foreach (var t in new[] { nrmTex, maskTex }) if (t != null) UnityEngine.Object.Destroy(t); yield break; }
+                Mesh full = null, lodMesh = null;
+                if (lod != null)
+                {
+                    yield return HeavySlot(); sw.Restart();
+                    full = gltf.Meshes != null && gltf.Meshes.Count == 1 ? gltf.Meshes.First() : null;
+                    lodMesh = BuildLodMesh(full, lod, id);
+                    if (lodMesh != null) full.UploadMeshData(true); // never drawn in a LOD1 entry: drop its CPU copy
+                    tLod = sw.Elapsed.TotalMilliseconds;
+                }
+                double longest = Math.Max(Math.Max(tAlb, tLod), Math.Max(tNrm, Math.Max(tGlow, tMask)));
+                Debug.Log($"SBPERF hd {cacheKey}: main thread albedo {tAlb:0.0} ms, normal {tNrm:0.0}, glow {tGlow:0.0}, mask {tMask:0.0}, lod {tLod:0.0}; longest frame step {longest:0.0} ms of {tAlb + tNrm + tGlow + tMask + tLod:0.0} ms; "
+                    + $"{(ktx ? "KTX2" : "JPEG")} maps {Describe(albTex)} / {Describe(nrmTex)} / {Describe(maskTex)} = {(TexBytes(albTex) + TexBytes(nrmTex) + TexBytes(maskTex)) / 1048576.0:0.00} MB"
+                    + (lodMesh != null ? $"; LOD1 {lod.Triangles} of {lod.FullIndices / 3} triangles, {lod.Keep.Length} of {lod.FullVertices} vertices" : ""));
                 if (_hdLibs.ContainsKey(cacheKey)) // loaded meanwhile by another job: keep that one
                 {
                     gltf.Dispose(); foreach (var t in new[] { albTex, nrmTex, maskTex }) if (t != null) UnityEngine.Object.Destroy(t);
+                    if (lodMesh != null) UnityEngine.Object.Destroy(lodMesh);
                     yield break;
                 }
-                var e = new HdEntry { Gltf = gltf, Used = Time.unscaledTime };
+                var e = new HdEntry { Gltf = gltf, Used = Time.unscaledTime, Full = lodMesh != null ? full : null, Lod = lodMesh };
                 e.Mat = HdMaterial(id, albTex, nrmTex, maskTex, el, hollow, cacheKey.StartsWith("titan|"));
                 e.Tex.Add(albTex); e.Tex.Add(nrmTex); e.Tex.Add(maskTex);
                 _hdLibs[cacheKey] = e;
                 EvictIdle();
             }
+        }
+
+        static string Describe(Texture2D t) => t == null ? "-" : $"{t.width}px {t.format}";
+        // GPU bytes of a texture with its mips (Profiler.GetRuntimeMemorySizeLong needs a development build).
+        static long TexBytes(Texture2D t)
+        {
+            if (t == null) return 0;
+            long b = 0;
+            for (int m = 0, w = t.width, h = t.height; m < t.mipmapCount; m++, w = Math.Max(1, w / 2), h = Math.Max(1, h / 2))
+            {
+                long blocks = (long)((w + 3) / 4) * ((h + 3) / 4);
+                switch (t.format)
+                {
+                    case TextureFormat.ETC_RGB4: case TextureFormat.ETC2_RGB: case TextureFormat.DXT1: case TextureFormat.BC4: b += blocks * 8; break;
+                    case TextureFormat.ETC2_RGBA8: case TextureFormat.DXT5: case TextureFormat.BC7: case TextureFormat.BC5: case TextureFormat.ASTC_4x4: b += blocks * 16; break;
+                    case TextureFormat.RGBA32: case TextureFormat.ARGB32: case TextureFormat.BGRA32: b += (long)w * h * 4; break;
+                    case TextureFormat.RGB24: b += (long)w * h * 3; break;
+                    default: b += (long)w * h * 4; break;
+                }
+            }
+            return b;
+        }
+
+        // KTX for Unity (com.unity.cloud.ktx) is installed: the KTX2 maps can be used (else the JPEG/PNG ones are read).
+        static bool KtxAvailable
+        {
+            get
+            {
+#if SB_KTX
+                return true;
+#else
+                return false;
+#endif
+            }
+        }
+        static int _ktxFails;
+        // Loads one KTX2 map: KTX for Unity transcodes it (Basis Universal ETC1S/UASTC) on a worker thread to what the
+        // GPU supports (ETC2 or ASTC on Android, BC1/BC7 on Windows) and uploads it without a CPU copy. Its main-thread
+        // parts (opening the file, then creating and uploading the texture in an async continuation) are timed through
+        // TimedContext, so the SBPERF line compares like with like against the JPEG decodes.
+        static IEnumerator LoadKtx(byte[] bytes, bool linear, Action<Texture2D> done, Action<double> mainMs)
+        {
+#if SB_KTX
+            yield return HeavySlot();
+            var data = new Unity.Collections.NativeArray<byte>(bytes, Unity.Collections.Allocator.Persistent);
+            var ctx = new TimedContext(System.Threading.SynchronizationContext.Current);
+            System.Threading.Tasks.Task<KtxUnity.TextureResult> task = null;
+            ctx.Run(() =>
+            {
+                try { task = new KtxUnity.KtxTexture().LoadFromBytes(data.AsReadOnly(), linear); }
+                catch (Exception ex) { Debug.LogWarning("Sigilbound: KTX2 map not loaded: " + ex.Message); }
+            });
+            while (task != null && !task.IsCompleted) yield return null;
+            data.Dispose();
+            Texture2D t = null;
+            if (task != null && task.IsFaulted) Debug.LogWarning("Sigilbound: KTX2 map not loaded: " + task.Exception?.GetBaseException().Message);
+            else if (task != null && task.Result != null && task.Result.errorCode != KtxUnity.ErrorCode.Success) Debug.LogWarning("Sigilbound: KTX2 map not loaded: " + task.Result.errorCode);
+            else if (task != null && task.Result != null) t = task.Result.texture;
+            if (t == null && ++_ktxFails <= 3) Debug.LogWarning("Sigilbound: KTX2 transcoding failed on this device");
+            if (t != null) t.wrapMode = TextureWrapMode.Repeat;
+            mainMs(ctx.Ms);
+            done(t);
+#else
+            mainMs(0); done(null); yield break;
+#endif
+        }
+
+        // Runs code, and every continuation it posts (async/await), on the inner (Unity) context while adding up the
+        // time they take: the main-thread cost of an async load.
+        sealed class TimedContext : System.Threading.SynchronizationContext
+        {
+            readonly System.Threading.SynchronizationContext _inner;
+            public double Ms;
+            public TimedContext(System.Threading.SynchronizationContext inner) { _inner = inner; }
+            public void Run(Action a)
+            {
+                var prev = Current; SetSynchronizationContext(this);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                try { a(); } finally { Ms += sw.Elapsed.TotalMilliseconds; SetSynchronizationContext(prev); }
+            }
+            public override void Post(System.Threading.SendOrPostCallback d, object state)
+            {
+                if (_inner != null) _inner.Post(_ => Run(() => d(state)), null); else Run(() => d(state));
+            }
+            public override void Send(System.Threading.SendOrPostCallback d, object state) => Run(() => d(state));
+            public override System.Threading.SynchronizationContext CreateCopy() => this;
+        }
+
+        // The LOD1 mesh: the full mesh's kept vertices (positions, normals, UVs, skin weights unchanged) and the
+        // LOD's triangles, with the full mesh's bind poses and bounds. Checked against the full mesh first (vertex
+        // and index counts, the first triangle and its positions); on any mismatch the hero keeps the full mesh.
+        static Mesh BuildLodMesh(Mesh full, HdLod lod, string id)
+        {
+            try
+            {
+                if (full == null || !full.isReadable || full.subMeshCount != 1 || full.vertexCount != lod.FullVertices || full.GetIndexCount(0) != lod.FullIndices)
+                { Debug.LogWarning($"Sigilbound: LOD1 of {id} doesn't match its mesh ({(full == null ? "none" : full.vertexCount + " vertices")}), using the full mesh"); return null; }
+                var fullTris = full.GetTriangles(0);
+                var tris = lod.UnityTriangles(fullTris[0], fullTris[1], fullTris[2]);
+                var v = new List<Vector3>(full.vertexCount); full.GetVertices(v);
+                bool samePos = tris != null;
+                for (int k = 0; k < 3 && samePos; k++)
+                {
+                    var p = v[lod.FirstTriangle[k]]; // glTFast mirrors x (glTF is right-handed)
+                    samePos = Mathf.Abs(Mathf.Abs(p.x) - Mathf.Abs(lod.FirstPositions[k * 3])) < 1e-3f && Mathf.Abs(p.y - lod.FirstPositions[k * 3 + 1]) < 1e-3f && Mathf.Abs(Mathf.Abs(p.z) - Mathf.Abs(lod.FirstPositions[k * 3 + 2])) < 1e-3f;
+                }
+                if (!samePos) { Debug.LogWarning($"Sigilbound: LOD1 of {id} doesn't match its mesh's vertex order, using the full mesh"); return null; }
+                var m = new Mesh { name = full.name + "_LOD1" };
+                m.indexFormat = lod.Keep.Length > 65535 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
+                m.SetVertices(lod.Gather(v.ToArray()));
+                if (full.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Normal)) { var n = new List<Vector3>(); full.GetNormals(n); m.SetNormals(lod.Gather(n.ToArray())); }
+                if (full.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Tangent)) { var t = new List<Vector4>(); full.GetTangents(t); m.SetTangents(lod.Gather(t.ToArray())); }
+                if (full.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Color)) { var c = new List<Color32>(); full.GetColors(c); m.SetColors(lod.Gather(c.ToArray())); }
+                for (int ch = 0; ch < 2; ch++)
+                    if (full.HasVertexAttribute(ch == 0 ? UnityEngine.Rendering.VertexAttribute.TexCoord0 : UnityEngine.Rendering.VertexAttribute.TexCoord1)) { var uv = new List<Vector2>(); full.GetUVs(ch, uv); m.SetUVs(ch, lod.Gather(uv.ToArray())); }
+                // Skin: weights per vertex vary in count, so gather each kept vertex's run.
+                var per = full.GetBonesPerVertex(); var all = full.GetAllBoneWeights();
+                if (per.Length == full.vertexCount)
+                {
+                    var start = new int[per.Length + 1];
+                    for (int i = 0; i < per.Length; i++) start[i + 1] = start[i] + per[i];
+                    int total = 0; foreach (var k in lod.Keep) total += per[k];
+                    var outPer = new Unity.Collections.NativeArray<byte>(lod.Keep.Length, Unity.Collections.Allocator.Temp);
+                    var outW = new Unity.Collections.NativeArray<BoneWeight1>(total, Unity.Collections.Allocator.Temp);
+                    for (int i = 0, o = 0; i < lod.Keep.Length; i++)
+                    {
+                        int k = lod.Keep[i]; outPer[i] = per[k];
+                        for (int j = start[k]; j < start[k + 1]; j++) outW[o++] = all[j];
+                    }
+                    m.SetBoneWeights(outPer, outW);
+                    outPer.Dispose(); outW.Dispose();
+                }
+                m.bindposes = full.bindposes;
+                m.SetTriangles(tris, 0, false);
+                m.bounds = full.bounds;
+                m.UploadMeshData(true); // GPU copy only: nothing reads a hero mesh's vertices back
+                return m;
+            }
+            catch (Exception ex) { Debug.LogWarning($"Sigilbound: LOD1 of {id} not built, using the full mesh: {ex.Message}"); return null; }
         }
 
         // Starts loading these heroes' high-detail models in the background (menu lineup, the player's
@@ -973,7 +1148,11 @@ namespace Sigilbound.Client
                 for (int i = 0; i < mats.Length; i++) mats[i] = bk.Mat;
                 r.sharedMaterials = mats;
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-                if (r is SkinnedMeshRenderer smr) smr.updateWhenOffscreen = true;
+                if (r is SkinnedMeshRenderer smr)
+                {
+                    smr.updateWhenOffscreen = true;
+                    if (bk.Lod != null && smr.sharedMesh == bk.Full) smr.sharedMesh = bk.Lod; // LOD1: same bones, fewer triangles
+                }
             }
             // The clips' curve paths start at the glTF root node ("Armature/pelvis/..."), so the Animation must
             // sit on the object ABOVE that node. glTFast only makes a "Scene" object for files with several

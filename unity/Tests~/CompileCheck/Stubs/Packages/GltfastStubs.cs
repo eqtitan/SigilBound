@@ -32,6 +32,7 @@ namespace GLTFast
         public Task<bool> LoadGltfBinary(byte[] bytes, Uri uri = null, ImportSettings importSettings = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<bool> InstantiateMainSceneAsync(Transform parent, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public AnimationClip[] GetAnimationClips() => throw new NotImplementedException();
+        public System.Collections.Generic.IReadOnlyCollection<UnityEngine.Mesh> Meshes => throw new NotImplementedException();
         public void Dispose() { }
     }
 }

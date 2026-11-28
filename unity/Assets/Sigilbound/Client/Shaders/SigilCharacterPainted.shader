@@ -6,6 +6,8 @@
 //   _GlowColor the glow-mask colour: the hero's glow colour, or red on Hollow enemies (HeroRig)
 //   _RidgeColor the glow on mask R: the Titan's crystal ridges when it attacks (TitanBody); black elsewhere
 //   _Tint     multiplies the albedo (Hollow enemies are tinted dark violet)
+//   _Hollow   1 for Hollow enemy copies of high-detail heroes: the albedo half desaturated and pulled halfway
+//             toward deep violet (#2e1f33), in sRGB as the old CPU tint did (HeroModels.HdMaterial)
 //   _Cutoff   alpha clip for hair cards, feathers and fringes (0 = opaque)
 // No keywords: every map is always sampled, so one variant serves every hero (cheap to warm up).
 // Materials are made by Editor/Art/HeroImportPipeline. Falls back to URP Lit.
@@ -30,6 +32,7 @@ Shader "Sigilbound/CharacterPainted"
         [HDR] _GlowColor ("Glow mask colour", Color) = (0, 0, 0, 1)
         [HDR] _RidgeColor ("Ridge glow (mask R, the Titan's crystals)", Color) = (0, 0, 0, 1)
         _Cutoff ("Alpha clip", Range(0, 1)) = 0
+        _Hollow ("Hollow tint", Range(0, 1)) = 0
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2
     }
 
@@ -60,6 +63,7 @@ Shader "Sigilbound/CharacterPainted"
             float4 _RidgeColor;
             float _Cutoff;
             float _Cull;
+            float _Hollow;
         CBUFFER_END
 
         TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
@@ -129,6 +133,12 @@ Shader "Sigilbound/CharacterPainted"
                 float3 n = normalize(nTS.x * t + nTS.y * b + nTS.z * n0);
                 float3 v = GetWorldSpaceNormalizeViewDir(i.positionWS);
 
+                if (_Hollow > 0.5)
+                {
+                    float3 s = pow(max(base.rgb, 0.0), 1.0 / 2.2); // to gamma (close to sRGB) and back
+                    float g = dot(s, float3(0.3, 0.6, 0.1));
+                    base.rgb = pow(((s + g) * 0.5 + float3(0.180, 0.122, 0.2)) * 0.5, 2.2);
+                }
                 float3 albedo = base.rgb * _Tint.rgb;
                 float metal = mask.r * _Metallic;
                 float smooth = mask.a * _Smoothness;

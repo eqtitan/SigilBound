@@ -32,3 +32,4 @@
 /Assets/StreamingAssets/Models/heroes/
 /Assets/StreamingAssets/Models/*.glbz
 /Assets/StreamingAssets/Models/women_*.glb
+/Tools~/models/.ktx-cache/
