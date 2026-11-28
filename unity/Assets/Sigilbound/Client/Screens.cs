@@ -335,9 +335,17 @@ namespace Sigilbound.Client
         void AskRankUp(HeroSave h)
         {
             var fodder = G.SuggestFodder(h);
-            Modal($"Rank up to {h.stars + 1}★?", 260, b =>
+            // Each fodder hero with stars, level and rarity; Epic+ and last copies called out in red.
+            bool risky = fodder.Any(f => Hero(f.id).Rarity >= Rarity.Epic || G.CopiesOf(f.id) <= 1);
+            string list = string.Join("\n", fodder.Select(f =>
             {
-                Ui.Text(new Rect(b.x, b.y, b.width, 90), "These heroes will be used up (locked heroes and team members never are):\n" + string.Join(", ", fodder.Select(f => $"{Hero(f.id).ShortName} Lv{f.level}")) + $"\n\nCost: {Ui.Fmt(RankUpGold(h.stars))} gold. Stats +15%, level cap {MaxLevelFor(h.stars + 1)}.", 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                var ft = Hero(f.id);
+                string warn = ft.Rarity >= Rarity.Epic ? Ui.ColorTag("  ⚠ " + ft.Rarity, Palette.Bad) : G.CopiesOf(f.id) <= 1 ? Ui.ColorTag("  ⚠ last copy", Palette.Bad) : "";
+                return $"{Ui.ColorTag(Ui.Stars(f.stars), Palette.Gold)} {ft.ShortName} Lv{f.level} · {Ui.ColorTag(ft.Rarity.ToString(), Palette.Rarity(ft.Rarity))}{warn}";
+            }));
+            Modal($"Rank up to {h.stars + 1}★?", 300 + (risky ? 20 : 0), b =>
+            {
+                Ui.Text(new Rect(b.x, b.y, b.width, 150 + (risky ? 20 : 0)), "These heroes will be used up (locked heroes and team members never are):\n" + list + (risky ? "\n" + Ui.ColorTag("Check the heroes marked ⚠: they can't be brought back.", Palette.Bad) : "") + $"\n\nCost: {Ui.Fmt(RankUpGold(h.stars))} gold. Stats +15%, level cap {MaxLevelFor(h.stars + 1)}.", 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
                 if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
                 if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Rank Up"))
                 {

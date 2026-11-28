@@ -196,8 +196,13 @@ namespace Sigilbound.Core
             S.heroes.Where(o => o.uid != h.uid && o.stars == h.stars && !o.locked && !S.team.Contains(o.uid)).ToList();
         public bool CanRankUp(HeroSave h) =>
             h.stars < MaxStars && h.level >= MaxLevelFor(h.stars) && RankUpFodder(h).Count >= h.stars && S.gold >= RankUpGold(h.stars);
+        // Cheapest fodder first: lowest rarity, then spare copies (heroes you own more than one of) before
+        // singletons, then lowest level. Rarity comes first so a freshly summoned Epic or Legendary (level 1)
+        // is never offered before a levelled Common (research BULK_RELEASE_AUTO_RANKUP 1.3).
+        public int CopiesOf(string id) => S.heroes.Count(o => o.id == id);
         public List<HeroSave> SuggestFodder(HeroSave h) =>
-            RankUpFodder(h).OrderBy(f => f.level).ThenBy(f => (int)Hero(f.id).Rarity).Take(h.stars).ToList();
+            RankUpFodder(h).OrderBy(f => (int)Hero(f.id).Rarity).ThenByDescending(f => CopiesOf(f.id))
+                .ThenBy(f => f.level).ThenBy(f => f.uid).Take(h.stars).ToList();
         public bool RankUp(HeroSave h, List<HeroSave> fodder)
         {
             if (!CanRankUp(h) || fodder.Count != h.stars || fodder.Any(f => !RankUpFodder(h).Contains(f))) return false;
