@@ -192,7 +192,12 @@ namespace Sigilbound.Client
         }
         public void Hit(bool big)
         {
-            if (Style.Titan) { Play(Has("HitReact") ? "HitReact" : "Idle", false, 0.1f); return; }
+            if (Style.Titan)
+            {
+                // The HD Titan's own flinch and heavy stagger; the old stand-in's single HitReact.
+                var own = (big ? Style.BigHit : Style.Hit).FirstOrDefault(Has);
+                Play(own ?? (Has("HitReact") ? "HitReact" : "Idle"), false, 0.1f); return;
+            }
             var list = big ? Style.BigHit : Style.Hit;
             Play(list.FirstOrDefault(Has) ?? "HitRecieve", false, 0.08f);
         }
@@ -729,7 +734,9 @@ namespace Sigilbound.Client
         // The mask's blue channel is the glow (eyes, runes, auras), from the _glow PNG's brightness. Metal (R) and
         // smoothness (A) come from the hero's _mat PNG (R metal, G smoothness; blenderforge/hd_materials.py: blades,
         // shield rims, helmets and crowns), sampled at the mask's size; without one everything is matte (metal 0, smooth 90).
-        static Color32[] MaskFromGlow(Color32[] g, int w, int h, Color32[] mat = null, int mw = 0, int mh = 0)
+        // The Titan's PNG also carries its crystal ridges in the alpha (255 - ridge; blenderforge/titan_moves.py): they go to the
+        // red channel instead of metal, which its material reads as the ridge glow (_RidgeColor) and a little sheen.
+        static Color32[] MaskFromGlow(Color32[] g, int w, int h, Color32[] mat = null, int mw = 0, int mh = 0, bool ridges = false)
         {
             var mask = new Color32[w * h];
             for (int y = 0; y < h; y++)
@@ -739,6 +746,7 @@ namespace Sigilbound.Client
                     byte lum = g == null ? (byte)0 : (byte)Math.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2);
                     byte metal = 0, smooth = 90;
                     if (mat != null) { var m = mat[(y * mh / h) * mw + (x * mw / w)]; metal = m.r; smooth = (byte)Math.Max(90, (int)m.g); }
+                    if (ridges && g != null) metal = (byte)(255 - g[i].a);
                     mask[i] = new Color32(metal, 255, lum, smooth);
                 }
             return mask;
@@ -782,6 +790,8 @@ namespace Sigilbound.Client
             // The Titan's seams and visor glow only on front faces (art review H3): single-sided, whatever the
             // template says, so no glow island can show through the far side of a plate.
             if (titan && mat.HasProperty("_Cull")) mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Back);
+            // The crystal ridges (mask red): dark until it attacks (TitanBody ramps _RidgeColor), with a little sheen.
+            if (titan && mat.HasProperty("_RidgeColor")) { mat.SetColor("_RidgeColor", Color.black); mat.SetFloat("_Metallic", 0.35f); }
             if (hollow) mat.name += "_Hollow";
             NormalMapOn(mat);
             return mat;
@@ -882,7 +892,8 @@ namespace Sigilbound.Client
                 if (glowPx != null || matPx != null)
                 {
                     Color32[] mask = null;
-                    yield return OnWorker(() => mask = MaskFromGlow(glowPx, gw, gh, matPx, mw, mh));
+                    bool ridges = cacheKey.StartsWith("titan|");
+                    yield return OnWorker(() => mask = MaskFromGlow(glowPx, gw, gh, matPx, mw, mh, ridges));
                     yield return HeavySlot(); sw.Restart();
                     if (mask != null) { maskTex = new Texture2D(gw, gh, TextureFormat.RGBA32, true, true); maskTex.SetPixels32(mask); maskTex.Apply(true, true); }
                     tMask = sw.Elapsed.TotalMilliseconds;
@@ -989,7 +1000,15 @@ namespace Sigilbound.Client
             if (DigitigradeLegs.Needed(holder)) root.AddComponent<DigitigradeLegs>().Init(holder, anim, bk.Gltf.GetAnimationClips());
             // Spring bones (skirts, robes, coat tails; Core/SpringSolver.cs): simulated after the clip, off the legs.
             if (SpringBones.Needed(holder)) root.AddComponent<SpringBones>().Init(holder, id);
-            if (titan) { root.AddComponent<HandGrip>(); ApplyGlowCut(holder); }
+            if (titan)
+            {
+                root.AddComponent<HandGrip>(); ApplyGlowCut(holder);
+                // Its own clips are authored on its own rest pose: RigExtras must not re-express them (only shared ones).
+                if (spec.Clips == "embedded" && root.GetComponent<RigExtras>() is RigExtras rx)
+                    foreach (var c in bk.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null) rx.Own.Add(c.name);
+                // Seams and core flaring in wind-ups, the breathing core, ridge glow and the crystals breaking off.
+                root.AddComponent<TitanBody>().Init(holder, unit.El, anim);
+            }
             else if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
             float headY = 1.6f;

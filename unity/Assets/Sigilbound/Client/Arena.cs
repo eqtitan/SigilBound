@@ -84,7 +84,7 @@ namespace Sigilbound.Client
             var rot = b > 0 && BreathFocus != Vector3.zero ? Quaternion.Slerp(_poseRot, Quaternion.LookRotation(BreathFocus - pos), 0.3f * b) : _poseRot;
             float fov = _poseFov;
             if (_ovW > 0) { pos = Vector3.Lerp(pos, _ovPos, _ovW); rot = Quaternion.Slerp(rot, _ovRot, _ovW); fov = Mathf.Lerp(fov, _ovFov, _ovW); }
-            // Titan cinematics keep the ground in frame (Meteor Leap, the final blow, Crushing Palm's low shot):
+            // Titan cinematics keep the ground in frame (Faultline Leap, the final blow, Bedrock Hammer's low shot):
             // tilt down until the frame's bottom edge meets the ground within BattleLayout.GroundSeen metres.
             if (_framedTitan && _ovW > 0)
             {

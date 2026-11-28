@@ -314,8 +314,18 @@ namespace Sigilbound.Core
         public static readonly HeroDef[] Act2Pool = Act2EnemyIds.Select(id => _byId[id]).ToArray();
         public static readonly string[] Starters = { "ysolde", "hask", "corvan" };
 
+        // The Titan's moves suit its remodelled body (owner request 2026-11-28: a hunched basalt colossus with long arms,
+        // rock fists, crystal ridges and an open molten chest core). Names and descriptions are new (Unity only; the web
+        // game keeps its own); multipliers, targets, cooldowns and effects are unchanged (Tests~ "titandmg").
         public static readonly HeroDef Titan = H("titan", "Kharvok the Ashen Titan", Rarity.Legendary, Element.Flame, Role.Defense,
-            S("Crushing Palm", E, 1.3, 0), S("Quake", AE, 0.8, 3, F(FxType.Slow, 2, 0.5)), S("Cinder Breath", AE, 1.0, 4, F(FxType.Poison, 2, 0.5), F(FxType.DefDown, 2, 0.4)));
+            S("Bedrock Hammer", E, 1.3, 0), S("Faultline Leap", AE, 0.8, 3, F(FxType.Slow, 2, 0.5)), S("Heartfire Torrent", AE, 1.0, 4, F(FxType.Poison, 2, 0.5), F(FxType.DefDown, 2, 0.4)));
+        // What each move looks like, by skill index (the Titan screen shows these over the generated numbers).
+        public static readonly string[] TitanMoveLore =
+        {
+            "Knuckle-walks up to one hero, raises both rock fists high over its horns and brings them down like a falling cliff.",
+            "Crouches on its fists, bounds into the air and lands among your whole team, splitting the ground in a quake that slows them.",
+            "Its open chest core flares white-hot; it thrusts its chest forward and pours a torrent of molten fire across your team.",
+        };
         public const int TitanTurns = 20;
         public sealed class TitanTier { public long Dmg; public Reward Reward; }
         public static readonly TitanTier[] TitanTiers =

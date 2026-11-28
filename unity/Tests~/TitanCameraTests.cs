@@ -141,7 +141,7 @@ static class TitanCameraTests
             }
             check(blocked.Count == 0, "titan intro: with 1 to 4 heroes the camera stands in a gap, no hero's back between it and the Titan's face" + (blocked.Count > 0 ? " — " + string.Join("; ", blocked.Take(4)) : ""));
 
-            // Meteor Leap at its peak: the worm's-eye camera aimed at a Titan 12 m up on a 78-degree lens
+            // Faultline Leap at its peak: the worm's-eye camera aimed at a Titan 12 m up on a 78-degree lens
             // must be tilted down so the ground stays in frame (77-titan-4: it floated in an empty sky).
             var wv = BattleLayout.WormView(2.17);
             var apex = BattleLayout.TeamCentre + new V3(0, 12 + BattleLayout.TitanHead * 0.5, 0) + (BattleLayout.TitanSlot() - BattleLayout.TeamCentre) * 0.5;

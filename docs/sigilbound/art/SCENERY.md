@@ -191,8 +191,8 @@ reads them back into the battle:
 - `RaiseShock(pos, strength, slam)` on:
   - ultimates and boss attacks
   - the Titan's basic slam
-  - Earthsplitter, the Meteor leap and Crushing Palm
-  - the roar at the start of Cinder Breath
+  - Earthsplitter, Faultline Leap and Bedrock Hammer
+  - the roar at the start of Heartfire Torrent
 
 `SkillFx.cs` and `Sound.cs` are untouched.
 

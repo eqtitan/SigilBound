@@ -60,6 +60,20 @@ namespace Sigilbound.Client
         }
 
         public int FixedBones => _fix.Count;
+        // Clips authored on this model's own rest pose (the Titan's, blenderforge/titan_moves.py): while they play the
+        // rest-pose fix is skipped, since it would bend them a second time.
+        public readonly HashSet<string> Own = new HashSet<string>();
+        bool OwnPlaying()
+        {
+            if (Own.Count == 0 || _anim == null) return false;
+            float own = 0, all = 0;
+            foreach (AnimationState s in _anim)
+            {
+                if (!s.enabled || s.weight <= 0) continue;
+                all += s.weight; if (Own.Contains(s.clip != null ? s.clip.name : s.name)) own += s.weight;
+            }
+            return all > 0 && own >= all * 0.5f;
+        }
 
         // An attack is playing: the strike envelope rises while one is active (from the clip names).
         bool Attacking()
@@ -76,7 +90,7 @@ namespace Sigilbound.Client
 
         void LateUpdate()
         {
-            foreach (var f in _fix)
+            if (!OwnPlaying()) foreach (var f in _fix)
             {
                 if (f.T == null) continue;
                 f.T.localRotation = f.D * f.T.localRotation;

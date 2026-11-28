@@ -3,6 +3,11 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-28 | New heroes and a new Titan
+new: The Titan moves like its new body: it knuckle-walks in on its huge fists, roars, and has its own hits and stagger.
+change: The Titan's moves are now Bedrock Hammer (a two-fist overhead slam), Faultline Leap (a leap and quake) and Heartfire Torrent (fire from its open chest). Same damage as before.
+change: The Titan's blows land the moment its fists hit the ground, with the damage, the shake and the cracks right there.
+new: The Titan's seams and chest core flare before each big move, its crystal ridges glow, and the crystals break off as its health bar falls.
+new: If your team outlasts the Titan it sinks to its knees, its glow dying. The Titan screen lists its moves.
 fix: Solenne, Aelira, Ember, Azura, Morwenna and Kasimir walk formally and take heavy hits standing, so their gowns stay closed.
 fix: Shields and two-handed props no longer bend with the arm or legs (Hobb, Hask, Gorrum, Dunstan, Ivo, Merrit, Oswin, Tallow, Sable, Oriel, Benedict, Marrow, Maelis, Barley and more).
 fix: The loose specks around Fennick, Brega and Holt and the stray piece by Nell's feet are gone.
