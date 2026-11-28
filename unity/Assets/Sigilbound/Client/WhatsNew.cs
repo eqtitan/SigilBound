@@ -57,14 +57,14 @@ namespace Sigilbound.Client
         void OpenWhatsNew(List<ChangelogEntry> entries, string title)
         {
             _whatsNewScroll = Vector2.zero;
-            Modal(title, Mathf.Min(Ui.Safe.height - 40, 620), b =>
+            InfoModal(title, Mathf.Min(Ui.Safe.height - 40, 620), b =>
             {
                 var view = new Rect(b.x, b.y, b.width, b.height - 56);
                 float contentH = Layout(entries, view.width, null);
                 _whatsNewScroll = Scroller.Begin(view, _whatsNewScroll, contentH);
                 Layout(entries, view.width - 1, new Vector2(0, 0));
                 Scroller.End();
-                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Continue")) CloseModal();
+                if (ModalFooter(b, "Continue")) CloseModal();
             });
         }
 

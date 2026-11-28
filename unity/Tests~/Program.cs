@@ -158,6 +158,7 @@ static class Program
         FrameRateTests.Run(Check);
         QuitRuleTests.Run(Check);
         UxTests.Run(Check);
+        UxRulesTests.Run(Check);
         AccessibilityTests.Run(Check);
         PolishTests.Run(Check);
         HotPathTests.Run(Check);
@@ -166,6 +167,7 @@ static class Program
         GameplayUiTests.Run(Check);
         PhoneCheckTests.Run(Check);
         BrainTests.Run(Check);
+        BattleVisualsTests.Run(Check);
 
         // Win-rate sweep like the web sim's fixed-team check (geared team at stage level).
         Console.WriteLine("\nStage win rates (fixed teams at stage level, 30 runs):");

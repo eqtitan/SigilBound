@@ -664,6 +664,8 @@ namespace Sigilbound.Client
         static float _lastUnload = -100f;
 
         // On every high-detail figure: tells the cache when the figure is gone.
+        // True for a high-detail hero instance (built by BuildHd).
+        public static bool IsHd(Transform holder) => holder != null && holder.GetComponentInChildren<HdRef>(true) != null;
         sealed class HdRef : MonoBehaviour
         {
             public string Key;
@@ -856,7 +858,15 @@ namespace Sigilbound.Client
             // Metal reflection for the accessory metal maps (hd_materials.py); never on the Titan (its mask R is the
             // crystal ridges), off on Low quality (SetLowDetail).
             if (mat.HasProperty("_EnvStrength")) mat.SetFloat("_EnvStrength", titan || _lowDetail ? 0f : EnvStrength);
-            if (hollow) mat.name += "_Hollow";
+            if (hollow)
+            {
+                mat.name += "_Hollow";
+                // The speckles (art review M2): the hero's glow mask and its normal map, recoloured red on a near-black
+                // body, broke into scattered pink pixels. A Hollow copy has no glow mask and smooth normals (so its red
+                // rim is one soft band); HollowLook adds the outline and eyes instead.
+                if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", Color.black);
+                if (mat.HasProperty("_BumpScale")) mat.SetFloat("_BumpScale", 0f);
+            }
             NormalMapOn(mat);
             return mat;
         }

@@ -31,7 +31,7 @@ namespace Sigilbound.Client
 
         // The painted textures for the last arena (they are rebuilt only when the arena changes).
         static string _paintKey; static readonly List<Object> _paint = new List<Object>();
-        static Material _groundMat, _waterMat, _ramp, _farRamp, _glow, _fire; static Material[] _backMats; static Mesh[] _arcs;
+        static Material _groundMat, _waterMat, _ramp, _farRamp, _glow, _fire, _ember; static Material[] _backMats; static Mesh[] _arcs;
         static readonly Dictionary<string, Material> _glows = new Dictionary<string, Material>();
         static Color32[] _rampPx, _farRampPx;                                       // the ramps on the CPU, to paint generated landmarks
         static readonly Dictionary<string, Material> _landmarkMats = new Dictionary<string, Material>();
@@ -123,6 +123,9 @@ namespace Sigilbound.Client
                       : th.Crystals && !th.Mushrooms ? Materials.Glow(mote * 0.7f, mote, 0.3f)
                       : Materials.Glow(mote * 0.4f, mote, th.Mushrooms ? 0.9f : 1.2f);
                 _fire = Materials.Glow(Palette.Hex("#3a1a08"), Palette.Hex("#ffb050"), 1.8f);
+                // Brazier embers (art review M3: the old coals were a flat overexposed disc, a lamp shade): a dim warm
+                // glow kept under the bloom threshold (0.88); the light and the small flame come from ArenaReactor.
+                _ember = Materials.Glow(Palette.Hex("#2a1206"), Palette.Hex("#ff7a2e"), 0.8f);
             }
 
             // ---- sky and distant ridges ----
@@ -469,7 +472,8 @@ namespace Sigilbound.Client
         static Material GlowFor(Piece pc)
         {
             string hex = StoryScenes.GlowHex(pc.Glow);
-            if (pc.Glow == "fire" || (hex == null && (pc.Mesh == "brazier" || pc.Mesh == "lantern" || pc.Mesh == "torch_post"))) return _fire;
+            if (pc.Mesh == "brazier" && (hex == null || pc.Glow == "fire")) return _ember;
+            if (pc.Glow == "fire" || (hex == null && (pc.Mesh == "lantern" || pc.Mesh == "torch_post"))) return _fire;
             if (hex == null) return _glow;
             if (!_glows.TryGetValue(hex, out var m) || m == null)
             {
@@ -484,7 +488,7 @@ namespace Sigilbound.Client
         static GameObject Place(Transform root, string name, Vector3 p, float s, float yaw)
         {
             bool fire = name == "brazier" || name == "lantern" || name == "torch_post";
-            return SceneryKit.Place(root, name, p, s, yaw, _ramp, fire ? _fire : _glow);
+            return SceneryKit.Place(root, name, p, s, yaw, _ramp, name == "brazier" ? _ember : fire ? _fire : _glow);
         }
 
         // A banner cloth hanging from the pole's crossbar; sways on boss stages.

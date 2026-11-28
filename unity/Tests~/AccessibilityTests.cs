@@ -100,7 +100,7 @@ static class AccessibilityTests
             ("Text", Between(ui, "public static void Text(", "\n        }"), "RawLabel(TextPx(r, text, size"),
             ("TextOnArt", Between(ui, "public static void TextOnArt(", "\n        }"), "TextPx(r, text, size"),
             ("PlainText", Between(ui, "public static void PlainText(", "\n        }"), "TextPx(r, text, size"),
-            ("Button", Between(ui, "public static bool Button(", "\n        }"), "int px = ButtonPx(r, text, size, serif && k != Kind.Ghost, k)"),
+            ("Button", Between(ui, "public static bool Button(", "\n        }"), "int px = ButtonPx(lr, text, size, serif && k != Kind.Ghost, k)"),
             ("Field", Between(ui, "public static string Field(", "\n        }"), "fontSize = Sized(13)"),
             ("FitSize", Between(ui, "public static int FitSize(", "\n        }"), "Label(sz"),
             ("Heading", Between(ui, "public static void Heading(", ";"), "Text(r, text, size"),
@@ -108,8 +108,8 @@ static class AccessibilityTests
         };
         foreach (var p in paths) check(p.body.Contains(p.must), $"a11y: Ui.{p.name} draws at the player's text size ({p.must})");
         var btn = Between(ui, "public static bool Button(", "\n        }");
-        check(Regex.Matches(btn, @"ButtonStyle\(k, (\w+)").Cast<Match>().All(m => m.Groups[1].Value == "px") && Regex.Matches(btn, @"ButtonStyle\(").Count == 2,
-            "a11y: both button styles (enabled and disabled) take the fitted size");
+        check(Regex.Matches(btn, @"ButtonStyle\(k, (\w+)").Cast<Match>().All(m => m.Groups[1].Value == "px") && Regex.Matches(btn, @"ButtonStyle\(").Count >= 2,
+            "a11y: every button style (plate, label, disabled label) takes the fitted size");
         var sizeSets = Regex.Matches(ui, @"fontSize = ([^,;]+)").Cast<Match>().Select(m => m.Groups[1].Value.Trim()).ToList();
         check(sizeSets.All(v => v == "px" || v == "size" || v == "Sized(13)") && ui.Contains("static GUIStyle RawLabel(int px") && Regex.Matches(ui, @"RawLabel\(Sized\(|TextPx\(|ButtonPx\(").Count >= 6,
             $"a11y: Ui sets a font size only from a scaled value ({string.Join(", ", sizeSets.Distinct())})");

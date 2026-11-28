@@ -191,6 +191,8 @@ namespace Sigilbound.Client
             foreach (Transform child in Model) if (child != holder && child != HeadTop) child.gameObject.SetActive(false);
             StartCoroutine(PopIn(holder));
             _model = built;
+            // Hollow enemies: a red outline and glowing eyes on the dark body (art review M2).
+            if (Unit != null && !Unit.Ally && !Unit.Rival && !Unit.Titan) HollowLook.Apply(holder, transform, HeroModels.IsHd(holder));
             ArmL = ArmR = null;
             // Additive buff/debuff posture over the clips (MECHANICS.md 3.1).
             _posture = built.Root.AddComponent<PostureLayer>();
@@ -370,6 +372,25 @@ namespace Sigilbound.Client
                 }
             }
             if (Aura != null) Aura.localScale = new Vector3(1.1f + Mathf.Sin(t * 3f) * 0.05f, 0.005f, 1.1f + Mathf.Sin(t * 3f) * 0.05f) * Model.localScale.x;
+        }
+
+        // The element floor disc steps aside while a cast circle of the same size shows (art review M3: the two
+        // stacked into one big saturated stamp).
+        float _auraBackAt;
+        public void HideAura(float seconds)
+        {
+            if (Aura == null) return;
+            Aura.gameObject.SetActive(false);
+            _auraBackAt = Time.time + seconds;
+            if (!_auraWaiting) StartCoroutine(AuraBack());
+        }
+        bool _auraWaiting;
+        IEnumerator AuraBack()
+        {
+            _auraWaiting = true;
+            while (Time.time < _auraBackAt) yield return null;
+            _auraWaiting = false;
+            if (Aura != null && !_dead) Aura.gameObject.SetActive(true);
         }
 
         public void SetHighlight(Color? c)
