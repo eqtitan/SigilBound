@@ -56,7 +56,7 @@ namespace Sigilbound.EditorTools
             // Target API pinned, never "Automatic (highest installed)" (QA review #10, PMO P2-26): 36 is Google
             // Play's target for new apps and updates from 31 Aug 2026 and the highest platform in the game-ci
             // Unity 6000.0.58f1 Android image (platforms 34, 35, 36; build-tools 34.0.0). Kept in step with
-            // TargetSdk in BuildScript and androidTargetSdkVersion in .github/workflows/sigilbound-unity.yml.
+            // TargetSdk in BuildScript (build 193: targetSdk 36 in the APK manifest).
             PlayerSettings.Android.targetSdkVersion = (AndroidSdkVersions)BuildScript.TargetSdk;
             // GPU skinning (compute; batched where the device supports it) takes the hero meshes'
             // skinning off the CPU. Static batching of the arena happens at runtime (Arena.StaticBatch).

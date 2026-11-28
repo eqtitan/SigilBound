@@ -193,10 +193,11 @@ jobs:
         # Gradle downloads the Android build tools from Maven Central on every build; when Maven
         # answers 429 (Too Many Requests), the step fails before our code is built, so it is retried
         # once after a pause (below), but only for that error (see "Why did the APK build fail?").
-        # The target API is pinned (androidTargetSdkVersion here, PlayerSettings in ProjectSetup.cs,
-        # BuildScript.TargetSdk = 36): with nothing pinned, game-ci read it from a ProjectSettings.asset
-        # we don't commit and printed "Failed to find package 'platforms;android-0'" on every build
-        # (QA review #10, PMO P2-26: a harmless warning, but it looked like the cause of the 429 failures).
+        # "Failed to find package 'platforms;android-0'" (QA review #10, PMO P2-26) is printed on every
+        # build, green ones too: game-ci's SDK update greps a ProjectSettings.asset we don't commit. It is
+        # harmless (the image already has platforms 34-36) and was never the cause of a failure. The target
+        # API itself is pinned in ProjectSetup.cs (BuildScript.TargetSdk = 36). game-ci's
+        # androidTargetSdkVersion input is not used: CLI v0.1.77 passes it to Unity as NaN.
         continue-on-error: true
         # unity-builder v6 runs the game-ci CLI. With UNITY_EMAIL + UNITY_PASSWORD and no
         # UNITY_LICENSE it activates a Personal license through Unity's licensing client
@@ -214,18 +215,17 @@ jobs:
           buildMethod: Sigilbound.EditorTools.BuildScript.Android
           versioning: None
           androidVersionCode: ${{ github.run_number }}
-          androidTargetSdkVersion: AndroidApiLevel36
           androidExportType: androidPackage
           allowDirtyBuild: true
-      - name: Why did the APK build fail? (retry only a Maven 429 or the android-0 SDK lookup)
+      - name: Why did the APK build fail? (retry only on Maven Central's 429)
         id: why
         if: steps.apk1.outcome == 'failure'
         # BuildScript writes the errors Unity logged during a failed build to unity/Builds/build-errors.txt.
         run: |
           LOG=unity/Builds/build-errors.txt
-          if [ -f "$LOG" ] && grep -Eq "status code 429|Too Many Requests|platforms;android-0" "$LOG"; then
+          if [ -f "$LOG" ] && grep -Eq "status code 429|Too Many Requests" "$LOG"; then
             echo "retry=true" >> "$GITHUB_OUTPUT"
-            echo "::warning::APK build hit a known flake ($(grep -Eom1 "status code 429|Too Many Requests|platforms;android-0" "$LOG")); retrying once in 3 minutes."
+            echo "::warning::APK build hit a known flake ($(grep -Eom1 "status code 429|Too Many Requests" "$LOG")); retrying once in 3 minutes."
             sleep 180
           else
             echo "retry=false" >> "$GITHUB_OUTPUT"
@@ -251,7 +251,6 @@ jobs:
           buildMethod: Sigilbound.EditorTools.BuildScript.Android
           versioning: None
           androidVersionCode: ${{ github.run_number }}
-          androidTargetSdkVersion: AndroidApiLevel36
           androidExportType: androidPackage
           allowDirtyBuild: true
       - name: Name the APK
@@ -590,7 +589,6 @@ jobs:
           buildMethod: Sigilbound.EditorTools.BuildScript.AndroidStore
           versioning: None
           androidVersionCode: ${{ github.run_number }}
-          androidTargetSdkVersion: AndroidApiLevel36
           androidExportType: androidAppBundle
           androidKeystoreName: upload.keystore
           androidKeystoreBase64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
