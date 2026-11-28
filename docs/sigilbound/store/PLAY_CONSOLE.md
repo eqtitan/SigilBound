@@ -16,9 +16,9 @@ Everything here needs your Google account; the repository side is ready except t
    with it. For Play:
    - use **Play App Signing** (Google holds the real app key), and
    - create a **new private upload key** that is never committed; store it as GitHub secrets.
-3. **Package name.** `com.sigilbound.unity` (`ProjectSetup.AppId`) becomes permanent once uploaded. Decide
-   now if the store app should be `com.sigilbound.game` or similar. A different name also lets the store
-   app and the GitHub test app sit side by side.
+3. **Package name.** Decided 2026-11-28: the store bundle is `com.sigilbound.game` (`BuildScript.StoreAppId`,
+   permanent once uploaded). The GitHub test app keeps `com.sigilbound.unity`, so both sit side by side. The
+   old Capacitor test app also used `com.sigilbound.game`; uninstall it before installing from Play.
 4. **AAB.** Play requires an **Android App Bundle (.aab)**, not an APK. Hero models are about 130 MB packed,
    under Play's 200 MB base-module limit for the compressed download, so no asset packs are needed yet.
 
@@ -74,8 +74,8 @@ private upload key, and leaves the in-app updater out (define `SB_STORE`). The G
    the `sigilbound-store-aab` artifact from the run page; that `.aab` is what you upload to the Play Console.
 4. In the Play Console, turn on **Play App Signing** (the default) so Google holds the app signing key and your
    upload key can be reset if it is ever lost.
-5. Package name: the bundle uses `com.sigilbound.unity` unless you choose another before the first upload
-   (it can never change afterwards); tell me and I'll set it.
+5. Package name: the bundle is `com.sigilbound.game` (it can never change after the first upload). Friends and
+   chat aren't in the store build for v1, so the Data safety form is "no data collected" (READINESS.md item 8).
 
 Later, optionally: upload to the internal track automatically with a Play service account, once the first
 manual upload is done.

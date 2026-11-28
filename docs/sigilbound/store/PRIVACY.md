@@ -2,7 +2,9 @@
 
 _Last updated: 28 November 2026. Applies to the Sigilbound app for Android and Windows ("Sigilbound (Unity)")._
 
-Sigilbound is a single-player fantasy hero game with optional friends and chat. This page explains what the game stores and sends.
+Sigilbound is a single-player fantasy hero game. This page explains what the game stores and sends.
+
+**The Google Play version has no friends, chat or online account, and sends nothing about you.** Everything below under "What stays on your device" applies to it. The optional Friends feature described further down exists only in test builds downloaded from our GitHub page.
 
 ## What stays on your device
 
@@ -11,9 +13,9 @@ Sigilbound is a single-player fantasy hero game with optional friends and chat. 
 - **Phone check reports**: if you use *Settings → Run phone check*, the game measures its own smoothness, memory use, battery level and heat for one minute and shows the result. The report (with your device model, operating system and graphics chip) is saved on your device (`phone-check.txt`) and copied to your clipboard; it is only sent if **you** paste it to us, or attach it to a feedback report.
 - **Feedback reports**: if you use *Settings → Send feedback*, the report is saved on your device (`feedback.txt`) and copied to your clipboard. It is only sent if **you** paste it into a message to us. It contains your note, the game build, your device model, operating system, graphics settings and recent error messages from the game.
 
-## What is sent, and only if you use Friends
+## Test builds only: what is sent if you use Friends
 
-Friends and chat are optional. If you open **Friends** and choose a player name, the game talks to our server (`sigilbound.pages.dev`) and stores there:
+The Google Play version doesn't include Friends or chat. In test builds downloaded from our GitHub page, Friends and chat are optional. If you open **Friends** and choose a player name, the game talks to our server (`sigilbound.pages.dev`) and stores there:
 
 - your **player name** and a random **friend code** and account token (no email, phone number or real name);
 - a small **public profile** shown to your friends: stages cleared, team power, best Titan damage, number of heroes and your top heroes;
@@ -34,7 +36,7 @@ Builds downloaded from our GitHub page check `api.github.com` for a newer versio
 
 ## Children
 
-Sigilbound is not directed at children under 13. Chat is between friends who add each other by code, and every message can be reported and its sender blocked.
+Sigilbound is not directed at children under 13. The Google Play version has no chat. In test builds, chat is between friends who add each other by code, and every message can be reported and its sender blocked.
 
 ## Contact
 

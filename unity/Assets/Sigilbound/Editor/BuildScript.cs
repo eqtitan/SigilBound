@@ -47,8 +47,13 @@ namespace Sigilbound.EditorTools
         // with the in-app updater left out (define SB_STORE: Updater.Boot returns at once and the manifest gets
         // no install permission or APK provider). It never uses the committed test key: the upload key comes
         // from ANDROID_UPLOAD_KEYSTORE (a file path), ANDROID_UPLOAD_KEYSTORE_PASS, ANDROID_UPLOAD_KEY_ALIAS and
-        // ANDROID_UPLOAD_KEY_PASS, or the build stops. SB_PACKAGE optionally sets the store package name.
+        // ANDROID_UPLOAD_KEY_PASS, or the build stops. Friends and chat are left out too for v1 (SB_STORE:
+        // Online.cs and FriendsScreens.cs aren't compiled, no Friends tab, no calls to functions/api/sb).
         public static bool IsStoreBuild;
+        // The Play Store package name (owner decision 2026-11-28, permanent once uploaded). Only this build uses
+        // it; the tester APK keeps ProjectSetup.AppId (com.sigilbound.unity) so testers' installs and saves stay.
+        public const string StoreAppId = "com.sigilbound.game";
+        public const string StoreAppName = "Sigilbound"; // the launcher name (LISTING.md); testers see "Sigilbound (Unity)"
         public static void AndroidStore()
         {
             // Our names first, then game-ci's (its androidKeystore* inputs decode the keystore into the project).
@@ -64,7 +69,8 @@ namespace Sigilbound.EditorTools
             var target = UnityEditor.Build.NamedBuildTarget.Android;
             var defines = GetDefines(target);
             if (!(";" + defines + ";").Contains(";SB_STORE;")) SetDefines(target, string.IsNullOrEmpty(defines) ? "SB_STORE" : defines + ";SB_STORE");
-            var pkg = Env("SB_PACKAGE"); if (!string.IsNullOrEmpty(pkg)) PlayerSettings.SetApplicationIdentifier(target, pkg);
+            PlayerSettings.SetApplicationIdentifier(target, StoreAppId);
+            PlayerSettings.productName = StoreAppName;
             EditorUserBuildSettings.buildAppBundle = true;
             PlayerSettings.bundleVersion = Version();
             int code = BuildNumber();
@@ -79,7 +85,11 @@ namespace Sigilbound.EditorTools
             if (string.IsNullOrEmpty(output)) output = Arg("-customBuildPath");
             var updaterJava = SetUpdaterPlugins(false); // the updater's Java (PackageInstaller, APK provider) stays out too
             try { Build(BuildTarget.Android, string.IsNullOrEmpty(output) ? "Builds/Android/Sigilbound.aab" : output); }
-            finally { SetDefines(target, defines); IsStoreBuild = false; SetUpdaterPlugins(true, updaterJava); } // local editors keep their own defines
+            finally // local editors keep their own defines and the tester app id
+            {
+                SetDefines(target, defines); IsStoreBuild = false; SetUpdaterPlugins(true, updaterJava);
+                PlayerSettings.SetApplicationIdentifier(target, ProjectSetup.AppId); PlayerSettings.productName = ProjectSetup.AppName;
+            }
         }
 
         // The in-app updater's Android plugins (Plugins/Android). Store builds leave them out of the AAB; the

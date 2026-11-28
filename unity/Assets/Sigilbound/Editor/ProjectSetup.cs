@@ -13,8 +13,8 @@ namespace Sigilbound.EditorTools
     public static class ProjectSetup
     {
         public const string ScenePath = "Assets/Scenes/Main.unity";
-        // A separate app id and name from the Capacitor app (com.sigilbound.game), so both
-        // can be installed side by side while the Unity version catches up.
+        // The tester APK's app id and name (GitHub unity-latest). The Play Store bundle uses its own id,
+        // BuildScript.StoreAppId (com.sigilbound.game, also the old Capacitor test app's id), set only there.
         public const string AppId = "com.sigilbound.unity";
         public const string AppName = "Sigilbound (Unity)";
 

@@ -40,6 +40,17 @@ namespace Sigilbound.Core
         public static float ModalWidth(float safeW, float max) => Math.Max(0, Math.Min(safeW - 32, max));
         public static float ToastWidth(float safeW) => Math.Max(0, Math.Min(safeW - 60, ToastMaxW));
 
+        // ---------- bottom nav ----------
+        // The tabs share the nav band equally, however many there are: six in tester builds, five in the Play Store
+        // build (no Friends for v1, SB_STORE). App.NavCell passes the band (portrait: the whole width; landscape:
+        // at most 560, centred in the safe area).
+        public const float NavH = 64;
+        public static Box NavCell(int i, int count, float bandX, float bandW, float top)
+        {
+            float w = count <= 0 ? 0 : bandW / count;
+            return new Box(bandX + i * w, top, w, NavH);
+        }
+
         // ---------- button rows (rule 3) ----------
         // Display order: Secondary and Danger in the order given, the Primary last.
         public static int[] RowOrder(IList<UiRole> roles)

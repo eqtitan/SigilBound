@@ -19,10 +19,10 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 | campaign | stages, waves, eases | L006 |
 | ui | IMGUI, shared components, overlays | L011 L017 L025 L028 |
 | arena | ArenaReactor, effects | L015 |
-| platform | Windows/Android specifics | L021 |
+| platform | Windows/Android specifics, app ids | L021 L031 |
 | licensing | credits, licences | L007 |
 | docs | changelog, PLAN, roadmap | L013 L029 L030 |
-| process | who pushes, approvals | L014 L029 L030 |
+| process | who pushes, approvals | L014 L029 L030 L031 |
 | tooling | keys, scripts | L012 |
 
 ```mermaid
@@ -49,4 +49,5 @@ graph LR
   L025[L025 96 dpi tours] --> L026[L026 shared prefs]
   L017 --> L028[L028 plates over text, solved]
   L025 --> L028
+  L030 --> L031[L031 store id already taken]
 ```
