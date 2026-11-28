@@ -60,3 +60,12 @@ Brannoc, Vex, Aurex, Odo and 27 more roster heroes (remodelled to match their po
 front images the owner approved through fal.ai's hosted **`fal-ai/trellis`** endpoint, which runs the
 same MIT-licensed TRELLIS model as a paid API call; the outputs are the project's own art on the same
 terms as above.
+
+## Image-to-3D scenery landmarks (campaign scenes, 2026-11-28)
+
+The 16 campaign landmarks in `unity/Assets/Resources/Scenery/Landmarks/` (drowned mill, cottage, wagon,
+stilt hut, bell tower, Stormcrown crag, lighthouse, sea throne, sunken cathedral, king's barrow, toll
+house, warehouse, chapel, shipwreck, gatehouse, cairn) were made from the project's own concept images
+(Gemini, prompts describing the object only) through fal.ai's hosted **`fal-ai/trellis`** endpoint (the
+MIT-licensed TRELLIS model). They are the project's own art; sources and prompts are in
+`unity/Tools~/models/landmarks/`.

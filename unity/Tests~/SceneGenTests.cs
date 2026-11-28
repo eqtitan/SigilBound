@@ -109,7 +109,61 @@ static class SceneGenTests
         check(other.Count == 0, "scenes: arenas outside the campaign (no stop) follow the same lane rules" + Few(other));
         check(SceneMeshes.Variants("oak").SequenceEqual(new[] { "oak0", "oak1", "oak2" }) && SceneMeshes.Variants("stone").All(n => n.StartsWith("stone")), "scenes: kit variants by prefix");
         MeshTable(check);
+        BossTilt(check);
         check(true, $"scenes: generated and checked in {(DateTime.Now - t0).TotalSeconds:0.0} s");
+    }
+
+    // Boss stages (owner decision 2026-11-28): the views that face the lair look up BattleLayout.BossTilt degrees, every
+    // hero, enemy and tag stays inside the frame at any screen shape, Hero view and the Titan are untouched, the lair shows
+    // more of itself than in the level view, and the client frames boss stages with the tilted view.
+    static void BossTilt(Action<bool, string> check)
+    {
+        var shapes = new[] { 390.0 / 844, 9.0 / 16, 3.0 / 4, 1.0, 4.0 / 3, 16.0 / 9, 19.5 / 9, 21.0 / 9 };
+        var bad = new List<string>();
+        foreach (var c in BattleLayout.Cameras.Where(BattleLayout.Tilts))
+            foreach (var a in shapes)
+            {
+                var lv = BattleLayout.View(c.Key, a, false); var bv = BattleLayout.View(c.Key, a, false, true);
+                double dp = BattleLayout.PitchOf(bv.Eye, bv.Target) - BattleLayout.PitchOf(lv.Eye, lv.Target);
+                if (Math.Abs(dp - BattleLayout.BossTilt) > 0.05) bad.Add($"{c.Key}@{a:0.00} tilt {dp:0.0}");
+                if (!BattleLayout.FrameFits(bv, a)) bad.Add($"{c.Key}@{a:0.00} rim/tags out");
+                foreach (bool ally in new[] { true, false })
+                    foreach (int n in new[] { 1, 4, 5 })
+                        for (int i = 0; i < n; i++)
+                            foreach (double h in new[] { 0.05, 1.85 * 1.35, 2.75 })   // feet, a boss's head (x1.35), the HP tag
+                            {
+                                var q = BattleLayout.ProjectTo(bv.Eye, bv.Target, bv.Fov, a, BattleLayout.Slot(ally, i, n) + new V3(0, h, 0));
+                                if (q == null || Math.Abs(q.Value.x) > 0.95 || Math.Abs(q.Value.y) > 0.84) { bad.Add($"{c.Key}@{a:0.00} {(ally ? "ally" : "enemy")} {i + 1}/{n} at {h:0.0} m"); goto nextShape; }
+                            }
+                nextShape:;
+            }
+        check(bad.Count == 0, $"boss tilt: Classic, Overhead, Cinematic and Three-quarter look up {BattleLayout.BossTilt} degrees on boss stages with every hero, enemy (boss size) and tag in frame at 8 screen shapes" + (bad.Count == 0 ? "" : " — " + string.Join("; ", bad.Take(6))));
+        bool same = shapes.All(a => { var x = BattleLayout.View("front", a, false); var y = BattleLayout.View("front", a, false, true); return x.Eye.ToString() == y.Eye.ToString() && x.Target.ToString() == y.Target.ToString(); })
+                 && shapes.All(a => BattleLayout.View("worm", a, true, true).Eye.ToString() == BattleLayout.View("worm", a, true).Eye.ToString());
+        check(same, "boss tilt: Hero view (it looks away from the lair) and the Titan's views keep their framing");
+        // the lair shows more of itself (its top lower on screen) through the tilted default view, at every aspect
+        var lower = new List<string>();
+        for (int ch = 0; ch < GameData.Chapters.Length; ch++)
+        {
+            var L = SceneGen.Generate(ch, GameData.StagesPerChapter - 1); var m = L.Landmark;
+            if (m == null) { lower.Add($"{ch + 1}-6 none"); continue; }
+            if (!L.Cams.Any(k => k.Default && Math.Abs(BattleLayout.PitchOf(k.View.Eye, k.View.Target) - BattleLayout.PitchOf(BattleLayout.View(BattleLayout.DefaultCamera, k.Aspect, false).Eye, BattleLayout.View(BattleLayout.DefaultCamera, k.Aspect, false).Target) - BattleLayout.BossTilt) < 0.05))
+                lower.Add($"{ch + 1}-6 scene rules use the level camera");
+            foreach (var a in SceneCameras.Aspects)
+            {
+                var top = new V3(m.X, m.Y + Math.Min(L.LandmarkTop, SceneCameras.LairShown), m.Z);
+                var qt = SceneCameras.Project(BattleLayout.View(BattleLayout.DefaultCamera, a, false, true), a, top);
+                var ql = SceneCameras.Project(BattleLayout.View(BattleLayout.DefaultCamera, a, false), a, top);
+                if (qt == null || ql == null || qt.Value.y >= ql.Value.y || qt.Value.y > SceneCameras.BandHiFar) lower.Add($"{ch + 1}-6@{a:0.00} top y {qt?.y:0.00} (level {ql?.y:0.00})");
+            }
+        }
+        check(lower.Count == 0, $"boss tilt: every lair is framed by the tilted camera (scene rules), up to {SceneCameras.LairShown} m under the turn bar, with more of it on screen than the level view shows" + (lower.Count == 0 ? "" : " — " + string.Join("; ", lower.Take(6))));
+        // the client: Arena marks boss stages in Build and FrameBattle asks for the tilted view
+        string dir = AppContext.BaseDirectory, arena = null;
+        for (int i = 0; i < 8 && dir != null && arena == null; i++, dir = Path.GetDirectoryName(dir))
+        { var f = Path.Combine(dir, "Assets", "Sigilbound", "Client", "Arena.cs"); if (File.Exists(f)) arena = File.ReadAllText(f); }
+        check(arena != null && arena.Contains("BossTilt = !titan && stage == GameData.StagesPerChapter - 1") && arena.Contains("BattleLayout.View(camKey, aspect, titan, BossTilt && !titan)"),
+              "boss tilt: the client frames campaign boss stages (Normal and Hard) with the tilted view");
     }
 
     // The generated mesh table (SceneMeshes.Generated.cs) matches the shipped .bytes files.

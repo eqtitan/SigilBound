@@ -268,7 +268,12 @@ centre and two rings (inside the rim and at the lane edge) at 0.3, 1.4, 2.4 and 
 8. **Landmark framing** (`SceneRules.FrameError`): the landmark's body (35 % of its height, at most 2.5 m up) projects
    in the default view's background band at every aspect: NDC y 0 to 0.76 (under the turn-order bar; a far copy may
    reach 0.92), |x| <= 0.86. The default view looks down 30 degrees, so tall towers rise past the HUD; the lair reveal
-   shows them whole. The generator searches x across the band and z a little nearer or farther for the legal spot
+   shows them whole. **Boss stages** (stage 6, Normal and Hard; owner decision 2026-11-28) use the tilted views
+   (`BattleLayout.BossView`: Classic, Overhead, Cinematic and Three-quarter look up `BossTilt` = 6 degrees about the
+   camera's right axis, then refit the distance so the rim, heroes and tags stay in frame; Hero view and the Titan are
+   unchanged). The rules run on those tilted cameras, and on a boss stage the lair's base must be on screen and the
+   landmark up to `SceneCameras.LairShown` (6 m) under NDC 0.92: whole for every lair but the bell tower, the
+   Stormcrown crag, the burning tree and the sunken cathedral, whose tips still rise past the HUD in landscape. The generator searches x across the band and z a little nearer or farther for the legal spot
    nearest the authored one; the landmark's parts and copies move with it. Other story pieces keep their authored spot
    when it is legal, else the nearest legal spot (spiral search); a piece with no legal spot fails the tests.
 

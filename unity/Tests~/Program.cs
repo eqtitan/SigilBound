@@ -55,6 +55,24 @@ static class Program
             }
             return 0;
         }
+        // `-- lairtilt`: each lair's landmark (base, body, top) in the default view, level and with the boss tilt.
+        if (args.Length > 0 && args[0] == "lairtilt")
+        {
+            for (int ch = 0; ch < GameData.Chapters.Length; ch++)
+            {
+                var L = SceneGen.Generate(ch, 5); var m = L.Landmark; if (m == null) continue;
+                Console.Write($"{ch + 1}-6 {m.Mesh} ({m.X:0.0},{m.Z:0.0}) top {L.LandmarkTop:0.0}:");
+                foreach (var a in SceneCameras.Aspects)
+                    foreach (bool boss in new[] { false, true })
+                    {
+                        var v = BattleLayout.View(BattleLayout.DefaultCamera, a, false, boss);
+                        var qb = SceneCameras.Project(v, a, new V3(m.X, 0, m.Z)); var qt = SceneCameras.Project(v, a, new V3(m.X, L.LandmarkTop, m.Z));
+                        Console.Write($" {a:0.00}{(boss ? "T" : "")} y {qb?.y:0.00}..{qt?.y:0.00}");
+                    }
+                Console.WriteLine();
+            }
+            return 0;
+        }
         // `-- scenetests`: only the scene generator checks (Core/SceneGen.cs).
         if (args.Length > 0 && args[0] == "scenetests") { SceneGenTests.Run(Check); Console.WriteLine(failures == 0 ? "All checks passed." : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
         // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).

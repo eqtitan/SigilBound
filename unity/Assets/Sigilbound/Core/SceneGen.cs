@@ -162,6 +162,15 @@ namespace Sigilbound.Core
                 var (x, y, _) = q.Value;
                 double hi = m.Far ? SceneCameras.BandHiFar : SceneCameras.BandHi;   // a copy far ahead may sit right under the turn bar
                 err += Math.Max(0, Math.Abs(x) - SceneCameras.BandX + margin) + Math.Max(0, SceneCameras.BandLo + margin - y) + Math.Max(0, y - hi + margin);
+                if (!L.Titan && L.Stage == GameData.StagesPerChapter - 1)
+                {
+                    // the lair, seen through the tilted boss camera (BattleLayout.BossView): its base on screen and the
+                    // landmark up to LairShown metres (all of it, for most lairs) under the turn bar
+                    var qb = SceneCameras.Project(c.View, c.Aspect, new V3(m.X, m.Y + 0.05, m.Z));
+                    var qt = SceneCameras.Project(c.View, c.Aspect, new V3(m.X, m.Y + Math.Min(top, SceneCameras.LairShown), m.Z));
+                    if (qb == null || qt == null) { err += 10; continue; }
+                    err += Math.Max(0, -1 + margin - qb.Value.y) + Math.Max(0, qt.Value.y - SceneCameras.BandHiFar + margin);
+                }
             }
             return err;
         }
@@ -217,11 +226,11 @@ namespace Sigilbound.Core
             L.WaterZ = b.HasWater || titan ? 10f : -1f;
             L.Relief = titan ? 0 : b.Relief;
             double fogEnd = b.FogFar * L.Light.FogK;
-            L.Cams = SceneCameras.Battle(fogEnd);
+            bool boss = !titan && stage == GameData.StagesPerChapter - 1;
+            L.Cams = SceneCameras.Battle(fogEnd, boss);   // boss stages: the tilted views (BattleLayout.BossView)
             var rng = new Rng(L.Seed);
             var set = titan || stage < 0 ? null : StoryScenes.Of(chapter, stage);
             bool lair = set != null && stage == GameData.StagesPerChapter - 1;
-            bool boss = !titan && stage == GameData.StagesPerChapter - 1;
             float prog = Progress(stage);
 
             // ---- the landmark: the lair's main piece, or its copy ahead on the road, framed for the default view ----

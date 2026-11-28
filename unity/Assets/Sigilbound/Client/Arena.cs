@@ -111,7 +111,8 @@ namespace Sigilbound.Client
             _ovW = 0; BreathTarget = 0; // no cinematic override left over from the last fight (code review M4)
             _framedAspect = Cam.aspect;
             double aspect = Mathf.Max(0.2f, Cam.aspect);
-            var v = BattleLayout.View(camKey, aspect, titan); // the usual presets, or a Titan-only view
+            // the usual presets, or a Titan-only view; campaign boss stages tilt up to show the lair (BattleLayout.BossView)
+            var v = BattleLayout.View(camKey, aspect, titan, BossTilt && !titan);
             SetPose(ToUnity(v.Eye), ToUnity(v.Target), (float)v.Fov);
             _viewTarget = ToUnity(v.Target);
             HideOccluders();
@@ -213,8 +214,12 @@ namespace Sigilbound.Client
         // The generated layout of the arena last built (Core/SceneGen): the lair reveal reads its landmark from it.
         public SceneLayout Layout { get; private set; }
 
+        // A campaign boss stage (stage 6 of a chapter, Normal and Hard): FrameBattle uses the tilted views.
+        public bool BossTilt { get; private set; }
+
         public void Build(int chapter, bool titan, bool interactive = false, int stage = -1, bool hard = false)
         {
+            BossTilt = !titan && stage == GameData.StagesPerChapter - 1;
             var set = titan || stage < 0 ? null : StoryScenes.Of(chapter, stage);
             int tier = Mathf.Clamp(Quality.I == null ? 2 : Quality.I.Tier, 0, 3);
             // The procedural scene (CAMPAIGN_SCENES_PLAN.md): campaign stops, and the chapter's ground for other modes.

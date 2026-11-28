@@ -274,12 +274,52 @@ namespace Sigilbound.Core
             return new V3(target.X, eye.Y + Math.Tan(max * Math.PI / 180) * Math.Max(1e-6, h), target.Z);
         }
 
-        // Any battle view (the usual presets, or a Titan view in a Titan fight).
-        public static CamView View(string key, double aspect, bool titan)
+        // Any battle view (the usual presets, or a Titan view in a Titan fight). boss: a campaign boss stage (stage 6 of a
+        // chapter, Normal and Hard), whose views that face the lair look up BossTilt degrees (BossView).
+        public static CamView View(string key, double aspect, bool titan, bool boss = false)
         {
             var c = AnyCamera(key, titan);
             if (c.TitanOnly) return TitanView(c.Key, aspect);
+            if (boss && !titan && Tilts(c)) return BossView(c, aspect);
             return new CamView { Eye = CameraPosition(c, FitDistance(c, aspect, titan), titan), Target = Target(titan), Fov = FovFor(aspect) };
+        }
+
+        // ---------- Boss-stage tilt (owner decision 2026-11-28, art review M1) ----------
+        // On a campaign boss stage the camera tilts up a few degrees so the whole lair and more sky show behind the
+        // enemies. The orbit (yaw, pitch around CamTarget) is unchanged; the look direction is raised BossTilt degrees
+        // about the camera's own right axis, then the distance is refitted so the rim, the heroes and their tags
+        // (FramePoints) stay inside the frame at this aspect. Hero view looks back at the team, away from the lair, and
+        // keeps its usual framing.
+        public const double BossTilt = 6;
+        public static bool Tilts(CameraPreset c) => c != null && !c.TitanOnly && c.Key != "front";
+
+        // The tilted look target for an eye that orbits CamTarget: same heading and distance, BossTilt degrees higher.
+        public static V3 TiltedTarget(V3 eye, V3 target, double tiltDeg)
+        {
+            var d = target - eye; double h = Math.Sqrt(d.X * d.X + d.Z * d.Z), len = d.Length;
+            double pitch = Math.Atan2(d.Y, Math.Max(1e-6, h)) + tiltDeg * Math.PI / 180;
+            double kx = h > 1e-6 ? d.X / h : 0, kz = h > 1e-6 ? d.Z / h : 1;
+            return eye + new V3(kx * Math.Cos(pitch), Math.Sin(pitch), kz * Math.Cos(pitch)) * len;
+        }
+
+        // True when every frame point (rim, heads, HUD tags) sits inside |x| <= 0.95, |y| <= 0.84 of this view.
+        public static bool FrameFits(CamView v, double aspect, bool titan = false)
+        {
+            foreach (var p in FramePoints(titan))
+            {
+                var q = ProjectTo(v.Eye, v.Target, v.Fov, aspect, p);
+                if (q == null || Math.Abs(q.Value.x) > 0.95 || q.Value.y > 0.84 || q.Value.y < -0.84) return false;
+            }
+            return true;
+        }
+
+        public static CamView BossView(CameraPreset c, double aspect)
+        {
+            double fov = FovFor(aspect);
+            CamView At(double dist) { var eye = CameraPosition(c, dist); return new CamView { Eye = eye, Target = TiltedTarget(eye, CamTarget, BossTilt), Fov = fov }; }
+            double lo = 5, hi = 60;
+            for (int i = 0; i < 24; i++) { double mid = (lo + hi) / 2; if (FrameFits(At(mid), aspect)) hi = mid; else lo = mid; }
+            return At(hi);
         }
 
         // Points that must stay on screen: the whole rim with head height and HUD-tag points above it.

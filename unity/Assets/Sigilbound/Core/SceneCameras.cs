@@ -43,15 +43,19 @@ namespace Sigilbound.Core
         public const double EdgeBand = 0.6;
         // The background band the landmark is framed in (NDC of its body, SceneRules.FrameError; the default view at every aspect).
         public const double BandLo = 0.0, BandHi = 0.76, BandHiFar = 0.92, BandX = 0.86;   // BandHi: under the turn-order bar
+        // On a boss stage (tilted camera) the lair must show up to this height under BandHiFar: whole for all but the
+        // tallest towers (the bell tower, the Stormcrown crag, the burning tree), whose tips may still rise past the HUD.
+        public const double LairShown = 6.0;
 
-        public static List<SceneCam> Battle(double fogEnd)
+        // boss: a campaign boss stage, whose views facing the lair are tilted up (BattleLayout.BossView).
+        public static List<SceneCam> Battle(double fogEnd, bool boss = false)
         {
             var l = new List<SceneCam>();
             foreach (var a in Aspects)
                 foreach (var c in BattleLayout.Cameras)
                     l.Add(new SceneCam
                     {
-                        Name = $"{c.Key}@{a:0.00}", View = BattleLayout.View(c.Key, a, false), Aspect = a, FogEnd = fogEnd,
+                        Name = $"{c.Key}@{a:0.00}", View = BattleLayout.View(c.Key, a, false, boss), Aspect = a, FogEnd = fogEnd,
                         Default = c.Key == BattleLayout.DefaultCamera,
                         // Hero view looks back over the enemies' shoulders: whatever stands behind them in the other views is
                         // in front of it, so it is faded at run time (Arena.HideOccluders), not refused here.
