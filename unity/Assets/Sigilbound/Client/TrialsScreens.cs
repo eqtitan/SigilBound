@@ -90,9 +90,15 @@ namespace Sigilbound.Client
                 string what = (key == DungeonKey.Forge ? $"{Ui.ColorTag(GearRarityNames[rar], Palette.GearRarity(rar))} {G.ForgeSet} gear · " : "") + rw + (rw.Xp > 0 ? $" · {Ui.Fmt(rw.Xp)} XP" : "");
                 Ui.Text(new Rect(fr.x + 14, fr.y + 6, fr.width - 70, 22), $"{(Trials.IsBossFloor(f) ? "Boss · " : "")}Floor {f + 1}  {Ui.ColorTag($"Lv {Game.StageLevel(Trials.DungeonIdx(f))}", Palette.Dim)}", 14, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
                 Ui.Text(new Rect(fr.x + 14, fr.y + 28, fr.width - 70, 20), what, 11, Palette.Dim);
-                Ui.Text(new Rect(fr.xMax - 60, fr.y, 48, fr.height), locked ? "Locked" : done ? "Done" : runs > 0 ? "Fight" : "Tomorrow", 11, done ? Palette.Good : Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight);
+                Ui.Text(new Rect(fr.xMax - 66, fr.y, 54, fr.height), locked ? "Locked" : runs <= 0 ? "Tomorrow" : done ? "Done ▶" : "Team ▶", 11, done ? Palette.Good : Palette.Gold, FontStyle.Bold, TextAnchor.MiddleRight);
                 GUI.color = col;
-                if (!locked && runs > 0 && Ui.Button(fr, "", Ui.Kind.Ghost)) Battle.Begin(BattleSpec.ForDungeon(key, f));
+                // Team setup first, as for the campaign and the Titan (UX review #17: a tap started the run).
+                if (Ui.Button(fr, "", Ui.Kind.Ghost))
+                {
+                    if (locked) Toast($"Clear floor {f} first");
+                    else if (runs <= 0) Toast("No runs left today for this dungeon.");
+                    else OpenDungeonPrep(key, f);
+                }
             }
             Scroller.End();
         }

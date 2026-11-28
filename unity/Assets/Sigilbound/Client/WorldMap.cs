@@ -46,21 +46,32 @@ namespace Sigilbound.Client
         int _act; // 0 = follow progress, else 1 or 2 (the Act I / Act II switch)
 
 
+        // The one-time Act II intro: shown on the campaign screen when the pop-up queue says it's its turn
+        // (App.CheckPopups), so it never lands on top of a tip or the tutorial.
+        bool Act2IntroPending() => G.S.cleared >= ClassicStages && PlayerPrefs.GetInt("sb.act2Intro", 0) == 0;
+        void ShowAct2Intro()
+        {
+            PlayerPrefs.SetInt("sb.act2Intro", 1); PlayerPrefs.Save();
+            _act = 2;
+            Modal(Act2Title, 300, b =>
+            {
+                Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), Act2Intro, 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "To Saltreach")) CloseModal();
+            });
+        }
+
         void DrawWorldMap(Rect area)
+        {
+            // Ui.Cover is a static: whatever happens while the map draws, the next screen must not inherit it
+            // (code review L2: an exception left every button under the old stage list dead).
+            try { DrawWorldMapInner(area); }
+            finally { Ui.Cover = null; Ui.OnTop = false; }
+        }
+
+        void DrawWorldMapInner(Rect area)
         {
             bool hard = _hardTab && G.S.cleared > 0;
             int progressAll = hard ? G.S.hardCleared : G.S.cleared;
-            bool act2Open = G.S.cleared >= ClassicStages;
-            if (act2Open && !ModalOpen && PlayerPrefs.GetInt("sb.act2Intro", 0) == 0)
-            {
-                PlayerPrefs.SetInt("sb.act2Intro", 1); PlayerPrefs.Save();
-                _act = 2;
-                Modal(Act2Title, 300, b =>
-                {
-                    Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), Act2Intro, 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
-                    if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "To Saltreach")) CloseModal();
-                });
-            }
             int act = MapAct(hard);
             var pts = act == 1 ? Act1Points : Act2Points;
             int c0 = act == 1 ? 0 : ClassicChapters, cn = act == 1 ? ClassicChapters : Chapters.Length - ClassicChapters;

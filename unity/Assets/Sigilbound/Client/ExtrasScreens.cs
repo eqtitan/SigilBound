@@ -72,7 +72,7 @@ namespace Sigilbound.Client
                 Ui.Text(new Rect(r.x + 74, ry, r.width - 74 - 150, 32), heroes.Count == 0 ? "empty" : string.Join(", ", heroes.Select(h => Hero(h.id).ShortName)), 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleLeft);
                 int k = i;
                 if (Ui.Button(new Rect(r.xMax - 146, ry, 64, 32), "Load", Ui.Kind.Secondary, 12)) { if (G.TeamLoad(k)) { Save(); Toast($"Team {k + 1} loaded"); } else Toast("That preset is empty. Build a team, then tap Save."); }
-                if (Ui.Button(new Rect(r.xMax - 78, ry, 64, 32), "Save", Ui.Kind.Secondary, 12)) { G.TeamSave(k); Save(); Toast($"Saved as team {k + 1}"); }
+                if (Ui.Button(new Rect(r.xMax - 78, ry, 64, 32), "Save", Ui.Kind.Secondary, 12)) AskSavePreset(k);
             }
             if (Ui.Button(new Rect(r.x + 14, r.yMax - 38, r.width - 28, 30), "Auto-equip whole team", Ui.Kind.Secondary, 12)) { G.AutoEquipTeam(); Save(); Toast("Best gear equipped on your team"); }
             return y;

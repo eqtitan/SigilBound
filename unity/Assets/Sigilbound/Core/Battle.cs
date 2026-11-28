@@ -64,10 +64,19 @@ namespace Sigilbound.Core
 
         public Battle(List<Unit> allies, List<List<Unit>> waves, Random rng, bool titan = false, int turnLimit = 0)
         {
-            Allies = allies; Waves = waves; _rng = rng; IsTitan = titan; TurnLimit = turnLimit;
+            // Empty sides (code review L1): data-driven waves (dungeons, rivals) could hand over an empty wave or
+            // none at all. Empty waves are dropped; a battle with no foes at all, or no heroes, ends at once
+            // (no heroes: a defeat; no foes: Over with no result, so nothing is rewarded).
+            Allies = allies ?? new List<Unit>();
+            Waves = (waves ?? new List<List<Unit>>()).Where(w => w != null && w.Count > 0).ToList();
+            bool noFoes = Waves.Count == 0;
+            if (noFoes) Waves.Add(new List<Unit>());
+            _rng = rng; IsTitan = titan; TurnLimit = turnLimit;
             foreach (var u in Units) u.Tm = StartTm(u);
-            foreach (var w in waves.Skip(1)) foreach (var u in w) u.Tm = StartTm(u);
+            foreach (var w in Waves.Skip(1)) foreach (var u in w) u.Tm = StartTm(u);
             StartWaveClock();
+            if (Living(Allies).Count == 0) Finish(BattleResult.Defeat);
+            else if (noFoes) Over = true;
         }
 
         // Speed-based head start (PLAN step 98): the fastest unit usually acts first, with a little luck.
@@ -170,6 +179,17 @@ namespace Sigilbound.Core
             }
         }
 
+        // Element matchup of a damaging skill on a target, for the target picker (UX review #5): +1 when the
+        // attacker's element beats the target's ("Weak"), -1 when the target resists, 0 otherwise or for skills
+        // that don't hit foes.
+        public static int Matchup(Unit attacker, SkillDef sk, Unit target)
+        {
+            if (attacker == null || target == null || sk == null || attacker.Ally == target.Ally || sk.Mult <= 0) return 0;
+            if (sk.Target != Target.Enemy && sk.Target != Target.AllEnemies) return 0;
+            double m = ElementMultiplier(attacker.El, target.El);
+            return m > 1 ? 1 : m < 1 ? -1 : 0;
+        }
+
         // ---------- turn flow ----------
         public Unit NextActor()
         {
@@ -195,7 +215,7 @@ namespace Sigilbound.Core
                 for (int i = 0; i < sim.Count; i++)
                     if (tms[i] >= TmFull && (best < 0 || tms[i] > tms[best] || (tms[i] == tms[best] && sim[i].spd > sim[best].spd))) best = i;
                 if (best >= 0) { output.Add(sim[best].u); tms[best] = 0; continue; }
-                for (int i = 0; i < sim.Count; i++) tms[i] += sim[i].spd * 0.7;
+                for (int i = 0; i < sim.Count; i++) tms[i] += sim[i].spd * 0.07 * 10; // the same step as NextActor (code review L8)
             }
             return output;
         }
@@ -559,6 +579,7 @@ namespace Sigilbound.Core
             for (int n = 0; !Over && n < maxTurns; n++)
             {
                 var u = NextActor();
+                if (u == null) break; // nobody can act (no living units, or no speed): stop instead of crashing
                 var (_, skip) = BeginTurn(u);
                 if (!skip) { var c = AiChoose(u); Act(u, c.skill, c.target); }
                 EndTurn(u, out _);

@@ -40,7 +40,11 @@ namespace Sigilbound.Client
         string _lineupKey = "";
 
         // modal + toasts
-        string _modalTitle; Action<Rect> _modalBody; float _modalHeight = 260;
+        string _modalTitle; Action<Rect> _modalBody; float _modalHeight = 260, _modalMaxW = ModalW;
+        // Modals keep a readable width on wide screens (UX review #10: they stretched to about 1040 units);
+        // the results screens get more room for their hero columns.
+        public const float ModalW = 560, WideModalW = 900;
+        float _modalClosedAt = -10f;
         readonly List<(string text, float until)> _toasts = new List<(string, float)>();
 
         void Awake()
@@ -72,6 +76,8 @@ namespace Sigilbound.Client
             Online = gameObject.AddComponent<Online>();
             Online.App = this;
             Screen = G.S.started ? ScreenId.Home : ScreenId.Intro;
+            _firstLaunch = !G.S.started; // no save yet: What's New waits for the next update (PopupQueue)
+            if (_firstLaunch) MarkChangelogSeen();
             Tips.Seed(G); // existing players skip beginner tips for things they've done
             Arena.Build(Math.Min(GameData.Chapters.Length - 1, G.S.cleared / GameData.StagesPerChapter), false);
             Arena.FrameMenu();
@@ -164,8 +170,8 @@ namespace Sigilbound.Client
         void OnApplicationQuit() => Save();
 
         public void Toast(string text) => _toasts.Add((text, Time.unscaledTime + 2.4f));
-        public void Modal(string title, float height, Action<Rect> body) { _modalTitle = title; _modalHeight = height; _modalBody = body; }
-        public void CloseModal() { _modalBody = null; _modalTitle = null; }
+        public void Modal(string title, float height, Action<Rect> body, float maxWidth = ModalW) { _modalTitle = title; _modalHeight = height; _modalBody = body; _modalMaxW = maxWidth; }
+        public void CloseModal() { if (_modalBody != null) _modalClosedAt = Time.unscaledTime; _modalBody = null; _modalTitle = null; }
         public bool ModalOpen => _modalBody != null;
 
         public void Go(ScreenId s)
@@ -181,7 +187,7 @@ namespace Sigilbound.Client
             if (Input.GetKeyDown(KeyCode.Escape)) Back(); // Android back button
             if (Screen != ScreenId.Battle) UpdateLineup();
             if (Screen == ScreenId.Hero && !ModalOpen) UpdateHeroViewer();
-            CheckTips();
+            CheckPopups();
             UpdatePower();
         }
 
@@ -214,22 +220,45 @@ namespace Sigilbound.Client
             }
         }
 
-        // ---------- first-time tips (modes.js checkTips) ----------
-        float _tipAt;
-        void CheckTips()
+        // ---------- pop-ups, one at a time (QA review #8: Core/PopupQueue.cs) ----------
+        // What's New, the Act II intro, first-time tips (modes.js checkTips) and the update banner all ask the
+        // queue, so only one shows, in order, and never over the tutorial's coach panel.
+        float _tipAt; bool _firstLaunch, _bannerOk;
+        public bool UpdateBannerAllowed => _bannerOk; // Updater.cs draws its banner only when this is true
+        void CheckPopups()
         {
-            if (ModalOpen || Time.unscaledTime < _tipAt) return;
+            if (Time.unscaledTime < _tipAt) return;
             _tipAt = Time.unscaledTime + 0.35f;
-            bool inBattle = Screen == ScreenId.Battle && Battle.InProgress;
-            if (Screen == ScreenId.Battle && !inBattle) return;
-            var tip = Tips.Next(G, Screen == ScreenId.Home, inBattle);
-            if (tip == null) return;
-            Save();
-            Modal(tip.Title, 300, b =>
+            bool battleScreen = Screen == ScreenId.Battle, inBattle = battleScreen && Battle.InProgress;
+            // The tutorial already walks a new player through Home and the battle screen.
+            if (Tutorial.Step >= 6) Tips.MarkShown(G, "welcome");
+            if (Tutorial.Step >= 8) Tips.MarkShown(G, "battle");
+            var ctx = new PopupContext
             {
-                Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), tip.Body, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
-                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Got it")) CloseModal();
-            });
+                ModalOpen = ModalOpen, TutorialBlocking = Tutorial.Blocking, FirstLaunch = _firstLaunch,
+                InBattle = battleScreen, OnHome = Screen == ScreenId.Home, OnMap = Screen == ScreenId.Campaign,
+                WhatsNewPending = WhatsNewPending(), Act2Pending = Act2IntroPending(),
+                TipPending = (!battleScreen || inBattle) && Tips.Peek(G, Screen == ScreenId.Home, inBattle) != null,
+                UpdateAvailable = Updater.LatestBuild > 0,
+                SinceClose = Time.unscaledTime - _modalClosedAt,
+            };
+            var next = PopupQueue.Next(ctx);
+            _bannerOk = next == Popup.UpdateBanner;
+            switch (next)
+            {
+                case Popup.WhatsNew: ShowWhatsNewOnce(); break;
+                case Popup.Act2Intro: ShowAct2Intro(); break;
+                case Popup.Tip:
+                    var tip = Tips.Next(G, Screen == ScreenId.Home, inBattle);
+                    if (tip == null) break;
+                    Save();
+                    Modal(tip.Title, 300, b =>
+                    {
+                        Ui.Text(new Rect(b.x, b.y, b.width, b.height - 56), tip.Body, 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                        if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Got it")) CloseModal();
+                    });
+                    break;
+            }
         }
 
         // ---------- 3D lineup behind the menus ----------
@@ -453,7 +482,8 @@ namespace Sigilbound.Client
             {
                 GUI.DrawTexture(Ui.Screen01, Ui.Solid(new Color(0, 0, 0, 0.7f)));
                 float mx0 = Mathf.Max(16, Ui.Safe.x + 16), mx1 = Mathf.Min(Ui.W - 16, Ui.Safe.xMax - 16); // inside the safe area
-                var box = new Rect(mx0, Mathf.Max(Ui.Safe.y + 20, (Ui.H - _modalHeight) / 2), mx1 - mx0, _modalHeight);
+                float mw = Mathf.Min(mx1 - mx0, _modalMaxW); // centred, at most ModalW (or WideModalW) wide
+                var box = new Rect((mx0 + mx1) / 2 - mw / 2, Mathf.Max(Ui.Safe.y + 20, (Ui.H - _modalHeight) / 2), mw, _modalHeight);
                 Ui.Card(box, true); // the web's framed .mbox
                 if (!string.IsNullOrEmpty(_modalTitle)) Ui.Heading(new Rect(box.x, box.y + 14, box.width, 34), _modalTitle, 24, TextAnchor.MiddleCenter);
                 _modalBody?.Invoke(new Rect(box.x + 16, box.y + 56, box.width - 32, box.height - 72));

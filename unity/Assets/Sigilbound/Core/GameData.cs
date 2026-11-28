@@ -67,6 +67,8 @@ namespace Sigilbound.Core
         // Support gets no shift: Mods already gives it +6 (the old +8 counted it twice and made Support the best
         // role and Defense the worst). Kept apart from Mods (which mirrors the web game) so the web parity
         // checks can add it back.
+        // The role as players read it (the enum's "Hp" printed raw: UX review #14).
+        public static string RoleName(Role r) => r == Role.Hp ? "HP" : r.ToString();
         public static int RoleSpdShift(Role r) => r switch { Role.Attack => 8, Role.Defense => -2, Role.Hp => -4, _ => 0 };
         public static RoleMods Mods(Role r) => r switch
         {
@@ -323,6 +325,8 @@ namespace Sigilbound.Core
 
         // ---- summoning ----
         public enum Shard { Common, Mystic, Radiant }
+        // One name per shard everywhere in the client (UX review #14: "Worn Shard", "1 worn" and "Common").
+        public static string ShardName(Shard s, int count = 1) => (s == Shard.Common ? "Worn" : s == Shard.Mystic ? "Mystic" : "Radiant") + (count == 1 ? " Shard" : " Shards");
         public static double[] ShardRates(Shard s) => s switch // common, rare, epic, legendary
         {
             Shard.Common => new[] { 70, 27, 3, 0.0 },
