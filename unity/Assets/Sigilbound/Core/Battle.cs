@@ -140,7 +140,10 @@ namespace Sigilbound.Core
         public IEnumerable<Unit> Units => Allies.Concat(Enemies);
         public static List<Unit> Living(IEnumerable<Unit> list) => list.Where(u => u.Alive).ToList();
         public List<Unit> Side(Unit u, bool own) => (u.Ally == own) ? Allies : Enemies;
-        public double Speed(Unit u) => u.Spd * (1 + (u.Has(FxType.SpdUp) ? 0.3 : 0) - (u.Has(FxType.Slow) ? 0.3 : 0));
+        // Slow and SpdUp size (PLAN step 109, mechanics review #6): at 0.3 they were the biggest single levers
+        // in the game (Tests~ "speed" measures it).
+        public const double SpeedFx = 0.2;
+        public double Speed(Unit u) => u.Spd * (1 + (u.Has(FxType.SpdUp) ? SpeedFx : 0) - (u.Has(FxType.Slow) ? SpeedFx : 0));
         double AtkOf(Unit u) => u.Atk * (1 + (u.Has(FxType.AtkUp) ? 0.4 : 0) - (u.Has(FxType.AtkDown) ? 0.4 : 0));
         double DefOf(Unit u) => u.Def * (1 + (u.Has(FxType.DefUp) ? 0.5 : 0) - (u.Has(FxType.DefDown) ? 0.5 : 0));
         public List<int> Usable(Unit u) => Enumerable.Range(0, u.Cds.Length).Where(i => u.Cds[i] == 0).ToList();

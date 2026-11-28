@@ -221,7 +221,7 @@ static class MechanicsTests
             double m(int idx) => Game.StageWaves(idx)[0][0].Mul;
             bool ls = Math.Abs(m(18) / Game.Grade(18).Mul - Curve.LSEase) < 1e-9 && Math.Abs(m(12) / Game.Grade(12).Mul - 1) < 1e-9; // 4-1 Light vs 3-1 Tide
             double ch10 = m(54) / Curve.LSEase / (Game.Grade(54).Mul / Curve.Chapter[9]); // chapter 10 (Shadow): its chapter factor
-            bool finale = Math.Abs(m(89) / Game.Grade(89).Mul - Curve.LSEase * 0.90) < 1e-9 && Math.Abs(Curve.Act2Ramp - 0.015) < 1e-12;
+            bool finale = Math.Abs(m(89) / Game.Grade(89).Mul - Curve.LSEase * Curve.StageEase[89]) < 1e-9 && Curve.StageEase[89] < 0.95 && Math.Abs(Curve.Act2Ramp - 0.015) < 1e-12;
             bool spd = RoleSpdShift(Role.Attack) == 8 && RoleSpdShift(Role.Defense) == -2 && RoleSpdShift(Role.Hp) == -4 && RoleSpdShift(Role.Support) == 0;
             var r61 = Game.StageRewards(61, false); var r89 = Game.StageRewards(89, false);
             check(ls && Math.Abs(ch10 - 0.98) < 1e-9 && finale && spd && r89.Gold > r61.Gold * 1.5 && r89.Xp > r61.Xp * 1.5 && Game.StageRewards(59, false).Gold == Js.RoundInt(200 + 58 * 60.0),

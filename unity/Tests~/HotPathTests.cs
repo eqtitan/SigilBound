@@ -1,4 +1,4 @@
-// Per-frame garbage in the UI and battle HUD (PLAN step 108, performance review #5, code review M5): the
+// Per-frame garbage in the UI and battle HUD (PLAN step 109, performance review #5, code review M5): the
 // allocation-free helpers in Core/UiCache.cs and Unit.Has/Shield measured with the runtime's allocation
 // counter, plus source checks for the client code that can't run here (Ui, Skin, the battle HUD).
 using System;

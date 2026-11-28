@@ -88,6 +88,7 @@ static class ExtrasTests
         int sBad = 0, sN = 0;
         foreach (var c in Json.Arr(fx, "skillCases"))
         {
+            if (UnityTuned.Contains(Json.Str(c, "id"))) continue; // skill power tuned for Unity (GameData.UnityTuned); the tome rules are the same
             var hs = new HeroSave { uid = 9001, id = Json.Str(c, "id"), level = Json.Int(c, "level"), stars = Json.Int(c, "stars"), skillLv = Json.Arr(c, "skillLv").Select(x => (int)(double)x).ToList() };
             var tg = new Game(new SaveData(), 1);
             tg.S.heroes.Add(hs);
@@ -106,7 +107,7 @@ static class ExtrasTests
                 if (!ok) { sBad++; Console.WriteLine($"   {hs.id} [{string.Join(",", hs.skillLv)}] A{i + 1}: cd {ally.Cds[i]} {string.Join(",", ev.Select(e => e.Type + ":" + e.Amount))} vs cd {N(act, "cd")} {Json.Write(wev)}"); }
             }
         }
-        Check(sBad == 0, $"Skill Tome levels: damage and healing +8%/level to 3, level 4 cooldown -1 — {sN - sBad}/{sN} skill uses match the web (damage and healing x the Unity battle pace)");
+        Check(sBad == 0 && sN > 0, $"Skill Tome levels: damage and healing +8%/level to 3, level 4 cooldown -1 — {sN - sBad}/{sN} skill uses match the web (damage and healing x the Unity battle pace)");
         Check(Battle.SkillCooldown(new SkillDef { Cooldown = 1 }, 4) == 1 && Battle.SkillCooldown(new SkillDef { Cooldown = 3 }, 4) == 2 && Battle.SkillCooldown(new SkillDef { Cooldown = 3 }, 3) == 3, "level 4 only shortens cooldowns above 1");
 
         var up = new Game(new SaveData(), 1); var uh = up.AddHero("pell"); up.S.tomes = 10;
