@@ -23,6 +23,13 @@ from free CC0 libraries plus our own (no Mixamo).
   prowling, regal), joint limits, add-on chains, and its signature moves. The style bends the posture (a heavy
   hero carries weight low and forward with arms off the body; a regal one walks chest up, shoulders back), so two
   heroes playing the same clip still move like different creatures.
+- **Physics on everything.** Every skeleton carries a standard set of body colliders (head, neck, chest, spine,
+  hips, arms, thighs, calves) sized from the hero's own bones, physics chains for whatever should swing (hair, capes,
+  skirts, tails, ears, soft wings...) and fixed sockets for weapons, shields, back gear and headgear.
+- **More life, planned in phases.** Proper hand grips and two-handed holds (no more weapons through heads), separate
+  accessory meshes from the image generator, twist bones and basic faces (blink, look, four expressions), and life
+  layers (heads tracking the acting unit, directional hit reactions, breathing, a cheap partial ragdoll on
+  knock-backs and deaths). Every hero's every move is checked automatically in CI.
 - **Safety.** It is switched on per hero. The other heroes keep today's path until their batch is checked frame by
   frame in a real build. If anything is missing at runtime, a migrated hero falls back to today's path.
 - **Proof.** Real game builds, with before and after frames of the same moves for each pilot hero (below, once the
@@ -200,7 +207,91 @@ time with builds as the bottleneck (one CI build at a time, ~1 hour).
 | Mixed roster during migration | Per-hero flag; legacy path untouched |
 | Code stripping on IL2CPP removes Animator/Director code used only from scripts | `link.xml` keeps the Animation and Director modules |
 
-## 7. Proof (real builds)
+## 7. Owner additions (2026-11-28): design and phasing
+
+### 7.1 Physics standard: colliders and chains on every rig (in the pilot)
+
+`Core/Rig/RigPhysics.cs` + `Client/BodyPhysics.cs`, bone-name based so it merges with the shared physics API
+(feat/physics-standard, `Core/Physics/ColliderSet.cs`, `docs/sigilbound/art/PHYSICS.md`; when that lands the
+profile's collider and chain lists feed it instead of BodyPhysics' own build, same names).
+- **Body collider set** on every profile: head (sphere), neck, chest, spine, hips, upper/lower arms, thighs, calves
+  (a digitigrade calf ends at the hock). Capsules from bone to child bone, radius = a fraction of that bone's length
+  x skeleton girth (brute 1.45) x the hero's girth (Augustin 1.15, Titan 1.1). Unity `CapsuleCollider`s on the bones,
+  triggers on one kinematic body: effects, hits and picks can query them, nothing gets pushed.
+- **Chains** for everything that should move: hair/braids, capes, skirts, sashes, tails, ears, chains, pouches,
+  banners, soft wings. Simulated by the existing `SpringSolver` (after UniVRM, MIT) with the body colliders as
+  obstacles; the swing is added on top of whatever the bone holds (a clip key, a flutter), with a last-write guard so
+  nothing compounds (L002). Low quality: kinematic.
+- **Rigid binding** for weapons, shields, headgear (`RigidSpec`; geometry bound 100% by `blenderforge/prop_rigid.py`).
+- Pilot: all five get the body set; Nyssa's wings are soft-wing chains on top of their flutter; the Titan's rock fists
+  and crystal ridges are rigid. The pilot meshes have no hair/cape bones yet: those chains need rig-time bones
+  (accessory meshes, 7.3, or `spring_rig.py`).
+
+### 7.2 Sockets, grips, two-hand IK (sockets in the pilot; grips and IK next)
+
+- **Standard sockets** on every rig (`RigPhysics.StandardSockets`, created as `socket_<name>` nodes): `hand_r`,
+  `hand_l`, `back`, `hip_l`, `hip_r`, `shield_arm`, `head_top`. Items attach to sockets, never to raw mesh weights:
+  no floating props or headgear.
+- **Grip poses** per weapon type (`GripPose`: fist, one-hand sword, two-hand haft, staff, bow, open cast hand) as
+  finger muscle values (Humanoid finger muscles, a hand mask layer in the mixer) replacing `HandGrip`'s single curl.
+- **Off-hand IK** onto two-handed weapons: an animation job sets the off hand's IK goal to a grip point on the weapon
+  (`AnimationHumanStream.SetGoalPosition/Rotation` + `SolveIK`); per-weapon grip offsets in data (socket offset +
+  grip points). Weapons through heads (Tallow, Saoirse, Hobb, Hask): a swing-clearance check in 7.6 plus the weapon's
+  collider kept out of the head/chest colliders by the same job (push the hand goal out), and two-hand clips for
+  polearms.
+
+### 7.3 Separate accessory meshes (pipeline change; proof on one pilot in stage 2)
+
+Image-to-3D today fuses clothes, props and body into one shell; that is why props carry leg weights and capes can't
+swing. New flow (`unity/Tools~/artgen`, `.claude/skills/art-pipeline/SKILL.md`):
+1. Front image of the **base body without accessories** (prompt template: same character, no hat, no weapon, no
+   shield, no cape, arms in T-pose, plain background).
+2. One image per **accessory** (hat/helmet/crown, weapon, shield, cape, back gear), single object, plain background,
+   matching the concept's design.
+3. TRELLIS per image -> separate meshes. The body is rigged on the library skeleton; rigid items are snapped to their
+   socket (`head_top`, `hand_r`, `shield_arm`, `back`); cloth items (capes) get a chain at rig time and are weighted
+   onto it.
+Pilot candidate: Augustin (body + mace + cape) or Nyssa (body + wings).
+
+### 7.4 Twist bones and facial basics (phase 2)
+
+- Biped gains `upperarm_twist`, `lowerarm_twist` (Unity's twist distribution already spreads twist when they are
+  missing; real bones give volume) and helper joints at shoulder, hip, elbow and knee (driven by the parent's bend,
+  for volume preservation). Not human bones: the avatar ignores them, a small driver sets them after the clip.
+- Facial layer: blink, eyes look at a target (the acting unit), four expressions (fierce, hurt, victory, KO) as blend
+  shapes on image-to-3D faces where the mesh allows, else jaw/brow/eyelid face bones; driven by battle events
+  (strike -> fierce, hit -> hurt, win -> victory, death -> KO).
+
+### 7.5 Life layers and partial ragdoll (phase 2)
+
+- Head/eye tracking of the acting unit (look-at goal in the IK job, weight by distance and angle).
+- Directional additive hit reactions: a small additive pose from the hit direction (layer in the mixer), on top of
+  the hit clip.
+- Lean into turns (spine roll from the turn rate), breathing (chest/shoulder muscles, phase per hero).
+- Partial ragdoll on knock-back and death: the body colliders become dynamic rigidbodies joined by character joints
+  for about a second, blended with the clip (physics weight curve), then back to animation or held. Only at those
+  moments; off on Low.
+
+### 7.6 Per-move CI checks (phase 1.5)
+
+An editor batch step in the CI build (the same place the clips are baked) plays every migrated hero x every clip it
+can play on its runtime avatar (sampled every 2nd frame) and reports lines like SBBOUNDS:
+`SBMOVE <hero> <clip> limits=<worst muscle over its range> slide=<cm a planted foot moves> intersect=<worst
+limb/prop penetration of the body colliders, cm> ok|BAD <why>`; the smoke check fails CI on BAD or a regression
+against the last accepted numbers (`docs/sigilbound/art/move_baseline.json`). The pilot tour's `SBPOSE` lines are the
+first step (head height, top, width per frozen frame in the real player).
+
+### 7.7 Phasing
+
+| Phase | Content | Gate |
+|---|---|---|
+| 1 (this branch) | library, Humanoid bake + runtime, profiles, gait, limits, physics standard (colliders, chains, sockets), 5 pilots, pilot tour | real-build frames, owner approval |
+| 1.5 | per-move CI checks (7.6), grip poses + off-hand IK (7.2), batch 1 migration | SBMOVE clean on migrated heroes |
+| 2 | separate accessory meshes (7.3) on one pilot, then the image-to-3D roster as remodels come; twist/helper bones and faces (7.4) | frame-by-frame review |
+| 3 | life layers + partial ragdoll (7.5), batches 2-6 | performance on the phone check |
+| 4 | retire the legacy path | all heroes migrated |
+
+## 8. Proof (real builds)
 
 ShotsMode's **pilot tour** (end of the smoke tour; `-sbShotsNoPilot` skips it): each pilot alone on the arena under
 a battle camera (33 degrees up, three-quarter front), in ten states (idle, walk, run, attack, cast, ultimate, hit,
