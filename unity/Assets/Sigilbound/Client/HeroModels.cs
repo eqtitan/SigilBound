@@ -952,6 +952,16 @@ namespace Sigilbound.Client
             _loader.StartCoroutine(RunJob(key, work()));
         }
 
+        // Removes every clip from an Animation (glTFast's auto-added ones) and its default clip.
+        public static void ClearClips(Animation anim)
+        {
+            if (anim == null) return;
+            var names = new List<string>();
+            foreach (AnimationState st in anim) if (st != null) names.Add(st.name);
+            foreach (var n in names) anim.RemoveClip(n);
+            anim.clip = null;
+        }
+
         static IEnumerator BuildHd(Unit unit, BodySpec body, Transform parent, Action<HeroModel> done, string hdId = null, bool hollow = false, bool titan = false)
         {
             string id = hdId ?? unit.Template.Id;
@@ -992,6 +1002,13 @@ namespace Sigilbound.Client
             var creature = Creatures.Of(id);
             if (creature != null) { done(Reveal(holder, CreatureRig.Setup(holder.gameObject, root, bk.Gltf.GetAnimationClips(), creature))); yield break; }
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
+            // glTFast already put the model's own clips on this Animation (it adds one for any file with clips),
+            // under their file names: a digitigrade hero's baked leg clips carry the shared clips' names. Left
+            // there, they took the shared clips' place (the GetClip check below skips names that exist), no clip
+            // moved the body and RigExtras' rest fix compounded every frame (build 180: Tansy and Corran
+            // exploded). Start empty; the model's clips go back where they belong (an embedded Titan's below,
+            // DigitigradeLegs' layered "~legs" twins).
+            ClearClips(anim);
             var spec = titan ? TitanSpec.Current : null;
             // A separately rigged Titan brings its own clips ("clips": "embedded"); the shared UAL set is added
             // too, and only clips whose names the model doesn't have.

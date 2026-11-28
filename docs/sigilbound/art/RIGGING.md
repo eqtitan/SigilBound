@@ -85,6 +85,19 @@ Implementation, all self-written project code:
    Clip names, aliases and battle code are unchanged; a clip without a baked twin falls back to the
    shared legs.
 
+### Runtime pitfall (build 180)
+
+glTFast adds an `Animation` with a file's own clips to the object it instantiates under (for the high-detail
+files, the holder). A digitigrade hero's GLB carries its baked leg clips under the shared clip names, and
+`HeroModels.BuildHd` only adds a shared clip whose name is free (so an embedded Titan keeps its own). The two
+together left the leg-only clips in the shared clips' place: no curve moved the body, and `RigExtras`, which
+assumes a clip rewrote each bone every frame, re-applied its rest fix to its own output (`D*q`, `T1 + D*(p-T0)`
+compounding: Corran's pelvis orbited 3 m up, Tansy's arms and head spun into a sheet). Now `BuildHd` clears the
+auto-added clips first (`ClearClips`), `RigExtras` leaves alone a bone that still holds what it wrote last frame,
+and the smoke tour's gallery logs `SBBOUNDS` per hero (Head bone height and offset, skinned bounds, in units of
+the figure's height), which `tools/unity-smoke-check.sh` fails on. Offline renders of the clips alone cannot see
+this class of bug: check a real build's gallery.
+
 ### Adding a hero
 
 In the hero's landmark entry (`i3d_landmarks_portrait.py`), wrap it with `_digitigrade(...)` and give, per

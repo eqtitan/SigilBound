@@ -18,25 +18,32 @@ namespace Sigilbound.Client
         }
 
         // Send feedback: a note plus the technical report, copied to the clipboard and saved (Feedback.cs).
-        string _feedback = ""; bool _feedbackErrors = true;
+        string _feedback = ""; bool _feedbackErrors = true, _feedbackCheck = true;
         void OpenFeedback()
         {
-            Modal("Send feedback", 360, b =>
+            bool hasCheck = !string.IsNullOrEmpty(LastPhoneCheck);
+            Modal("Send feedback", hasCheck ? 430 : 380, b =>
             {
                 Ui.Text(new Rect(b.x, b.y, b.width, 36), "What happened, or what would you like? Your note and some device details are copied so you can paste them to the developer.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
                 _feedback = Ui.Field(new Rect(b.x, b.y + 42, b.width, 120), _feedback, 2000, true);
                 string errs = Feedback.ErrorCount > 0 ? $"Attach the last {Feedback.ErrorCount} error lines" : "Attach recent errors (none so far)";
-                // A real check box (drawn), not a glyph, in a 48 dp row.
-                var cb = new Rect(b.x, b.y + 166, b.width, Tap);
-                if (Ui.Button(cb, "", Ui.Kind.Ghost)) _feedbackErrors = !_feedbackErrors;
-                var box = new Rect(cb.x + 4, cb.center.y - 10, 20, 20);
-                Ui.Round(box, _feedbackErrors ? Palette.Gold : Palette.Hex("#0d0a12"), Palette.Trim, 4);
-                if (_feedbackErrors) Icons.Draw(new Rect(box.x + 3, box.y + 3, 14, 14), Icon.Check, Palette.Hex("#1a1208"));
-                Ui.Text(new Rect(cb.x + 32, cb.y, cb.width - 32, cb.height), errs, 12, Palette.Text);
+                // Real check boxes (drawn), not glyphs, in 48 dp rows.
+                bool CheckRow(float y, bool on, string label)
+                {
+                    var cb = new Rect(b.x, y, b.width, Tap);
+                    bool hit = Ui.Button(cb, "", Ui.Kind.Ghost);
+                    var box = new Rect(cb.x + 4, cb.center.y - 10, 20, 20);
+                    Ui.Round(box, on ? Palette.Gold : Palette.Well, Palette.Trim, 4);
+                    if (on) Icons.Draw(new Rect(box.x + 3, box.y + 3, 14, 14), Icon.Check, Palette.Hex("#1a1208"));
+                    Ui.Text(new Rect(cb.x + 32, cb.y, cb.width - 32, cb.height), label, 12, Palette.Text);
+                    return hit ? !on : on;
+                }
+                _feedbackErrors = CheckRow(b.y + 166, _feedbackErrors, errs);
+                if (hasCheck) _feedbackCheck = CheckRow(b.y + 168 + Tap, _feedbackCheck, "Attach the last phone check");
                 if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
                 if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Copy report"))
                 {
-                    var path = Feedback.Send(_feedback, _feedbackErrors);
+                    var path = Feedback.Send(_feedback, _feedbackErrors, hasCheck && _feedbackCheck ? LastPhoneCheck : null);
                     CloseModal(); _feedback = "";
                     Toast(path != null ? "Report copied. Paste it in a message to the developer." : "Report copied to the clipboard.");
                 }
@@ -90,7 +97,7 @@ namespace Sigilbound.Client
             // art review H5: the stock track was invisible and the thumb 12 px).
             var area = new Rect(b.x, y + th + 2, b.width, Tap);
             var track = new Rect(area.x + 14, area.center.y - 4, area.width - 28, 8);
-            Ui.Round(track, Palette.Hex("#0d0a12"), Palette.Bronze, 4);
+            Ui.Round(track, Palette.Well, Palette.Bronze, 4);
             if (pct > 0) Ui.Round(new Rect(track.x, track.y, track.width * pct / 100f, track.height), Palette.GoldDark, Palette.Trim, 4);
             var thumbSt = Ui.Style("sliderThumb", () => new GUIStyle { normal = { background = Ui.RoundTex(Palette.Gold, Palette.TrimHi, 14) }, active = { background = Ui.RoundTex(Palette.TrimHi, Palette.Gold, 14) }, fixedWidth = 28, fixedHeight = 28 });
             var barSt = Ui.Style("sliderBar", () => new GUIStyle { fixedHeight = 0, stretchHeight = true, padding = new RectOffset(0, 0, 0, 0), overflow = new RectOffset(0, 0, 0, 0) });
@@ -159,7 +166,7 @@ namespace Sigilbound.Client
             for (int i = 0; i < 5; i++)
             {
                 var r = new Rect(b.x + i * (cw + 6), y, cw, ch);
-                Ui.Round(r, Palette.Hex("#0d0a12"), Palette.Element(_els[i]), 10);
+                Ui.Round(r, Palette.Well, Palette.Element(_els[i]), 10);
                 Ui.ElementBadge(new Rect(r.center.x - 12, r.y + 4, 24, 24), _els[i]);
                 Ui.Text(new Rect(r.x + 2, r.y + 28, r.width - 4, ch - 30), _els[i].ToString(), 11, Palette.Element(_els[i]), FontStyle.Bold, TextAnchor.MiddleCenter);
             }
@@ -271,6 +278,13 @@ namespace Sigilbound.Client
             if (stackHelp) y += Tap + 6;
             if (Ui.Button(new Rect(stackHelp ? b.x : b.x + hb + 8, y, stackHelp ? b.width : hb, Tap), "Send feedback", Ui.Kind.Primary, 13)) OpenFeedback();
             y += Tap + 10;
+            if (Screen != ScreenId.Battle)
+            {
+                // PLAN step 117: a fixed 60-second sequence measured on this phone; the report is copied (PhoneCheckRun.cs).
+                SettingRow(ref y, b, "Phone check", "60 seconds, hands off: plays a set route (team screen, a big battle, the Titan) and measures smoothness, memory and battery. Copies a report for the developer.");
+                if (Ui.Button(new Rect(b.x, y, Mathf.Min(b.width, 200), Tap), "Run phone check", Ui.Kind.Secondary, 13)) StartPhoneCheck();
+                y += Tap + 10;
+            }
 
             if (Screen != ScreenId.Battle)
             {

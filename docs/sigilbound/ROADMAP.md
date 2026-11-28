@@ -3,7 +3,7 @@
 Owned by the **pmo** agent (`.claude/agents/pmo.md`). Status of the project, what's next,
 what's blocked, and decisions made. Update it whenever work lands or plans change.
 
-_Last updated: 2026-11-27._
+_Last updated: 2026-11-28._
 
 ## Where things stand
 
@@ -19,6 +19,7 @@ _Last updated: 2026-11-27._
 | Balance | ✅ Tuned | Progression sim in `tools/sigilbound-balance-sim.cjs`. |
 | Unity version (`unity/`) | 🟡 Phase 1 built, not yet run | Native parallel build on branch `unity-native`: rules/data and save codes match web v0.19.2 (tested against the web code), glTFast CC0 heroes, URP, Trials, settings. APKs go to `unity-latest` once the `UNITY_EMAIL` / `UNITY_PASSWORD` secrets exist (see `unity/README.md`). |
 | Gameplay animation & mechanics (Unity) | 🟡 Spec done, build not started | New **character-mechanics** agent (`.claude/agents/character-mechanics.md`). Spec in `docs/sigilbound/MECHANICS.md` (file exists, not yet reviewed by the owner). Work is PLAN.md phase G, steps 64–69. 12 animation tests are waiting for owner approval. |
+| Campaign scenes (Unity) | 🟡 Built on `feat/campaign-scenes`, not yet seen in game | All 90 stops and 15 lairs from a seeded generator built around every camera; 16 image-to-3D landmarks ($1.00 of the $5 budget). Plan: `docs/sigilbound/art/CAMPAIGN_SCENES_PLAN.md`. How we know: `unity/Tests~` checks every stage (lane clear, landmark framed, budgets); previews are Blender renders, not screenshots. |
 | Hero card art | ⏳ Not started | Prompts ready in `ART_DIRECTION.md`. |
 
 ## Review findings (2026-11-27)
@@ -50,6 +51,8 @@ a smaller chapter-10 jump and a gentler Act II (yes, as one change); Hartwin tri
 
 ## Blockers (waiting on the owner)
 
+0b. **Campaign scenes (2026-11-28):** look at the 15 chapter preview sheets and say whether the look is right; decide whether boss stages should tilt the battle camera up a few degrees so the sky and the whole lair show (art review M1). Then a Unity build of `feat/campaign-scenes` for the screenshot tour.
+
 0a. **Review decisions (2026-11-27):** the eight questions in "Review findings" above.
 0. **Gameplay animation decisions** (from MECHANICS.md, 2026-11-25), each a one-line answer:
    - **Frame rate default:** should everyone start on *Auto* (matches your screen, 120 on the S26+, more battery), except players who chose 30? *Recommended: yes.* **Superseded 2026-11-27:** the performance review recommends 60 by default with 120 as an opt-in (see "Review findings").
@@ -65,6 +68,8 @@ a smaller chapter-10 jump and a gentler Act II (yes, as one change); Hartwin tri
 
 ## Next up (priority order)
 
+0. **Campaign scenes: in-game check and second landmark pass.** Screenshot tour of a `feat/campaign-scenes` build (stage 1, stage 4 and the lair of a few chapters, portrait and landscape) and a frame-time check on a phone; then generated landmarks for the lairs that need glowing parts (glass spires, Hollow cavern, last pyre, drowned shrine, burning tree). *Owner: engineering (build) + art-director.*
+
 1. **Hero card art.** ~~Cards~~ now show faces photographed from the 3D models (0.12.0), and the detail page shows the live 3D hero (0.13.0). Painted illustrations are optional: if the owner sends images, they go in `ART_FILES` and replace the 3D faces. *Owner: you (images, optional) + art-director.*
 2. **3D hero polish (follow-ups from the 0.10.0 art pass).**
    - ~~**Color pipeline**~~ fixed in 0.11.0.
@@ -78,7 +83,7 @@ a smaller chapter-10 jump and a gentler Act II (yes, as one change); Hartwin tri
    *Owner: art-director.*
 3. **Friends & chat live.** Unblocked by blockers 1 and 2. *Owner: engineering.*
 4. ~~**Sound & music.**~~ Shipped in 0.7.0, with volume sliders in 0.8.0. The in-app update banner works without a restart as of 0.13.1.
-5. **Play Store release build.** A release signing key in GitHub secrets, an AAB build, and the store listing. *Owner: pmo (checklist) + engineering.*
+5. **Play Store release build.** A release signing key in GitHub secrets, an AAB build, and the store listing. Item-by-item status and the owner's steps: `docs/sigilbound/store/READINESS.md` (2026-11-28). *Owner: pmo (checklist) + engineering.*
 6. **TestFlight.** Once there's an Apple account: signing secrets and an upload step in the workflow. *Owner: engineering.*
 
 ## Backlog
@@ -92,9 +97,11 @@ a smaller chapter-10 jump and a gentler Act II (yes, as one change); Hartwin tri
 - [ ] Smoke test: starter pick, summon, manual and auto battle, Titan, save and reload.
 - [ ] 3D screenshots reviewed (art-director checklist).
 - [ ] Install over the previous APK on a real phone and confirm progress is kept.
+- [ ] Phone check report from a real phone at Auto and Low (Settings > Run phone check; `docs/sigilbound/qa/PHONE_CHECK.md`).
 - [ ] Note the changes in the release notes.
 
 ## Decisions log
+- **2026-11-28:** The owner asked for all campaign scenes to be built out procedurally with camera locations in mind, with access to the image-to-3D pipeline (default budget $5 without asking). Plan in `art/CAMPAIGN_SCENES_PLAN.md`: chapter 2 (The Drowned Mill) as the reference, then the rest; the battle cameras stay as they are and the scenes are placed around them.
 - **2026-11-22:** Focus is the Android app (APK). The web build stays as the shared code base and as the app's engine, but new work is checked and released through the APK.
 - **2026-11-22:** Fully free to play, with no shop or paid currency.
 - **2026-11-22:** Native apps built by wrapping the web game with Capacitor, so no computer is needed. The Unity port is parked.

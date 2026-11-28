@@ -113,7 +113,7 @@ namespace Sigilbound.Client
         // Returns true when tapped (the caller toasts the reason).
         public static bool LockedCard(Rect r, string title, string reason, float progress = -1)
         {
-            Round(r, Palette.Hex("#1c1922"), Palette.Hex("#5a5560"), 12);
+            Round(r, Palette.Panel, Palette.Hex("#5a5560"), 12);
             float s = Mathf.Min(22, r.height - 20);
             Icons.Draw(new Rect(r.x + 14, r.y + 12, s, s), Icon.Lock, DisabledText);
             Text(new Rect(r.x + 20 + s, r.y + 8, r.width - 34 - s, 24), title, 15, DisabledText, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
@@ -196,7 +196,7 @@ namespace Sigilbound.Client
         // the caller can say why), or -1.
         public static int Segmented(Rect r, string[] labels, int selected, bool[] open, int size = 14)
         {
-            Round(r, Palette.Hex("#0d0a12"), Palette.Trim, 12);
+            Round(r, Palette.Well, Palette.Trim, 12);
             int n = labels.Length, hit = -1;
             float w = (r.width - 6) / n;
             for (int i = 0; i < n; i++)
@@ -491,7 +491,7 @@ namespace Sigilbound.Client
             if (!_kstyles.TryGetValue(key, out var s) || s == null)
                 _kstyles[key] = s = new GUIStyle
                 {
-                    normal = { background = GradientTex(Palette.Hex("#221b2e"), Palette.Hex("#1a1523"), highlight ? Palette.Gold : Palette.Hex("#5c4a30"), 12) },
+                    normal = { background = GradientTex(Palette.PanelHi, Palette.PanelLo, highlight ? Palette.Gold : Palette.Hex("#5c4a30"), 12) },
                     border = new RectOffset(14, 14, 14, 14),
                 };
             GUI.Box(r, GUIContent.none, s);
@@ -570,10 +570,10 @@ namespace Sigilbound.Client
                 {
                     Kind.Primary => (Palette.Hex("#fde3a0"), Palette.Hex("#e2b14e"), Palette.Hex("#b98330"), Palette.Hex("#d9a64a"), Palette.Hex("#2a1a05"), (Color?)Palette.Hex("#4a3110")),
                     Kind.Danger => (Palette.Hex("#ffb0a0"), Palette.Hex("#ff6a5a"), Palette.Hex("#b52a2a"), Palette.Hex("#e0503e"), Color.white, Palette.Hex("#4a0f0f")),
-                    Kind.Chip => (Palette.Hex("#2a2236"), Palette.Hex("#241d30"), Palette.Hex("#1f1829"), Palette.Hex("#1b1624"), Palette.Hex("#d8cbb2"), Palette.Hex("#5c4a30")),
+                    Kind.Chip => (Palette.ChipHi, Palette.ChipMid, Palette.ChipLo, Palette.Panel, Palette.Hex("#d8cbb2"), Palette.Hex("#5c4a30")),
                     Kind.ChipOn => (Palette.Hex("#3d3020"), Palette.Hex("#33281b"), Palette.Hex("#2a2117"), Palette.Hex("#241c14"), Palette.Gold, Palette.Gold),
                     Kind.Ghost => (Color.clear, Color.clear, Color.clear, Color.clear, Palette.Text, (Color?)null),
-                    _ => (Palette.Hex("#3a2f45"), Palette.Hex("#2f2639"), Palette.Hex("#261e30"), Palette.Hex("#1c1624"), Palette.Hex("#f3e3c3"), Palette.Hex("#6b5432")),
+                    _ => (Palette.ButtonHi, Palette.ButtonMid, Palette.ButtonLo, Palette.ButtonEdge, Palette.Hex("#f3e3c3"), Palette.Hex("#6b5432")),
                 };
                 int rad = k == Kind.Chip || k == Kind.ChipOn ? 14 : 10;
                 var s = new GUIStyle
@@ -723,12 +723,46 @@ namespace Sigilbound.Client
         public static void Text(Rect r, string text, int size = 15, Color? color = null, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleLeft, bool wrap = false, bool serif = false)
         {
             bool sf = serif && SerifCanDraw(text);
-            GUI.Label(r, text, RawLabel(TextPx(r, text, size, fs, align, wrap, sf), color, fs, align, wrap, sf));
+            GUI.Label(r, text, RawLabel(TextPx(r, text, size, fs, align, wrap, sf), color.HasValue ? Readable(color.Value) : (Color?)null, fs, align, wrap, sf));
+        }
+
+        // A text colour lifted to 4.5:1 on the dark panel when it falls short (Core TextColour: the colour-blind
+        // palettes had element and rarity colours at 3.2:1 as text). Dark label colours for gold plates stay as they
+        // are; translucent colours (shadows) too. Cached per colour.
+        static readonly Dictionary<uint, Color> _readable = new Dictionary<uint, Color>();
+        public static Color Readable(Color c)
+        {
+            if (c.a < 0.99f) return c;
+            uint key = Rgba(c);
+            if (_readable.TryGetValue(key, out var o)) return o;
+            var bg = Palette.Panel;
+            var (r, g, b) = TextColour.Readable(c.r, c.g, c.b, bg.r, bg.g, bg.b);
+            o = new Color(r, g, b, c.a);
+            if (_readable.Count > 512) _readable.Clear();
+            return _readable[key] = o;
+        }
+
+        // A one-line label that must fit its cell (the bottom nav: at Extra large, "HEROESSUMMON" ran together): the
+        // player's text size, shrunk as far as the 11-point floor (not the Default floor of Text), then the narrower
+        // sans face if the serif still doesn't fit.
+        public static void FitText(Rect r, string text, int size, Color c, bool serif = true)
+        {
+            bool sf = serif && SerifCanDraw(text);
+            _gc.text = text;
+            int top = Sized(size), px = top;
+            for (; px > MinText; px--) if (RawLabel(px, null, FontStyle.Bold, TextAnchor.MiddleCenter, false, sf).CalcSize(_gc).x <= r.width - 4) break;
+            if (sf && RawLabel(px, null, FontStyle.Bold, TextAnchor.MiddleCenter, false, true).CalcSize(_gc).x > r.width - 4)
+            {
+                sf = false;
+                for (px = top; px > MinText; px--) if (RawLabel(px, null, FontStyle.Bold, TextAnchor.MiddleCenter, false, false).CalcSize(_gc).x <= r.width - 4) break;
+            }
+            GUI.Label(r, text, RawLabel(px, Readable(c), FontStyle.Bold, TextAnchor.MiddleCenter, false, sf));
         }
 
         // Text the player typed (friend names, chat): no rich-text tags, otherwise as Text (scaled, fitted).
         public static void PlainText(Rect r, string text, int size, Color c, FontStyle fs = FontStyle.Normal, TextAnchor a = TextAnchor.MiddleLeft, bool wrap = false)
         {
+            c = Readable(c);
             int px = TextPx(r, text, size, fs, a, wrap, false);
             var key = new UiKey(KPlain, Rgba(c), x: px, y: (int)fs | (int)a << 4 | UiKey.Bits(wrap, 12));
             if (!_kstyles.TryGetValue(key, out var st) || st == null) _kstyles[key] = st = new GUIStyle(RawLabel(px, c, fs, a, wrap)) { richText = false };
@@ -743,8 +777,8 @@ namespace Sigilbound.Client
                 _kstyles[key] = st = new GUIStyle(multiline ? GUI.skin.textArea : GUI.skin.textField)
                 {
                     fontSize = Sized(13), wordWrap = multiline, padding = new RectOffset(8, 8, 6, 6), font = _font,
-                    normal = { background = RoundTex(Palette.Hex("#0d0a12"), Palette.Hex("#5c4a30"), 8), textColor = Palette.Text },
-                    focused = { background = RoundTex(Palette.Hex("#120e19"), Palette.Gold, 8), textColor = Palette.Text },
+                    normal = { background = RoundTex(Palette.Well, Palette.Hex("#5c4a30"), 8), textColor = Palette.Text },
+                    focused = { background = RoundTex(Palette.WellFocus, Palette.Gold, 8), textColor = Palette.Text },
                     border = new RectOffset(10, 10, 10, 10),
                 };
             return multiline ? GUI.TextArea(r, value ?? "", maxLength, st) : GUI.TextField(r, value ?? "", maxLength, st);
@@ -753,7 +787,7 @@ namespace Sigilbound.Client
         public static string Stars(int n) => new string('★', Mathf.Clamp(n, 0, 6));
         // Counts read "12,345" up to 99,999 (the K step came at 10,000: UI/UX review #24), then "123.4K", "1.23M".
         public static string Fmt(long n) => n >= 1_000_000 ? (n / 1e6).ToString("0.00") + "M" : n >= 100_000 ? (n / 1e3).ToString("0.0") + "K" : n.ToString("N0");
-        public static string ColorTag(string s, Color c) => $"<color=#{ColorUtility.ToHtmlStringRGB(c)}>{s}</color>";
+        public static string ColorTag(string s, Color c) => $"<color=#{ColorUtility.ToHtmlStringRGB(Readable(c))}>{s}</color>";
     }
 
     // Drag-to-scroll for touch screens (IMGUI scroll views only scroll by wheel/scrollbar).

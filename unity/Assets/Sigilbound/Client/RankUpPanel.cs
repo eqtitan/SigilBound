@@ -100,7 +100,7 @@ namespace Sigilbound.Client
                 }
                 else
                 {
-                    Ui.Panel(r, Palette.Hex("#120e19"), Palette.Bronze, 10);
+                    Ui.Panel(r, Palette.WellFocus, Palette.Bronze, 10);
                     Ui.Text(r, "+ Pick", 14, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
                 if (Ui.Button(r, "", Ui.Kind.Ghost)) { _slotPick = i; OpenPanel(RosterPanel.RankPick); }

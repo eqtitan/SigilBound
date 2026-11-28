@@ -66,7 +66,7 @@ namespace Sigilbound.Client
         void DrawModeCard(Rect r, ModeCard c)
         {
             var dim = c.Open ? 1f : 0.45f;
-            Color deep = Color.Lerp(Palette.Hex("#120e19"), c.Tint, 0.28f * dim), mid = Color.Lerp(Palette.Hex("#1d1726"), c.Tint, 0.5f * dim);
+            Color deep = Color.Lerp(Palette.WellFocus, c.Tint, 0.28f * dim), mid = Color.Lerp(Palette.Card, c.Tint, 0.5f * dim);
             // Card body: tinted gradient plate with the gilded frame.
             Ui.GradientBox(r, mid, deep, c.Open ? Palette.Gold : Palette.Bronze, 14);
             // Title band.

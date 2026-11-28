@@ -116,7 +116,8 @@ static class UxRulesTests
             "ux rule 4: tabs are segmented switches, in-team cards and switches use the ChipOn look; the extra check badges and HudChip are gone");
 
         // ---------- rule 5: disabled and locked ----------
-        check(!Regex.IsMatch(all, @"GUI\.color = new Color\(1, 1, 1, 0\.[0-7]"), "ux rule 5: nothing fades its text with GUI.color alpha under 0.8");
+        // LoadingPlaceholder's light sweep is a decorative band over a picture (no text), so it may be faint.
+        check(!code.Where(kv => kv.Key != "LoadingPlaceholder.cs").Any(kv => Regex.IsMatch(kv.Value, @"GUI\.color = new Color\(1, 1, 1, 0\.[0-7]")), "ux rule 5: nothing fades its text with GUI.color alpha under 0.8");
         check(ui.Contains("public static bool LockedCard(Rect r, string title, string reason, float progress = -1)") && Regex.Matches(trials, @"Ui\.LockedCard\(").Count >= 2,
             "ux rule 5: Trials cards and dungeon floors use the shared opaque Ui.LockedCard");
         var unlock = code.SelectMany(kv => Literals(kv.Value)).Where(l => Regex.IsMatch(l, "unlock", RegexOptions.IgnoreCase) && Regex.IsMatch(l, "^(Unlocks|Clear)")).ToList();
@@ -164,6 +165,47 @@ static class UxRulesTests
         var tallPrep = Method(screens, "void DrawPrep(Rect area)");
         check(tallPrep.Contains("EnemyChip(") && tallPrep.Contains("_prepFilter") && tallPrep.Contains("strong") && prep.Contains("OpenArenaPrep(") && trials.Contains("OpenArenaPrep(rv)") && !trials.Contains("Battle.Begin(BattleSpec.ForArena"),
             "ux rule 8: portrait team setup has the waves, matchup and element filter; the arena goes through team setup like every fight");
+
+        // ---------- in-house report (build 190): the shared pieces at the extremes ----------
+        // Portrait at Larger tap targets (56 dp): the corner buttons wrap instead of landing on Leave.
+        foreach (float bsz in new[] { 48f, 56f })
+        {
+            float left = 6, right = 390 - 6, bg = 6;
+            var leave = new Box(left, 6, bsz, bsz);
+            var errs = new List<string>();
+            for (int n = 5; n <= 7; n++)
+            {
+                var hb = UiLayout.HudButtons(right, 6, left + bsz + bg, bsz, bg, n);
+                var allB = hb.Append(leave).ToArray();
+                for (int i = 0; i < allB.Length; i++) for (int j = i + 1; j < allB.Length; j++) if (allB[i].Overlaps(allB[j])) errs.Add($"{n} buttons: {i}/{j}");
+                foreach (var b in hb) if (b.X < left - 0.1f || b.XMax > right + 0.1f) errs.Add($"{n} buttons: {b} off screen");
+            }
+            check(errs.Count == 0, $"ux rule 1/8: portrait battle corner buttons at {bsz:0} units (390 wide) never overlap Leave or each other (they wrap){(errs.Count > 0 ? "; " + errs[0] : "")}");
+        }
+        check(Method(bc, "(int rows, float lastX) DrawHudButtons(").Contains("UiLayout.HudButtons("), "ux rule 8: the HUD draws its corner buttons from that UiLayout arithmetic");
+        // Bottom nav labels fit their cell at any text size (Extra large ran "HEROESSUMMON" together).
+        var fit = Method(ui, "public static void FitText(");
+        check(Method(app, "void DrawNav(Rect r)").Contains("Ui.FitText(") && fit.Contains("px > MinText") && fit.Contains("sf = false"),
+            "ux rule 11: nav labels shrink to their cell (to the 11-point floor, then the narrower face) at every text size");
+        // Coloured words reach 4.5:1 on the panel in every palette (colour-blind colours were 3.2:1).
+        var panelHex = Regex.Match(Src("Palette.cs"), @"Panel = Hex\(""(#[0-9a-fA-F]{6})""\)").Groups[1].Value;
+        (float, float, float) Rgb(string h) { h = h.TrimStart('#'); return (Convert.ToInt32(h.Substring(0, 2), 16) / 255f, Convert.ToInt32(h.Substring(2, 2), 16) / 255f, Convert.ToInt32(h.Substring(4, 2), 16) / 255f); }
+        double worst = 99, worstRaw = 99; string worstName = "";
+        if (panelHex.Length == 7)
+        {
+            var (pr, pg, pb) = Rgb(panelHex); double lp = TextColour.Luminance(pr, pg, pb);
+            for (int mode = 0; mode < Accessibility.ElementHex.Length; mode++)
+                foreach (var hx in Accessibility.ElementHex[mode].Concat(Accessibility.RarityHex[mode]).Concat(Accessibility.GearHex[mode]).Concat(Accessibility.GoodBadHex[mode]))
+                {
+                    var (r, g, b) = Rgb(hx);
+                    worstRaw = Math.Min(worstRaw, TextColour.Contrast(TextColour.Luminance(r, g, b), lp));
+                    var (nr, ng, nb) = TextColour.Readable(r, g, b, pr, pg, pb);
+                    double c = TextColour.Contrast(TextColour.Luminance(nr, ng, nb), lp);
+                    if (c < worst) { worst = c; worstName = $"{hx} (mode {mode})"; }
+                }
+        }
+        check(worst >= 4.5 && Method(ui, "public static void Text(Rect r, string text").Contains("Readable(color.Value)") && Method(ui, "public static void PlainText(").Contains("c = Readable(c);") && ui.Contains("ColorUtility.ToHtmlStringRGB(Readable(c))"),
+            $"ux rule 9/11: element, rarity, gear and good/bad colours read at 4.5:1 or better as text in every palette (worst {worst:0.0}:1 at {worstName}; raw swatch {worstRaw:0.0}:1)");
 
         // ---------- rule 9: colour meaning ----------
         check(!Method(app, "void DrawNav(Rect r)").Contains("Palette.Blue") && prep.Contains("ring = your team") && !modes.Contains("Ui.Round(b, Palette.Bad, Palette.Gold, 13)"),

@@ -446,7 +446,9 @@ namespace Sigilbound.Core
             // combat rules of PLAN step 98; 15-6 (index 89), the finale, is eased so a strong team can finish it.
             // 13-6 (index 77) and 15-6 eased again with the speed trim and the classic-hero retune (PLAN step 109),
             // which cost the strong suite lineup (Oriel's Ascend) most on these two boss stages.
-            public static readonly System.Collections.Generic.IReadOnlyDictionary<int, double> StageEase = new System.Collections.Generic.Dictionary<int, double> { [77] = 0.92, [81] = 0.926, [89] = 0.85 };
+            // 13-6 again (0.92 -> 0.88) after the Act II pool freeze dropped the strong lineup there from 88% to 60%
+            // (campaign 60: mid 37% -> 63%, strong 62% -> 82%).
+            public static readonly System.Collections.Generic.IReadOnlyDictionary<int, double> StageEase = new System.Collections.Generic.Dictionary<int, double> { [77] = 0.88, [81] = 0.926, [89] = 0.85 };
             // Act 2 gold and XP per clear: the stage level caps at 60 at stage index 61, so past that rewards grow
             // by this share per stage instead (in step with the enemy ramp).
             public const double Act2RewardPerStage = 0.02; public const int RewardCapIdx = 61;

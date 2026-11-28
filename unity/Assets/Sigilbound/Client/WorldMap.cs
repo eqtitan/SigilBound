@@ -128,12 +128,12 @@ namespace Sigilbound.Client
                 var m = new Rect(p.x - s / 2, p.y - s / 2, s, s);
                 if (c == current && !locked) Ui.Round(new Rect(m.x - 10, m.y - 10, s + 20, s + 20), new Color(1f, 0.85f, 0.4f, 0.28f), null, 35);
                 var el = Game.ChapterElement(c);
-                Ui.Round(m, locked ? Palette.Hex("#2a2430") : Palette.Hex("#1d1726"), _chapterOpen == c ? Palette.TrimHi : locked ? Palette.Bronze : Palette.Trim, 25);
+                Ui.Round(m, locked ? Palette.Panel2 : Palette.Card, _chapterOpen == c ? Palette.TrimHi : locked ? Palette.Bronze : Palette.Trim, 25);
                 // Open chapters show the painted element medallion inside a ring of the element's colour.
                 bool medal = false;
                 if (!locked)
                 {
-                    Ui.Round(new Rect(m.x + 2, m.y + 2, s - 4, s - 4), Palette.Hex("#1d1726"), Palette.Element(el), 23);
+                    Ui.Round(new Rect(m.x + 2, m.y + 2, s - 4, s - 4), Palette.Card, Palette.Element(el), 23);
                     medal = Icons.PaintedElement(new Rect(m.x + 5, m.y + 4, s - 10, s - 10), el);
                 }
                 if (!medal) Icons.Draw(new Rect(m.x + 9, m.y + 7, s - 18, s - 18), locked ? Icon.Lock : Icons.ForElement(el), locked ? Palette.Dim : Palette.Element(el));
@@ -232,7 +232,7 @@ namespace Sigilbound.Client
                 float cx = r.x + step * (k + 0.5f);
                 if (k > 0) GUI.DrawTexture(new Rect(cx - step + 14, r.center.y - 1, step - 28, 2), Ui.Solid(got ? Palette.Gold : Palette.Bronze));
                 var slot = new Rect(cx - 14, r.center.y - 14, 28, 28);
-                Ui.Round(slot, got ? Palette.Hex("#3a2c14") : Palette.Hex("#1d1726"), got ? Palette.Gold : Palette.Bronze, 14);
+                Ui.Round(slot, got ? Palette.Hex("#3a2c14") : Palette.Card, got ? Palette.Gold : Palette.Bronze, 14);
                 Icons.Currency(new Rect(slot.x + 6, slot.y + 6, 16, 16), Icons.Cur.MysticShard);
                 // A Radiant Shard as well: its own crystal on the slot's corner (was a 9-point "+R").
                 if (rw.Radiant > 0) Icons.Currency(new Rect(slot.xMax - 6, slot.y - 6, 14, 14), Icons.Cur.RadiantShard);

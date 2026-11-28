@@ -1,0 +1,77 @@
+# Google Play readiness review
+
+_Reviewed 2026-11-28 against `main` 4a2723d (build 188, v0.21.1) and the `feat/release-ready` branch.
+Owner steps for the console itself are in `PLAY_CONSOLE.md`; the listing text is in `LISTING.md`._
+
+**How each item was checked:** "manifest" means the released build-188 APK (`unity-latest`,
+165.0 MB) was downloaded and its manifest and native libraries read. "Code" means the source was read.
+"Not verified" means nobody has run it yet.
+
+Status key: **DONE** · **NEEDS OWNER** (with the exact steps) · **NEEDS ENGINEERING**.
+
+## Summary: what the owner has to do first
+
+1. **Create the Play developer account** (US$25, identity check, takes days). A new personal account
+   must also run a **closed test with at least 12 testers for 14 days in a row** before it can publish to
+   production. Start this early: it's the longest wait (item 13).
+2. **Make the upload key and add the four GitHub secrets** (item 4), then run the `build-store-aab` task.
+   No store bundle has been built yet.
+3. **Choose the package name** before the first upload. It can never change afterwards (item 5).
+4. **Give a contact email for the privacy policy** and approve where it's hosted (items 7 and 8).
+5. **Decide on Friends and chat for launch.** The server isn't live (the database is missing), and chat
+   brings extra Play rules. Shipping v1 with Friends hidden is simpler (item 9).
+
+## Checklist
+
+| # | Requirement | Status | Evidence and what's left |
+|---|---|---|---|
+| 1 | **Target API level.** Play requires new apps and updates to target an API level within a year of the latest Android release. That was API 35 from 31 Aug 2025, and API 36 from 31 Aug 2026 by the same yearly rule (check the current deadline on Play Console's policy page). | **DONE** | The build-188 manifest shows targetSdk 36 and minSdk 24. Until now this came from "Automatic (highest installed)". It's now pinned: `BuildScript.TargetSdk = 36`, set in `ProjectSetup.Apply` (PLAN step 116; dispatch run 193's APK targets 36). The CI image has platforms 34, 35 and 36. |
+| 2 | **64-bit.** | **DONE** | The manifest's native libraries are `lib/arm64-v8a` only (IL2CPP, ARM64; `ProjectSetup`). There's no 32-bit code to drop. |
+| 3 | **16 KB memory pages.** Required for apps targeting Android 15+ since 1 Nov 2025. | **DONE** | All 7 `.so` files in build 188 have LOAD segments aligned to 0x4000 (16 KB). This came from Unity 6000.0.58f1. Re-check if a native plugin is ever added. |
+| 4 | **AAB and signing** (Play App Signing plus an upload key). | **NEEDS OWNER**, then one CI run | **Code is DONE:** `BuildScript.AndroidStore` builds an `.aab`, signs it only with the private upload key from secrets, and refuses to use the committed test key. The manual workflow task is `build-store-aab` (job `android-store`). **Owner steps:** (1) On your computer: `keytool -genkeypair -v -keystore sigilbound-upload.keystore -alias upload -keyalg RSA -keysize 2048 -validity 10000`. Back up the file and both passwords somewhere safe, never in the repo. (2) In GitHub, open the repo, then Settings > Secrets and variables > Actions > New repository secret. Add `ANDROID_UPLOAD_KEYSTORE_BASE64` (the output of `base64 -w0 sigilbound-upload.keystore`), `ANDROID_UPLOAD_KEYSTORE_PASS`, `ANDROID_UPLOAD_KEY_ALIAS` (`upload`) and `ANDROID_UPLOAD_KEY_PASS`. (3) Go to Actions > Sigilbound Unity > Run workflow, pick the task **build-store-aab** and run it on `main`. Download the `sigilbound-store-aab` artifact. (4) On the first upload, accept **Play App Signing**, so Google keeps the app key and a lost upload key can be reset. **Not verified:** the AAB job has never run. The first run may need a fix. |
+| 5 | **Package name.** | **NEEDS OWNER** | Today it's `com.sigilbound.unity` (`ProjectSetup.AppId`). The tester APK uses it too, and so do installed tester copies. **Recommended:** give the store app its own name, such as `com.sigilbound.game`, so the Play app and the GitHub test app can sit side by side. Tell engineering the name, which becomes the `SB_PACKAGE` env var in the `android-store` job. It's a one-line change. |
+| 6 | **In-app updater left out of store builds.** Play forbids self-updating and restricts `REQUEST_INSTALL_PACKAGES`. | **DONE** (code), **not verified on an AAB** | With `SB_STORE` defined, `Updater.cs` isn't compiled. `UpdaterStore.cs` stands in with no download or install code (`Included = false`, so Settings hides Updates). `AndroidUpdatePermission` adds no permission or provider when `BuildScript.IsStoreBuild` is set. `SetUpdaterPlugins(false)` keeps both updater Java files out. CI compiles the `SB_STORE` variant on every push ("Compile check of the Play Store variant"), and `Tests~/UpdaterTests.cs` guards it. The tester APK (build 188) still asks for `REQUEST_INSTALL_PACKAGES`, as intended. **Engineering, after the first AAB:** run `bundletool dump manifest` on it and confirm the permission is gone (item 11). |
+| 7 | **Privacy policy:** written, hosted, linked. | **NEEDS OWNER** + small **ENGINEERING** | **Written:** `docs/sigilbound/store/PRIVACY.md` (updated today for the phone check). **Not hosted:** `sigilbound.pages.dev/privacy` returns 404, and so does the site root. **Owner:** (1) Give the contact email that replaces `[developer contact email]`. (2) Choose the URL. The quickest is the public GitHub page `https://github.com/eqtitan/SigilBound/blob/main/docs/sigilbound/store/PRIVACY.md`, since the repo is public. A cleaner one is `https://sigilbound.pages.dev/privacy.html`, but that needs engineering to add the page to `public/` and the Pages deploy fixed. (3) Paste the URL in Play Console > App content > Privacy policy. An in-game link (Settings > Privacy policy) is good practice: **ENGINEERING, S**. |
+| 8 | **Data safety form.** | **NEEDS OWNER** (fill in the form) | **Answers**, for the store build as it is now. **Data collected: yes, only if the player opens Friends.** Personal info > **Name** (the chosen player name; Play counts nicknames). App activity > **Other user-generated content** (the public profile: stages cleared, power, best Titan damage, top heroes). Messages > **Other in-app messages** (friend chat, and reports of a message). The **User IDs** come from the random friend code and account token. For each: collected, not shared, processed for **App functionality** only, **optional**, encrypted in transit (HTTPS). Users **can request deletion**. **Not collected:** location, contacts, photos, files, audio, financial, health, device or advertising IDs, crash logs and diagnostics. The game has no analytics or crash SDK. Send feedback and the phone check only copy text to the clipboard, which the player pastes to us themselves, so the app sends nothing. Only the save stays on the device. **Account deletion web link (required, because players can create a Friends account):** the in-app Friends > Delete account exists (`Online.DeleteAccount`, server `account/delete`). Play also wants a web page explaining how to delete, plus an email route. Add a "Deleting your Friends account" section to the hosted privacy page and give that URL. **If Friends is hidden for v1** (item 9), every answer becomes "no data collected". |
+| 9 | **Friends and chat at launch** (user-generated content policy). | **NEEDS OWNER** decision, then **ENGINEERING** | The server code exists (`functions/api/sb`), with reporting, blocking and account deletion. **It is not live:** `/api/sb/me` answers 503 "Online features aren't set up on this server yet" because the D1 database isn't bound (ROADMAP blocker 1). Play's user-generated content policy for chat also needs (a) rules the player accepts before chatting: **ENGINEERING, S** (a one-time "chat rules" dialog when creating the Friends account), and (b) someone who actually reads the reports: **OWNER**, a weekly look at the `reports` table. **Recommendation:** for the first store release, hide Friends in `SB_STORE` builds (ENGINEERING, S). Turn it on in an update once the server is live and moderation is in place. That also makes the Data safety and rating answers simpler. |
+| 10 | **Content rating (IARC questionnaire).** | **NEEDS OWNER** (fill in the form) | **Answers:** category **Game**. Violence: **fantasy violence** against non-human or fantasy characters, no blood, no gore, no realistic violence. Sexual content, profanity, drugs, alcohol and tobacco: **none**. Fear: mild (a giant Titan, dark lairs). Gambling: **no** real-money gambling. The summon altar gives random heroes for in-game shards only, with nothing bought. Answer "no" to simulated gambling, but mention the randomised rewards if asked about loot boxes, since there are no purchases. Users interact: **yes**, chat with friends added by code, if Friends ships (else no). Shares location: **no**. Digital purchases: **no**. **Expected:** PEGI 7 / ESRB Everyone 10+ / IARC 7+. **Target audience** (separate form): **13 and over**, so the Families policy doesn't apply. Don't tick under-13 ages. |
+| 11 | **Permissions in the store manifest.** | **DONE** (expected), **not verified on an AAB** | The tester APK (build 188) asks for: `INTERNET`, `ACCESS_NETWORK_STATE`, `REQUEST_INSTALL_PACKAGES` (updater only) and AndroidX's own `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. The store build should have only the first two, plus the AndroidX one, which is harmless. None of these is a "dangerous" or restricted permission, so no permission declaration form is needed. There's no camera, microphone, location, storage or vibration code (grep). |
+| 12 | **Size: 165 MB APK against Play's 200 MB base limit.** | **DONE for now**; PAD plan below | Build 188's APK is 164,964,989 bytes, and CI fails any APK over 190 MB ("APK size budget"). An AAB's base module is checked by Play on its compressed download size, which for one ABI is about the APK size (StreamingAssets are stored uncompressed, so they don't shrink). Expect about 160-165 MB. **Headroom is about 35 MB**, roughly 35-40 more high-detail heroes at ~0.9 MB each (APK_SIZE.md), or one texture-quality bump. |
+| 13 | **Testing tracks: the new-account closed test.** | **NEEDS OWNER** | Personal developer accounts created after Nov 2023 must run a **closed test with at least 12 opted-in testers for 14 continuous days** before they can apply for production. Steps: Play Console > Testing > Closed testing > Create track. Upload the AAB, add a Google Group or email list of at least 12 testers, and share the opt-in link. Keep the test running for 14 days, then use Dashboard > Apply for production. Internal testing (up to 100, no review) can start at once for quick checks. |
+| 14 | **Store listing assets.** | **NEEDS ENGINEERING** (screenshots), the rest **DONE** | **DONE:** name, short (≤80 characters) and full description, category and tags (`LISTING.md`); icon 512x512 (`icon_512.png`); feature graphic 1024x500 (`feature_1024x500.png`). **Out of date:** the 8 screenshots are from the 2026-11-27 07:04 Linux tour. Since then the Titan was remodelled (the new basalt colossus, its own moves and the knuckle-walk), 27 heroes were remodelled from their portraits, icons were repainted, and the accessibility settings arrived. `02-titan-arrival.png` and `04-titan-battle.png` show the old Titan. The Titan sentence in the description named old moves; it's fixed on this branch (Bedrock Hammer, Faultline Leap, Heartfire Torrent). **Engineering:** recapture all 8 from the next tour build. Screenshots taken on the phone while playing are even better, at the phone's real screen shape. **Owner:** approve the 8 before upload. |
+| 15 | **App access, ads, government and news declarations.** | **NEEDS OWNER** (tick boxes) | All features work without a login. Ads: **no**. Not a news or government app. Financial features: none. Health: none. |
+| 16 | **Sideloaded APK vs store.** | **DONE** | The tester APK keeps its own app id and updater (`unity-latest`). The store bundle is built only by hand and is never published to a public release. |
+| 17 | **Pre-launch report and real-device numbers.** | **NEEDS OWNER/testers** | No real-phone measurement exists yet (ROADMAP review findings). Run Settings > Run phone check on the S26+ at Auto and at Low and send both reports (`docs/sigilbound/qa/PHONE_CHECK.md`). Play's pre-launch report runs automatically on each closed-test upload. Read its crash and ANR list. |
+
+## Play Asset Delivery (PAD) plan
+
+**What:** move the high-detail hero files (`StreamingAssets/Models/heroes_hd`, about 140 MB of the 165 MB)
+out of the base module into an **install-time asset pack**. Install-time packs download with the app,
+so players see one install, and they don't count toward the 200 MB base limit (each pack has its own,
+much larger limit).
+
+**How (store build only):**
+1. In `BuildScript.AndroidStore`, set `PlayerSettings.Android.splitApplicationBinary = true` before
+   building. For an AAB, Unity 6 then puts all StreamingAssets into an install-time pack
+   (`UnityStreamingAssetsPack`). A finer option is a custom `heroes_hd.androidpack` folder, which keeps the
+   small files in the base. Start with the one-line version.
+2. `HeroModels` reads hero files through `UnityWebRequest` from `Application.streamingAssetsPath`. With
+   install-time packs, Unity resolves that path into the pack, so **no game code should change**. This is
+   the part that must be proven on a device.
+3. Check the result: `bundletool build-apks --connected-device`, install, and run the phone check. Every
+   hero should load (the SBPERF hd lines and no stand-ins), and the report shows memory unchanged. Then make
+   it a CI check that the base module is under 150 MB (`bundletool get-size total` on the AAB).
+4. The sideloaded test APK can't use asset packs, so it stays one file and keeps its 190 MB gate.
+
+**Effort:** about half a day of engineering plus one device test (S-M). Most of the risk is in step 2.
+
+**When it becomes necessary:**
+- when the APK estimate (`Tests~/ModelPackTests.cs`) or the CI size step passes **185 MB**, which is about
+  20 more heroes, or any texture-quality increase; or
+- before **on-demand** packs are wanted (unowned heroes downloaded later, to cut the install to about 60 MB).
+  That's a larger change (M-L): the Play Asset Delivery API, a "downloading heroes" state and offline
+  handling.
+
+**Recommendation:** not needed for the first store upload (165 MB, 35 MB headroom). Do it as soon as the
+next large hero or texture batch is planned, and in any case before the store build reaches 185 MB. It
+wasn't implemented here because it can't be verified without a device.

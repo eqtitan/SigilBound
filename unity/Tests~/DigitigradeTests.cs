@@ -10,10 +10,10 @@ using System.Text.Json;
 
 static class DigitigradeTests
 {
-    // Heroes rigged with "legs": "digitigrade" (i3d_landmarks_portrait.py). Empty for now: Tansy and Corran were
-    // rolled back to their plain rigs after the in-house tester found them exploded in game (build 180, the
-    // DigitigradeLegs runtime layer); they return here once the layer is fixed and checked on a real build.
-    static readonly string[] Expected = { };
+    // Heroes rigged with "legs": "digitigrade" (i3d_landmarks_portrait.py). Build 180 showed both exploded in game:
+    // glTFast had put their baked leg clips on the Animation under the shared names, so the shared clips were
+    // skipped and RigExtras compounded its rest fix; fixed by HeroModels.ClearClips and RigExtras' last-write guard.
+    static readonly string[] Expected = { "tansy", "corran" };
     static readonly string[] LegBones = { "thigh", "calf", "meta", "foot", "ball" };
 
     static string Find(params string[] rel)
@@ -121,6 +121,15 @@ static class DigitigradeTests
             check(models_.Contains("DigitigradeLegs.Needed(holder)") && legs.Contains("AddMixingTransform") && legs.Contains("tw.time = s.time"),
                 "digitigrade: HeroModels layers the hero's leg clips over the shared clips (legs only, time-synced)");
             check(rig.Contains("DigitigradeLegs.LegBone"), "digitigrade: RigExtras doesn't re-express the shared clips on baked digitigrade legs");
+            // build 180: the model's own clips (auto-added by glTFast under the shared names) must be cleared before
+            // the shared clips go on, and the rest fix must never re-apply itself to a bone no clip wrote
+            int clear = models_.IndexOf("ClearClips(anim);", StringComparison.Ordinal), sharedAt = models_.IndexOf("lib.Gltf.GetAnimationClips()", clear < 0 ? 0 : clear, StringComparison.Ordinal);
+            check(clear > 0 && sharedAt > clear && models_.Contains("anim.RemoveClip(n)"),
+                "digitigrade: BuildHd clears glTFast's auto-added clips before adding the shared clips (they shadowed them in build 180)");
+            check(rig.Contains("q.Equals(f.LastR) && p.Equals(f.LastP)"), "digitigrade: RigExtras skips bones no clip wrote since its last fix (no compounding)");
+            var smoke = Find("tools", "unity-smoke-check.sh"); var shots = File.ReadAllText(Path.Combine(client, "ShotsMode.cs"));
+            check(smoke != null && File.ReadAllText(smoke).Contains("SBBOUNDS") && shots.Contains("SBBOUNDS") && shots.Contains("LogBounds();"),
+                "digitigrade: the smoke tour logs each gallery hero's pose bounds and the smoke check fails on a broken one");
         }
     }
 }

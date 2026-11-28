@@ -225,6 +225,23 @@ namespace Sigilbound.Core
         // The width of each switch inside the toggles rect.
         public static float ToggleW(Box toggles, int n) => n <= 0 ? 0 : Math.Min(150, (toggles.W - 8 * (n - 1)) / n);
 
+        // ---------- battle corner buttons ----------
+        // n round buttons of size bs from `right` leftward, gap bg; a button that would start left of minX (the
+        // Leave button's edge) begins a new row under the first, right-aligned. Portrait at 56 dp needs this: seven
+        // buttons are about 426 units on a 390-wide screen (in-house report build 190: View landed on Leave).
+        public static Box[] HudButtons(float right, float top, float minX, float bs, float bg, int n)
+        {
+            var res = new Box[n];
+            float x = right - bs, y = top;
+            for (int i = 0; i < n; i++)
+            {
+                if (x < minX - 0.01f && i > 0) { x = right - bs; y += bs + bg; }
+                res[i] = new Box(x, y, bs, bs);
+                x -= bs + bg;
+            }
+            return res;
+        }
+
         // ---------- the modes hub (landscape) ----------
         // One row of cards at 16:9 and wider; two rows (three over two) when compact, so titles keep their size.
         public static Box[] Modes(Box area, int n, float fullW)
@@ -248,6 +265,30 @@ namespace Sigilbound.Core
                 res[i] = new Box(x + k * (cw + gap), top + (first ? 0 : rh + gap), cw, rh);
             }
             return res;
+        }
+    }
+
+    // Text colours that read on the dark panels (WCAG 4.5:1; in-house report build 190: some colour-blind
+    // palette colours were 3.2:1 as text). Coloured words (element, rarity, gear, good/bad) are lifted toward white
+    // until they reach 4.5:1 on the panel; swatches, frames and bars keep the palette colour. Dark label colours
+    // (meant for gold plates and light chips) are left alone.
+    public static class TextColour
+    {
+        static double Ch(double c) => c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
+        public static double Luminance(float r, float g, float b) => 0.2126 * Ch(r) + 0.7152 * Ch(g) + 0.0722 * Ch(b);
+        public static double Contrast(double la, double lb) => (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
+        public const double Min = 4.5, DarkLabel = 0.05;
+        public static (float r, float g, float b) Readable(float r, float g, float b, float br, float bg, float bb, double min = Min)
+        {
+            double lbg = Luminance(br, bg, bb), l = Luminance(r, g, b);
+            if (l < DarkLabel || Contrast(l, lbg) >= min) return (r, g, b);
+            for (int i = 1; i <= 20; i++)
+            {
+                float t = i * 0.05f;
+                float nr = r + (1 - r) * t, ng = g + (1 - g) * t, nb = b + (1 - b) * t;
+                if (Contrast(Luminance(nr, ng, nb), lbg) >= min) return (nr, ng, nb);
+            }
+            return (1, 1, 1);
         }
     }
 

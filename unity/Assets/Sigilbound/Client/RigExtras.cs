@@ -17,7 +17,10 @@ namespace Sigilbound.Client
 {
     public sealed class RigExtras : MonoBehaviour
     {
-        struct Fix { public Transform T; public Quaternion D; public Vector3 T0, T1; }
+        // Last: what this component wrote last frame. A bone no clip wrote since still holds exactly that, and is
+        // left alone: re-applying the fix to its own output compounded every frame (build 180: a hero whose
+        // shared clips never played had its body flung into the sky and smeared into a sheet).
+        sealed class Fix { public Transform T; public Quaternion D; public Vector3 T0, T1; public Quaternion LastR; public Vector3 LastP; }
         readonly List<Fix> _fix = new List<Fix>();
         Transform[] _tail = new Transform[0]; Quaternion[] _tailRest = new Quaternion[0];
         Transform _jaw; Quaternion _jawRest;
@@ -46,7 +49,7 @@ namespace Sigilbound.Client
                     if (Quaternion.Angle(t.localRotation, r.localRotation) < 0.5f && (t.localPosition - r.localPosition).sqrMagnitude < 4e-6f) continue;
                     if (t.name == "Armature" || t.name == "root") continue;
                     if (digi && DigitigradeLegs.LegBone(t.name)) continue; // its own baked leg clips own these bones
-                    _fix.Add(new Fix { T = t, D = t.localRotation * Quaternion.Inverse(r.localRotation), T0 = r.localPosition, T1 = t.localPosition });
+                    _fix.Add(new Fix { T = t, D = t.localRotation * Quaternion.Inverse(r.localRotation), T0 = r.localPosition, T1 = t.localPosition, LastR = t.localRotation, LastP = t.localPosition });
                 }
             }
             var tails = new List<Transform>();
@@ -93,8 +96,10 @@ namespace Sigilbound.Client
             if (!OwnPlaying()) foreach (var f in _fix)
             {
                 if (f.T == null) continue;
-                f.T.localRotation = f.D * f.T.localRotation;
-                f.T.localPosition = f.T1 + f.D * (f.T.localPosition - f.T0);
+                var q = f.T.localRotation; var p = f.T.localPosition;
+                if (q.Equals(f.LastR) && p.Equals(f.LastP)) continue;   // no clip wrote it: already in the hero's rest frame
+                f.T.localRotation = f.LastR = f.D * q;
+                f.T.localPosition = f.LastP = f.T1 + f.D * (p - f.T0);
             }
             float dt = Mathf.Max(1e-4f, Time.deltaTime), t = Time.time + _phase;
             _strike = Mathf.MoveTowards(_strike, Attacking() ? 1f : 0f, dt * 4f);

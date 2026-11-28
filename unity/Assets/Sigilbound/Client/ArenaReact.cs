@@ -186,6 +186,10 @@ namespace Sigilbound.Client
         // ---------- sway: a damped spring per tree, pushed away from the blow ----------
         void Push(Vector3 p, float s)
         {
+            // Events can arrive between OnEnable (subscribed) and Start (arrays built): a shock from an ultimate or a
+            // boss blow in that gap threw a NullReferenceException and killed the battle's action loop (in-house report,
+            // build 190). Until Start has run there is nothing to push.
+            if (_w == null || _cw == null || _w.Length != Sway.Count || _cw.Length != Cloths.Count) return;
             for (int i = 0; i < Sway.Count; i++)
             {
                 if (!Sway[i]) continue;

@@ -147,7 +147,7 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(x, y, T, T), "", Ui.Kind.Secondary, 18, value > lo)) value = Mathf.Max(lo, i > 0 && LevelSteps[i] == value ? LevelSteps[i - 1] : LevelSteps[Mathf.Max(0, i)]);
             Icons.Draw(new Rect(x + T / 2 - 8, y + T / 2 - 8, 16, 16), Icon.Minus, value > lo ? Palette.Hex("#f3e3c3") : Ui.DisabledText);
             x += T;
-            Ui.Panel(new Rect(x + 2, y + 4, T - 4, T - 8), Palette.Hex("#0d0a12"), Palette.Bronze, 8);
+            Ui.Panel(new Rect(x + 2, y + 4, T - 4, T - 8), Palette.Well, Palette.Bronze, 8);
             Ui.Text(new Rect(x, y, T, T), value.ToString(), 14, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
             x += T;
             if (Ui.Button(new Rect(x, y, T, T), "", Ui.Kind.Secondary, 18, value < hi)) value = Mathf.Min(hi, i + 1 < LevelSteps.Length ? LevelSteps[i + 1] : hi);

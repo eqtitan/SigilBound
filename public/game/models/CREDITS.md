@@ -72,3 +72,12 @@ length restore, sphere/capsule push-out, then rotate the bone onto the tail) fol
 `VRMSpringBone` (https://github.com/vrm-c/UniVRM), **MIT licence**, Copyright (c) 2020 VRM Consortium,
 Copyright (c) 2018 Masataka SUMI for MToon. The C# here is our own re-implementation (no UniVRM source files are
 included); the chains and weights are added to the meshes by `unity/Tools~/blenderforge/spring_rig.py`.
+
+## Image-to-3D scenery landmarks (campaign scenes, 2026-11-28)
+
+The 16 campaign landmarks in `unity/Assets/Resources/Scenery/Landmarks/` (drowned mill, cottage, wagon,
+stilt hut, bell tower, Stormcrown crag, lighthouse, sea throne, sunken cathedral, king's barrow, toll
+house, warehouse, chapel, shipwreck, gatehouse, cairn) were made from the project's own concept images
+(Gemini, prompts describing the object only) through fal.ai's hosted **`fal-ai/trellis`** endpoint (the
+MIT-licensed TRELLIS model). They are the project's own art; sources and prompts are in
+`unity/Tools~/models/landmarks/`.
