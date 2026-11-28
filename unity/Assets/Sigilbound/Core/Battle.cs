@@ -19,10 +19,10 @@ namespace Sigilbound.Core
         public bool Boss, Titan; public int HeroUid;
         public int[] SkillLv = new int[0]; // Skill Tome upgrades per skill (allies)
         public int SkillLevel(int i) => i < SkillLv.Length ? SkillLv[i] : 0;
-        public bool Has(FxType t) => Effects.Any(e => e.Type == t);
+        public bool Has(FxType t) { for (int i = 0; i < Effects.Count; i++) if (Effects[i].Type == t) return true; return false; } // a loop: the HUD asks this per unit per GUI event (no closure garbage)
         // Weakness break (PLAN step 98): hits from the element that beats this unit fill the meter; full = Broken.
         public double Break; public int BreakGuard;
-        public Effect Shield => Effects.FirstOrDefault(e => e.Type == FxType.Shield);
+        public Effect Shield { get { for (int i = 0; i < Effects.Count; i++) if (Effects[i].Type == FxType.Shield) return Effects[i]; return null; } }
     }
 
     public enum EvType { Skill, Damage, Heal, Absorb, Status, Text, Death }
@@ -149,7 +149,10 @@ namespace Sigilbound.Core
         public IEnumerable<Unit> Units => Allies.Concat(Enemies);
         public static List<Unit> Living(IEnumerable<Unit> list) => list.Where(u => u.Alive).ToList();
         public List<Unit> Side(Unit u, bool own) => (u.Ally == own) ? Allies : Enemies;
-        public double Speed(Unit u) => u.Spd * (1 + (u.Has(FxType.SpdUp) ? 0.3 : 0) - (u.Has(FxType.Slow) ? 0.3 : 0));
+        // Slow and SpdUp size (PLAN step 109, mechanics review #6): at 0.3 they were the biggest single levers
+        // in the game (Tests~ "speed" measures it).
+        public const double SpeedFx = 0.2;
+        public double Speed(Unit u) => u.Spd * (1 + (u.Has(FxType.SpdUp) ? SpeedFx : 0) - (u.Has(FxType.Slow) ? SpeedFx : 0));
         double AtkOf(Unit u) => u.Atk * (1 + (u.Has(FxType.AtkUp) ? 0.4 : 0) - (u.Has(FxType.AtkDown) ? 0.4 : 0));
         double DefOf(Unit u) => u.Def * (1 + (u.Has(FxType.DefUp) ? 0.5 : 0) - (u.Has(FxType.DefDown) ? 0.5 : 0));
         public List<int> Usable(Unit u) => Enumerable.Range(0, u.Cds.Length).Where(i => u.Cds[i] == 0).ToList();

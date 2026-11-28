@@ -22,6 +22,14 @@ change: Reset save moved from Home to Settings, under Danger zone, behind a conf
 change: Clearer names: one name per shard (Worn, Mystic and Radiant Shard), the HP role, the View button, Replay for auto-replay, and Team on the stage list.
 fix: The tutorial, What's New, the update notice, tips and the Act II intro now show one at a time, and What's New no longer opens on your very first launch.
 fix: The turn order bar always matches who really acts next.
+change: Smoother team screen: hero models now load bit by bit over several frames instead of freezing the screen for a moment per hero.
+change: Faster first launch: sounds and effect textures now load in the background.
+fix: Fewer small stutters in long sessions: menus and the battle screen create much less throwaway data every frame.
+balance: Slow and Speed Up now change speed by 20% (was 30%).
+balance: Gear can add at most +50 speed to a hero.
+balance: Kettle, Oriel and Wren toned down; Corvan, Ysolde, Brannoc, Nyx, Tamsin and Sable strengthened.
+balance: 45 more heroes retuned for the new speeds.
+balance: Stage 13-6 and the final stage 15-6 are a little easier.
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 new: Release Heroes: filter by rarity, stars, element, role and level, keep the best copies, save presets, review before you release, and undo within 2 minutes.
