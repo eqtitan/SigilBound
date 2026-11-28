@@ -365,17 +365,26 @@ def banner_cloth():
 
 
 def brazier():
+    """A squat iron fire bowl on a pedestal (art review M3: the old flared cone under a glowing dome of coals
+    read as a lamp shade). The coals are a dark heap lit like the rest; only a few small embers glow (submesh 1,
+    the arena's dim ember material), and ArenaReactor adds a small flame above them."""
     bm = bmesh.new()
-    lathe(bm, [(0.08, 0.72), (0.36, 0.86), (0.46, 1.08), (0.42, 1.1), (0.3, 0.92)], 10, METAL)
-    for k in range(3):
-        a = k / 3 * 360
-        leg = box(0.06, 0.95, 0.06, METAL)
-        add_bm(bm, leg, Ry(a) @ T(0.26, 0, 0) @ Rz(12)); leg.free()
-    ring = bmesh.new(); lathe(ring, [(0.3, 0.2), (0.3, 0.26)], 10, METAL); add_bm(bm, ring); ring.free()
-    coals = ico(0.3, 1, GLOW)
-    for v in coals.verts: v.co = Vector((v.co.x, max(v.co.y, 0) * 0.55, v.co.z))
-    displace(coals, 0.05, 6, 3)
-    add_bm(bm, coals, T(0, 0.98, 0)); coals.free()
+    # foot: a broad stepped base, a short column and a collar
+    lathe(bm, [(0.30, 0.0), (0.30, 0.06), (0.20, 0.11), (0.08, 0.18), (0.08, 0.52), (0.13, 0.57), (0.09, 0.64)], 10, METAL)
+    # bowl: rounded and deep, its lip rolled out (a cauldron, not a cone)
+    lathe(bm, [(0.06, 0.62), (0.27, 0.67), (0.37, 0.78), (0.38, 0.89), (0.41, 0.95), (0.33, 0.96), (0.30, 0.88)], 10, METAL)
+    for k in range(3):  # three struts from the column to the bowl
+        leg = box(0.04, 0.30, 0.04, METAL)
+        add_bm(bm, leg, Ry(k * 120 + 60) @ T(0.06, 0.44, 0) @ Rz(-38)); leg.free()
+    coals = ico(0.3, 1, COAL)
+    for v in coals.verts: v.co = Vector((v.co.x, max(v.co.y, 0) * 0.32, v.co.z))
+    displace(coals, 0.035, 6, 3)
+    add_bm(bm, coals, T(0, 0.86, 0)); coals.free()
+    rng = random.Random(11)
+    for k in range(5):  # a few embers glowing in the heap
+        a = k / 5 * math.tau + rng.uniform(-0.3, 0.3); r = rng.uniform(0.04, 0.18)
+        e = ico(rng.uniform(0.035, 0.05), 0, GLOW)
+        add_bm(bm, e, T(math.cos(a) * r, 0.865 + 0.096 * (1 - (r / 0.3) ** 2), math.sin(a) * r)); e.free()  # on the heap's surface
     return bm
 
 

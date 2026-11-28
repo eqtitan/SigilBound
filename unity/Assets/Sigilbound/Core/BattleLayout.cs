@@ -41,28 +41,83 @@ namespace Sigilbound.Core
         // cover the top of the screen (owner report, 2026-11-26).
         public const double TitanCeiling = 0.38;
 
-        // Allies along the near arc, enemies along the far arc, ~2.2 m apart (three3d.mjs slot()).
-        public static V3 Slot(bool ally, int i, int n)
-        {
-            double step = Spacing / ((RimRx + RimRz) / 2);
-            double half = n <= 1 ? 0 : Math.Min(70 * Math.PI / 180, step * (n - 1) / 2);
-            double t = n <= 1 ? 0 : -half + i * (2 * half / (n - 1));
-            double a = ally ? t : Math.PI - t;               // 0 = near side (camera), PI = far side
-            return new V3(RimCx + Math.Sin(a) * RimRx, 0, RimCz - Math.Cos(a) * RimRz);
-        }
+        // ---------- line-up on the ring (art review M1, PMO P2-9) ----------
+        // Units used to stand ON the rim (half of each body outside the ring, the ends of a row wrapping round to
+        // the sides). Now every unit's footprint stays inside the ring: they stand on an inner "stand" ellipse,
+        // inset from the rim by the widest unit's footprint plus a margin, allies on the near arc and enemies on the
+        // far arc, each row within MaxHalf of its centre line (so the ring's middle stays clear and the two rows
+        // never meet at the sides). When a line-up needs more arc than the ring has (wide heroes, creatures, a long
+        // row), the ring itself grows (Ring, up to MaxRing) instead of the units spilling off it.
+        public const double FootR = 0.42;                // a normal hero's footprint radius (metres)
+        public const double FootMargin = 0.22;           // clear ground between a footprint and the rim line
+        public const double MaxHalf = 58 * Math.PI / 180; // a row's half-spread around its centre line
+        public const double MaxRing = 1.4;               // the ring grows at most this much (the scenery keeps clear to ~1.42x)
+        public const double BossWidth = 1.35;            // a boss stands 1.35x (BattleController's view scale)
 
-        // As Slot, with per-unit widths (Creatures.SlotWidth: a spider-folk takes more room): each gap is
-        // Spacing x the mean width of its two neighbours, the row stays centred and within the same 140 degrees.
-        public static V3 Slot(bool ally, int i, IList<double> widths)
+        // The current battle's ring scale (1 = the classic 4.2 x 3.95 m rim). BattleController sets it from the
+        // line-up (RingScale) before spawning and puts it back to 1 when the battle ends; the arena's circle, the
+        // slots and the camera's frame points all follow it, scaled about Centre.
+        public static double Ring = 1;
+        public static double Rx => RimRx * Ring;
+        public static double Rz => RimRz * Ring;
+
+        // How far the stand ellipse sits inside the rim for this widest unit (width 1 = a normal hero).
+        public static double Inset(double maxWidth) => FootR * Math.Max(1, maxWidth) + FootMargin;
+        static double MeanR(double ring) => (RimRx + RimRz) / 2 * ring;
+
+        // Arc length (metres) a row of these widths needs: Spacing x the mean width of each neighbouring pair.
+        public static double RowLength(IList<double> widths)
+        {
+            double total = 0;
+            for (int k = 1; k < (widths?.Count ?? 0); k++) total += Spacing * (widths[k - 1] + widths[k]) / 2;
+            return total;
+        }
+        static double MaxW(IList<double> a, IList<double> b) => Math.Max(a == null || a.Count == 0 ? 1 : a.Max(), b == null || b.Count == 0 ? 1 : b.Max());
+
+        // The ring scale that fits both rows of this battle (widths per unit; null or empty = nobody on that side).
+        public static double RingScale(IList<double> allies, IList<double> enemies)
+        {
+            double inset = Inset(MaxW(allies, enemies));
+            double need = Math.Max(RowLength(allies), RowLength(enemies));   // the longer row decides
+            double k = (need / (2 * MaxHalf) + inset) / MeanR(1);
+            return Math.Max(1, Math.Min(MaxRing, k));
+        }
+        public static double RingScale(int allies, int enemies) => RingScale(Ones(allies), Ones(enemies));
+        static double[] Ones(int n) { var a = new double[Math.Max(0, n)]; for (int i = 0; i < a.Length; i++) a[i] = 1; return a; }
+
+        // Allies along the near arc, enemies along the far arc, ~2.2 m apart, all of normal width.
+        public static V3 Slot(bool ally, int i, int n) => Slot(ally, i, Ones(Math.Max(1, n)));
+
+        // As Slot, with per-unit widths (Creatures.SlotWidth / LineupWidth, bosses x BossWidth): each gap is
+        // Spacing x the mean width of its two neighbours, the row stays centred, inside the ring at its current
+        // scale (Ring) and within MaxHalf; a row too long even for that is squeezed (closer than Spacing).
+        // maxWidth: the widest unit in the whole battle (both rows share one stand ellipse); 0 = this row's widest.
+        public static V3 Slot(bool ally, int i, IList<double> widths, double maxWidth = 0)
         {
             int n = widths.Count;
-            if (n <= 1) return Slot(ally, 0, 1);
-            double step = Spacing / ((RimRx + RimRz) / 2), total = 0; var at = new double[n];
-            for (int k = 1; k < n; k++) { total += step * (widths[k - 1] + widths[k]) / 2; at[k] = total; }
-            double half = total / 2, scale = Math.Min(1.0, 70 * Math.PI / 180 / Math.Max(1e-6, half));
-            double t = (at[i] - half) * scale;
-            double a = ally ? t : Math.PI - t;
-            return new V3(RimCx + Math.Sin(a) * RimRx, 0, RimCz - Math.Cos(a) * RimRz);
+            double inset = Inset(maxWidth > 0 ? maxWidth : widths.Max());
+            double sx = Rx - inset, sz = Rz - inset, mean = (sx + sz) / 2;
+            double t = 0;
+            if (n > 1)
+            {
+                var at = new double[n]; double total = 0;
+                for (int k = 1; k < n; k++) { total += Spacing * (widths[k - 1] + widths[k]) / 2; at[k] = total; }
+                double half = total / 2 / mean, scale = Math.Min(1.0, MaxHalf / Math.Max(1e-6, half));
+                t = (at[i] - total / 2) / mean * scale;
+            }
+            double a = ally ? t : Math.PI - t;               // 0 = near side (camera), PI = far side
+            return new V3(RimCx + Math.Sin(a) * sx, 0, RimCz - Math.Cos(a) * sz);
+        }
+
+        // True when a footprint of radius r at p lies wholly inside the rim (sampled round its edge).
+        public static bool InsideRim(V3 p, double r)
+        {
+            for (int k = 0; k < 32; k++)
+            {
+                double a = k * Math.PI / 16, x = p.X + Math.Cos(a) * r - RimCx, z = p.Z + Math.Sin(a) * r - RimCz;
+                if (x * x / (Rx * Rx) + z * z / (Rz * Rz) > 1) return false;
+            }
+            return true;
         }
 
         // Yaw (degrees, Unity: 0 = facing +Z) that turns a unit at p toward the circle's centre.
@@ -96,7 +151,7 @@ namespace Sigilbound.Core
         public static double TitanHead => TitanSpec.Current.HeadWorld;
         public static double TitanBack => TitanSpec.Current.Back;
         public static double TitanFace => TitanSpec.Current.FaceWorld;   // where the cameras look it in the eye
-        public static V3 TitanSlot() => Slot(false, 0, 1) + new V3(0, 0, TitanBack);
+        public static V3 TitanSlot() => new V3(RimCx, 0, RimCz + Rz) + new V3(0, 0, TitanBack); // the far rim (it towers behind it), then its stand-off
         public static V3[] TitanPoints()
         {
             var s = TitanSlot(); double top = TitanHead * 1.22; // horns and the name tag above the head
@@ -116,8 +171,8 @@ namespace Sigilbound.Core
         public static CameraPreset AnyCamera(string key, bool titan) =>
             (titan ? Array.Find(TitanCameras, c => c.Key == key) : null) ?? Camera(key);
 
-        static V3 NearArc => new V3(RimCx, 0, RimCz - RimRz);
-        public static V3 TeamCentre => new V3(0, 0, RimCz - RimRz * 0.72);
+        static V3 NearArc => new V3(RimCx, 0, RimCz - Rz);
+        public static V3 TeamCentre => new V3(0, 0, RimCz - Rz * 0.72);
 
         // Points a Titan view must keep in frame: each ally (4 slots, feet and head) and the Titan's feet;
         // the Titan's head and tag (TitanPoints) must also stay under TitanCeiling, except over its shoulder.
@@ -329,10 +384,10 @@ namespace Sigilbound.Core
             foreach (int sx in new[] { -1, 1 })
                 for (int k = 0; k <= 6; k++)
                 {
-                    double ang = k / 6.0 * Math.PI, x = sx * Math.Sin(ang) * (RimRx + 0.4), zThree = -0.6 + Math.Cos(ang) * (RimRz + 0.4);
+                    double ang = k / 6.0 * Math.PI, x = sx * Math.Sin(ang) * (Rx + 0.4), zThree = -0.6 + Math.Cos(ang) * (Rz + 0.4);
                     pts.Add(new V3(x, 0, -zThree)); pts.Add(new V3(x, zThree > 0 ? 2.75 : 3.3, -zThree));
                 }
-            pts.Add(new V3(0, 3.75, 3.95));                    // HUD tags above the back row
+            pts.Add(new V3(0, 3.75, RimCz + (Rz - 0.6)));      // HUD tags above the back row (3.95 at Ring 1)
             if (titan) { pts.Add(new V3(-2.3, 3.4, 4.0)); pts.Add(new V3(2.3, 3.4, 4.0)); } // shoulders and maul; the head is in TitanPoints
             return pts.ToArray();
         }

@@ -228,7 +228,8 @@ namespace Sigilbound.Client
             }
             // brazier flare: the lights jump and settle
             _brazierFlare = Mathf.MoveTowards(_brazierFlare, 0, dt * 1.2f);
-            for (int i = 0; i < _lights.Count; i++) if (_lights[i]) _lights[i].intensity = 1.2f + 3.2f * _brazierFlare + Mathf.PerlinNoise(t * 6f, i) * 0.4f;
+            float flare = 3.2f * Mathf.Max(0.25f, Access.FlashScale); // Settings > Flash effects: a gentler jump
+            for (int i = 0; i < _lights.Count; i++) if (_lights[i]) _lights[i].intensity = 1.2f + flare * _brazierFlare + Mathf.PerlinNoise(t * 6f, i) * 0.4f;
             _cdGeyser -= dt; _cdDebris -= dt; _cdBolt -= dt;
             UpdateRocks(dt);
             UpdateLair(dt, t);
@@ -301,10 +302,12 @@ namespace Sigilbound.Client
 
         ParticleSystem MakeFlame(Transform brazier)
         {
-            var ps = MakeBurst("Flame", new Color(1f, 0.6f, 0.2f, 1), true, 0.35f, 0.8f, 1.4f, -0.3f);
-            ps.transform.SetParent(brazier, false); ps.transform.localPosition = new Vector3(0, 1.05f, 0); ps.transform.localRotation = Quaternion.Euler(-90, 0, 0);
-            var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Cone; sh.angle = 8; sh.radius = 0.18f;
-            var em = ps.emission; em.rateOverTime = Tier == 0 ? 6 : 14;
+            // A small flame with a soft glow over the embers (art review M3), dim enough to stay under the bloom
+            // threshold at rest; the kill flare still lifts it (and the light) for a moment.
+            var ps = MakeBurst("Flame", new Color(0.85f, 0.42f, 0.14f, 0.8f), true, 0.26f, 0.7f, 1.1f, -0.25f);
+            ps.transform.SetParent(brazier, false); ps.transform.localPosition = new Vector3(0, 0.95f, 0); ps.transform.localRotation = Quaternion.Euler(-90, 0, 0);
+            var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Cone; sh.angle = 6; sh.radius = 0.14f;
+            var em = ps.emission; em.rateOverTime = Tier == 0 ? 5 : 11;
             ps.Play();
             return ps;
         }

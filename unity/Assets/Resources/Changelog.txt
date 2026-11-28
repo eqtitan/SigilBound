@@ -20,6 +20,15 @@ fix: The WEAK and RESIST tags no longer cross the "your turn" banner.
 change: Coins, shards, essence and tomes look the same everywhere, counts read 12,345 up to 99,999, and no text is smaller than 11 points.
 change: The update banner sits below the top bar and matches the rest of the game.
 
+## 2026-11-28 | Clearer battles
+fix: Skill pillars, heals and shields are now soft see-through light that fades out at the top, so you can always see who they hit.
+fix: Spell circles are the size of the caster's floor disc instead of a big stamp over the neighbours.
+fix: Damage numbers float above the name and health bar instead of over the body, spread a little, stack when several land at once and stay on screen.
+change: WEAK! and RESIST sit on their own line under the number, with a dark shadow so they read on any background.
+fix: Everyone stands inside the rune circle, allies on the near side and enemies on the far side; the circle grows a little for wide heroes like Vorgrim and Nyssa.
+fix: Hollow enemies have a clean red outline and glowing red eyes instead of pink speckles.
+fix: Boss-stage braziers are iron fire bowls with glowing embers and a small flame, not glowing lamp shades.
+
 ## 2026-11-28 | A journey to every lair
 new: Every campaign stop has its own scene, built around the battle cameras: the road leads toward the chapter's landmark, which draws nearer stop by stop until you fight at its foot.
 new: Hand-painted landmarks: the drowned mill, the leaning bell tower, the Stormcrown crag, the lighthouse, the sea-cliff throne, the sunken cathedral and more.
