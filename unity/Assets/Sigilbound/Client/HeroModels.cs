@@ -895,9 +895,12 @@ namespace Sigilbound.Client
                 Color32[] matPx = null; int mw = 0, mh = 0;
                 if (matTex != null) { matPx = matTex.GetPixels32(); mw = matTex.width; mh = matTex.height; UnityEngine.Object.Destroy(matTex); }
                 if (glowPx == null && matPx != null) { gw = mw; gh = mh; }
+                // No glow PNG and no metal map (30 image-to-3D heroes): still build a mask. Without one the shader's
+                // default _MaskMap is white = metal 1, smoothness 1 everywhere, which drew those heroes dark and
+                // metallic with sparkling specks on fur and cloth (in-house report build 190: Fennick, Brega, Holt).
+                if (glowPx == null && matPx == null) { gw = gh = 4; }
                 tGlow = sw.Elapsed.TotalMilliseconds;
                 Texture2D maskTex = null;
-                if (glowPx != null || matPx != null)
                 {
                     Color32[] mask = null;
                     bool ridges = cacheKey.StartsWith("titan|");
