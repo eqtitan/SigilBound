@@ -1,0 +1,275 @@
+{
+ "_doc": "face_lock.py table: the heroes that shipped the face-only lock (character TD faces pass 2026-11-28). cx = model x of the face midline (m), cy = face centre above the Head joint (m), rx/ry = mask radii (m), core = full-strength share of the radius, mode head|avg. Entries {} use the defaults (Head 100%, mask centred on the Head joint).",
+ "astrid": {
+  "cx": -0.01,
+  "cy": 0.09,
+  "rx": 0.06,
+  "ry": 0.08,
+  "mode": "avg"
+ },
+ "aurex": {
+  "cx": -0.01,
+  "cy": 0.035,
+  "rx": 0.05,
+  "ry": 0.065,
+  "mode": "avg"
+ },
+ "aveline": {
+  "cx": -0.047,
+  "cy": -0.1,
+  "rx": 0.035,
+  "ry": 0.045,
+  "auto_cx": false,
+  "mode": "avg"
+ },
+ "barley": {
+  "cx": 0.0,
+  "cy": 0.05,
+  "rx": 0.075,
+  "ry": 0.09,
+  "mode": "avg"
+ },
+ "benedict": {
+  "cx": -0.03,
+  "cy": 0.03,
+  "rx": 0.1,
+  "ry": 0.06,
+  "core": 0.6,
+  "auto_cx": false,
+  "mode": "avg"
+ },
+ "brannoc": {
+  "cx": -0.01,
+  "cy": 0.07,
+  "rx": 0.055,
+  "ry": 0.07,
+  "mode": "avg"
+ },
+ "brega": {
+  "cx": -0.01,
+  "cy": 0.03,
+  "rx": 0.06,
+  "ry": 0.05,
+  "mode": "avg"
+ },
+ "caspian": {
+  "cx": -0.03,
+  "cy": 0.09,
+  "rx": 0.07,
+  "ry": 0.07,
+  "mode": "avg"
+ },
+ "crusk": {
+  "cx": -0.02,
+  "cy": 0.13,
+  "rx": 0.09,
+  "ry": 0.07,
+  "mode": "avg"
+ },
+ "fennick": {
+  "cx": -0.095,
+  "cy": 0.1,
+  "rx": 0.17,
+  "ry": 0.13,
+  "auto_cx": false,
+  "mode": "avg"
+ },
+ "holt": {
+  "cx": -0.001,
+  "cy": 0.08,
+  "rx": 0.08,
+  "ry": 0.08,
+  "auto_cx": false,
+  "mode": "avg"
+ },
+ "jasper": {
+  "cx": 0.0,
+  "cy": -0.01,
+  "rx": 0.07,
+  "ry": 0.06,
+  "mode": "avg"
+ },
+ "kharra": {
+  "cx": -0.01,
+  "cy": 0.0,
+  "rx": 0.05,
+  "ry": 0.07,
+  "mode": "avg"
+ },
+ "lune": {
+  "cx": -0.02,
+  "cy": 0.06,
+  "rx": 0.11,
+  "ry": 0.11,
+  "mode": "avg"
+ },
+ "maelis": {
+  "cx": -0.007,
+  "cy": 0.025,
+  "rx": 0.05,
+  "ry": 0.05,
+  "auto_cx": false,
+  "mode": "avg"
+ },
+ "marrow": {
+  "cx": 0.1,
+  "cy": 0.08,
+  "rx": 0.06,
+  "ry": 0.08,
+  "auto_cx": false,
+  "mode": "avg"
+ },
+ "morvoren": {
+  "cx": -0.045,
+  "cy": -0.01,
+  "rx": 0.05,
+  "ry": 0.06,
+  "auto_cx": false,
+  "mode": "avg"
+ },
+ "nell": {
+  "cx": -0.01,
+  "cy": 0.0,
+  "rx": 0.05,
+  "ry": 0.06,
+  "mode": "avg"
+ },
+ "nettle": {
+  "cx": 0.01,
+  "cy": 0.07,
+  "rx": 0.1,
+  "ry": 0.08,
+  "auto_cx": false,
+  "mode": "avg"
+ },
+ "neve": {
+  "cx": -0.01,
+  "cy": 0.05,
+  "rx": 0.045,
+  "ry": 0.065,
+  "mode": "avg"
+ },
+ "obrecht": {
+  "cx": -0.01,
+  "cy": 0.07,
+  "rx": 0.1,
+  "ry": 0.08,
+  "mode": "avg"
+ },
+ "odo": {
+  "cx": -0.029,
+  "cy": 0.12,
+  "rx": 0.06,
+  "ry": 0.07,
+  "auto_cx": false,
+  "mode": "avg",
+  "core": 0.5
+ },
+ "perpetua": {
+  "cx": -0.125,
+  "cy": 0.08,
+  "rx": 0.08,
+  "ry": 0.07,
+  "auto_cx": false,
+  "mode": "avg"
+ },
+ "rook": {
+  "cx": -0.01,
+  "cy": 0.1,
+  "rx": 0.07,
+  "ry": 0.07,
+  "mode": "avg"
+ },
+ "talvo": {
+  "cx": -0.03,
+  "cy": 0.08,
+  "rx": 0.07,
+  "ry": 0.09,
+  "mode": "avg"
+ },
+ "vex": {
+  "cx": -0.01,
+  "cy": 0.05,
+  "rx": 0.045,
+  "ry": 0.07,
+  "mode": "avg"
+ },
+ "vorgrim": {
+  "cx": 0.0,
+  "cy": 0.07,
+  "rx": 0.08,
+  "ry": 0.09,
+  "mode": "avg"
+ },
+ "wenna": {
+  "cx": 0.02,
+  "cy": 0.17,
+  "rx": 0.1,
+  "ry": 0.1,
+  "mode": "avg"
+ },
+ "wystan": {
+  "cx": -0.03,
+  "cy": 0.09,
+  "rx": 0.12,
+  "ry": 0.1,
+  "auto_cx": false,
+  "mode": "avg"
+ },
+ "vessa": {},
+ "aelira": {},
+ "agathe": {},
+ "amber": {},
+ "aurelia": {},
+ "azura": {},
+ "briar": {},
+ "clemence": {},
+ "clover": {},
+ "dulcie": {},
+ "elowen": {},
+ "ember": {},
+ "greta": {},
+ "hettie": {},
+ "hilde": {},
+ "ilsabet": {},
+ "imogen": {},
+ "isla": {},
+ "juno": {},
+ "kaelith": {},
+ "kaija": {},
+ "kestrel": {},
+ "linnet": {},
+ "liora": {},
+ "lyra": {},
+ "marisol": {},
+ "mira": {},
+ "morag": {},
+ "morwenna": {},
+ "nerys": {},
+ "nyx": {},
+ "ondessa": {},
+ "oriel": {},
+ "orla": {},
+ "ottavia": {},
+ "pernille": {},
+ "rhea": {},
+ "rhosyn": {},
+ "sable": {},
+ "saoirse": {},
+ "selene": {},
+ "seraphine": {},
+ "sienna": {},
+ "solenne": {},
+ "sprig": {},
+ "tamsin": {},
+ "thessaly": {},
+ "tilly": {},
+ "tindra": {},
+ "umbra": {},
+ "velka": {},
+ "vesper": {},
+ "wren": {},
+ "ysabeau": {},
+ "ysra": {},
+ "zephyrine": {}
+}

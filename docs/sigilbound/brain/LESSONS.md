@@ -100,7 +100,7 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Fix: in progress (fix/ctd-roster-3).
 - Prevention: verify mesh fixes in a real build's gallery shots, not only on the patched file.
 - Related: L001, L004
-- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; fix/ctd-faces: in-place WEIGHTS_0 patches do reach the prepared StreamingAssets .glbz (unpacked and compared, differences only the 1/256 snapping), so prepare-models is not the cause for weight edits
 
 ## L011 - GUI.depth across scripts is unreliable
 - Status: solved
@@ -183,14 +183,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Evidence: fix/ctd-pilot, fix/ctd-roster-1
 
 ## L019 - Face locks must be tight
-- Status: open
+- Status: solved
 - Systems: hero-models, character-td
 - Symptom: a head lock fixed face drift but dragged manes, hoods and shells into the shoulders.
 - Cause: the lock covered the whole head region, not just the face.
-- Fix: in progress - tight face mask with soft falloff (fix/ctd-faces).
-- Prevention: per-frame visual verdict.
-- Related: L008
-- Evidence: scratchpad reviews/clipping.md
+- Fix: face-only mask (front-view ellipse x front layer, soft falloff, hands/props/springs excluded), in place via blenderforge/face_lock.py + face_lock.json. Kit faces lock to Head; image-to-3D faces lock to the mean of their own weights (see L023). 85 heroes shipped, Lazlo/Bram/Sorrel kept their models.
+- Prevention: per-frame visual verdict plus a show-through scan (newly visible back faces near the head) before/after; re-run face_lock.py after any re-rig.
+- Related: L008, L023
+- Evidence: fix/ctd-faces; scratchpad ctd_faces/summary.json; RIGGING.md "Faces"
 
 ## L020 - Balance ripples
 - Status: solved
@@ -221,3 +221,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Prevention: docs/sigilbound/art/SKELETON_LIBRARY.md.
 - Related: L002, L003, L018
 - Evidence: owner message 2026-11-28
+
+## L023 - A Head-locked face slides on a neck-weighted head
+- Status: solved
+- Systems: hero-models, character-td
+- Symptom: locking image-to-3D faces to Head cut face warp but opened holes at the face edge (Odo's frog hood, Lazlo's shark head, under Nyssa's hood); default kit mask crumpled bow strings in front of Bram's and Sorrel's chins.
+- Cause: on bone-heat rigs the skull/hood around the face follows neck and clavicle weights, so a rigid-to-Head face moves against it; the mask had no notion of separate pieces in front of the face.
+- Fix: image-to-3D faces take the mean of their own weights (one piece, no internal warp, no slide); narrow masks where a slide remains; leave heroes with nothing to fix untouched.
+- Prevention: never judge a face fix by drift-to-Head alone; scan for newly visible back faces and look at the flagged frames. Faces whose whole skull drifts need a re-rig, not a weight patch.
+- Related: L008, L019, L022
+- Evidence: fix/ctd-faces; scratchpad ctd_faces/bscan, ctd_faces/bs_*.png
+

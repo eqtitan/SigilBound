@@ -183,3 +183,27 @@ upper body first. Results per hero: scratchpad `ctd/summary.json`.
   stays on the spine and his tail on RigExtras' sway: spring chains for both were tried and were worse.
 - Tried and not shipped: rigid head gear on image-to-3D heroes (the ramp at the skull stretched more), tail spring
   chains on tails weighted to the pelvis or a leg (they tear from the tail tip; tails need rig-time landmarks).
+
+## Faces: face-only lock (character TD faces pass, 2026-11-28)
+
+`blenderforge/face_lock.py face_lock.json SRC_DIR DST_DIR [id ...]` rewrites JOINTS_0/WEIGHTS_0 of the shipped GLB in
+place (nothing else changes), so it can be re-run on top of any later re-rig: re-rig first, then run it for that hero
+and re-sweep. Table `blenderforge/face_lock.json` lists every hero that shipped it.
+
+- **Mask:** a soft ellipse in the front view (centre `cx`, Head_y + `cy`; radii `rx`, `ry`; full inside `core`,
+  smoothstep to the rim; the lower half reaches `chin` x `ry` for the jaw/neck blend) x the front layer (within 2 cm of
+  the front-most surface, so hair, hoods and manes behind or beside the face stay out; hands/props in front ignored) x not
+  on hand/finger/prop/spring/tail/wing bones. Welded duplicates share one value. Manes, hoods, shells, collars and crowns
+  keep their weights.
+- **Target:** kit heroes `head` (Head 100%: their faces are Head already, only the chin blended into neck_01, 2-7 mm).
+  Image-to-3D heroes `avg`: the face takes the mean of its own weights over the mask core and moves as one piece with the
+  skull, hood or mane around it. Locking an image-to-3D face to Head made it slide against those (holes opened at Odo's
+  frog hood, Lazlo's shark head, a gap under Nyssa's hood), because the rest of the head follows neck and clavicle weights.
+- **What it fixes:** the face warping inside itself (eyes/mouth smearing in strikes and hits): non-rigid face deformation
+  p90 down 30-90% on the 31 image-to-3D heroes. It does not move the face back onto the skull; heads whose whole skull
+  drifts (Jasper, Lazlo, Augustin) need a re-rig (Humanoid retargeting pilot).
+- **Check:** every 2nd frame of every clip, face cam + battle camera, before/after sheets, and a show-through scan
+  (back-face pixels newly visible near the head) to catch slides. A default kit mask caught bow strings in front of
+  Bram's and Sorrel's chins; heroes with 0 mm chin drift are left untouched.
+- **Symmetry** was not applied: mirroring inside the mask would copy asymmetric fringes, eye make-up and scars across
+  (tried on Astrid's texture).
