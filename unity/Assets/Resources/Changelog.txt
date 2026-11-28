@@ -12,6 +12,16 @@ fix: The Titan's arrival is filmed from behind your heroes looking up at its fac
 change: Brannoc, Vex and Aurex have new 3D models that match their portraits.
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
 change: Painted icons for the Gale, Light and Shadow elements on the campaign map, and each shard type has its own coloured crystal.
+change: Battle skill buttons show the skill's name instead of A1/A2/A3, and a skill on cooldown says how many turns are left.
+new: Picking a target shows WEAK or RESIST for the chosen skill, and a Status button explains the status icons on any turn, yours included.
+change: Hard, Titan and dungeon results use the full results screen, with each hero's damage, damage taken and healing.
+change: Pop-ups keep a readable width on wide screens.
+change: Dungeon floors open team setup before the fight, like the campaign and the Titan.
+change: Saving a team preset over a different team asks first.
+change: Reset save moved from Home to Settings, under Danger zone, behind a confirm.
+change: Clearer names: one name per shard (Worn, Mystic and Radiant Shard), the HP role, the View button, Replay for auto-replay, and Team on the stage list.
+fix: The tutorial, What's New, the update notice, tips and the Act II intro now show one at a time, and What's New no longer opens on your very first launch.
+fix: The turn order bar always matches who really acts next.
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 new: Release Heroes: filter by rarity, stars, element, role and level, keep the best copies, save presets, review before you release, and undo within 2 minutes.
