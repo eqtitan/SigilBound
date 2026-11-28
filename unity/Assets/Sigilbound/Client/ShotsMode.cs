@@ -480,9 +480,18 @@ namespace Sigilbound.Client
                             var planted = pts.Where(p => p.y < low + 0.04f).Select(p => new Vector2(p.x, p.z)).ToList();
                             for (int i = 0; i < planted.Count; i++) for (int j = i + 1; j < planted.Count; j++) slide = Mathf.Max(slide, (planted[i] - planted[j]).magnitude);
                         }
-                    string why = nan ? "NaN muscle" : limits > 1.5f ? "joint past its range" : stance && slide > 0.10f ? "foot sliding" : inter > 0.08f ? "limb through body" : null;
-                    total++; if (why != null) { bad++; heroBad++; }
-                    ShotLog($"SBMOVE {id} {clip} limits={limits:0.00}({muscle}) slide={slide * 100:0.0}cm intersect={inter * 100:0.0}cm ({pair}) " + (why == null ? "ok" : "BAD " + why));
+                    // every failing reason is listed (run 46126451038: a joint flag hid Titan_Land's forearm in the chest).
+                    // Joint range is advisory: muscle values are relative to Unity's default ranges, which the shared
+                    // source clips exceed on every path (UpperChest bends in crouches, wrist bends on weapon holds; run
+                    // 46126451038: 156 clips, all of them authored poses), so it warns until it measures degrees
+                    // against anatomical limits (SKELETON_LIBRARY.md 7.6).
+                    var whys = new System.Collections.Generic.List<string>();
+                    if (nan) whys.Add("NaN muscle");
+                    if (stance && slide > 0.10f) whys.Add("foot sliding");
+                    if (inter > 0.08f) whys.Add("limb through body");
+                    string warn = limits > 1.5f ? $" warn: past default muscle range ({muscle})" : "";
+                    total++; if (whys.Count > 0) { bad++; heroBad++; }
+                    ShotLog($"SBMOVE {id} {clip} limits={limits:0.00}({muscle}) slide={slide * 100:0.0}cm intersect={inter * 100:0.0}cm ({pair}) " + (whys.Count == 0 ? "ok" : "BAD " + string.Join(", ", whys)) + warn);
                 }
                 handler.Dispose();
                 ShotLog($"SBMOVE-SUMMARY {id} clips={hr.Library.Count} bad={heroBad}");

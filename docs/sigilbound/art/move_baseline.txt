@@ -2,3 +2,8 @@
 # Add a line only after looking at the frames and deciding the move is right as it is (say why in a comment).
 augustin Ult_Volley  # never played by Augustin in battle (his ult is Ult_Blessing; Ult_Volley is Elowen's bow draw); 8.7 cm, just past the 8 cm limit
 titan Titan_Slam  # the hunch over the fists around the overhead slam: 9.5 cm between the Brute-girth rock forearm and chest colliders, no clipping visible at battle distance (run 46121700973, attack k=1-4)
+titan Titan_Land  # landing crouch with the fists planted in front: 9.3 cm forearm/chest collider overlap, no clipping visible (titan_preview leap frames 49-56)
+nyssa Ult_TwinFlurry  # her dagger cross-slash: the forearms cross in front, 8.3 cm (limit 8), reads as intended (run 46126451038 ultimate k=3-4)
+ysolde Ult_TwinFlurry  # not her clip (her ult is Spell_Simple_Shoot); 8.5 cm forearm/forearm on the cross-slash
+ysolde Pistol_Aim_Down  # not her clip (gunner family only); two-hand aim, forearms touching, 8.3 cm
+titan Punch_Cross  # only a fallback when the Titan lacks its own sweep/fists clip, and it has both; 9.9 cm forearm/head
