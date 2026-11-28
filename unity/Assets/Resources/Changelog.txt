@@ -44,6 +44,11 @@ balance: 45 more heroes retuned for the new speeds.
 balance: Stage 13-6 and the final stage 15-6 are a little easier.
 
 ## 2026-11-27 | Fairer chapters and clearer battles
+fix: Tansy and Corran now bend their legs like a hare and a goat, with a backward-folding hock, when they walk, crouch and kneel.
+
+## 2026-11-27 | Fairer chapters and clearer battles
+change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
+change: Vex, Aurex, Brannoc, Odo and 27 more heroes have new 3D models that match their portraits.
 new: Release Heroes: filter by rarity, stars, element, role and level, keep the best copies, save presets, review before you release, and undo within 2 minutes.
 new: Rank Up shows the fodder it will use; change any slot, Auto-fill with the cheapest safe heroes, or Rank up all to a chosen star with a cost preview.
 fix: Rank-up no longer offers a newly summoned Epic or Legendary before your levelled Commons, and the confirm shows each hero's rarity and stars.
