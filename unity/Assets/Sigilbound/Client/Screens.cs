@@ -294,14 +294,12 @@ namespace Sigilbound.Client
 
         void DrawHeroes(Rect area)
         {
+            if (DrawRosterPanel(area)) return; // Release Heroes / Rank Up panels (RosterUi.cs)
             var list = SortedHeroes();
-            float content = 100 + list.Count * 62 + 40;
+            float content = 100 + HeroToolsExtra + list.Count * 62 + 40;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = HeroTabs(8, G.S.heroes.Select(h => h.id).Distinct().Count());
-            string[] sorts = { "power", "level", "rarity" };
-            for (int i = 0; i < sorts.Length; i++)
-                if (Ui.Button(new Rect(Pad + i * 96, y, 88, 32), char.ToUpper(sorts[i][0]) + sorts[i].Substring(1), _sort == sorts[i] ? Ui.Kind.ChipOn : Ui.Kind.Chip, 13)) _sort = sorts[i];
-            y += 44;
+            y = HeroListTools(y); // sort chips (saved), Release…, Rank up all, Undo
             foreach (var h in list)
             {
                 var t = Hero(h.id);
@@ -346,7 +344,7 @@ namespace Sigilbound.Client
             if (atCap)
             {
                 Ui.Text(new Rect(r.x + 14, r.y + 44, r.width - 28, 20), h.stars >= MaxStars ? "Fully ascended!" : $"Rank up: {h.stars} other {h.stars}★ heroes ({G.RankUpFodder(h).Count} available) + {Ui.Fmt(RankUpGold(h.stars))} gold", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleLeft, true);
-                if (Ui.Button(new Rect(r.x + 14, r.y + 66, r.width - 28, 36), $"Rank Up to {h.stars + 1}★", Ui.Kind.Primary, 14, G.CanRankUp(h))) AskRankUp(h);
+                if (Ui.Button(new Rect(r.x + 14, r.y + 66, r.width - 28, 36), $"Rank Up to {h.stars + 1}★", Ui.Kind.Primary, 14, G.CanRankUp(h))) OpenRankUp(h);
             }
             else
             {
@@ -391,31 +389,9 @@ namespace Sigilbound.Client
                 if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
                 if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Release", Ui.Kind.Red))
                 {
-                    foreach (Slot s in System.Enum.GetValues(typeof(Slot))) h.SetGear(s, 0);
-                    G.Release(h); Save(); CloseModal(); Toast($"+{ess} essence"); Go(ScreenId.Heroes);
-                }
-            });
-        }
-
-        void AskRankUp(HeroSave h)
-        {
-            var fodder = G.SuggestFodder(h);
-            // Each fodder hero with stars, level and rarity; Epic+ and last copies called out in red.
-            bool risky = fodder.Any(f => Hero(f.id).Rarity >= Rarity.Epic || G.CopiesOf(f.id) <= 1);
-            string list = string.Join("\n", fodder.Select(f =>
-            {
-                var ft = Hero(f.id);
-                string warn = ft.Rarity >= Rarity.Epic ? Ui.ColorTag("  ⚠ " + ft.Rarity, Palette.Bad) : G.CopiesOf(f.id) <= 1 ? Ui.ColorTag("  ⚠ last copy", Palette.Bad) : "";
-                return $"{Ui.ColorTag(Ui.Stars(f.stars), Palette.Gold)} {ft.ShortName} Lv{f.level} · {Ui.ColorTag(ft.Rarity.ToString(), Palette.Rarity(ft.Rarity))}{warn}";
-            }));
-            Modal($"Rank up to {h.stars + 1}★?", 300 + (risky ? 20 : 0), b =>
-            {
-                Ui.Text(new Rect(b.x, b.y, b.width, 150 + (risky ? 20 : 0)), "These heroes will be used up (locked heroes and team members never are):\n" + list + (risky ? "\n" + Ui.ColorTag("Check the heroes marked ⚠: they can't be brought back.", Palette.Bad) : "") + $"\n\nCost: {Ui.Fmt(RankUpGold(h.stars))} gold. Stats +15%, level cap {MaxLevelFor(h.stars + 1)}.", 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
-                if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
-                if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Rank Up"))
-                {
-                    if (G.RankUp(h, fodder)) { Save(); Toast($"{Hero(h.id).ShortName} is now {h.stars}★!"); Vfx.I.Burst(new Vector3(0, 1.5f, 0.4f), Palette.Gold, true); }
-                    CloseModal();
+                    var u = G.ReleaseMany(G.PlanReleaseOne(h)); // gear back to the bag, out of saved presets
+                    if (u != null) SetUndo(u);
+                    Save(); CloseModal(); Toast($"+{ess} essence · Undo on the Heroes list for 2 minutes"); Go(ScreenId.Heroes);
                 }
             });
         }
