@@ -73,6 +73,8 @@ static class Program
             }
             return 0;
         }
+        // `-- sky [csv]`: the real-sun proof cases (SkyTour's moments) and, with csv, sun paths for charts.
+        if (args.Length > 0 && args[0] == "sky") { SkyTests.Probe(args.Length > 1 && args[1] == "csv"); return 0; }
         // `-- scenetests`: only the scene generator checks (Core/SceneGen.cs).
         if (args.Length > 0 && args[0] == "scenetests") { SceneGenTests.Run(Check); Console.WriteLine(failures == 0 ? "All checks passed." : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
         // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).
@@ -147,6 +149,7 @@ static class Program
         SpringTests.Run(Check);
         LairRevealTests.Run(Check);
         SceneGenTests.Run(Check);
+        SkyTests.Run(Check);
         SaveSafetyTests.Run(Check);
         RankUpTests.Run(Check);
         ReleaseTests.Run(Check);

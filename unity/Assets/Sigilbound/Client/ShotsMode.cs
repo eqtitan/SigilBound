@@ -18,6 +18,10 @@ namespace Sigilbound.Client
     public sealed partial class App
     {
         public static bool NoSave;   // set by the screenshot mode: Save() does nothing
+        // Started with -sbShots: true from the very first frame (App.Awake builds the arena before the tour starts),
+        // so the sky (SkySun) is on the tour's fixed clock in every shot, the intro included.
+        static bool? _inShots;
+        public static bool InShots => _inShots ??= !string.IsNullOrEmpty(ShotsArg());
         int _shotCount;
         string _shotDir;
 
@@ -217,6 +221,8 @@ namespace Sigilbound.Client
             }
             G.S.settings.auto = true;
 
+            yield return SkyTour();
+
             if (ScenesArg()) yield return SceneTour();
 
             // Creature heroes (Core/Kit/Creatures.cs): Vessa in the team, on the home lineup and in a battle
@@ -293,6 +299,50 @@ namespace Sigilbound.Client
             }
             foreach (var (h, lv) in keepLv) h.level = lv;
             G.S.cleared = keepCleared; G.S.hardCleared = keepHard;
+            G.S.settings.auto = true;
+        }
+
+        // The real-sun sky (Client/SkySun, Core/SolarClock): one campaign stop at fixed real moments and places, so the
+        // owner can judge the sun and moon against the real sky. Each case: the battle view (shadow direction, band and
+        // colour) and "-up", the same eye turned toward the sun or moon (the battle camera looks 30 degrees down and
+        // its frame ends below the horizon, so the disc itself only shows in low views). A night-by-design lair at
+        // noon must stay night. Logged as "SBSKY <case> <sky> band .. light pitch/yaw .. disc el/yaw .. moon ..".
+        // The rest of the tour runs under SkyClock's fixed moment (midsummer noon, New York): shots never change with the hour.
+        IEnumerator SkyTour()
+        {
+            var nyDay = new System.DateTime(2026, 11, 28, 0, 0, 0, System.DateTimeKind.Utc);   // EST = UTC-5; Sydney AEDT = UTC+11
+            var cases = new (string name, System.DateTime utc, double lat, double lon, int stage)[]
+            {
+                ("ny-0700", nyDay.AddHours(12), 40.7, -74.0, 1),
+                ("ny-1200", nyDay.AddHours(17), 40.7, -74.0, 1),
+                ("ny-1730", nyDay.AddHours(22.5), 40.7, -74.0, 1),
+                ("ny-2200", nyDay.AddHours(27), 40.7, -74.0, 1),
+                ("sydney-1200", nyDay.AddHours(1), -33.9, 151.2, 1),
+                ("lair-ny-1200", nyDay.AddHours(17), 40.7, -74.0, 6 * GameData.StagesPerChapter + GameData.StagesPerChapter - 1),
+            };
+            G.S.settings.auto = false;
+            foreach (var k in cases)
+            {
+                SkySun.FixedUtc = k.utc; SkySun.FixedLat = k.lat; SkySun.FixedLon = k.lon; SkySun.FixedName = k.name;
+                CloseModal(); Go(ScreenId.Home); yield return new WaitForSecondsRealtime(0.4f);
+                bool boss = k.stage % GameData.StagesPerChapter == GameData.StagesPerChapter - 1;
+                Battle.Begin(BattleSpec.ForStage(k.stage));
+                yield return new WaitForSecondsRealtime(boss ? 3.2f : 2.5f);   // boss stages: after the lair reveal
+                var li = Arena.Light; var sky = SkyClock.Current;
+                ShotLog($"SBSKY {k.name} {sky} band {li?.Mood} light pitch {li?.SunPitch:0.0} yaw {li?.SunYaw:0.0} disc el {li?.DiscElevation:0.0} yaw {li?.DiscYaw:0.0} (compass {(sky != null && li != null ? SolarClock.AzimuthOf(li.DiscYaw, sky.Lat) : 0):0}) {(li != null && li.DiscMoon ? "moon" : "sun")}{(li != null && li.DesignNight ? " night-by-design" : "")}");
+                yield return Shot("sky-" + k.name);
+                if (Arena.Sky != null)
+                {
+                    var eye = Arena.PosePosition; var d = Arena.Sky.Direction;
+                    float yaw = Mathf.Atan2(d.x, d.z), el = Mathf.Asin(Mathf.Clamp(d.y, -1f, 1f)) * Mathf.Rad2Deg;
+                    float p = Mathf.Clamp(el - 14f, -8f, 40f) * Mathf.Deg2Rad;
+                    Arena.Override(eye, eye + new Vector3(Mathf.Sin(yaw) * Mathf.Cos(p), Mathf.Sin(p), Mathf.Cos(yaw) * Mathf.Cos(p)) * 10f, 62f, 1f);
+                    yield return Shot("sky-" + k.name + "-up");
+                    Arena.ClearOverride();
+                }
+                Battle.End(ScreenId.Home);
+            }
+            SkySun.FixedUtc = null; SkySun.FixedLat = SkySun.FixedLon = null; SkySun.FixedName = null;
             G.S.settings.auto = true;
         }
 

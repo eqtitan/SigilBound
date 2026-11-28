@@ -2,6 +2,12 @@
 # Keep lines short and friendly; this is shown in the game after each update.
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
+## 2026-11-28 | The real sun
+new: The sun now shines in the sky above the arena, with a soft glow, right where the light and shadows come from. At night you see the moon.
+new: The sky follows your real time of day: morning light, a high noon sun, golden evenings and moonlit nights. Story stages that are set at night stay night.
+new: Settings > Sky: turn Real sun at my location on or off, or tap Use my location. Your location stays on your device and is never sent anywhere; without it, your time zone places the sun.
+change: The arena now faces the sun's path across the sky, so the sun rises on one side, crosses and sets on the other.
+
 ## 2026-11-28 | Screens that match
 fix: Team setup hero cards are readable again: the frame no longer covers the name, level and power.
 fix: The stage list's Team button says TEAM on one line; one-word buttons shrink instead of breaking a word.

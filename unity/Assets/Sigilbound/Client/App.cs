@@ -271,6 +271,7 @@ namespace Sigilbound.Client
                 WhatsNewPending = WhatsNewPending(), Act2Pending = Act2IntroPending(),
                 TipPending = (!battleScreen || inBattle) && Tips.Peek(G, Screen == ScreenId.Home, inBattle) != null,
                 UpdateAvailable = Updater.LatestBuild > 0,
+                SkyAskPending = SkySun.AskPending(G.S.cleared),
                 SinceClose = Time.unscaledTime - _modalClosedAt,
             };
             var next = PopupQueue.Next(ctx);
@@ -279,6 +280,7 @@ namespace Sigilbound.Client
             {
                 case Popup.WhatsNew: ShowWhatsNewOnce(); break;
                 case Popup.Act2Intro: ShowAct2Intro(); break;
+                case Popup.SkyAsk: ShowSkyAsk(); break;
                 case Popup.Tip:
                     var tip = Tips.Next(G, Screen == ScreenId.Home, inBattle);
                     if (tip == null) break;
@@ -294,6 +296,24 @@ namespace Sigilbound.Client
                     });
                     break;
             }
+        }
+
+        // The one-time sky question (Client/SkySun): says why before the system's location prompt; "Not now" keeps the
+        // time zone estimate, and Settings > Sky > Use my location asks again later.
+        void ShowSkyAsk()
+        {
+            SkySun.MarkAsked();
+            Modal("The real sun", 250, b =>
+            {
+                Ui.Text(new Rect(b.x, b.y, b.width, b.height - Tap - 12), SkySun.Why + "\n\n" + SkySun.Stays + " Without it, your time zone places the sun.", 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
+                float w = (b.width - 8) / 2, by = b.yMax - Tap;
+                if (Ui.Button(new Rect(b.x, by, w, Tap), "Not now", Ui.Kind.Secondary, 13)) { CloseModal(); Toast("Using your time zone for the sun"); }
+                if (Ui.Button(new Rect(b.x + w + 8, by, w, Tap), "Allow", Ui.Kind.Primary, 13))
+                {
+                    CloseModal();
+                    StartCoroutine(SkySun.RequestLocation(msg => { if (Screen != ScreenId.Battle) Arena.Build(Mathf.Min(GameData.Chapters.Length - 1, G.S.cleared / GameData.StagesPerChapter), false); Toast(msg); }));
+                }
+            });
         }
 
         // ---------- 3D lineup behind the menus ----------

@@ -9,7 +9,8 @@ namespace Sigilbound.Client
     public sealed class Arena : MonoBehaviour
     {
         public Camera Cam;
-        public Light Sun;
+        public Light Sun, Fill;
+        public SkyDisc Sky { get; private set; }   // the visible sun or moon of the arena last built (none for the Titan)
         GameObject _scenery;
         string _camKey = BattleLayout.DefaultCamera; bool _framedBattle, _framedTitan; float _framedAspect;
 
@@ -27,7 +28,7 @@ namespace Sigilbound.Client
             var sun = a.Sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional; sun.intensity = 1.15f; sun.shadows = LightShadows.Soft;
             sun.transform.rotation = Quaternion.Euler(48, -30, 0);
-            var fill = new GameObject("Fill").AddComponent<Light>();
+            var fill = a.Fill = new GameObject("Fill").AddComponent<Light>();
             fill.type = LightType.Directional; fill.intensity = 0.35f; fill.color = new Color(0.6f, 0.7f, 1f);
             fill.transform.rotation = Quaternion.Euler(20, 150, 0);
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
@@ -235,6 +236,7 @@ namespace Sigilbound.Client
             // Re-fit when the screen changes shape (rotation, split screen, foldables).
             if (_framedBattle && Mathf.Abs(Cam.aspect - _framedAspect) > 0.01f) FrameBattle(_camKey, _framedTitan);
             ComposeCamera();
+            if (Sky != null) Sky.Follow(Cam);   // the sun stays "at infinity" wherever the camera went this frame
         }
 
         public void Show(bool on)
@@ -248,6 +250,8 @@ namespace Sigilbound.Client
         // (Core.StoryScenes) and its time of day. hard: Hard mode, the same stops by night.
         // The generated layout of the arena last built (Core/SceneGen): the lair reveal reads its landmark from it.
         public SceneLayout Layout { get; private set; }
+        // The light of the arena last built (Core/SceneGen.LightOf): band, direction, disc (ShotsMode logs it).
+        public SceneLight Light { get; private set; }
 
         // A campaign boss stage (stage 6 of a chapter, Normal and Hard): FrameBattle uses the tilted views.
         public bool BossTilt { get; private set; }
@@ -258,8 +262,10 @@ namespace Sigilbound.Client
             var set = titan || stage < 0 ? null : StoryScenes.Of(chapter, stage);
             int tier = Mathf.Clamp(Quality.I == null ? 2 : Quality.I.Tier, 0, 3);
             // The procedural scene (CAMPAIGN_SCENES_PLAN.md): campaign stops, and the chapter's ground for other modes.
+            // The real sky (Core/SolarClock): the device's clock and coarse place, or the tour's fixed moment (SkySun).
+            SkySun.Refresh();
             Layout = titan ? null : SceneGen.Generate(chapter, stage, hard, tier);
-            var li = SceneGen.LightOf(chapter, stage, hard, titan);
+            var li = Light = SceneGen.LightOf(chapter, stage, hard, titan);
             var mood = li.Mood; float dusk = li.Dusk, fogK = li.FogK;
             bool night = li.Night;
             PostFx.SetArena(chapter, titan, true, night); // per-arena colour grade (postfx2 presets), cooler by night
@@ -287,8 +293,19 @@ namespace Sigilbound.Client
                 Sun.color = Color.Lerp(Color.white, Color.Lerp(bottom, Color.white, 0.4f), 0.35f);
                 Sun.intensity = li.Sun;
                 if (night) Sun.color = Color.Lerp(Sun.color, new Color(0.7f, 0.8f, 1f), 0.5f); // moonlight
-                // time of day: the sun drops and swings to the side along the route (the Titan keeps its fixed sun)
+                // time of day: the real sun's (or moon's) direction, or the authored drop along the route; the Titan keeps
+                // its fixed sun (its cinematics and caldera sky were lit for it).
                 Sun.transform.rotation = Quaternion.Euler(titan ? 48 : li.SunPitch, titan ? -30 : li.SunYaw, 0);
+            }
+            if (Fill != null)
+            {
+                // The real sun stands in front of the default camera (it faces the equator), so the heroes' camera side
+                // would sit in shadow: the fill then comes from behind the camera, a little stronger. Authored light keeps
+                // the old rim fill from the far side.
+                bool front = li.Real && !titan;
+                Fill.transform.rotation = front ? Quaternion.Euler(26, (float)SolarClock.CameraHeading + 12, 0) : Quaternion.Euler(20, 150, 0);
+                Fill.intensity = front ? (li.DiscMoon ? 0.42f : 0.5f) : 0.35f;
+                Fill.color = front ? new Color(0.72f, 0.8f, 1f) : new Color(0.6f, 0.7f, 1f);
             }
             // The sky (painted clouds) and the distant ridges are painted arcs built with the scenery.
 
@@ -298,6 +315,9 @@ namespace Sigilbound.Client
             Scenery.Build(_scenery.transform, chapter, titan, density, bottom, top, interactive, Sun, set, hard, Layout);
             if (lair && night) LairRim(set, Scenery.ShadowColor(chapter, false));
             StaticBatch(_scenery);
+            // The visible sun or moon, along the light (after the static batch: it follows the camera every frame).
+            Sky = titan ? null : SkyDisc.Build(_scenery.transform, li, bottom, Scenery.Stormy(chapter, false));
+            if (Sky != null) Sky.Follow(Cam);
             // The rune circle, after the static batch so it can grow with the line-up (SetRing): units stand inside
             // its rim (BattleLayout.Slot keeps every footprint in), the whole circle scaled about BattleLayout.Centre.
             _ring = new GameObject("CircleRing").transform; _ring.SetParent(_scenery.transform, false);

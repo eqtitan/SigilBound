@@ -24,11 +24,11 @@ The Sigil has shattered. Gather a team of champions and fight to restore it.
 - Violence: fantasy violence against fantasy characters, no blood or gore. Expected rating: PEGI 7 / ESRB Everyone 10+.
 - Users can't interact: the store build has no Friends or chat for v1 (owner decision 2026-11-28). Answer yes, with reporting and blocking, once Friends ships.
 - No gambling with real money. Summoning uses in-game shards only (no purchases).
-- No location sharing, no personal information requested.
+- No location sharing, no personal information requested. (The optional approximate location for the real-sun sky stays on the device.)
 
 ## Data safety form (matches PRIVACY.md)
 - **No data collected or shared** in the store build (Friends and chat aren't in it for v1; READINESS.md item 8 has the full answers and what changes when Friends ships).
-- No location, contacts, photos, financial or health data. No ads ID.
+- No location, contacts, photos, financial or health data collected. No ads ID. The game may ask for approximate location to place the real sun in the sky; it is used only on the device and never sent, so it is not "collected" under Play's definition (READINESS.md item 8).
 
 ## Graphics
 - App icon 512x512: `icon_512.png`

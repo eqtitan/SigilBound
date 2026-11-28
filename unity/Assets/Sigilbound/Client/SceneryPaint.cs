@@ -104,7 +104,9 @@ namespace Sigilbound.Client
         }
 
         // ---------- sky: horizon-to-zenith gradient, a sun glow, layered clouds lit from above ----------
-        public static Texture2D Sky(Color top, Color horizon, Color sun, uint seed, float cloudiness, bool storm, int w = 384, int h = 160)
+        // glow: the painted sun-side brightening right of centre (0.55 as painted since the first scenery pass); 0 under
+        // the real sun, whose disc brings its own halo wherever it stands (SkyDisc).
+        public static Texture2D Sky(Color top, Color horizon, Color sun, uint seed, float cloudiness, bool storm, float glow = 0.55f, int w = 384, int h = 160)
         {
             var t = Tex(w, h, "SkyPaint", false, TextureWrapMode.Clamp);
             var px = new Color32[w * h];
@@ -119,7 +121,7 @@ namespace Sigilbound.Client
                 {
                     float u = (x + 0.5f) / w;
                     float g = Mathf.Exp(-(Mathf.Pow((u - 0.68f) / 0.22f, 2) + Mathf.Pow((v - 0.12f) / 0.2f, 2)));
-                    Color b = grad + (sun * 0.9f - grad) * (g * 0.55f);
+                    Color b = grad + (sun * 0.9f - grad) * (g * glow);
                     float wu = u * 7f + 0.7f * Fbm(u * 3f, v * 3f, seed + 50, 3), wv = v * 3.2f + 0.35f * Fbm(u * 3f + 5f, v * 3f, seed + 60, 3); // brush swirl
                     float d = Fbm(wu, wv, seed);
                     float mask = Smooth(th, th + 0.18f, d * (0.6f + 0.6f * band));

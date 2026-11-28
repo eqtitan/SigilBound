@@ -46,6 +46,9 @@ A screenshot helps a lot. Settings → Send feedback also copies a report with y
       (Closing the app during an Arena fight counts as a loss.) Practice mode and the campaign are unchanged.
 
 ## 4. Campaign and story (Battle tab)
+- [ ] **Real sun:** does the sun or moon in the arena's sky (and the direction of the shadows) match your real sky right now?
+      Tell us your rough area and the time. After a few stages the game asks to use your approximate location: was its
+      explanation clear before the system prompt? (Settings > Sky turns it off or asks again.)
 - [ ] Does each stage have a place name, and does the scenery change from stage to stage as you travel?
 - [ ] Boss stages (stage 6) start with a short camera reveal of the boss's lair. Does a tap skip it?
 

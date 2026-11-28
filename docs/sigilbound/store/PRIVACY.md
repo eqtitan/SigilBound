@@ -32,7 +32,8 @@ Builds downloaded from our GitHub page check `api.github.com` for a newer versio
 
 - No advertising, no analytics or tracking SDKs, no in-app purchases.
 - We don't sell or share data with third parties. The server runs on Cloudflare, which processes requests on our behalf.
-- The game doesn't use your location, contacts, camera, microphone or files.
+- The game doesn't use your contacts, camera, microphone or files.
+- **Approximate location, optional.** On Android the game may ask once for your approximate location so the sky can show the real sun and moon where you are. It reads one rough position, rounds it to about 10 km, keeps it on your device and never sends it anywhere. You can say no, turn it off in Settings > Sky, or uninstall the game to remove it. Without it, the game guesses from your time zone.
 
 ## Children
 

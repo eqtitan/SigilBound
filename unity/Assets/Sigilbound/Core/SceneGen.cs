@@ -32,6 +32,11 @@ namespace Sigilbound.Core
         public Mood Mood; public bool Night;
         public float Sun = 1.15f, SunPitch = 48, SunYaw = -30, Ambient = 0.55f, WorldTint = 1, LaneTint = 1, Dusk, FogK = 1;
         public float LaneLift = 1;     // the worn ring's albedo is raised by this on very dark biomes (the black fens), so heroes stand on readable ground
+        // The visible sun or moon (Client/SkyDisc), always where the light comes from: the direction toward the body
+        // as Unity yaw (0 = +Z) and its elevation, which may sit below the light's MinShadowPitch floor.
+        public float DiscYaw = 150, DiscElevation = 48; public bool DiscMoon;
+        public bool Real;              // lit by the real sun or moon (SkyClock), not the stage's authored time of day
+        public bool DesignNight;       // the stage is night by design (story night stops, Hard mode): it stays night
     }
 
     public sealed class SceneLayout
@@ -197,19 +202,39 @@ namespace Sigilbound.Core
         // Progress along the chapter's route: 0 at the first stop, 1 at the lair.
         public static float Progress(int stage) => stage < 0 ? 0 : Math.Min(1f, stage / (float)(GameData.StagesPerChapter - 1));
 
-        public static SceneLight LightOf(int chapter, int stage, bool hard, bool titan)
+        public static SceneLight LightOf(int chapter, int stage, bool hard, bool titan) => LightOf(chapter, stage, hard, titan, SkyClock.Current);
+
+        // sky: the real sky (Core/SolarClock) or null for the stage's authored time of day. With a sky, the real sun's
+        // elevation picks the band (day, late, golden, dusk, night) and the light's direction; the stage's palette,
+        // weather and storm dimming stay on top, and a stop that is night by design (story night, Hard) stays night
+        // under the real moon. The Titan's caldera keeps its fixed light.
+        public static SceneLight LightOf(int chapter, int stage, bool hard, bool titan, SkyState sky)
         {
             var set = titan || stage < 0 ? null : StoryScenes.Of(chapter, stage);
-            var mood = titan ? Mood.Day : hard ? Mood.Night : set?.Mood ?? Mood.Day;
+            var authored = titan ? Mood.Day : hard ? Mood.Night : set?.Mood ?? Mood.Day;
+            bool real = sky != null && !titan, designNight = authored == Mood.Night;
+            var mood = real && !designNight ? sky.Band : authored;
             var (light, dusk, fogK) = StoryScenes.MoodOf(mood);
             var b = Biomes.Of(chapter, titan);
-            var L = new SceneLight { Mood = mood, Night = mood == Mood.Night, Dusk = dusk, FogK = fogK };
+            var L = new SceneLight { Mood = mood, Night = mood == Mood.Night, Dusk = dusk, FogK = fogK, Real = real, DesignNight = designNight };
             // time of day: the sun drops and swings toward the side through the route
             (L.SunPitch, L.SunYaw) = mood switch { Mood.Late => (44f, -38f), Mood.Golden => (32f, -52f), Mood.Dusk => (24f, -62f), Mood.Night => (42f, -20f), _ => (50f, -30f) };
+            L.DiscElevation = L.SunPitch; L.DiscYaw = (float)SolarClock.Wrap180(L.SunYaw + 180); L.DiscMoon = L.Night;
+            if (real)
+            {
+                // The light comes from the body the player sees: the sun, or by night the moon (SkyState.NightMoon).
+                var body = L.Night ? sky.NightMoon() : sky.Sun;
+                L.DiscMoon = L.Night;
+                L.DiscElevation = (float)body.Elevation;
+                L.DiscYaw = (float)SolarClock.SceneYaw(body.Azimuth, sky.Lat);
+                L.SunPitch = (float)Math.Max(SolarClock.MinShadowPitch, body.Elevation);
+                L.SunYaw = (float)SolarClock.Wrap180(L.DiscYaw + 180);
+            }
             // the world darkens with the mood; the heroes' light keeps a floor so they read on every stage
             L.WorldTint = mood switch { Mood.Late => 0.97f, Mood.Golden => 0.93f, Mood.Dusk => 0.86f, Mood.Night => 0.7f, _ => 1f };
             L.LaneTint = (float)Math.Pow(L.WorldTint, 0.4);      // the ring keeps more of its value (a lit arena)
             L.Sun = (b.Storm && !titan ? 0.97f : 1.15f) * Math.Max(0.88f, light);
+            if (real && L.DiscMoon) L.Sun *= 0.9f;   // the real moon: a dimmer, cool light (Arena tints it)
             L.Ambient = 0.55f;
             // a floor for the lit lane: L* 16 (Y about 0.022) under this light
             double lit = LaneAlbedo(b, L) * Light(L);

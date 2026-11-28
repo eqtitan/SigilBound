@@ -310,3 +310,33 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Prevention: before recommending an app id, grep the whole repo (`grep -rn "com\.sigilbound\." --include=*.gradle --include=*.json --include=*.cs`) and list every app that already uses it.
 - Related: L030
 - Evidence: mobile/android/app/build.gradle (applicationId "com.sigilbound.game"); unity/Assets/Sigilbound/Editor/ProjectSetup.cs; docs/sigilbound/store/READINESS.md item 5
+
+## L032 - The battle cameras never see the sky
+- Status: open
+- Systems: sky, scenes
+- Symptom: the owner asked for a sun disc "in view for most of the day"; placed at its true elevation it is off screen in the menu and every default battle view, at any hour.
+- Cause: by design (Scenery.cs ridge comment, art review M1) the menu camera looks 30 degrees down with a 42 degree lens and the Three-quarter battle view 30 degrees down with 50 degrees, so the top of the frame is 5-10 degrees below the horizon (the boss tilt adds 6, reaching about +1); painted ridges fill the top. Only low views (Cinematic, portrait's wider lens, the lair reveal, the Titan's views) show sky. Also: the sky arc and ridges are Sprites/Default (no depth write, no fog), so their order is purely the render queue, and the arena's linear fog would erase anything ~42 m out drawn with a fogged shader.
+- Fix: branch feat/real-sun keeps the disc exactly on the light's line (owner rule) and draws it at 42 m from the camera with its own unfogged additive shader (Shaders/SigilSkyGlow.shader, queue 2996 between the sky 2995 and the ridges 2997-2999); the shadows show the sun's direction in every view. ShotsMode's SkyTour adds a "-up" frame per case, the same eye turned toward the disc.
+- Prevention: before promising something "visible" in the arena, project it through BattleLayout.View for the default preset at 16:9 and portrait (SkyTests does this for left/right); owner decision needed if the disc should also show in the default view (a raised "visual" elevation, or a higher boss-style tilt), which would break the light/disc alignment rule.
+- Related: L004, L034
+- Evidence: Core/BattleLayout.cs Cameras (angle: pitch 30, FovFor 50), Arena.FrameMenu (pitch ~30.5, fov 42), Client/Scenery.cs backdrop comment; branch feat/real-sun SkyTour
+
+## L033 - Unity adds precise location when a script uses Input.location
+- Status: open
+- Systems: sky, platform
+- Symptom: none yet (caught while wiring the real-sun location); the owner asked for coarse location only.
+- Cause: Unity's Android build adds ACCESS_FINE_LOCATION to the unityLibrary manifest on its own whenever any script references Input.location; the project has no Plugins/Android manifest to override it, and the permission would show on the Play listing as precise location.
+- Fix: Editor/AndroidLocationPermission.cs (IPostGenerateGradleAndroidProject, both tester and store builds) removes ACCESS_FINE_LOCATION from the generated manifest and adds ACCESS_COARSE_LOCATION; SkySun asks only for coarse and starts the service at 5 km accuracy.
+- Prevention: SkyTests checks the post-processor is not store-gated and removes the fine permission; after the first AAB/APK with it, run `bundletool dump manifest` / `aapt dump permissions` and confirm COARSE without FINE (READINESS item 11). Not yet verified that Input.location starts with only coarse granted on every Android version: check on a phone.
+- Related: L031
+- Evidence: Editor/AndroidLocationPermission.cs, Client/SkySun.cs, docs/sigilbound/store/READINESS.md items 8 and 11
+
+## L034 - The authored sun stood behind the camera
+- Status: open
+- Systems: sky, scenes
+- Symptom: drawing a disc "exactly along the light" with the old light (Euler 48, -30) would have put it behind the default camera, invisible; facing the camera toward the equator flips it in front and backlights the heroes.
+- Cause: every authored mood's light yaw (-20 to -62) travels away from the camera: the sun sat behind its right shoulder so faces were front-lit (art review M2 "hero exposure stays constant" relies on it). The owner's "face the equator" rule puts the real sun in front of the camera for most of the day.
+- Fix: under the real sky the Fill light moves behind the camera (camera heading + 12, pitch 26, 0.5; 0.42 by moonlight) instead of the old far-side rim fill; ambient keeps its floor; the light's pitch keeps a 12 degree floor. "Real sun" off keeps the authored light exactly as before.
+- Prevention: judge hero exposure in the SkyTour frames of a real build (L004) before approval; if heroes read too dark, raise the fill or ambient under the real sun rather than turning the sun back behind the camera.
+- Related: L032, L004
+- Evidence: Core/SceneGen.cs LightOf (authored yaws), Client/Arena.cs Build (Fill), branch feat/real-sun

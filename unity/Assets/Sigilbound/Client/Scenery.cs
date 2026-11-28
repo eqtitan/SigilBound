@@ -54,7 +54,9 @@ namespace Sigilbound.Client
             bool kit = SceneryKit.Ready;
             float waterZ = th.Water != null || titan ? 10f : -1f;
 
-            string key = $"{th.Name}/{chapter}/{layout?.Stage ?? -1}/{titan}/{kit}/{ColorUtility.ToHtmlStringRGB(fog)}{ColorUtility.ToHtmlStringRGB(top)}"; // per stage: the road and the mood // the mood changes sky and ridges
+            // Under the real sun (SceneLight.Real) the painted sky has no fixed sun-side glow: the disc's halo is the glow.
+            bool realSun = layout != null && layout.Light.Real;
+            string key = $"{th.Name}/{chapter}/{layout?.Stage ?? -1}/{titan}/{kit}/{realSun}/{ColorUtility.ToHtmlStringRGB(fog)}{ColorUtility.ToHtmlStringRGB(top)}"; // per stage: the road and the mood // the mood changes sky and ridges
             if (key != _paintKey)
             {
                 foreach (var o in _paint) if (o != null) Object.Destroy(o);
@@ -95,9 +97,9 @@ namespace Sigilbound.Client
                 _backMats = new Material[4];
                 for (int i = 0; i < 4; i++)
                 {
-                    var tex = Keep(i == 0 ? SceneryPaint.Sky(top, fog, sunTint, seed, th.Clouds, th.Storm) : SceneryPaint.Ridge(i - 1, th.Style, Palette.Hex(th.Sil), fog, sunTint, seed));
+                    var tex = Keep(i == 0 ? SceneryPaint.Sky(top, fog, sunTint, seed, th.Clouds, th.Storm, realSun ? 0f : 0.55f) : SceneryPaint.Ridge(i - 1, th.Style, Palette.Hex(th.Sil), fog, sunTint, seed));
                     var m = _backMats[i] = Keep(Materials.Unlit(Color.white)); m.mainTexture = tex;
-                    m.renderQueue = 2996 + i; // far to near, before the effects
+                    m.renderQueue = i == 0 ? SkyDisc.Queue - 1 : 2996 + i; // far to near, before the effects; the sun or moon disc (SkyDisc) between the sky and the ridges
                     if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
                 }
                 if (kit)

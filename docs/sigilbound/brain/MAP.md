@@ -14,16 +14,17 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 | tests | Tests~, CompileCheck, gates | L001 L013 L026 L028 |
 | ci | workflow, smoke gate, queue, artifacts | L004 L005 L016 L024 L027 |
 | qa | in-house tester, checklists | L004 L016 L024 L025 L026 L027 L028 |
-| scenes | campaign scenery, cameras | L004 |
+| scenes | campaign scenery, cameras | L004 L032 L034 |
 | balance | curves, pools, roles, probes | L006 L020 |
 | campaign | stages, waves, eases | L006 |
 | ui | IMGUI, shared components, overlays | L011 L017 L025 L028 |
 | arena | ArenaReactor, effects | L015 |
-| platform | Windows/Android specifics, app ids | L021 L031 |
+| platform | Windows/Android specifics, app ids | L021 L031 L033 |
 | licensing | credits, licences | L007 |
 | docs | changelog, PLAN, roadmap | L013 L029 L030 |
 | process | who pushes, approvals | L014 L029 L030 L031 |
 | tooling | keys, scripts | L012 |
+| sky | real sun and moon: Core/SolarClock.cs (SolarClock NOAA sun + moon, bands, face-the-equator yaw; SkyState; SkyClock fixed tour clock; LocationGuess), SceneGen.LightOf(sky), Client/SkySun.cs (clock, coarse location, Settings > Sky), Client/SkyDisc.cs + Shaders/SigilSkyGlow.shader (disc and halo), Editor/AndroidLocationPermission.cs, ShotsMode SkyTour, Tests~/SkyTests.cs | L032 L033 L034 |
 
 ```mermaid
 graph LR
@@ -50,4 +51,7 @@ graph LR
   L017 --> L028[L028 plates over text, solved]
   L025 --> L028
   L030 --> L031[L031 store id already taken]
+  L004 --> L032[L032 cameras never see the sky]
+  L032 --> L034[L034 sun behind the camera]
+  L031 --> L033[L033 Unity adds fine location]
 ```

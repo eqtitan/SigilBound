@@ -9,11 +9,13 @@
 //   3. What's New, on Home only, and never on the very first launch (a new player has nothing to compare).
 //   4. The Act II intro, on the campaign map.
 //   5. First-time tips (one at a time, in Tips.All order).
-//   6. The update banner, last, outside battle, when nothing else is showing.
+//   6. The one-time sky question (Android, after a few cleared stages, on Home, never on a first launch): an in-game
+//      line saying why ("Lets the sky show the real sun where you are") before the system's location prompt.
+//   7. The update banner, last, outside battle, when nothing else is showing.
 // Between two pop-ups there is a short gap so a tap meant for the closing one never lands on the next.
 namespace Sigilbound.Core
 {
-    public enum Popup { None, LoadProblem, WhatsNew, Act2Intro, Tip, UpdateBanner }
+    public enum Popup { None, LoadProblem, WhatsNew, Act2Intro, Tip, SkyAsk, UpdateBanner }
 
     public struct PopupContext
     {
@@ -22,13 +24,14 @@ namespace Sigilbound.Core
         public bool FirstLaunch;      // this run started with no save (or after "Reset save")
         public bool InBattle, OnHome, OnMap;
         public bool LoadProblem, WhatsNewPending, Act2Pending, TipPending, UpdateAvailable;
+        public bool SkyAskPending;    // the coarse-location question is owed (Client/SkySun.AskPending)
         public double SinceClose;     // seconds since the last modal closed
     }
 
     public static class PopupQueue
     {
         public const double Gap = 0.8;
-        public static readonly Popup[] Order = { Popup.LoadProblem, Popup.WhatsNew, Popup.Act2Intro, Popup.Tip, Popup.UpdateBanner };
+        public static readonly Popup[] Order = { Popup.LoadProblem, Popup.WhatsNew, Popup.Act2Intro, Popup.Tip, Popup.SkyAsk, Popup.UpdateBanner };
 
         public static Popup Next(PopupContext c)
         {
@@ -38,6 +41,7 @@ namespace Sigilbound.Core
             if (c.WhatsNewPending && !c.FirstLaunch && c.OnHome && !c.InBattle) return Popup.WhatsNew;
             if (c.Act2Pending && c.OnMap && !c.InBattle) return Popup.Act2Intro;
             if (c.TipPending) return Popup.Tip;
+            if (c.SkyAskPending && c.OnHome && !c.InBattle && !c.FirstLaunch) return Popup.SkyAsk;
             if (c.UpdateAvailable && !c.InBattle) return Popup.UpdateBanner;
             return Popup.None;
         }

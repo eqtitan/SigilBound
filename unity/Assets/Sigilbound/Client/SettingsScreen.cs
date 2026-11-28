@@ -107,6 +107,13 @@ namespace Sigilbound.Client
             y += th + 8 + Tap;
         }
 
+        // The menu's arena again under a new sky (Settings > Sky); a battle in progress keeps its sky until it ends.
+        void RebuildArena()
+        {
+            if (Battle != null && Battle.InProgress) return;
+            Arena.Build(Mathf.Min(GameData.Chapters.Length - 1, G.S.cleared / GameData.StagesPerChapter), false);
+        }
+
         // A group heading in Settings: gold serif title with a gold rule under it.
         void SettingGroup(ref float y, Rect b, string title)
         {
@@ -200,6 +207,24 @@ namespace Sigilbound.Client
             SettingGroup(ref y, b, "Battle");
             SettingRow(ref y, b, "Battle view", "Also switchable during battle with the View button.");
             Chips(ref y, b, System.Array.ConvertAll(cams, c => c.Name), System.Array.FindIndex(cams, c => c.Key == BattleLayout.Camera(st.cam).Key), i => { st.cam = cams[i].Key; Save(); Toast("View: " + cams[i].Name); });
+
+            // The real sun and moon over the arena (Client/SkySun, Core/SolarClock). Saved on this device.
+            SettingGroup(ref y, b, "Sky");
+            SettingRow(ref y, b, "Real sun at my location", SkySun.Enabled
+                ? $"The sun and moon follow your real sky (from {SkySun.SourceLabel()}). Night stops in the story stay night."
+                : "Each stage keeps its own painted time of day.");
+            Chips(ref y, b, new[] { "On", "Off" }, SkySun.Enabled ? 0 : 1, i =>
+            {
+                SkySun.Enabled = i == 0; RebuildArena();
+                Toast(i == 0 ? "Real sun: on" : "Real sun: off");
+            });
+            if (SkySun.Enabled)
+            {
+                SettingRow(ref y, b, "Use my location", SkySun.CanAsk ? SkySun.Why + " " + SkySun.Stays : "This device uses its time zone to place the sun.");
+                if (SkySun.CanAsk && Ui.Button(new Rect(b.x, y, ChipW("Use my location", b) + 24, Tap), "Use my location", Ui.Kind.Secondary, 13))
+                    StartCoroutine(SkySun.RequestLocation(msg => { RebuildArena(); Toast(msg); }));
+                if (SkySun.CanAsk) y += Tap + 10;
+            }
 
             SettingGroup(ref y, b, "Updates");
             if (Updater.Included && (Application.platform == RuntimePlatform.Android || Application.isEditor))
