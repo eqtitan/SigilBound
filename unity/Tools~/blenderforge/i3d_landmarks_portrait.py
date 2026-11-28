@@ -340,3 +340,14 @@ BATCH["astrid"] = {**_STD,
     "glow_hue": (400, 400)}
 
 LANDMARKS.update(BATCH)
+
+# Clipping and face review (2026-11-28): faces symmetrised (i3d_rig.symmetrise_face), keeping the better half.
+LANDMARKS["brannoc"]["sym_face"] = {"keep": "r"}
+LANDMARKS["aurex"]["sym_face"] = {"keep": "l"}
+# Odo's frog hood hangs to his shoulders and his face was already clean: the head lock only drove the hood into them.
+LANDMARKS["odo"]["head_lock"] = False
+# Long open coats and robes: skirt weighting instead of the flat pelvis blend (fewer legs through the cloth in a stride).
+for _h in ("jasper", "lazlo", "neve", "holt"):
+    LANDMARKS[_h]["skirt"] = {"share": 0.65}; LANDMARKS[_h].pop("blend", None)
+for _h, _k in (("kharra", "r"), ("wenna", "l"), ("nettle", "r"), ("tansy", "l"), ("rook", "r")):
+    LANDMARKS[_h]["sym_face"] = {"keep": _k}
