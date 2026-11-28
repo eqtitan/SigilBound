@@ -371,16 +371,15 @@ namespace Sigilbound.Client
             {
                 var w = Mathf.Max(48, text.Length * 7.4f + 30);
                 Ui.Panel(new Rect(x, r.y + 8, w, 28), Palette.Hex("#0d0a12"), Palette.Bronze, 13);
-                // The owner's painted coin / shard / essence when the skin is on; shards keep a tint ring for their kind.
+                // The owner's painted coin / essence / one painted crystal per shard kind (worn, mystic, radiant) when the skin is on.
                 if (painted == null || !Icons.Painted(new Rect(x + 3, r.y + 10, 24, 24), painted)) Icons.Draw(new Rect(x + 8, r.y + 15, 14, 14), icon, c);
-                else if (icon == Icon.Shard) Ui.Round(new Rect(x + 21, r.y + 26, 8, 8), c, Palette.Hex("#0d0a12"), 4);
                 Ui.Text(new Rect(x + 24, r.y + 8, w - 30, 28), text, 12, c, FontStyle.Bold, TextAnchor.MiddleCenter);
                 x += w + 5;
             }
             Chip(Icon.Coin, Ui.Fmt(G.S.gold), Palette.Gold, "coin");
-            Chip(Icon.Shard, G.S.shardCommon.ToString(), Palette.Hex("#c9a37b"), "shard");
-            Chip(Icon.Shard, G.S.shardMystic.ToString(), Palette.Blue, "shard");
-            Chip(Icon.Shard, G.S.shardRadiant.ToString(), Palette.Hex("#ffb02e"), "shard");
+            Chip(Icon.Shard, G.S.shardCommon.ToString(), Palette.Hex("#c9a37b"), "shard_worn");
+            Chip(Icon.Shard, G.S.shardMystic.ToString(), Palette.Blue, "shard_mystic");
+            Chip(Icon.Shard, G.S.shardRadiant.ToString(), Palette.Hex("#ffb02e"), "shard_radiant");
             Chip(Icon.Essence, G.S.essence.ToString(), Palette.Hex("#8fd8ff"), "essence");
             // The menu button: 44 wide and the bar's full height to tap, the plate as before.
             float mx1 = Ui.Landscape ? sc.xMax : Mathf.Min(Ui.W - 8, sc.xMax);
