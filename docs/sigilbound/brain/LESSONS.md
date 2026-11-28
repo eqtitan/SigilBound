@@ -23,15 +23,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Evidence: commits 411e789, 4fd5a8a; docs/sigilbound/qa/inhouse-2026-11-28-f7ddd6b.md; RIGGING.md "Runtime pitfall (build 180)"
 
 ## L003 - Titan mangled by its own clips (build 190)
-- Status: open
+- Status: solved
 - Systems: titan, animation, rig-runtime
 - Symptom: limbs stretched into sheets/spikes in every Titan shot; 42 Titan tests and the smoke gate passed.
-- Cause: suspected same family as L002 (own clips + shared clips + RigExtras); confirm in a real build.
-- Fix: in progress (fix/titan-runtime); fallback = shared clip set.
-- Prevention: add the Titan to the SBBOUNDS guard; the skeleton-library rebuild (L022) removes the patch layer.
+- Cause: the L002 family. The Titan carries the `rest_fit` marker, so it got RigExtras, whose rest fix re-expresses shared clips for moved joints. Its own clips (blenderforge/titan_moves.py) are authored on its own rest pose and need no fix; run in the frames before its first clip (BuildHd yields between RigExtras.Init and the first Play) and on bones its clips don't key, the fix compounded every frame. glTFast pre-adding the GLB's clips (L002) was in play too. Not isolated: main's 108bacd build (ClearClips + the LastR guard alone) was cancelled by the queue, so it's unproven whether that alone was enough.
+- Fix: fix/titan-runtime (58ae756, on top of 108bacd): HeroModels gives a Titan with its own clips no RigExtras at all (`ownTitanClips`). Run 203 (dispatch of the branch): all 7 Titan shots compact and hunched, SBBOUNDS titan-* all ok (head 0.97-1.05, top <= 1.82, wide <= 2.02).
+- Prevention: SBBOUNDS titan-<shot> in ShotsMode (intro + 6 shots; BAD past head 0.4-1.3 / 0.8 sideways, top 2.3 or wide 2.6: the baked clips stay under 1.85 wide, the bind pose is 2.65) and unity-smoke-check.sh fails on a BAD line or a missing Titan check; TitanMechanicsTests asserts the RigExtras skip and the guard. The skeleton-library rebuild (L022) removes the patch layer.
 - Related: L002, L004, L016, L022
-- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md
-
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; run 46114432755 (#203) sigilbound-unity-smoke 78-titan-intro..84-titan-6
 ## L004 - Offline previews are not the game
 - Status: solved
 - Systems: ci, qa, hero-models, scenes
@@ -99,7 +98,7 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Cause: the mesh fix DID ship (the shipped GLBs carry 117/299/204/175 degenerate triangles where the islands were), but the islands were not what the tester saw. (1) The specks were material: heroes with no _glow PNG and no _mat PNG got no mask texture, so the shader's default white _MaskMap made them metal 1 / smoothness 1 everywhere - dark, metallic, sparkling on noisy fur (30 image-to-3D heroes). (2) Nell's "loose piece" is her own scythe blade resting on the ground in the crouching idle. (3) The prop in front of Tansy is Obrecht's 1.7 m pick, held mid-haft and pointing forward from the next gallery slot.
 - Fix: HeroModels always builds a mask (neutral when there is no glow/metal map); Obrecht's pick turned in the hand (blenderforge/prop_turn.py); Nell idles with Idle_Loop. fix/ctd-roster-3.
 - Prevention: before fixing a tester's visual report, reproduce it in a real build's gallery shot (CI smoke artifact) and identify the exact pixels; offline previews must use the game's material inputs (mask defaults included). See L004.
-- Related: L001, L004, L024
+- Related: L001, L004, L023
 - Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; CI smoke artifact of run 46107643548 (gallery-10); scratchpad ctd/smoke190/maskproof.png
 
 ## L011 - GUI.depth across scripts is unreliable
@@ -188,9 +187,9 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Systems: hero-models, character-td
 - Symptom: a head lock fixed face drift but dragged manes, hoods and shells into the shoulders.
 - Cause: the lock covered the whole head region, not just the face.
-- Fix: face-only mask (front-view ellipse x front layer, soft falloff, hands/props/springs excluded), in place via blenderforge/face_lock.py + face_lock.json. Kit faces lock to Head; image-to-3D faces lock to the mean of their own weights (see L023). 85 heroes shipped, Lazlo/Bram/Sorrel kept their models.
+- Fix: face-only mask (front-view ellipse x front layer, soft falloff, hands/props/springs excluded), in place via blenderforge/face_lock.py + face_lock.json. Kit faces lock to Head; image-to-3D faces lock to the mean of their own weights (see L024). 85 heroes shipped, Lazlo/Bram/Sorrel kept their models.
 - Prevention: per-frame visual verdict plus a show-through scan (newly visible back faces near the head) before/after; re-run face_lock.py after any re-rig.
-- Related: L008, L023
+- Related: L008, L024
 - Evidence: fix/ctd-faces; scratchpad ctd_faces/summary.json; RIGGING.md "Faces"
 
 ## L020 - Balance ripples
@@ -223,17 +222,7 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Related: L002, L003, L018
 - Evidence: owner message 2026-11-28
 
-## L023 - A Head-locked face slides on a neck-weighted head
-- Status: solved
-- Systems: hero-models, character-td
-- Symptom: locking image-to-3D faces to Head cut face warp but opened holes at the face edge (Odo's frog hood, Lazlo's shark head, under Nyssa's hood); default kit mask crumpled bow strings in front of Bram's and Sorrel's chins.
-- Cause: on bone-heat rigs the skull/hood around the face follows neck and clavicle weights, so a rigid-to-Head face moves against it; the mask had no notion of separate pieces in front of the face.
-- Fix: image-to-3D faces take the mean of their own weights (one piece, no internal warp, no slide); narrow masks where a slide remains; leave heroes with nothing to fix untouched.
-- Prevention: never judge a face fix by drift-to-Head alone; scan for newly visible back faces and look at the flagged frames. Faces whose whole skull drifts need a re-rig, not a weight patch.
-- Related: L008, L019, L022
-- Evidence: fix/ctd-faces; scratchpad ctd_faces/bscan, ctd_faces/bs_*.png
-
-## L024 - Missing texture inputs fall back to shader defaults
+## L023 - Missing texture inputs fall back to shader defaults
 - Status: solved
 - Systems: materials, hero-models
 - Symptom: some heroes looked dark, metallic and speckled; others with the same shader looked fine.
@@ -242,6 +231,16 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Prevention: when adding a map or shader property, check what the default texture means for heroes that lack the file.
 - Related: L010
 - Evidence: fix/ctd-roster-3 commit c52e108
+
+## L024 - A Head-locked face slides on a neck-weighted head
+- Status: solved
+- Systems: hero-models, character-td
+- Symptom: locking image-to-3D faces to Head cut face warp but opened holes at the face edge (Odo's frog hood, Lazlo's shark head, under Nyssa's hood); default kit mask crumpled bow strings in front of Bram's and Sorrel's chins.
+- Cause: on bone-heat rigs the skull/hood around the face follows neck and clavicle weights, so a rigid-to-Head face moves against it; the mask had no notion of separate pieces in front of the face.
+- Fix: image-to-3D faces take the mean of their own weights (one piece, no internal warp, no slide); narrow masks where a slide remains; leave heroes with nothing to fix untouched.
+- Prevention: never judge a face fix by drift-to-Head alone; scan for newly visible back faces and look at the flagged frames. Faces whose whole skull drifts need a re-rig, not a weight patch.
+- Related: L008, L019, L022
+- Evidence: fix/ctd-faces; scratchpad ctd_faces/bscan, ctd_faces/bs_*.png
 
 ## L025 - Head gear "floating": check top and side views before automating
 - Status: open

@@ -19,7 +19,7 @@ result, an owner preference) to the sections below with the date and branch. Kee
 4. Compare before/after on the same frames; sheets in `$S/ctd/<hero>/before_after.jpg` + `summary*.json`.
 5. Verdict per hero: SHIP / SHIP WITH NOTE (name the frame) / REVERT.
 6. Prove visual fixes in a real build (CI smoke gallery; workflow_dispatch on your branch, wait - L004, L005).
-   Previews must feed the game's material inputs (mask defaults included - L024).
+   Previews must feed the game's material inputs (mask defaults included - L023).
 7. Gates: last test line "All checks passed.", CompileCheck 0 errors, APK < 190 MB; brain lessons updated.
 
 ## 2. Failure modes and how to detect them
@@ -32,11 +32,11 @@ result, an owner preference) to the sections below with the date and branch. Kee
 | Weapon through the head | headhit.py (prop verts inside a head sphere per frame) | Punch_Cross / Punch_Enter with long props | HdOverrides Strike=Sword_Attack, NoBlock |
 | Shield through helmet/arm | shieldmetric | shield centred on the forearm | shield_slide.py (cap 20 cm) + prop_rigid |
 | Floating head gear | head FRONT/SIDE/BACK/TOP close-ups (hgba.py, headview.py) | rings fitted wider than the hair; hat crowns over flat hair caps; halos hover by design | hg_seat.py: worn rings only (6 mm proud), kit heads; never move hair/halos; hats need kit_head rebuild (L025) |
-| Face warp / face slides on the head | face drift vs Head bone; face close-up frames | i3d faces weighted to neck/clavicles; Head-lock on a neck-weighted head slides (L023) | face_lock.py (tight mask; "avg" mode for i3d) |
+| Face warp / face slides on the head | face drift vs Head bone; face close-up frames | i3d faces weighted to neck/clavicles; Head-lock on a neck-weighted head slides (L024) | face_lock.py (tight mask; "avg" mode for i3d) |
 | Lower layer showing through (shirt under armour) | detect.py inner-face metric | layered kit pieces | usually leave (tiny at battle distance) |
-| Dark, metallic, sparkling hero | game render / maskproof | no _glow and no _mat map -> default white mask (L024) | neutral mask in HeroModels (shipped on fix/ctd-roster-3) |
+| Dark, metallic, sparkling hero | game render / maskproof | no _glow and no _mat map -> default white mask (L023) | neutral mask in HeroModels (shipped on fix/ctd-roster-3) |
 | Metal reads as cloth | close-ups of blades/rims | mask metal 0 everywhere | hd_materials.py _mat maps + shader metal reflection |
-| Specks floating off i3d meshes | component scan (comps.py), gallery close-up | TRELLIS islands | mesh_fix.py islands (check each: some pieces are intentional) - but first rule out L024 |
+| Specks floating off i3d meshes | component scan (comps.py), gallery close-up | TRELLIS islands | mesh_fix.py islands (check each: some pieces are intentional) - but first rule out L023 |
 | Holes from behind | rimsim.py (back faces) | inside-out patches, thin shells | winding fix tried, rejected (exposes unpainted insides); open |
 | Mirrored mesh (prop in the wrong hand) | front grid of the prep render | generator mirrored the image | flip x and recentre before rigging (rend.py "mirror", "shift") |
 | Tail glued to a leg / pelvis | domcol.py dominant-bone colours | bone heat | needs rig-time tail landmarks (spring chains on these tore) |
@@ -86,4 +86,4 @@ result, an owner preference) to the sections below with the date and branch. Kee
 - 2026-11-28 fix/ctd-pilot: spring bones, Jasper coat, Hask shield, gown clip overrides.
 - 2026-11-28 fix/ctd-roster-1/2: rigid props, islands, metal maps + reflection, Wystan/Vorgrim remodels.
 - 2026-11-28 fix/ctd-headgear: ring fit shipped for Quill/Vaelith/Ondessa/Pell; lowering hats/helms and tight rings rejected (rings sink out of sight); L025.
-- 2026-11-28 fix/ctd-roster-3: L010 root cause = missing mask (L024); Obrecht pick turned; Nell idle; NoBlock weapons.
+- 2026-11-28 fix/ctd-roster-3: L010 root cause = missing mask (L023); Obrecht pick turned; Nell idle; NoBlock weapons.

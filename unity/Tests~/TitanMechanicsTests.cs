@@ -46,6 +46,19 @@ static class TitanMechanicsTests
         var info = (Dictionary<string, object>)Json.Parse(File.ReadAllText(Path.Combine(hd, "titan_clips.json")));
         var clips = (Dictionary<string, object>)info["clips"];
 
+        // ---- runtime wiring (in-house build 190: the Titan mangled in every shot). Its own clips are on its own rest
+        // pose, so RigExtras (which re-expresses shared clips for moved joints) must not run on it, and the smoke tour
+        // checks its pose in every Titan shot.
+        var client = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(hd)), "..", "Assets", "Sigilbound", "Client");
+        string Src(string f) { var q = Path.Combine(client, f); return File.Exists(q) ? File.ReadAllText(q) : ""; }
+        var hm = Src("HeroModels.cs"); var shots = Src("ShotsMode.cs");
+        var smoke = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(hd)), "..", "..", "tools", "unity-smoke-check.sh");
+        check(hm.Contains("bool rigExt = RigExtras.Needed(holder) && !ownTitanClips;") && hm.Contains("ClearClips(anim);"),
+            "titan runtime: no RigExtras rest fix on a Titan with its own clips (glTFast's auto-added clips cleared first)");
+        check(shots.Contains("LogTitanBounds(\"titan-intro\")") && shots.Contains("LogTitanBounds($\"titan-{i}\")") && shots.Contains("stretched sideways or bind pose")
+              && File.Exists(smoke) && File.ReadAllText(smoke).Contains("SBBOUNDS titan-"),
+            "titan runtime: the smoke tour pose-checks the Titan in the intro and every Titan shot, and CI fails on a mangled or bind-posed Titan");
+
         // ---- clip aliases resolve to the Titan's own clips
         check(spec.Clips == "embedded" && anims.Count >= 10, $"titan clips: titan.json uses the model's own clips ({anims.Count} baked: {string.Join(", ", anims.OrderBy(x => x))})");
         string Resolve(string name) => spec.Aliases.TryGetValue(name, out var c) ? c : name;
