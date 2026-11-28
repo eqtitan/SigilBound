@@ -29,7 +29,7 @@ namespace Sigilbound.Core
         };
         // Per-hero clip overrides (character TD pilot 2026-11-28): where a hero's gown, robe or prop can't follow a shared
         // clip on every frame, that hero plays a gentler one. Run replaces the move clip (alias "Run"/"Run_Back").
-        public sealed class ClipOverride { public string Idle, Run; public string[] BigHit, Strike; public bool NoBlock; }
+        public sealed class ClipOverride { public string Idle, Run; public string[] BigHit, Strike; }
         public static readonly Dictionary<string, ClipOverride> HdOverrides = new Dictionary<string, ClipOverride>
         {
             // full gown: the jog's knees and the kneel's trailing leg cut through the skirt; a formal walk and a head hit stay inside it
@@ -46,11 +46,7 @@ namespace Sigilbound.Core
             ["rhea"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
             ["lumen"] = new ClipOverride { Run = "Walk_Formal_Loop", BigHit = new[] { "Hit_Head" } },
             // tower shield: Punch_Cross sweeps the sword through the shield
-            ["hask"] = new ClipOverride { Strike = new[] { "Sword_Attack" }, NoBlock = true },
-            // long weapons: Punch_Cross and the Punch_Enter guard swing them through the head (sweep 2026-11-28)
-            ["tallow"] = new ClipOverride { Strike = new[] { "Sword_Attack" }, NoBlock = true },
-            ["saoirse"] = new ClipOverride { Strike = new[] { "Sword_Attack" }, NoBlock = true },
-            ["hobb"] = new ClipOverride { Strike = new[] { "Sword_Attack" }, NoBlock = true },
+            ["hask"] = new ClipOverride { Strike = new[] { "Sword_Attack" } },
             // big scythe: the crouching idle laid its blade on the ground by her feet (in-house report build 190)
             ["nell"] = new ClipOverride { Idle = "Idle_Loop" },
         };
@@ -110,7 +106,6 @@ namespace Sigilbound.Core
                 if (ov.Idle != null) { if (st.Ready == st.Idle) st.Ready = ov.Idle; st.Idle = ov.Idle; }
                 if (ov.BigHit != null) st.BigHit = ov.BigHit;
                 if (ov.Strike != null) st.Strike = ov.Strike;
-                if (ov.NoBlock) st.Block = null;
             }
             return st;
         }
