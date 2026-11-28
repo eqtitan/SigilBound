@@ -216,7 +216,7 @@ namespace Sigilbound.Client
         public void Build(int chapter, bool titan, bool interactive = false, int stage = -1, bool hard = false)
         {
             var set = titan || stage < 0 ? null : StoryScenes.Of(chapter, stage);
-            int tier = Quality.I == null ? 2 : Quality.I.Tier;
+            int tier = Mathf.Clamp(Quality.I == null ? 2 : Quality.I.Tier, 0, 3);
             // The procedural scene (CAMPAIGN_SCENES_PLAN.md): campaign stops, and the chapter's ground for other modes.
             Layout = titan ? null : SceneGen.Generate(chapter, stage, hard, tier);
             var li = SceneGen.LightOf(chapter, stage, hard, titan);

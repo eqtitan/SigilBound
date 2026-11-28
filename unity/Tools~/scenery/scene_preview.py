@@ -163,7 +163,7 @@ def build(st, aspect_key):
     far_rows = [np.clip(P.lerp(c, sil, 0.55) * 0.7, 0, 1) for c in rows]
     far_img = R.to_image("framp", P.ramp(far_rows, sil, P.lerp(sil, sun, 0.3))); farm = tex_mat("far", far_img)
     mote = P.hexc(t["mote"])
-    glow = col_mat("glow", mote * 0.4, emit=mote, k=2.0); fire = col_mat("fire", P.hexc("#3a1a08"), emit=P.hexc("#ffb050"), k=3.0)
+    glow = col_mat("glow", mote * 0.4, emit=mote, k=0.8); fire = col_mat("fire", P.hexc("#3a1a08"), emit=P.hexc("#ffb050"), k=3.0)
     # ground: the generated heights on a grid, the painted ground with the road and the mood
     water = st["water"] if st["water"] > 0 else None
     seed = st["chapter"] * 7 + st["stage"]
