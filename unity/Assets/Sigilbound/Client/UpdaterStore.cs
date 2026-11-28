@@ -21,6 +21,7 @@ namespace Sigilbound.Client
         public static int LatestBuild => 0;
         public static string LatestVersion => "";
         public static bool AutoUpdate { get => false; set { } }
+        public static void Overlay() { } // no update banner in store builds
     }
 }
 #endif

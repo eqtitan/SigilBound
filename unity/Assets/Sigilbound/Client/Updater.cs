@@ -115,14 +115,22 @@ namespace Sigilbound.Client
             }
         }
 
-        void OnGUI()
+        // The banner is drawn by App at the very end of its OnGUI (Overlay), so it is always the last thing
+        // painted and gets clicks first. Relying on GUI.depth across two MonoBehaviours let the screen paint
+        // over it on Windows after a bottom-nav click (owner report 2026-11-28). This OnGUI only runs the
+        // banner when there is no App (e.g. a test scene).
+        static Updater _i;
+        public static void Overlay() { if (_i != null) _i.DrawBanner(); }
+        void Awake() => _i = this;
+        void OnGUI() { if (!App.Running) DrawBanner(); }
+
+        void DrawBanner()
         {
             if (LatestBuild <= 0 || _dismissed) return;
             // One pop-up at a time (QA review #8): the banner waits while a modal, the tutorial, a tip or a
             // battle is on screen (App.UpdateBannerAllowed, from Core/PopupQueue).
             if (_app == null) _app = FindAnyObjectByType<App>();
             if (_app != null && !_app.UpdateBannerAllowed && _installing == null) return;
-            GUI.depth = -1000; // above every screen
             EnsureStyles();
             float k = Mathf.Max(1f, Screen.dpi > 0 ? Screen.dpi / 160f : 1f);
             var safe = Screen.safeArea;
