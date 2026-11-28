@@ -123,6 +123,24 @@ namespace Sigilbound.Client
             Ui.Text(new Rect(b.x, y - 6, b.width, 18), "Auto-replay always runs at 30 fps.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
             y += 14;
 
+            if (Background.Supported)
+            {
+                // Desktop only: Windows used to freeze battles whenever the window lost focus.
+                SettingRow(ref y, b, "When the window isn't focused", Background.KeepRunning ? "The game keeps running, so battles and auto-replay carry on." : "The game pauses until you click back into it.");
+                Chips(ref y, b, new[] { "Keep running", "Pause" }, Background.KeepRunning ? 0 : 1, i =>
+                {
+                    Background.KeepRunning = i == 0; Toast(i == 0 ? "Keeps running in the background" : "Pauses when not focused");
+                });
+                if (Background.KeepRunning)
+                {
+                    SettingRow(ref y, b, "Sound in the background", Background.MuteWhenUnfocused ? "Muted while you're in another window." : "Keeps playing while you're in another window.");
+                    Chips(ref y, b, new[] { "Mute", "Keep playing" }, Background.MuteWhenUnfocused ? 0 : 1, i =>
+                    {
+                        Background.MuteWhenUnfocused = i == 0; Toast(i == 0 ? "Background sound: muted" : "Background sound: on");
+                    });
+                }
+            }
+
             SettingRow(ref y, b, "Screen shake", "How much the camera shakes on big hits.");
             string[] shakes = { "full", "reduced", "off" };
             Chips(ref y, b, new[] { "Full", "Reduced", "Off" }, System.Array.IndexOf(shakes, Quality.SavedShake) is int si && si >= 0 ? si : 0, i =>

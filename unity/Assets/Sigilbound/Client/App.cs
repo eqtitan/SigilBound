@@ -57,6 +57,7 @@ namespace Sigilbound.Client
             Arena = Arena.Create();
             // Frame-rate cap (60, or 30 to run cooler) and graphics tier mapped to URP settings.
             Quality.Create(gameObject, G.S.settings.quality, Quality.SavedFpsMode(G.S.settings.fpsCap)).Sun = Arena.Sun;
+            Background.Apply(); // desktop: keep running when the window loses focus (Settings)
             Quality.Busy = () => Battle != null && Battle.InProgress; // Auto holds tier changes until the battle ends
             Quality.ReplayCapped = () => Screen == ScreenId.Battle && Battle != null && Battle.Replaying; // auto-replay runs at 30 fps
             Quality.I.Apply();
@@ -161,6 +162,7 @@ namespace Sigilbound.Client
         }
         public string ExportSaveCode() { Save(); return SaveCodec.ToCode(G.S); }
         void OnApplicationPause(bool paused) { if (paused) Save(); }
+        void OnApplicationFocus(bool focused) => Background.OnFocus(focused);
         void OnApplicationQuit() => Save();
 
         public void Toast(string text) => _toasts.Add((text, Time.unscaledTime + 2.4f));
