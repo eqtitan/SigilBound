@@ -1,0 +1,30 @@
+Campaign probe (40 runs a stage), stages whose win rate changed. Columns: stage, a6d2fee mid, a6d2fee strong, 902e814 mid, 902e814 strong
+11-2 83% 100% 100% 100%
+11-3 100% 100% 98% 100%
+11-6 100% 100% 95% 100%
+12-5 83% 100% 100% 100%
+12-6 70% 100% 3% 100%
+13-1 85% 100% 100% 100%
+13-5 100% 100% 50% 100%
+13-6 15% 88% 43% 75%
+14-1 100% 100% 98% 100%
+14-2 68% 100% 35% 100%
+14-3 100% 100% 98% 100%
+14-5 98% 100% 88% 98%
+14-6 95% 100% 0% 93%
+15-1 98% 100% 90% 100%
+15-3 83% 98% 70% 100%
+15-4 98% 100% 65% 100%
+15-5 65% 88% 23% 83%
+15-6 8% 80% 3% 98%
+
+a6d2fee:
+GROUP Act I Light/Shadow   stages 24: mid 93.1%  strong 99.8%  mid under 50%: 1
+GROUP Act I triangle       stages 36: mid 98.8%  strong 100.0%  mid under 50%: 0
+GROUP Act II Light/Shadow  stages 12: mid 82.5%  strong 97.1%  mid under 50%: 1
+GROUP Act II triangle      stages 18: mid 90.8%  strong 99.3%  mid under 50%: 1
+902e814:
+GROUP Act I Light/Shadow   stages 24: mid 93.1%  strong 99.8%  mid under 50%: 1
+GROUP Act I triangle       stages 36: mid 98.8%  strong 100.0%  mid under 50%: 0
+GROUP Act II Light/Shadow  stages 12: mid 62.3%  strong 97.5%  mid under 50%: 4
+GROUP Act II triangle      stages 18: mid 88.2%  strong 98.6%  mid under 50%: 2
