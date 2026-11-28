@@ -272,14 +272,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Evidence: docs/sigilbound/qa/inhouse-2026-11-28-f7ddd6b.md (portrait run on 35ea51d)
 
 ## L028 - Painted plates hide card text after shared-skin changes
-- Status: open
+- Status: solved
 - Systems: ui, qa
-- Symptom: build 207 team-setup hero cards (prep and arena prep, every landscape size and 1024x768) have the painted chip frame drawn over the name, level and power; the stage row button reads "TEA / M".
-- Cause: the shared selected/chip skin and 48 dp sizing (UI consistency pass) are applied to cards and short buttons whose text area is smaller than the plate's painted border.
-- Fix: open - give cards a plain panel with the gold rim, or inset text by the plate's border; allow one-line labels to shrink-to-fit.
-- Prevention: UxRulesTests check sizes, not paint; keep a tour shot of prep and the stage list in every gate and compare with the last report.
-- Related: L017, L011
-- Evidence: docs/sigilbound/qa/evidence/8610b2b/prep-card-frames-cover-text.jpg
+- Symptom: build 207 team-setup hero cards (prep and arena prep, every landscape size, 1024x768 and portrait) have the painted chip frame drawn over the name, level and power; the stage row button reads "TEA / M".
+- Cause: (1) the UI consistency pass gave in-team cards the ChipOn look via `Ui.Plate`, which paints the `button_chipon` art as a 9-slice scaled to the card's height; that art's crown ornaments sit in the stretched middle column (outside the declared 33/36 px borders), so on a 48-unit card they smear into gold bands across the top and bottom thirds, exactly where the two text lines were placed at fixed offsets (r.y+2, r.y+24) with no reference to the frame. The preset chips had the same two-line problem. (2) "TEAM ▶": the 88-unit button left a 28-unit label room after the plate inset and the arrow, `ButtonPx` never shrinks at the Default text size (top == floor), and the button style had word wrap on, so Unity broke inside the word.
+- Fix: branch fix/ui-regressions (PLAN 122). Cards use the small card frame (`Ui.CardFrame`, `UiLayout.CardFrameK`) plus the shared selected mark, and lay out from `UiLayout.HeroCard` inside `UiLayout.FrameInner` (skin.txt 9-slice borders x `UiLayout.FrameScale`, which `Skin.DrawFrame` now uses too). One-word and arrow labels are drawn without wrap and shrink to fit (`Ui.OneLinePx`: to 11 points, then sans); the stage Team button is 108 wide. Same pass: compact Home (camera shift, full-height column) and gear rows (name on its own line).
+- Prevention: lay text out against the frame's content rect from Core arithmetic, never at fixed offsets from the outer rect; chip plates only for one-line labels; UxRulesTests "L028" checks card text inside the inner rect at 640/1067/1422 and portrait, one-line labels and the Team button's label room. Keep a tour shot of prep and the stage list in every gate and compare with the last report (UxRulesTests check sizes, not paint).
+- Related: L017, L011, L025
+- Evidence: docs/sigilbound/qa/evidence/8610b2b/prep-card-frames-cover-text.jpg, docs/sigilbound/qa/inhouse-2026-11-28-8610b2b.md (bugs 1-4), branch fix/ui-regressions
 
 ## L029 - Parallel branches take the same lesson and PLAN step ids
 - Status: solved

@@ -67,7 +67,7 @@ namespace Sigilbound.Client
             // Half the painted size at most (owner check 2026-11-27: at full size the gilded edges covered
             // titles and the first letters of labels), and the frame sits around the content, not on it:
             // the rect grows by most of the band so the inner edge of the gold lines up with the content edge.
-            float k = Mathf.Min(maxK, Mathf.Min(r.width / (b.left + b.right), r.height / (b.top + b.bottom)) * 0.85f);
+            float k = UiLayout.FrameScale(r.width, r.height, Border9(name), maxK); // Core arithmetic, so Tests~ measures the same content rect (L028)
             float pad = around ? Mathf.Min(b.left, b.top) * k * 0.55f : 0f;
             r = new Rect(r.x - pad, r.y - pad, r.width + 2 * pad, r.height + 2 * pad);
             float l = b.left * k, rr = b.right * k, tp = b.top * k, bt = b.bottom * k;
@@ -102,6 +102,14 @@ namespace Sigilbound.Client
             var orn = (tp != null ? Tex(vn.pressedOrn) : null) ?? Tex(vn.orn);
             if (orn != null) { float w = orn.width * r.height / orn.height; GUI.DrawTexture(new Rect(r.center.x - w / 2, r.y, w, r.height), orn); }
             return true;
+        }
+
+        // The frame's borders for Core/UiLayout (FrameScale, FrameInner), cached per name.
+        static readonly Dictionary<string, UiLayout.Border9> _b9 = new Dictionary<string, UiLayout.Border9>();
+        public static UiLayout.Border9 Border9(string name)
+        {
+            if (!_b9.TryGetValue(name, out var v)) { var o = Border(name, 24); _b9[name] = v = new UiLayout.Border9(o.left, o.top, o.right, o.bottom); }
+            return v;
         }
 
         public static RectOffset Border(string name, int fallback)
