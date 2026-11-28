@@ -1,2 +1,4 @@
 # Accepted per-move findings (ShotsMode.MoveChecks, tools/unity-smoke-check.sh): "<hero> <clip>" per line.
 # Add a line only after looking at the frames and deciding the move is right as it is (say why in a comment).
+augustin Ult_Volley  # never played by Augustin in battle (his ult is Ult_Blessing; Ult_Volley is Elowen's bow draw); 8.7 cm, just past the 8 cm limit
+titan Titan_Slam  # the hunch over the fists around the overhead slam: 9.5 cm between the Brute-girth rock forearm and chest colliders, no clipping visible at battle distance (run 46121700973, attack k=1-4)

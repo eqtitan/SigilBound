@@ -259,13 +259,17 @@ SW_COCK = P(hips=(0, -0.05, 0), spine=(14, -38, -6), head=(-18, 24, 0), wrist_r=
             wrist_l=(0.66, 0.62, 0.28), ankles=(0.25, 0.055, -0.04))
 SW_MID = P(hips=(0, -0.17, 0.07), spine=(54, 0, 0), head=(-34, 0, 0), wrist_r=(-0.10, 0.12, 0.80), pole_r=(-0.6, 1, 0),
            wrist_l=(0.72, 0.60, 0.05), ankles=(0.25, 0.055, -0.04))
-SW_END = P(hips=(0, -0.10, 0.03), spine=(30, 42, 8), head=(-22, -20, 0), wrist_r=(0.92, 0.26, 0.42), pole_r=(0, 1, -1),
+SW_END = P(hips=(0, -0.10, 0.03), spine=(30, 42, 8), head=(-22, -20, 0), wrist_r=(0.72, 0.22, 0.85), pole_r=(0, 1, -1),
            wrist_l=(0.85, 0.75, -0.30), ankles=(0.25, 0.055, -0.04))
 SW_START = P(hips=(0, -0.15, 0.05), spine=(46, -30, -4), head=(-30, 14, 0), wrist_r=(-0.98, 0.18, 0.46), pole_r=(-1, 1, 0),
              wrist_l=(0.66, 0.50, 0.30), ankles=(0.25, 0.055, -0.04))
+# The follow-through ends out in front, not folded across the chest, and the return loops forward and low:
+# the per-move check (ShotsMode SBMOVE) measured the right forearm 21 cm into the chest collider at the old end pose
+# (wrist_r 0.92, 0.26, 0.42) and on the straight way back to idle; now 6.5 cm (blenderforge offline check, limit 8).
+SW_BACK = add(lerp_pose(SW_END, IDLE, 0.5), wrist_r=(0.0, -0.05, 0.45))
 def sweep_f():
     return keyed([(0.0, IDLE, "lin"), (0.95, SW_COCK, "smooth"), (1.20, SW_COCK, "lin"), (1.36, SW_START, "in"),
-                  (1.4667, SW_MID, "lin"), (1.60, SW_END, "out2"), (1.90, SW_END, "lin"), (3.0, IDLE, "smooth")])
+                  (1.4667, SW_MID, "lin"), (1.60, SW_END, "out2"), (1.90, SW_END, "lin"), (2.40, SW_BACK, "smooth"), (3.0, IDLE, "smooth")])
 
 # Faultline Leap: crouch on the knuckles, spring up with the fists overhead (the battle flies it), then land.
 LP_CROUCH = P(hips=(0, -0.20, 0.06), spine=(38, 0, 0), head=(-34, 0, 0), arms=(0.46, 0.40, 0.46), poles=(1, 0.3, -0.5))
