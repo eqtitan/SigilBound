@@ -1096,7 +1096,11 @@ namespace Sigilbound.Client
                 anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
                 // Creature rig extensions (tail, jaw, longer neck, digitigrade legs, wing bones; kit_rig.py):
                 // re-apply this hero's rest-pose changes over the humanoid clips and drive the extra bones.
-                rigExt = RigExtras.Needed(holder);
+                // Not on a Titan with its own clips (titan_moves.py): they are authored on its own rest pose and its aliases
+                // cover every clip the battle asks for, so there is nothing to re-express; the rest fix running in the frames
+                // before its first clip (or on bones its clips don't key) only bent it (in-house build 190: a mangled Titan).
+                bool ownTitanClips = spec != null && spec.Clips == "embedded" && bk.Gltf.GetAnimationClips() is AnimationClip[] tc && tc.Length > 0;
+                rigExt = RigExtras.Needed(holder) && !ownTitanClips;
                 if (rigExt) root.AddComponent<RigExtras>().Init(holder, lib.Prototype, anim);
                 // Digitigrade legs (animal-folk; blenderforge/i3d_legs.py): the hero's own baked leg clips, layered
                 // over the shared clips of the same name on the legs only.

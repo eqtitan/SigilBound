@@ -37,6 +37,8 @@ namespace Sigilbound.Client
         bool IsTitan => _spec.Mode == BattleMode.Titan;
         public BattleMode Mode => _spec?.Mode ?? BattleMode.Stage;
         public bool InProgress => _b != null && !_finished;
+        // The Titan's figure in this battle, if any (the screenshot tour's pose check).
+        public CharacterView TitanView => _views.FirstOrDefault(kv => kv.Key.Titan).Value;
         // Auto-replay is looping campaign battles, or Auto Climb is running (Quality caps both at 30 fps).
         public bool Replaying => _b != null && _spec != null && ((_spec.Mode == BattleMode.Stage && G.S.settings.autoReplay) || Climbing || _climbPending);
 

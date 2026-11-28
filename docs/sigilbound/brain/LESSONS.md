@@ -23,15 +23,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Evidence: commits 411e789, 4fd5a8a; docs/sigilbound/qa/inhouse-2026-11-28-f7ddd6b.md; RIGGING.md "Runtime pitfall (build 180)"
 
 ## L003 - Titan mangled by its own clips (build 190)
-- Status: open
+- Status: solved
 - Systems: titan, animation, rig-runtime
 - Symptom: limbs stretched into sheets/spikes in every Titan shot; 42 Titan tests and the smoke gate passed.
-- Cause: suspected same family as L002 (own clips + shared clips + RigExtras); confirm in a real build.
-- Fix: in progress (fix/titan-runtime); fallback = shared clip set.
-- Prevention: add the Titan to the SBBOUNDS guard; the skeleton-library rebuild (L022) removes the patch layer.
+- Cause: the L002 family. The Titan carries the `rest_fit` marker, so it got RigExtras, whose rest fix re-expresses shared clips for moved joints. Its own clips (blenderforge/titan_moves.py) are authored on its own rest pose and need no fix; run in the frames before its first clip (BuildHd yields between RigExtras.Init and the first Play) and on bones its clips don't key, the fix compounded every frame. glTFast pre-adding the GLB's clips (L002) was in play too. Not isolated: main's 108bacd build (ClearClips + the LastR guard alone) was cancelled by the queue, so it's unproven whether that alone was enough.
+- Fix: fix/titan-runtime (58ae756, on top of 108bacd): HeroModels gives a Titan with its own clips no RigExtras at all (`ownTitanClips`). Run 203 (dispatch of the branch): all 7 Titan shots compact and hunched, SBBOUNDS titan-* all ok (head 0.97-1.05, top <= 1.82, wide <= 2.02).
+- Prevention: SBBOUNDS titan-<shot> in ShotsMode (intro + 6 shots; BAD past head 0.4-1.3 / 0.8 sideways, top 2.3 or wide 2.6: the baked clips stay under 1.85 wide, the bind pose is 2.65) and unity-smoke-check.sh fails on a BAD line or a missing Titan check; TitanMechanicsTests asserts the RigExtras skip and the guard. The skeleton-library rebuild (L022) removes the patch layer.
 - Related: L002, L004, L016, L022
-- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md
-
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-4a2723d.md; run 46114432755 (#203) sigilbound-unity-smoke 78-titan-intro..84-titan-6
 ## L004 - Offline previews are not the game
 - Status: solved
 - Systems: ci, qa, hero-models, scenes
