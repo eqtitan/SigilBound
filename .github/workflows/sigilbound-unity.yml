@@ -428,10 +428,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           NOTES_TAIL: >-
-            The native Unity version, in progress alongside the web app. It installs as a separate app,
-            "Sigilbound (Unity)", next to the regular Sigilbound app. To bring your progress over: in the
-            regular app open Settings > Save code > Copy, then in the Unity app open Settings, tap Paste
-            and Load code. Windows 10+: download Sigilbound-Windows.zip, unzip it, run Sigilbound.exe
+            The Sigilbound tester build. After the first install the game offers updates itself.
+            The old web app (android-latest) is retired: see the tester checklist before moving progress from it.
+            Windows 10+: download Sigilbound-Windows.zip, unzip it, run Sigilbound.exe
             (Windows may warn about an unknown publisher: More info > Run anyway).
         # Replace the APK in place (never delete the release first, so the link keeps working).
         run: |
