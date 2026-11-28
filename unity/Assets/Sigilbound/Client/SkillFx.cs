@@ -82,38 +82,38 @@ namespace Sigilbound.Client
         {
             var addShader = Shader.Find("Legacy Shaders/Particles/Additive") ?? Shader.Find("Mobile/Particles/Additive") ?? Shader.Find("Sprites/Default");
             _add = new Material(addShader); _alpha = new Material(Shader.Find("Sprites/Default"));
-            _dot = T(FxTextures.Dot(64)); _ring = T(FxTextures.Ring(128)); _crack = T(FxTextures.Crack(256));
-            _burst = T(FxTextures.Burst(128)); _rune = T(FxTextures.Rune(256)); _streak = T(FxTextures.Streak(64));
-            _hex = T(FxTextures.Hex(128)); _glow = T(FxTextures.Glow(64)); _shock = T(FxTextures.Shock(128));
-            _rays = T(FxTextures.Rays(128)); _flare = T(FxTextures.Flare(128)); _caustic = T(FxTextures.Caustic(128));
-            _foam = T(FxTextures.Foam(128)); _lava = T(FxTextures.Lava(128)); _crust = T(FxTextures.Crust(128));
+            _dot = T(64, () => FxTextures.Dot(64)); _ring = T(128, () => FxTextures.Ring(128)); _crack = T(256, () => FxTextures.Crack(256));
+            _burst = T(128, () => FxTextures.Burst(128)); _rune = T(256, () => FxTextures.Rune(256)); _streak = T(64, () => FxTextures.Streak(64));
+            _hex = T(128, () => FxTextures.Hex(128)); _glow = T(64, () => FxTextures.Glow(64)); _shock = T(128, () => FxTextures.Shock(128));
+            _rays = T(128, () => FxTextures.Rays(128)); _flare = T(128, () => FxTextures.Flare(128)); _caustic = T(128, () => FxTextures.Caustic(128));
+            _foam = T(128, () => FxTextures.Foam(128)); _lava = T(128, () => FxTextures.Lava(128)); _crust = T(128, () => FxTextures.Crust(128));
 
             _over = MakeSystem("Over", _add, _dot, 1500, 0);
             _under = MakeSystem("Under", _alpha, _dot, 500, 0);
             _fall = MakeSystem("Fall", _add, _dot, 600, 0.6f); // signature motifs that arc and drop (petals, drops, bones)
 
-            _flame = MakeSystem("Flame", _add, T(FxTextures.FlameSheet(64)), 400, -0.05f, 0.12f);
+            _flame = MakeSystem("Flame", _add, T(256, () => FxTextures.FlameSheet(64)), 400, -0.05f, 0.12f);
             Sheet(_flame); Size(_flame, new Keyframe(0, 0.55f), new Keyframe(0.35f, 1f), new Keyframe(1, 0.75f));
             Fade(_flame, 0.08f, 1f, 0.5f, 0.85f, new Color(0.75f, 0.68f, 0.62f));
 
-            _smoke = MakeSystem("Smoke", _alpha, T(FxTextures.SmokeSheet(64)), 260, -0.02f, 0.1f);
+            _smoke = MakeSystem("Smoke", _alpha, T(256, () => FxTextures.SmokeSheet(64)), 260, -0.02f, 0.1f);
             Sheet(_smoke); Size(_smoke, new Keyframe(0, 0.5f), new Keyframe(1, 1.6f));
             Fade(_smoke, 0.15f, 1f, 0.55f, 0.7f, Color.white);
             var rol = _smoke.rotationOverLifetime; rol.enabled = true; rol.z = new ParticleSystem.MinMaxCurve(-0.5f, 0.5f);
 
-            _streaks = MakeSystem("Streaks", _add, T(FxTextures.Spark(32)), 500, 0.45f, 0.05f);
+            _streaks = MakeSystem("Streaks", _add, T(32, () => FxTextures.Spark(32)), 500, 0.45f, 0.05f);
             var sr = _streaks.GetComponent<ParticleSystemRenderer>(); sr.renderMode = ParticleSystemRenderMode.Stretch; sr.velocityScale = 0.045f; sr.lengthScale = 1.4f;
             Size(_streaks, new Keyframe(0, 1), new Keyframe(1, 0.2f));
             Fade(_streaks, 0.02f, 1f, 0.6f, 0.9f, Color.white);
 
-            _debris = MakeSystem("Debris", _alpha, T(FxTextures.Chunk(64)), 160, 1.0f, 0.02f);
+            _debris = MakeSystem("Debris", _alpha, T(64, () => FxTextures.Chunk(64)), 160, 1.0f, 0.02f);
             Size(_debris, new Keyframe(0, 1), new Keyframe(0.8f, 1), new Keyframe(1, 0));
             Fade(_debris, 0.01f, 1f, 0.8f, 1f, Color.white);
             var floor = new GameObject("FxFloor").transform; floor.SetParent(transform, false); floor.position = new Vector3(0, 0.02f, 0);
             var col = _debris.collision; col.enabled = true; col.type = ParticleSystemCollisionType.Planes; col.mode = ParticleSystemCollisionMode.Collision3D;
             col.SetPlane(0, floor); col.bounce = 0.3f; col.dampen = 0.45f; col.lifetimeLoss = 0; col.radiusScale = 0.4f;
 
-            _leaves = MakeSystem("Leaves", _alpha, T(FxTextures.Leaf(64)), 110, 0.12f, 0.1f);
+            _leaves = MakeSystem("Leaves", _alpha, T(64, () => FxTextures.Leaf(64)), 110, 0.12f, 0.1f);
             Size(_leaves, new Keyframe(0, 1), new Keyframe(1, 0.8f));
             Fade(_leaves, 0.1f, 1f, 0.7f, 1f, Color.white);
             var nz = _leaves.noise; nz.enabled = true; nz.strength = 1.1f; nz.frequency = 0.8f; nz.scrollSpeed = 0.4f; nz.quality = ParticleSystemNoiseQuality.Low;
@@ -122,16 +122,44 @@ namespace Sigilbound.Client
             var fq = GameObject.CreatePrimitive(PrimitiveType.Quad); Destroy(fq.GetComponent<Collider>());
             fq.transform.SetParent(_cam.transform, false); fq.transform.localPosition = new Vector3(0, 0, _cam.nearClipPlane + 0.05f); fq.transform.localScale = new Vector3(3, 3, 1);
             _flash = fq.GetComponent<Renderer>(); _flash.sharedMaterial = new Material(_add) { mainTexture = _burst }; fq.SetActive(false);
+            StartCoroutine(PaintTextures());
         }
 
-        static Texture2D T(float[] px)
+        // The procedural textures (about 0.45 Mpx of noise math, 120-150 ms on a desktop core and several
+        // times that on a phone) used to be painted on the main thread while the game started (performance
+        // review #4). Now T() hands out a blank texture of the final size, the painting runs on a worker
+        // thread (FxTextures is plain math), and each result is uploaded on its own frame. Effects only play in
+        // battle, seconds later; until then the blank textures draw nothing.
+        readonly List<(Texture2D tex, System.Func<float[]> paint)> _toPaint = new List<(Texture2D, System.Func<float[]>)>();
+        public bool TexturesReady { get; private set; }
+        Texture2D T(int n, System.Func<float[]> paint)
         {
-            int n = Mathf.RoundToInt(Mathf.Sqrt(px.Length / 4));
             var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-            var c = new Color[n * n];
-            for (int i = 0; i < c.Length; i++) c[i] = new Color(px[i * 4], px[i * 4 + 1], px[i * 4 + 2], px[i * 4 + 3]);
-            t.SetPixels(c); t.Apply(false, true); // drop the CPU copy: saves memory on phones
+            t.SetPixels32(new Color32[n * n]); t.Apply(false); // transparent until painted
+            _toPaint.Add((t, paint));
             return t;
+        }
+        IEnumerator PaintTextures()
+        {
+            var jobs = _toPaint.ToArray(); _toPaint.Clear();
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var work = System.Threading.Tasks.Task.Run(() => { var o = new float[jobs.Length][]; for (int i = 0; i < jobs.Length; i++) o[i] = jobs[i].paint(); return o; });
+            while (!work.IsCompleted) yield return null;
+            double painted = sw.Elapsed.TotalMilliseconds, mainMs = 0, worst = 0;
+            if (work.IsFaulted) { Debug.LogWarning("Sigilbound: effect textures failed to paint: " + work.Exception?.GetBaseException().Message); yield break; }
+            var px = work.Result;
+            for (int i = 0; i < jobs.Length; i++)
+            {
+                var t0 = sw.Elapsed.TotalMilliseconds;
+                var t = jobs[i].tex; int n = t.width; var p = px[i];
+                var c = new Color32[n * n];
+                for (int k = 0; k < c.Length; k++) c[k] = new Color(p[k * 4], p[k * 4 + 1], p[k * 4 + 2], p[k * 4 + 3]);
+                t.SetPixels32(c); t.Apply(false, true); // drop the CPU copy: saves memory on phones
+                double step = sw.Elapsed.TotalMilliseconds - t0; mainMs += step; worst = System.Math.Max(worst, step);
+                yield return null;
+            }
+            TexturesReady = true;
+            Debug.Log($"SBPERF fx textures: {jobs.Length} painted on a worker thread in {painted:0} ms; main thread {mainMs:0.0} ms over {jobs.Length} frames (longest {worst:0.0} ms)");
         }
 
         ParticleSystem MakeSystem(string name, Material mat, Texture2D tex, int max, float gravity, float drag = 0.08f)

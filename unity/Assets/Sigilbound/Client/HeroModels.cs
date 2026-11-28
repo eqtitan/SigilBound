@@ -242,20 +242,37 @@ namespace Sigilbound.Client
                 yield return ReadRaw(file + "z", b => gz = b, false);
                 if (gz != null)
                 {
+                    // Inflate and unpack on a worker thread (plain byte work, about 1.4 MB out per hero): on the
+                    // main thread it was one of the steps behind the team-screen hitches (performance review #4).
                     byte[] plain = null;
-                    try
-                    {
-                        using (var src = new MemoryStream(gz))
-                        using (var unzip = new System.IO.Compression.GZipStream(src, System.IO.Compression.CompressionMode.Decompress))
-                        using (var dst = new MemoryStream(gz.Length * 3))
-                        { unzip.CopyTo(dst); plain = dst.ToArray(); }
-                        plain = ModelPack.Unpack(plain); // "SBZ1" byte-transposed buffers (prepare-models.mjs): back to the exact GLB
-                    }
-                    catch (Exception e) { Debug.LogWarning($"Sigilbound: couldn't unzip {file}z: {e.Message}"); }
+                    var job = System.Threading.Tasks.Task.Run(() => Inflate(gz));
+                    while (!job.IsCompleted) yield return null;
+                    if (job.IsFaulted) Debug.LogWarning($"Sigilbound: couldn't unzip {file}z: {job.Exception?.GetBaseException().Message}");
+                    else plain = job.Result;
                     if (plain != null) { Trace($"read {file}z: {gz.Length} -> {plain.Length} bytes"); done(plain); yield break; }
                 }
             }
             yield return ReadRaw(file, done, true);
+        }
+
+        static byte[] Inflate(byte[] gz)
+        {
+            byte[] plain;
+            using (var src = new MemoryStream(gz))
+            using (var unzip = new System.IO.Compression.GZipStream(src, System.IO.Compression.CompressionMode.Decompress))
+            using (var dst = new MemoryStream(gz.Length * 3))
+            { unzip.CopyTo(dst); plain = dst.ToArray(); }
+            return ModelPack.Unpack(plain); // "SBZ1" byte-transposed buffers (prepare-models.mjs): back to the exact GLB
+        }
+
+        // At most one heavy main-thread step (an image decode or a texture upload) per frame across every
+        // loader. A team, a stage's Hollow enemies and the Titan preload together; their decodes used to land
+        // in the same frame after the glTF parses finished (performance review #4: 0.1-0.2 s per hero).
+        static int _heavyFrame = -1;
+        static IEnumerator HeavySlot()
+        {
+            while (_heavyFrame == Time.frameCount) yield return null;
+            _heavyFrame = Time.frameCount;
         }
 
         static IEnumerator ReadRaw(string file, Action<byte[]> done, bool trace)
@@ -689,16 +706,29 @@ namespace Sigilbound.Client
         // blue channel is the glow (from the _glow PNG) so the eyes, runes and auras light up.
         // The Hollow look on a painted albedo (as Recolour does for the old models): half desaturated and
         // pulled halfway toward deep violet, so enemy copies read as shadows of the hero.
-        static void Hollowed(Texture2D t)
+        // Pixel loops only (no Unity calls), so they run on a worker thread: 1M pixels for the tint, 262k for the mask.
+        static void HollowTint(Color32[] px)
         {
-            var px = t.GetPixels32(); var v = new Color32(0x2e, 0x1f, 0x33, 255);
+            var v = new Color32(0x2e, 0x1f, 0x33, 255);
             for (int i = 0; i < px.Length; i++)
             {
                 var c = px[i]; int g = (c.r * 3 + c.g * 6 + c.b) / 10;
                 int r = (c.r + g) / 2, gg = (c.g + g) / 2, b = (c.b + g) / 2;
                 px[i] = new Color32((byte)((r + v.r) / 2), (byte)((gg + v.g) / 2), (byte)((b + v.b) / 2), c.a);
             }
-            t.SetPixels32(px); t.Apply(true, true); // upload, then drop the CPU copy
+        }
+        // The mask's blue channel is the glow (eyes, runes, auras), from the _glow PNG's brightness.
+        static Color32[] MaskFromGlow(Color32[] g)
+        {
+            var mask = new Color32[g.Length];
+            for (int i = 0; i < g.Length; i++) { byte lum = (byte)Math.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2); mask[i] = new Color32(0, 255, lum, 90); }
+            return mask;
+        }
+        static IEnumerator OnWorker(Action work)
+        {
+            var job = System.Threading.Tasks.Task.Run(work);
+            while (!job.IsCompleted) yield return null;
+            if (job.IsFaulted) Debug.LogWarning("Sigilbound: hero texture work failed: " + job.Exception?.GetBaseException().Message);
         }
 
         // Low quality: the high-detail heroes' normal maps off (on again above Low). Applies to every loaded
@@ -715,9 +745,8 @@ namespace Sigilbound.Client
             if (!_lowDetail && m.GetTexture("_BumpMap") != null) m.EnableKeyword("_NORMALMAP"); else m.DisableKeyword("_NORMALMAP");
         }
 
-        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D glow, Element el, bool hollow, out Texture2D maskTex, bool titan = false)
+        static Material HdMaterial(string id, Texture2D alb, Texture2D nrm, Texture2D maskTex, Element el, bool hollow, bool titan = false)
         {
-            maskTex = null;
             var sh = Shader.Find("Sigilbound/CharacterPainted");
             var tmpl = Resources.Load<Material>("SigilMaterials/HeroPainted");
             Material mat = tmpl != null ? new Material(tmpl) : sh != null ? new Material(sh) : new Material(Materials.Lit(Color.white, 0, 0.3f));
@@ -725,12 +754,9 @@ namespace Sigilbound.Client
             if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", alb);
             mat.mainTexture = alb;
             if (nrm != null && mat.HasProperty("_BumpMap")) { mat.SetTexture("_BumpMap", nrm); mat.EnableKeyword("_NORMALMAP"); }
-            if (mat.HasProperty("_MaskMap") && glow != null)
+            if (mat.HasProperty("_MaskMap") && maskTex != null)
             {
-                var g = glow.GetPixels32(); var mask = new Color32[g.Length];
-                for (int i = 0; i < g.Length; i++) { byte lum = (byte)Mathf.Min(255, (g[i].r * 3 + g[i].g * 6 + g[i].b) / 10 * 2); mask[i] = new Color32(0, 255, lum, 90); }
-                var mt = new Texture2D(glow.width, glow.height, TextureFormat.RGBA32, true, true); mt.SetPixels32(mask); mt.Apply(true, true);
-                mat.SetTexture("_MaskMap", mt); maskTex = mt;
+                mat.SetTexture("_MaskMap", maskTex);
                 if (mat.HasProperty("_GlowColor")) mat.SetColor("_GlowColor", titan ? TitanSeam(el) * (float)TitanSpec.Current.GlowGain : (hollow ? Palette.Hex("#ff3355") : Palette.Element(el)) * 2.2f);
             }
             if (mat.HasProperty("_RimColor")) mat.SetColor("_RimColor", titan ? TitanSeam(el) : hollow ? Palette.Hex("#ff3355") : Palette.Element(el));
@@ -804,13 +830,47 @@ namespace Sigilbound.Client
                 if (load.IsFaulted || !load.Result) { Debug.LogWarning($"Sigilbound: couldn't load the high-detail {id}"); gltf.Dispose(); yield break; }
                 // GPU copies only: the albedo stays readable just long enough for the Hollow tint, and the glow
                 // map only until the mask is built (it used to stay in memory, unused).
+                // Spread over frames (performance review #4): each decode or upload takes its own HeavySlot frame
+                // and the pixel loops run on a worker, where all of it used to run in the one frame after the parse
+                // (estimated 100-200 ms per hero on a mid-range phone). SBPERF lines log each step's main-thread time.
+                var sw = System.Diagnostics.Stopwatch.StartNew(); double tAlb, tTint = 0, tNrm, tGlow, tMask = 0;
+                yield return HeavySlot(); sw.Restart();
                 var albTex = LoadPng(alb, false, hollow);
-                if (hollow && albTex != null) Hollowed(albTex);
+                tAlb = sw.Elapsed.TotalMilliseconds;
+                if (hollow && albTex != null)
+                {
+                    var px = albTex.GetPixels32();
+                    yield return OnWorker(() => HollowTint(px));
+                    yield return HeavySlot(); sw.Restart();
+                    if (albTex != null) { albTex.SetPixels32(px); albTex.Apply(true, true); } // upload, then drop the CPU copy
+                    tTint = sw.Elapsed.TotalMilliseconds;
+                }
+                yield return HeavySlot(); sw.Restart();
                 var nrmTex = LoadPng(nrm, true, false);
+                tNrm = sw.Elapsed.TotalMilliseconds;
+                yield return HeavySlot(); sw.Restart();
                 var glowTex = LoadPng(glow, false, true);
+                Color32[] glowPx = null; int gw = 0, gh = 0;
+                if (glowTex != null) { glowPx = glowTex.GetPixels32(); gw = glowTex.width; gh = glowTex.height; UnityEngine.Object.Destroy(glowTex); }
+                tGlow = sw.Elapsed.TotalMilliseconds;
+                Texture2D maskTex = null;
+                if (glowPx != null)
+                {
+                    Color32[] mask = null;
+                    yield return OnWorker(() => mask = MaskFromGlow(glowPx));
+                    yield return HeavySlot(); sw.Restart();
+                    if (mask != null) { maskTex = new Texture2D(gw, gh, TextureFormat.RGBA32, true, true); maskTex.SetPixels32(mask); maskTex.Apply(true, true); }
+                    tMask = sw.Elapsed.TotalMilliseconds;
+                }
+                double longest = Math.Max(Math.Max(tAlb, tTint), Math.Max(tNrm, Math.Max(tGlow, tMask)));
+                Debug.Log($"SBPERF hd {cacheKey}: main thread albedo {tAlb:0.0} ms, tint {tTint:0.0}, normal {tNrm:0.0}, glow {tGlow:0.0}, mask {tMask:0.0}; longest frame step {longest:0.0} ms of {tAlb + tTint + tNrm + tGlow + tMask:0.0} ms (inflate and pixel loops on a worker)");
+                if (_hdLibs.ContainsKey(cacheKey)) // loaded meanwhile by another job: keep that one
+                {
+                    gltf.Dispose(); foreach (var t in new[] { albTex, nrmTex, maskTex }) if (t != null) UnityEngine.Object.Destroy(t);
+                    yield break;
+                }
                 var e = new HdEntry { Gltf = gltf, Used = Time.unscaledTime };
-                e.Mat = HdMaterial(id, albTex, nrmTex, glowTex, el, hollow, out var maskTex, cacheKey.StartsWith("titan|"));
-                if (glowTex != null) UnityEngine.Object.Destroy(glowTex);
+                e.Mat = HdMaterial(id, albTex, nrmTex, maskTex, el, hollow, cacheKey.StartsWith("titan|"));
                 e.Tex.Add(albTex); e.Tex.Add(nrmTex); e.Tex.Add(maskTex);
                 _hdLibs[cacheKey] = e;
                 EvictIdle();

@@ -12,6 +12,8 @@ fix: The Titan's arrival is filmed from behind your heroes looking up at its fac
 change: Brannoc, Vex and Aurex have new 3D models that match their portraits.
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
 change: Painted icons for the Gale, Light and Shadow elements on the campaign map, and each shard type has its own coloured crystal.
+change: Smoother team screen: hero models now load bit by bit over several frames instead of freezing the screen for a moment per hero.
+change: Faster first launch: sounds and effect textures now load in the background.
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 new: Release Heroes: filter by rarity, stars, element, role and level, keep the best copies, save presets, review before you release, and undo within 2 minutes.
