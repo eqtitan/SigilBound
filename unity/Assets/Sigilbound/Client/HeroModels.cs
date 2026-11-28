@@ -28,6 +28,10 @@ namespace Sigilbound.Client
         public float Height;
         public AnimStyle Style;
         readonly Animator _animator;
+        // Skeleton-library heroes (Core.RigProfiles): Humanoid clips on a runtime avatar, mixed by HumanoidRig.
+        readonly HumanoidRig _hr;
+        public HumanoidRig Humanoid => _hr;
+        public float Tempo = 1f;   // gait tempo on walk and run (HumanoidRig.Gait)
         readonly Dictionary<string, string> _names = new Dictionary<string, string>(); // short name -> state name
         readonly Dictionary<string, float> _lengths = new Dictionary<string, float>();
         static readonly int SpeedParam = Animator.StringToHash("Speed");
@@ -43,6 +47,16 @@ namespace Sigilbound.Client
             Idle(0);
         }
 
+        // Skeleton-library hero: clip names are the baked Humanoid clips' names, plus the canonical aliases.
+        public HeroModel(GameObject root, HumanoidRig rig, float height, AnimStyle style, IDictionary<string, string> aliases = null)
+        {
+            Root = root; _hr = rig; Height = height; Style = style;
+            foreach (var n in rig.Library.Keys) _names[n] = n;
+            if (aliases != null) foreach (var kv in aliases) { var clip = kv.Value.Split('|').Last(); if (_names.TryGetValue(clip, out var st)) _names[kv.Key] = st; }
+            Tempo = rig.Gait.Tempo;
+            Idle(0);
+        }
+
         // Animator-driven hero: states[name] = the controller state that plays for battle state `name`.
         public HeroModel(GameObject root, Animator animator, IDictionary<string, string> states, IDictionary<string, float> lengths, float height, AnimStyle style)
         {
@@ -54,13 +68,20 @@ namespace Sigilbound.Client
 
         public bool Has(string name) => name != null && _names.ContainsKey(name);
         string IdleName => Has(Style.Idle) ? Style.Idle : _names.Keys.FirstOrDefault(n => n.StartsWith("Idle", StringComparison.Ordinal));
-        public float Length(string name) => !Has(name) ? 0 : _animator != null ? (_lengths.TryGetValue(name, out var l) ? l : 0.6f) : Anim[_names[name]].length;
+        public float Length(string name) => !Has(name) ? 0 : _hr != null ? _hr.Length(_names[name]) : _animator != null ? (_lengths.TryGetValue(name, out var l) ? l : 0.6f) : Anim[_names[name]].length;
 
         // Crossfade to `name`: loops when loop; otherwise plays once and returns to idle (or holds
         // the last frame with clamp, e.g. deaths). With an Animator the controller decides looping.
         public bool Play(string name, bool loop = false, float fade = 0.18f, float speed = 1f, bool clamp = false)
         {
             if (!Has(name)) return false;
+            if (_hr != null)
+            {
+                _current = name;
+                if (loop) _loopSpeed[_names[name]] = speed;
+                (string, float)? q = !loop && !clamp && IdleName != null && IdleName != name ? (_names[IdleName], IdleLoopSpeed) : ((string, float)?)null;
+                return _hr.Play(_names[name], loop, fade, speed, clamp, loop && Ambient(_names[name]), q);
+            }
             if (_animator != null)
             {
                 if (!_animator.isActiveAndEnabled) return false;
@@ -90,6 +111,7 @@ namespace Sigilbound.Client
         {
             get
             {
+                if (_hr != null) return _current == null ? 1f : _hr.Normalized;
                 if (_animator != null) return _animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
                 if (Anim == null || _current == null || !Has(_current)) return 1f;
                 var st = Anim[_names[_current]];
@@ -108,6 +130,7 @@ namespace Sigilbound.Client
         {
             if (on == _frozen) return;
             _frozen = on;
+            if (_hr != null) { _hr.Frozen = on; return; }
             if (_animator != null) { _animator.speed = on ? 0f : 1f; return; }
             if (Anim == null) return;
             if (on) { _frozenSpeeds.Clear(); foreach (AnimationState s in Anim) if (s.enabled) { _frozenSpeeds[s] = s.speed; s.speed = 0f; } }
@@ -151,11 +174,13 @@ namespace Sigilbound.Client
             var n = IdleName; if (n == null) return;
             Play(n, true, fade, IdleLoopSpeed);
             // First idle starts at a random phase (MECHANICS.md 5), so neighbours don't breathe together.
+            if (!_idlePhased && _hr != null) { _idlePhased = true; _hr.SetNormalized(UnityEngine.Random.value); }
             if (!_idlePhased && _animator == null && Anim != null) { _idlePhased = true; var st = Anim[_names[n]]; if (st != null) st.time = UnityEngine.Random.value * st.length; }
         }
         // Plays `name` from `fromT` (normalized) at `speed` (negative = backwards), holding when done.
         public bool PlayFrom(string name, float fromT, float speed)
         {
+            if (_hr != null && Has(name)) { _current = name; return _hr.PlayFrom(_names[name], fromT, speed); }
             if (Anim == null || !Has(name)) return false;
             _current = name;
             var st = Anim[_names[name]];
@@ -204,7 +229,38 @@ namespace Sigilbound.Client
         public bool Roll() => Has("Roll") && Play("Roll", false, 0.1f, 1.5f);
         public bool Die() { var n = Style.Death.FirstOrDefault(Has); return n != null && Play(n, false, 0.12f, 1f, true); }
         public void Win() { if (Style.WinHold) Play(Style.Win, false, 0.25f, Style.WinSpeed, true); else Play(Style.Win, true, 0.25f, Style.WinSpeed); }
-        public void Run(bool back = false) => Play(back && Has("Run_Back") ? "Run_Back" : "Run", true, 0.15f, back ? 1.5f : 1.4f);
+        public void Run(bool back = false) => Play(back && Has("Run_Back") ? "Run_Back" : "Run", true, 0.15f, (back ? 1.5f : 1.4f) * Tempo);
+
+        // Seconds into `name`'s current cycle while it plays, else -1 (event crossings such as the Titan's footfalls).
+        public float StateTime(string name)
+        {
+            if (!Has(name)) return -1f;
+            if (_hr != null) return _hr.TimeOf(_names[name]);
+            if (Anim == null) return -1f;
+            var st = Anim[_names[name]];
+            return st == null || !st.enabled ? -1f : st.time;
+        }
+
+        // A frozen frame of `name` at normalized time t (screenshot tour): exact, whatever the frame rate.
+        public bool Pose(string name, float t)
+        {
+            if (!Has(name)) return false;
+            _current = name;
+            if (_hr != null) { _hr.Pose(_names[name], t); return true; }
+            if (Anim == null) return false;
+            Anim.Stop();
+            var st = Anim[_names[name]];
+            st.enabled = true; st.weight = 1f; st.speed = 0f; st.wrapMode = WrapMode.ClampForever; st.time = Mathf.Clamp01(t) * st.length;
+            Anim.Sample();
+            return true;
+        }
+
+        // The first frame shown after a build: the current clip applied now.
+        public void SampleNow()
+        {
+            if (_hr != null) _hr.Evaluate(0f);
+            else if (Anim != null) Anim.Sample();
+        }
     }
 
     public static class HeroModels
@@ -1001,38 +1057,49 @@ namespace Sigilbound.Client
             // Creature heroes (Core/Kit/Creatures.cs): their own clips, fixed scale, planted feet (CreatureRig).
             var creature = Creatures.Of(id);
             if (creature != null) { done(Reveal(holder, CreatureRig.Setup(holder.gameObject, root, bk.Gltf.GetAnimationClips(), creature))); yield break; }
-            var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
-            // glTFast already put the model's own clips on this Animation (it adds one for any file with clips),
-            // under their file names: a digitigrade hero's baked leg clips carry the shared clips' names. Left
-            // there, they took the shared clips' place (the GetClip check below skips names that exist), no clip
-            // moved the body and RigExtras' rest fix compounded every frame (build 180: Tansy and Corran
-            // exploded). Start empty; the model's clips go back where they belong (an embedded Titan's below,
-            // DigitigradeLegs' layered "~legs" twins).
-            ClearClips(anim);
+            // Skeleton library (Core.RigProfiles, docs/sigilbound/art/SKELETON_LIBRARY.md): a migrated hero plays the shared
+            // Humanoid clips on its own avatar (HumanoidRig); no RigExtras, no DigitigradeLegs, no per-hero clip overrides.
+            // If the avatar or the baked clips are missing, the hero falls back to the legacy path below.
+            string profileId = titan ? "titan" : id;
+            HumanoidRig hr = RigProfiles.Migrated(profileId) ? HumanoidRig.Setup(root, holder, RigProfiles.Of(profileId)) : null;
+            Trace($"{id}: rig {(hr != null ? "humanoid " + hr.Profile.Skeleton : RigProfiles.Of(profileId) != null ? "LEGACY (humanoid setup failed)" : "legacy")}");
+            Animation anim = null;
+            bool rigExt = false;
             var spec = titan ? TitanSpec.Current : null;
-            // A separately rigged Titan brings its own clips ("clips": "embedded"); the shared UAL set is added
-            // too, and only clips whose names the model doesn't have.
-            if (spec != null && spec.Clips == "embedded")
-                foreach (var c in bk.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose")) anim.AddClip(c, c.name);
-            foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose") && anim.GetClip(c.name) == null) anim.AddClip(c, c.name);
-            anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
-            // Creature rig extensions (tail, jaw, longer neck, digitigrade legs, wing bones; kit_rig.py):
-            // re-apply this hero's rest-pose changes over the humanoid clips and drive the extra bones.
-            bool rigExt = RigExtras.Needed(holder);
-            if (rigExt) root.AddComponent<RigExtras>().Init(holder, lib.Prototype, anim);
-            // Digitigrade legs (animal-folk; blenderforge/i3d_legs.py): the hero's own baked leg clips, layered
-            // over the shared clips of the same name on the legs only.
-            if (DigitigradeLegs.Needed(holder)) root.AddComponent<DigitigradeLegs>().Init(holder, anim, bk.Gltf.GetAnimationClips());
+            if (hr == null)
+            {
+                anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
+                // glTFast already put the model's own clips on this Animation (it adds one for any file with clips),
+                // under their file names: a digitigrade hero's baked leg clips carry the shared clips' names. Left
+                // there, they took the shared clips' place (the GetClip check below skips names that exist), no clip
+                // moved the body and RigExtras' rest fix compounded every frame (build 180: Tansy and Corran
+                // exploded). Start empty; the model's clips go back where they belong (an embedded Titan's below,
+                // DigitigradeLegs' layered "~legs" twins).
+                ClearClips(anim);
+                // A separately rigged Titan brings its own clips ("clips": "embedded"); the shared UAL set is added
+                // too, and only clips whose names the model doesn't have.
+                if (spec != null && spec.Clips == "embedded")
+                    foreach (var c in bk.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose")) anim.AddClip(c, c.name);
+                foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose") && anim.GetClip(c.name) == null) anim.AddClip(c, c.name);
+                anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
+                // Creature rig extensions (tail, jaw, longer neck, digitigrade legs, wing bones; kit_rig.py):
+                // re-apply this hero's rest-pose changes over the humanoid clips and drive the extra bones.
+                rigExt = RigExtras.Needed(holder);
+                if (rigExt) root.AddComponent<RigExtras>().Init(holder, lib.Prototype, anim);
+                // Digitigrade legs (animal-folk; blenderforge/i3d_legs.py): the hero's own baked leg clips, layered
+                // over the shared clips of the same name on the legs only.
+                if (DigitigradeLegs.Needed(holder)) root.AddComponent<DigitigradeLegs>().Init(holder, anim, bk.Gltf.GetAnimationClips());
+            }
             // Spring bones (skirts, robes, coat tails; Core/SpringSolver.cs): simulated after the clip, off the legs.
             if (SpringBones.Needed(holder)) root.AddComponent<SpringBones>().Init(holder, id);
             if (titan)
             {
                 root.AddComponent<HandGrip>(); ApplyGlowCut(holder);
                 // Its own clips are authored on its own rest pose: RigExtras must not re-express them (only shared ones).
-                if (spec.Clips == "embedded" && root.GetComponent<RigExtras>() is RigExtras rx)
+                if (hr == null && spec.Clips == "embedded" && root.GetComponent<RigExtras>() is RigExtras rx)
                     foreach (var c in bk.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null) rx.Own.Add(c.name);
                 // Seams and core flaring in wind-ups, the breathing core, ridge glow and the crystals breaking off.
-                root.AddComponent<TitanBody>().Init(holder, unit.El, anim);
+                root.AddComponent<TitanBody>().Init(holder, unit.El, anim, hr);
             }
             else if (AnimStyle.HdGrips(id)) root.AddComponent<HandGrip>().Side = Impact.FamilyOf(id) == WeaponFamily.Bow ? "l" : "r"; // bows: the left hand
             // The rig is in metres with the head bone near 1.6 m: scale to the battle's hero height.
@@ -1061,8 +1128,16 @@ namespace Sigilbound.Client
                 if (spec.AutoGround) { float low = MeshBottom(holder); if (!float.IsNaN(low)) lift -= low; }
                 holder.localPosition += Vector3.up * lift / Mathf.Max(0.01f, holder.parent != null ? holder.parent.lossyScale.y : 1f);
             }
-            done(Reveal(holder, titan ? new HeroModel(holder.gameObject, anim, (float)(spec.HornWorld / spec.ViewScale), AnimStyle.TitanHd, TitanAliases())
-                                      : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliasesFor(id))));
+            HeroModel model;
+            if (hr != null)
+            {
+                var style = titan ? AnimStyle.TitanHd : AnimStyle.Hd(id);
+                if (!titan) style.IdleSpeed *= hr.Gait.IdleTempo;
+                model = new HeroModel(holder.gameObject, hr, titan ? (float)(spec.HornWorld / spec.ViewScale) : 2.3f * hgt, style, titan ? TitanAliases() : AnimStyle.HdAliases);
+            }
+            else model = titan ? new HeroModel(holder.gameObject, anim, (float)(spec.HornWorld / spec.ViewScale), AnimStyle.TitanHd, TitanAliases())
+                               : new HeroModel(holder.gameObject, anim, 2.3f * hgt, AnimStyle.Hd(id), AnimStyle.HdAliasesFor(id));
+            done(Reveal(holder, model));
         }
 
         // Where a model is instantiated (out of every camera) until its instance is complete.
@@ -1072,7 +1147,7 @@ namespace Sigilbound.Client
         static HeroModel Reveal(Transform holder, HeroModel m)
         {
             if (holder == null) return m;
-            if (m != null && m.Anim != null) m.Anim.Sample();
+            m?.SampleNow();
             foreach (var r in holder.GetComponentsInChildren<Renderer>(true)) r.forceRenderingOff = false;
             return m;
         }

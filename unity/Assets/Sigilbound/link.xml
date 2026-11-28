@@ -1,0 +1,5 @@
+<!-- Skeleton library (Client/HumanoidRig.cs): the Animator, avatars and playables are created from code only. -->
+<linker>
+  <assembly fullname="UnityEngine.AnimationModule" preserve="all" />
+  <assembly fullname="UnityEngine.DirectorModule" preserve="all" />
+</linker>

@@ -315,9 +315,9 @@ namespace Sigilbound.Client
         float _plantPrev = -1;
         void WalkPlants(CharacterView v, HeroModel m, string clip, Unit u, float shake, float vol)
         {
-            if (m.Anim == null || !m.Has(clip)) return;
-            float L = m.Length(clip); var st = m.Anim[clip]; if (st == null || L <= 0) return;
-            float now = st.time / L, prev = _plantPrev; _plantPrev = now;
+            if (!m.Has(clip)) return;
+            float L = m.Length(clip), tt = m.StateTime(clip); if (tt < 0 || L <= 0) return;
+            float now = tt / L, prev = _plantPrev; _plantPrev = now;
             if (prev < 0 || now < prev - 1.5f) return;
             foreach (var e in new[] { "plant_l", "plant_r" })
             {

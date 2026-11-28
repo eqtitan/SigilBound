@@ -19,6 +19,7 @@ namespace Sigilbound.Client
         MaterialPropertyBlock _mpb;
         Color _seam; Element _el;
         Animation _anim;
+        HumanoidRig _hr;
         public Transform Chest, FistL, FistR;
         readonly List<(Transform t, int stage)> _ridges = new List<(Transform, int)>();
         readonly HashSet<Transform> _broken = new HashSet<Transform>();
@@ -31,10 +32,10 @@ namespace Sigilbound.Client
         public int Stage => _stage;
         public int Broken => _broken.Count;
 
-        public void Init(Transform model, Element el, Animation anim)
+        public void Init(Transform model, Element el, Animation anim, HumanoidRig humanoid = null)
         {
             var spec = TitanSpec.Current;
-            _el = el; _seam = HeroModels.TitanSeam(el); _anim = anim;
+            _el = el; _seam = HeroModels.TitanSeam(el); _anim = anim; _hr = humanoid;
             _renderers = model.GetComponentsInChildren<Renderer>(true);
             _mpb = new MaterialPropertyBlock();
             Chest = BodyShaper.Find(model, spec.ChestBone); FistL = BodyShaper.Find(model, spec.FistL); FistR = BodyShaper.Find(model, spec.FistR);
@@ -95,7 +96,13 @@ namespace Sigilbound.Client
             _pulse *= Mathf.Exp(-dt / 0.18f);
             // Breathing: the core swells on the idle's inhale (its own clip's event), calm otherwise.
             float breath = 0;
-            if (_anim != null)
+            if (_hr != null)
+            {
+                string idle = spec.ClipOf("idle", null);
+                float t = idle != null && _hr.Current == idle ? _hr.TimeOf(idle) : -1f, len = _hr.Length(idle);
+                if (t >= 0 && len > 0) breath = 0.5f + 0.5f * Mathf.Cos((t / len - (float)spec.Ev("idle", "inhale", 0.25)) * Mathf.PI * 2);
+            }
+            else if (_anim != null)
             {
                 string idle = spec.ClipOf("idle", null);
                 var st = idle != null ? _anim[idle] : null;
