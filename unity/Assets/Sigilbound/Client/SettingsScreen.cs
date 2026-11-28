@@ -18,19 +18,21 @@ namespace Sigilbound.Client
         }
 
         // Send feedback: a note plus the technical report, copied to the clipboard and saved (Feedback.cs).
-        string _feedback = ""; bool _feedbackErrors = true;
+        string _feedback = ""; bool _feedbackErrors = true, _feedbackCheck = true;
         void OpenFeedback()
         {
-            Modal("Send feedback", 360, b =>
+            bool hasCheck = !string.IsNullOrEmpty(LastPhoneCheck);
+            Modal("Send feedback", hasCheck ? 400 : 360, b =>
             {
                 Ui.Text(new Rect(b.x, b.y, b.width, 36), "What happened, or what would you like? Your note and some device details are copied so you can paste them to the developer.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
                 _feedback = Ui.Field(new Rect(b.x, b.y + 42, b.width, 120), _feedback, 2000, true);
                 string errs = Feedback.ErrorCount > 0 ? $"Attach the last {Feedback.ErrorCount} error lines" : "Attach recent errors (none so far)";
                 if (Ui.Button(new Rect(b.x, b.y + 170, b.width, 30), (_feedbackErrors ? "☑ " : "☐ ") + errs, Ui.Kind.Ghost, 12)) _feedbackErrors = !_feedbackErrors;
+                if (hasCheck && Ui.Button(new Rect(b.x, b.y + 206, b.width, 30), (_feedbackCheck ? "☑ " : "☐ ") + "Attach the last phone check", Ui.Kind.Ghost, 12)) _feedbackCheck = !_feedbackCheck;
                 if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
                 if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Copy report"))
                 {
-                    var path = Feedback.Send(_feedback, _feedbackErrors);
+                    var path = Feedback.Send(_feedback, _feedbackErrors, hasCheck && _feedbackCheck ? LastPhoneCheck : null);
                     CloseModal(); _feedback = "";
                     Toast(path != null ? "Report copied. Paste it in a message to the developer." : "Report copied to the clipboard.");
                 }
@@ -253,6 +255,14 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(b.x, y, 170, Tap), "Send feedback", Ui.Kind.Primary, 13)) OpenFeedback();
             if (Ui.Button(new Rect(b.x + 180, y, 170, Tap), "Replay tutorial", Ui.Kind.Secondary, 13)) { Tutorial.Step = 1; CloseModal(); Go(ScreenId.Home); Toast("Tutorial restarted"); }
             y += Tap + 10;
+
+            if (Screen != ScreenId.Battle)
+            {
+                // PLAN step 116: a fixed 60-second sequence measured on this phone; the report is copied (PhoneCheckRun.cs).
+                SettingRow(ref y, b, "Phone check", "60 seconds, hands off: plays a set route (team screen, a big battle, the Titan) and measures smoothness, memory and battery. Copies a report for the developer.");
+                if (Ui.Button(new Rect(b.x, y, 200, Tap), "Run phone check", Ui.Kind.Secondary, 13)) StartPhoneCheck();
+                y += Tap + 10;
+            }
 
             SettingRow(ref y, b, "Performance overlay", "Shows frame rate and draw calls. For testing; saved on this device.");
             Chips(ref y, b, new[] { "Off", "On" }, PerfOverlay.Enabled ? 1 : 0, i => PerfOverlay.Enabled = i == 1);

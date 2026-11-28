@@ -27,7 +27,7 @@ namespace Sigilbound.Client
 
         public static int ErrorCount { get { lock (_errors) return _errors.Count; } }
 
-        public static string Report(string note, bool withErrors)
+        public static string Report(string note, bool withErrors, string phoneCheck = null)
         {
             var sb = new StringBuilder();
             sb.AppendLine("Sigilbound feedback");
@@ -47,13 +47,18 @@ namespace Sigilbound.Client
                     foreach (var e in _errors) sb.AppendLine(e);
                 }
             }
+            if (!string.IsNullOrEmpty(phoneCheck))
+            {
+                sb.AppendLine();
+                sb.Append(phoneCheck.TrimEnd()).AppendLine(); // Settings > Run phone check (Core/PhoneCheck.cs)
+            }
             return sb.ToString();
         }
 
         // Copies the report and saves it to feedback.txt; returns where it was saved (or null).
-        public static string Send(string note, bool withErrors)
+        public static string Send(string note, bool withErrors, string phoneCheck = null)
         {
-            var text = Report(note, withErrors);
+            var text = Report(note, withErrors, phoneCheck);
             GUIUtility.systemCopyBuffer = text;
             try { var p = System.IO.Path.Combine(Application.persistentDataPath, "feedback.txt"); System.IO.File.WriteAllText(p, text); return p; }
             catch (Exception) { return null; }
