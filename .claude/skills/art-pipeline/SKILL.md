@@ -36,6 +36,21 @@ Prompt rules that make good 3D input (learned the hard way):
   no floor, no cast shadow, clean solid stylized painterly game asset".
 - Originality: no real-world religious symbols (use the game's Sigil), avoid archetypes ART_BIBLE §11.4 lists.
 
+## 1b. Separate accessory meshes (skeleton library, owner decision 2026-11-28)
+A fused image-to-3D shell (body, clothes, props in one mesh) is why props followed the legs, capes couldn't swing and
+headgear floated. New heroes and remodels are generated as **separate parts** (docs/sigilbound/art/SKELETON_LIBRARY.md 7.3):
+1. **Base body without accessories** (`unity/Tools~/artgen/prompts/base_body.txt`): the approved concept's character,
+   same face, outfit and colours, but no hat/helmet/crown, no weapon, no shield, no cape, no back gear, arms slightly
+   away from the body, the standard 3D-input block above.
+2. **One image per accessory** (`prompts/accessory.txt`, one run per item): the single object from the concept, three-
+   quarter view, plain background, nothing else in frame; for a cape: laid out flat seen from behind.
+3. Cut out and TRELLIS each image (`cutout.py`, `fal_trellis.py`) -> `<id>_body.glb`, `<id>_<item>.glb`.
+4. Rig the body on the library skeleton (`i3d_rig.py`), then attach each item with
+   `blenderforge/accessory_attach.py BODY.glb ITEM.glb SOCKET OUT.glb [--chain cape]`: rigid items snap to their
+   standard socket (`head_top`, `hand_r`, `hand_l`, `shield_arm`, `back`, `hip_l/r`) and are bound 100% to the socket's
+   bone; cloth items (`--chain`) get a spring chain (`sb_<n>_<k>` nodes) at the socket and are weighted along it.
+5. Review as usual (every frame, character-td); the profile in `Core/Rig/RigProfiles.cs` lists the chains and rigid items.
+
 ## 2. Owner pick
 `python3 unity/Tools~/artgen/sheet.py out/<id>_options.jpg A=out/<id>_a_1.png B=out/<id>_b_1.png` and send it with a
 one-line recommendation per option. Wait for the pick (AskUserQuestion).

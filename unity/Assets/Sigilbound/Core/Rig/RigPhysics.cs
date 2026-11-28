@@ -35,8 +35,8 @@ namespace Sigilbound.Core
         public RigidSpec(RigidKind kind, string bone) { Kind = kind; Bone = bone; }
     }
 
-    // A named attachment point on a bone (weapons, shields, back gear, headgear): offset in model metres in the bone's
-    // frame, plus the grip pose a held item asks of that hand.
+    // A named attachment point on a bone (weapons, shields, back gear, headgear): offset in model metres along the model axes
+    // (glTFast space: X mirrored from glTF), plus the grip pose a held item asks of that hand.
     public sealed class SocketSpec
     {
         public string Name, Bone; public float X, Y, Z;
@@ -50,7 +50,7 @@ namespace Sigilbound.Core
         public static readonly SocketSpec[] StandardSockets =
         {
             new SocketSpec("hand_r", "hand_r"), new SocketSpec("hand_l", "hand_l"),
-            new SocketSpec("back", "spine_03", 0, 0.05f, -0.16f), new SocketSpec("hip_l", "pelvis", 0.17f, 0, 0), new SocketSpec("hip_r", "pelvis", -0.17f, 0, 0),
+            new SocketSpec("back", "spine_03", 0, 0.05f, -0.16f), new SocketSpec("hip_l", "pelvis", -0.17f, 0, 0), new SocketSpec("hip_r", "pelvis", 0.17f, 0, 0),
             new SocketSpec("shield_arm", "lowerarm_l", 0, 0.12f, 0), new SocketSpec("head_top", "Head", 0, 0.2f, 0),
         };
 

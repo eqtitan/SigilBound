@@ -248,7 +248,7 @@ namespace Sigilbound.Client
             yield return new WaitForSecondsRealtime(4f);
             for (int i = 1; i <= 6 && Battle.InProgress; i++) { yield return Shot($"titan-{i}"); LogBudget($"titan-{i}"); LogTitanBounds($"titan-{i}"); yield return new WaitForSecondsRealtime(3.2f); }
 
-            if (!NoPilotArg()) yield return PilotTour();
+            if (!NoPilotArg()) { yield return PilotTour(); yield return MoveChecks(); }
 
             ShotLog($"DONE {_shotCount}");
             Application.Quit(0);
@@ -384,6 +384,102 @@ namespace Sigilbound.Client
             RigProfiles.ForceLegacy = false;
             Time.timeScale = keepTs;
             _shotLineup = null; _shotNoUi = false; _lineupKey = "";
+        }
+
+        // Per-move checks (SKELETON_LIBRARY.md 7.6): every migrated hero x every clip it can play, sampled at 13 points on
+        // its real runtime rig, logged as "SBMOVE <hero> <clip> limits=<largest muscle |value|> slide=<cm a planted foot
+        // drifts in a stance clip> intersect=<cm of the deepest limb-into-body overlap of its colliders> (<pair>) ok|BAD <why>"
+        // in model centimetres; tools/unity-smoke-check.sh fails on BAD unless the pair is accepted in
+        // docs/sigilbound/art/move_baseline.txt. No screenshots: poses are evaluated directly (HeroModel.Pose).
+        static readonly (string a, string b)[] MovePairs =
+        {
+            ("lowerarm_l", "head"), ("lowerarm_r", "head"), ("lowerarm_l", "chest"), ("lowerarm_r", "chest"),
+            ("upperarm_l", "head"), ("upperarm_r", "head"), ("thigh_l", "thigh_r"), ("calf_l", "calf_r"), ("lowerarm_l", "lowerarm_r"),
+        };
+
+        static float SegDist(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2)
+        {
+            Vector3 d1 = q1 - p1, d2 = q2 - p2, r = p1 - p2;
+            float a = Vector3.Dot(d1, d1), e = Vector3.Dot(d2, d2), f = Vector3.Dot(d2, r), sp, t;
+            if (a < 1e-8f && e < 1e-8f) return r.magnitude;
+            if (a < 1e-8f) { sp = 0; t = Mathf.Clamp01(f / e); }
+            else
+            {
+                float c = Vector3.Dot(d1, r);
+                if (e < 1e-8f) { t = 0; sp = Mathf.Clamp01(-c / a); }
+                else
+                {
+                    float b = Vector3.Dot(d1, d2), den = a * e - b * b;
+                    sp = den > 1e-8f ? Mathf.Clamp01((b * f - c * e) / den) : 0f;
+                    t = (b * sp + f) / e;
+                    if (t < 0) { t = 0; sp = Mathf.Clamp01(-c / a); } else if (t > 1) { t = 1; sp = Mathf.Clamp01((b - c) / a); }
+                }
+            }
+            return ((p1 + d1 * sp) - (p2 + d2 * t)).magnitude;
+        }
+
+        IEnumerator MoveChecks()
+        {
+            RigProfiles.ForceLegacy = false;
+            int total = 0, bad = 0;
+            foreach (var id in RigProfiles.Table.Keys)
+            {
+                bool titan = id == "titan";
+                var def = titan ? GameData.Titan : GameData.Hero(id);
+                if (def == null) continue;
+                var u = titan ? Sigilbound.Core.Battle.TitanUnit(1000, Element.Flame) : new Unit { Template = def, Name = def.Name, El = def.Element, Ally = true, Key = "M0" };
+                var v = CharacterView.Create(u, new Vector3(0, -50f, 0), 0f, 1f);
+                float wait = Time.realtimeSinceStartup + 40f;
+                while (Time.realtimeSinceStartup < wait && (v == null || v.Hero == null)) yield return null;
+                var m = v != null ? v.Hero : null;
+                var hr = m?.Humanoid; var bp = m != null ? m.Root.GetComponentInChildren<BodyPhysics>() : null;
+                if (hr == null || bp == null) { ShotLog($"SBMOVE {id} - BAD no humanoid rig or body colliders"); bad++; if (v) Destroy(v.gameObject); continue; }
+                var space = m.Root.transform;
+                var handler = new HumanPoseHandler(hr.Animator.avatar, hr.transform);
+                var pose = new HumanPose();
+                var bodies = new System.Collections.Generic.Dictionary<string, BodyPhysics.Body>();
+                foreach (var b in bp.Bodies) bodies[b.Name] = b;
+                Transform fl = BodyShaper.Find(space, "foot_l"), fr = BodyShaper.Find(space, "foot_r");
+                int heroBad = 0;
+                foreach (var clip in hr.Library.Keys.OrderBy(k => k))
+                {
+                    float limits = 0, inter = 0; string pair = "-"; bool nan = false;
+                    var feet = new System.Collections.Generic.List<(Vector3 l, Vector3 r)>();
+                    for (int k = 0; k <= 12; k++)
+                    {
+                        hr.Pose(clip, k / 12f);
+                        handler.GetHumanPose(ref pose);
+                        foreach (var x in pose.muscles) { if (float.IsNaN(x)) nan = true; else limits = Mathf.Max(limits, Mathf.Abs(x)); }
+                        foreach (var (pa, pb) in MovePairs)
+                        {
+                            if (!bodies.TryGetValue(pa, out var A) || !bodies.TryGetValue(pb, out var B)) continue;
+                            float dist = SegDist(space.InverseTransformPoint(A.A.position), space.InverseTransformPoint(A.B.position), space.InverseTransformPoint(B.A.position), space.InverseTransformPoint(B.B.position));
+                            float pen = A.R + B.R - dist;
+                            if (pen > inter) { inter = pen; pair = pa + "/" + pb; }
+                        }
+                        if (fl != null && fr != null) feet.Add((space.InverseTransformPoint(fl.position), space.InverseTransformPoint(fr.position)));
+                    }
+                    // a stance clip's planted foot should stay put: horizontal spread of its low samples
+                    float slide = 0;
+                    bool stance = clip.Contains("Idle") && !clip.Contains("Swim") && !clip.Contains("Sitting");
+                    if (stance && feet.Count > 0)
+                        foreach (var side in new[] { 0, 1 })
+                        {
+                            var pts = feet.Select(f => side == 0 ? f.l : f.r).ToList();
+                            float low = pts.Min(p => p.y);
+                            var planted = pts.Where(p => p.y < low + 0.04f).Select(p => new Vector2(p.x, p.z)).ToList();
+                            for (int i = 0; i < planted.Count; i++) for (int j = i + 1; j < planted.Count; j++) slide = Mathf.Max(slide, (planted[i] - planted[j]).magnitude);
+                        }
+                    string why = nan ? "NaN muscle" : limits > 1.25f ? "joint past its range" : stance && slide > 0.10f ? "foot sliding" : inter > 0.08f ? "limb through body" : null;
+                    total++; if (why != null) { bad++; heroBad++; }
+                    ShotLog($"SBMOVE {id} {clip} limits={limits:0.00} slide={slide * 100:0.0}cm intersect={inter * 100:0.0}cm ({pair}) " + (why == null ? "ok" : "BAD " + why));
+                }
+                handler.Dispose();
+                ShotLog($"SBMOVE-SUMMARY {id} clips={hr.Library.Count} bad={heroBad}");
+                Destroy(v.gameObject);
+                yield return null;
+            }
+            ShotLog($"SBMOVE-TOTAL checked={total} bad={bad}");
         }
 
         void LogPose(string pass, string id, string state, int k, string clip, CharacterView v)

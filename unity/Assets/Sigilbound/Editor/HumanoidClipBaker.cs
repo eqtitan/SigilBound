@@ -126,14 +126,31 @@ namespace Sigilbound.EditorTools
             }
         }
 
-        static AnimationCurve Curve(float[] times, float[] vals)
+        // Keys every baked frame would cost 95 curves x 30 keys per second per clip (6.4 MB for 70 clips, run 208); a key
+        // is kept only where dropping it would move the curve by more than tol from the straight line between its kept
+        // neighbours (greedy, both ends kept), then tangents come from the kept keys.
+        public static AnimationCurve Curve(float[] times, float[] vals, float tol = 0.0015f)
         {
-            var keys = new Keyframe[times.Length];
-            for (int i = 0; i < keys.Length; i++)
+            var keep = new List<int> { 0 };
+            int last = 0;
+            for (int i = 1; i < times.Length - 1; i++)
             {
-                int a = Math.Max(0, i - 1), b = Math.Min(keys.Length - 1, i + 1);
+                // can the segment last -> i+1 stand in for every frame in between?
+                bool ok = true;
+                for (int j = last + 1; j <= i; j++)
+                {
+                    float f = (times[j] - times[last]) / Mathf.Max(1e-6f, times[i + 1] - times[last]);
+                    if (Mathf.Abs(vals[last] + (vals[i + 1] - vals[last]) * f - vals[j]) > tol) { ok = false; break; }
+                }
+                if (!ok) { keep.Add(i); last = i; }
+            }
+            if (times.Length > 1) keep.Add(times.Length - 1);
+            var keys = new Keyframe[keep.Count];
+            for (int k = 0; k < keys.Length; k++)
+            {
+                int a = keep[Math.Max(0, k - 1)], b = keep[Math.Min(keys.Length - 1, k + 1)], i = keep[k];
                 float slope = b > a ? (vals[b] - vals[a]) / (times[b] - times[a]) : 0f;
-                keys[i] = new Keyframe(times[i], vals[i], slope, slope);
+                keys[k] = new Keyframe(times[i], vals[i], slope, slope);
             }
             return new AnimationCurve(keys);
         }

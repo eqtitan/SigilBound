@@ -9,6 +9,7 @@
 #   - the Titan's pose is sane in every Titan shot (SBBOUNDS titan-*)
 #   - every gallery hero's pose is sane: shots.log has SBBOUNDS lines and none says BAD (a body flung
 #     into the sky or smeared into a sheet still counts as a "real model" with skinned>0; build 180),
+#   - no skeleton-library move breaks a body (SBMOVE lines: joint range, stance foot sliding, limb through body),
 #   - player.log has no NullReferenceException / MissingReferenceException /
 #     IndexOutOfRangeException whose message or stack trace is in Sigilbound code.
 set -uo pipefail
@@ -53,6 +54,17 @@ if [ -f "$SHOTS" ]; then
   nt=$(grep -c '^SBBOUNDS titan-' "$SHOTS" || true)
   if [ "${nt:-0}" -eq 0 ]; then bad "no SBBOUNDS titan-* lines in shots.log (Titan pose check did not run)"
   else echo "ok: $nt Titan shots pose-checked (SBBOUNDS titan-*; any BAD fails above)"; fi
+fi
+
+# Per-move checks of the skeleton-library heroes (ShotsMode.MoveChecks, SKELETON_LIBRARY.md 7.6): any SBMOVE ... BAD
+# line fails, unless "<hero> <clip>" is accepted in docs/sigilbound/art/move_baseline.txt (one per line, # comments).
+if [ -f "$SHOTS" ] && grep -q '^SBMOVE-TOTAL' "$SHOTS"; then
+  BASE="$(dirname "$0")/../docs/sigilbound/art/move_baseline.txt"
+  badm=$(grep -E '^SBMOVE .* BAD' "$SHOTS" | while read -r _ hero clip rest; do
+    if [ -f "$BASE" ] && grep -qxF "$hero $clip" <(sed 's/#.*//; s/[[:space:]]*$//' "$BASE"); then continue; fi
+    echo "SBMOVE $hero $clip $rest"; done)
+  if [ -n "$badm" ]; then bad "moves that break a body (SBMOVE BAD, not in move_baseline.txt):"; sed 's/^/    /' <<<"$badm"
+  else echo "ok: $(grep '^SBMOVE-TOTAL' "$SHOTS" | tail -n 1)"; fi
 fi
 
 if [ ! -f "$PLAYER" ]; then
