@@ -99,7 +99,7 @@ static class SaveSafetyTests
         {
             var src = Json.Parse(good) as Dictionary<string, object>;
             var heroes = (List<object>)src["heroes"]; var gear = (List<object>)src["gear"] ?? new List<object>();
-            heroes.Add(new Dictionary<string, object> { ["uid"] = 900.0, ["id"] = "vorgrim", ["level"] = 33.0, ["stars"] = 5.0, ["gear"] = new Dictionary<string, object> { ["weapon"] = 901.0 }, ["futureField"] = "x" });
+            heroes.Add(new Dictionary<string, object> { ["uid"] = 900.0, ["id"] = "zz_future_hero", ["level"] = 33.0, ["stars"] = 5.0, ["gear"] = new Dictionary<string, object> { ["weapon"] = 901.0 }, ["futureField"] = "x" });
             gear.Add(new Dictionary<string, object> { ["uid"] = 901.0, ["slot"] = "weapon", ["rarity"] = 5.0, ["set"] = "fury", ["level"] = 12.0, ["subs"] = new List<object>() });
             src["gear"] = gear;
             src["cleared"] = (double)(TotalStages + 6);
@@ -109,7 +109,7 @@ static class SaveSafetyTests
             var g2 = new Game(s, 1); var added = g2.AddHero("ysolde");
             check(added.uid > 901, "save: a hero added later gets a fresh uid");
             var back = Json.Parse(SaveCodec.ToJson(g2.S)) as Dictionary<string, object>;
-            var vh = ((List<object>)back["heroes"]).OfType<Dictionary<string, object>>().FirstOrDefault(h => Json.Str(h, "id") == "vorgrim");
+            var vh = ((List<object>)back["heroes"]).OfType<Dictionary<string, object>>().FirstOrDefault(h => Json.Str(h, "id") == "zz_future_hero");
             var vg = ((List<object>)back["gear"]).OfType<Dictionary<string, object>>().FirstOrDefault(x => Json.Int(x, "uid") == 901);
             check(vh != null && Json.Int(vh, "level") == 33 && Json.Str(vh, "futureField") == "x" && Json.Int(Json.Obj(vh, "gear"), "weapon") == 901 && vg != null && Json.Int(vg, "level") == 12,
                 "save: the unknown hero and its gear are written back unchanged");

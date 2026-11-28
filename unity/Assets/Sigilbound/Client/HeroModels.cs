@@ -831,7 +831,7 @@ namespace Sigilbound.Client
             var root = holder.Find("Armature") != null ? holder.gameObject : holder.GetChild(0).gameObject;
             // Creature heroes (Core/Kit/Creatures.cs): their own clips, fixed scale, planted feet (CreatureRig).
             var creature = Creatures.Of(id);
-            if (creature != null) { done(CreatureRig.Setup(holder.gameObject, root, bk.gltf.GetAnimationClips(), creature)); yield break; }
+            if (creature != null) { done(CreatureRig.Setup(holder.gameObject, root, bk.Gltf.GetAnimationClips(), creature)); yield break; }
             var anim = root.GetComponent<Animation>() ?? root.AddComponent<Animation>();
             foreach (var c in lib.Gltf.GetAnimationClips() ?? new AnimationClip[0]) if (c != null && !c.name.Contains("TPose")) anim.AddClip(c, c.name);
             anim.playAutomatically = false; // never fall back to a default clip (the T-pose reference)
