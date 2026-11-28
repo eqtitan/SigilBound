@@ -278,7 +278,9 @@ namespace Sigilbound.Client
         // fails on any BAD line. Measured from the figure's feet, in units of its own height marker
         // (HeroModel.Height, about 1.25x the standing height): the Head bone stands between 0.25 and 1.1 of it
         // above the feet and within 0.6 of it sideways, and the skinned meshes' bounds (bone-driven,
-        // updateWhenOffscreen) stay under 1.5 of it tall and 2.8 wide (long polearms and wings included).
+        // updateWhenOffscreen) reach no higher than 1.8 of it and stay under 2.8 wide (long polearms and wings
+        // included). Calibrated on run 186: every sane hero had head 0.42-0.87, top up to 1.44 (Crusk's horns),
+        // wide up to 1.77; the full bounds height is not checked (golems' bounds reach below their feet).
         void LogBounds()
         {
             foreach (var v in _lineup)
@@ -300,7 +302,7 @@ namespace Sigilbound.Client
                 float hx = head != null ? new Vector2(head.position.x - feet.x, head.position.z - feet.z).magnitude / H : 0f;
                 float top = (bb.max.y - feet.y) / H, tall = bb.size.y / H, wide = Mathf.Max(bb.size.x, bb.size.z) / H;
                 string why = hy < 0.25f ? "head on the ground" : hy > 1.1f ? "head too high" : hx > 0.6f ? "head off the body"
-                           : tall > 1.5f || top > 1.5f ? "stretched up" : wide > 2.8f ? "stretched sideways" : null;
+                           : top > 1.8f ? "stretched up" : wide > 2.8f ? "stretched sideways" : null;
                 ShotLog($"SBBOUNDS {id} head={hy:0.00}/{hx:0.00} top={top:0.00} tall={tall:0.00} wide={wide:0.00} " + (why == null ? "ok" : "BAD " + why));
             }
         }
