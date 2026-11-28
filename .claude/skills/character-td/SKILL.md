@@ -76,6 +76,7 @@ result, an owner preference) to the sections below with the date and branch. Kee
 - Capes (kit, own island) work: gravity 0, colliders +4.5 cm, no ground (lying on it squeezed it), MaxAngle 12 deg,
   5-7 chains x 4 bones (3 bones let a knee poke through the hem). Expect the cape to trail below a falling body in Death01.
 - Classifier: reliable on kit heroes; on fused image-to-3D meshes treat parts as hints (L034, L018).
+- Before rigging, look at the part view: ship only a cape that is a free sheet from the shoulders. Gown backs, panels joined to a tabard and short shoulder capes tore or creased (batch 2). "Hair" that is a hood, veil, scarf end or headband tail crumples or flips up: no chains.
 - Simulate in the model holder's space at fixed 1/60 s (deterministic, matches previews); Low = kinematic + collisions.
 - Two collision passes per joint; joint radius ~3-4 cm; thigh 9-13 cm, calf 7-11 cm capsules for robes; feet capsule for gowns.
 - Cloth that hugs the legs or sits on layered meshes tears from the waist when put on chains; only free-hanging cloth worked (Jasper).
@@ -97,4 +98,5 @@ result, an owner preference) to the sections below with the date and branch. Kee
 - 2026-11-28 fix/ctd-roster-1/2: rigid props, islands, metal maps + reflection, Wystan/Vorgrim remodels.
 - 2026-11-28 fix/ctd-headgear: ring fit shipped for Quill/Vaelith/Ondessa/Pell; lowering hats/helms and tight rings rejected (rings sink out of sight); L025.
 - 2026-11-28 feat/physics-standard: physics standard on the library API (measured girth, chain kinds by number, swing limit, inflate); batch 1 = ten kit capes (summary in scratchpad physics/summary.json); L033, L034.
+- 2026-11-28 feat/physics-standard batch 2: 6 capes SHIP (clemence, ottavia, ilsabet, aldric, dorian, lucan), 8 REVERT (gown backs, joined panel, shoulder cape, and all four "hair" heroes - no real long hair).
 - 2026-11-28 fix/ctd-roster-3: L010 root cause = missing mask (L024); Obrecht pick turned; Nell idle; NoBlock weapons.

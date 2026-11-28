@@ -339,4 +339,5 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Fix: rules grown from an anchor band (a cape is the sheet connected to the upper back, a skirt the cloth connected to the waist), leg/arm-dominant vertices excluded, whole islands taken for kit parts; image-to-3D proposals are hints only (colour view partview.py) and still follow L018.
 - Prevention: never ship chains from the classifier alone; look at the part colour view and sweep. Image-to-3D heroes need part splitting or rig-time landmarks first.
 - Related: L018, L009, L033
-- Evidence: scratchpad physics/pv1.jpg, pv2.jpg, pv3.jpg, classify_all.json
+- Batch 2 (2026-11-28): even on kit heroes "cape" can be the back half of a gown or a panel joined to a tabard (aelira, corvan, pell: reverted), and "hair" was a hood, a veil, scarf ends or headband tails (kaelith, sable, drift, kaito: reverted). Check in the part view that a cape is a free sheet hanging from the shoulders and that hair is a separate lock that hangs below the head before rigging.
+- Evidence: scratchpad physics/pv1.jpg, pv2.jpg, pv3.jpg, pv_b2a.jpg, pv_b2b.jpg, classify_all.json

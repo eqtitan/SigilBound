@@ -81,5 +81,105 @@
   ],
   "verdict": "SHIP",
   "note": "Death01 cape lag accepted by the owner 2026-11-28 (natural, no pinning)"
+ },
+ "clemence": {
+  "chains": [
+   "cape"
+  ],
+  "batch": 2,
+  "verdict": "SHIP WITH NOTE",
+  "note": "Ult_DashStrike f18 (back, wide stance) the cape parts around the leg in an arch (before: the leg poked through); 7 chains did not change it"
+ },
+ "ottavia": {
+  "chains": [
+   "cape"
+  ],
+  "batch": 2,
+  "cape": {
+   "K": 5,
+   "J": 4
+  },
+  "verdict": "SHIP WITH NOTE",
+  "note": "Spear_Thrust f26 a soft crease at the hem (side); 5 chains x 4 bones (3 bones let the knee through)"
+ },
+ "ilsabet": {
+  "chains": [
+   "cape"
+  ],
+  "batch": 2,
+  "verdict": "SHIP",
+  "note": "Death01 cape lag as accepted for batch 1"
+ },
+ "aldric": {
+  "chains": [
+   "cape"
+  ],
+  "batch": 2,
+  "verdict": "SHIP",
+  "note": "Death01 cape lag as accepted for batch 1"
+ },
+ "dorian": {
+  "chains": [
+   "cape"
+  ],
+  "batch": 2,
+  "verdict": "SHIP",
+  "note": "Death01 cape lag as accepted for batch 1"
+ },
+ "lucan": {
+  "chains": [
+   "cape"
+  ],
+  "batch": 2,
+  "verdict": "SHIP",
+  "note": "Death01 cape lag as accepted for batch 1"
+ },
+ "pell": {
+  "chains": [],
+  "batch": 2,
+  "verdict": "REVERT",
+  "why": "the back panel shares its edge with the front tabard: tears at the join (stretch in every idle) and fans out stiffly in the run"
+ },
+ "corvan": {
+  "chains": [],
+  "batch": 2,
+  "verdict": "REVERT",
+  "why": "kit gown (L018): the back of the gown is the 'cape'; flares into a stiff bell, splits at the side seams"
+ },
+ "aelira": {
+  "chains": [],
+  "batch": 2,
+  "verdict": "REVERT",
+  "why": "kit gown (L018): the back of the gown separates from the front skirt and shows the legs (Hit_Chest, Jog)"
+ },
+ "ignis": {
+  "chains": [],
+  "batch": 2,
+  "verdict": "REVERT",
+  "why": "the moving part is a short shoulder cape that folds into a sharp crease (Jog f14); legs through the gown unchanged"
+ },
+ "kaelith": {
+  "chains": [],
+  "batch": 2,
+  "verdict": "REVERT",
+  "why": "the 'hair' is a hood mass: its back edge breaks into shards and a spike shows beside the face"
+ },
+ "drift": {
+  "chains": [],
+  "batch": 2,
+  "verdict": "REVERT",
+  "why": "no long hair: the 'hair' is a flat scarf end weighted to the head; on a chain it flips up above the head (Defeat_Slump)"
+ },
+ "kaito": {
+  "chains": [],
+  "batch": 2,
+  "verdict": "REVERT",
+  "why": "no long hair: headband tail and scarf strip crumple over the face (Death01 f26, Sword_Attack f14)"
+ },
+ "sable": {
+  "chains": [],
+  "batch": 2,
+  "verdict": "REVERT",
+  "why": "the 'hair' is a veil over the head: tears a strip at the cheek, nothing gained"
  }
 }

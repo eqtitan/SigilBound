@@ -3,7 +3,7 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-28 | Capes that move
-new: Ten heroes' capes now swing with their steps and slide off the legs instead of being cut by them: Wick, Nocturne, Imogen, Sprig, Aurelia, Tallow, Dunstan, Kaija, Hilde and Bastian.
+new: Sixteen heroes' capes now swing with their steps and slide off the legs instead of being cut by them: Wick, Nocturne, Imogen, Sprig, Aurelia, Tallow, Dunstan, Kaija, Hilde, Bastian, Clemence, Ottavia, Ilsabet, Aldric, Dorian and Lucan.
 change: Every hero now has body colliders, so capes, hair and tails added later keep clear of the body. On Low quality capes hang still but still stay off the legs.
 
 ## 2026-11-28 | Screens that match

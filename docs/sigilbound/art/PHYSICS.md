@@ -96,6 +96,8 @@ sweeps, review sheets, `before_after.jpg`, `motion.gif`), summary `physics/summa
 |---|---|---|
 | 1 | kit capes, worst cape severity first: wick, nocturne, imogen, sprig, aurelia, tallow, dunstan, kaija, hilde, bastian | 10 SHIP: owner approved for the in-game check (2026-11-28) and chose to keep the natural Death01 cape lag (no pinning); real build pending the CI queue. Legs no longer split the capes in the run, idles, kneels and lying poses (cape depth inside the body over every swept frame down 70-100% per hero). Accepted: in Death01 the cape trails below the falling body for a few frames; kaija needs 5 chains x 4 bones. 15-20 spring joints per hero. |
 
+| 2 | next kit capes + kit "long hair": clemence, ottavia, ilsabet, aldric, dorian, lucan, pell, corvan, aelira, ignis, kaelith, drift, kaito, sable | 6 SHIP (ilsabet, aldric, dorian, lucan; clemence and ottavia with notes), 8 REVERT. Shipped: free back capes, same defaults as batch 1 (ottavia 5 x 4 bones). Reverted: gown backs and joined panels (aelira, corvan, pell; L018), a short shoulder cape (ignis), and all four "hair" heroes - none has long hair on a separate piece: hood (kaelith), veil (sable), scarf ends and headband tails (drift, kaito). Reasons per hero in overrides.json. |
+
 Tuning history (batch 1, so the next batch starts from the right defaults - L033): the skirt pilot's settings made
 capes sag into the legs when a hero lay face down (gravity), get squeezed by the floor under a lying hero (ground
 collider) and whip round the body in a dash (no swing limit); bare capsules were thinner than trousers and boots
