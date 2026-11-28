@@ -361,6 +361,7 @@ namespace Sigilbound.Core
         // ---- summoning ----
         public enum Shard { Common, Mystic, Radiant }
         // One name per shard everywhere in the client (UX review #14: "Worn Shard", "1 worn" and "Common").
+        public static string TomeName(int count = 1) => count == 1 ? "Skill Tome" : "Skill Tomes";
         public static string ShardName(Shard s, int count = 1) => (s == Shard.Common ? "Worn" : s == Shard.Mystic ? "Mystic" : "Radiant") + (count == 1 ? " Shard" : " Shards");
         public static double[] ShardRates(Shard s) => s switch // common, rare, epic, legendary
         {
@@ -399,6 +400,7 @@ namespace Sigilbound.Core
 
         // Campaign story (Unity only): the Act II introduction shown once when it opens, and a line per
         // chapter (both acts) at the top of its stage list.
+        public const string Act1Title = "Act I · The Shattered Sigil"; // the map banner names both acts the same way
         public const string Act2Title = "Act II · The Sigil Bearers";
         public const string Act2Intro =
             "The Last Pyre is quiet, but the Sigil did not mend. Its five shards fled west on the storm, " +
@@ -480,10 +482,11 @@ namespace Sigilbound.Core
             var parts = new List<string>();
             if (Gold > 0) parts.Add($"{Gold:N0} gold");
             if (Essence > 0) parts.Add($"{Essence} essence");
-            if (Common > 0) parts.Add($"{Common} worn shard{(Common > 1 ? "s" : "")}");
-            if (Mystic > 0) parts.Add($"{Mystic} mystic shard{(Mystic > 1 ? "s" : "")}");
-            if (Radiant > 0) parts.Add($"{Radiant} radiant shard{(Radiant > 1 ? "s" : "")}");
-            if (Tome > 0) parts.Add($"{Tome} skill tome{(Tome > 1 ? "s" : "")}");
+            // Item names one way everywhere (UI/UX review #16): through ShardName and TomeName, as the results show them.
+            if (Common > 0) parts.Add($"{Common} {GameData.ShardName(GameData.Shard.Common, Common)}");
+            if (Mystic > 0) parts.Add($"{Mystic} {GameData.ShardName(GameData.Shard.Mystic, Mystic)}");
+            if (Radiant > 0) parts.Add($"{Radiant} {GameData.ShardName(GameData.Shard.Radiant, Radiant)}");
+            if (Tome > 0) parts.Add($"{Tome} {GameData.TomeName(Tome)}");
             return string.Join(", ", parts);
         }
     }
