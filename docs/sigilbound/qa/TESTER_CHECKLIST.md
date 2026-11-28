@@ -7,6 +7,11 @@ https://github.com/eqtitan/SigilBound/releases/download/unity-latest/Sigilbound-
 Please send back: your phone model, what you tried, and anything that looked wrong, felt slow or sounded off.
 A screenshot helps a lot. Settings → Send feedback also copies a report with your device and recent errors.
 
+
+> **Old "Sigilbound" web app (Capacitor, from the android-latest link):** it is retired. Its app id is now
+> reserved for the Play Store version. If you still have it, open it, go to Settings > Save code > Copy and keep
+> the code, then uninstall it. Paste the code into the Unity app (Settings > Paste and Load code) to keep your progress.
+
 ## 1. NEW in this build: screens and buttons (please check these first)
 - [ ] **Home:** quests on the left, your team in the middle, and a **Continue Campaign** button on the right
       (or above the bottom bar in portrait). Is anything cut off, overlapping or covered by your phone's camera hole?

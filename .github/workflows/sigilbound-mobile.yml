@@ -70,8 +70,11 @@ jobs:
         with:
           name: sigilbound-android
           path: Sigilbound-*.apk
-      - name: Publish to the android-latest release
-        if: github.event_name != 'pull_request'
+      # RETIRED 2026-11-28 (owner decision): this Capacitor test app used the id com.sigilbound.game, which is now
+      # reserved for the Play Store build of the Unity game (BuildScript.AndroidStore). It no longer publishes to
+      # android-latest; the APK is still built and kept as a workflow artifact for development only.
+      - name: Publish to the android-latest release (retired)
+        if: false
         env:
           GH_TOKEN: ${{ github.token }}
           NOTES_TAIL: >-

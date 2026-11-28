@@ -191,3 +191,4 @@ Each item is something only you can do. Most urgent first.
 - **2026-11-22:** Unity port resumed in parallel (app id `com.sigilbound.unity`, release `unity-latest`); it is now where new work goes.
 - **2026-11-22:** Every asset must be CC0 or owned, with provenance in `models/CREDITS.md`.
 - **2026-11-22:** Hero card art from the owner's AI-generated images or commissions (done: 150 painted portraits).
+- 2026-11-28: Old Capacitor test app (`android-latest`, id com.sigilbound.game) retired so the id belongs to the Play Store build; its publish step is disabled (owner).
