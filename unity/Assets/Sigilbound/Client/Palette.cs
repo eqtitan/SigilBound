@@ -29,19 +29,16 @@ namespace Sigilbound.Client
         public static readonly Color Bg = Hex("#0f0c15"), Panel = Hex("#1b1624"), Panel2 = Hex("#251e31"), Line = Hex("#4a3d2e");
         public static readonly Color Text = Hex("#f1e9da"), Dim = Hex("#b0a48f"), Gold = Hex("#f2c45c"), GoldDark = Hex("#b3802a");
         public static readonly Color Trim = Hex("#b88a3e"), TrimHi = Hex("#ffe2a0"), TrimLo = Hex("#6b4b1c"), Bronze = Hex("#5c4a30");
-        public static readonly Color Good = Hex("#5bd17a"), Bad = Hex("#ff5a5a"), Blue = Hex("#4aa3ff");
+        public static readonly Color Blue = Hex("#4aa3ff");
+        // Good/bad (allies and gains vs enemies and losses), element, rarity and gear colours follow Settings >
+        // Accessibility > Colour-blind palette (Core/Accessibility.cs; mode 0 is the game's own colours).
+        public static Color Good => Hex(Accessibility.GoodBadHex[Access.ColourMode][0]);
+        public static Color Bad => Hex(Accessibility.GoodBadHex[Access.ColourMode][1]);
 
-        public static Color Element(Element e) => e switch
-        {
-            Core.Element.Flame => Hex("#e8553a"), Core.Element.Gale => Hex("#3fb57a"), Core.Element.Tide => Hex("#3a8ee8"),
-            Core.Element.Light => Hex("#e8c23a"), _ => Hex("#9a5ae8"),
-        };
+        public static Color Element(Element e) => Hex(Accessibility.ElementColour(Access.ColourMode, e));
         public static string ElementName(Element e) => e.ToString();
-        public static Color Rarity(Rarity r) => r switch
-        {
-            Core.Rarity.Common => Hex("#9aa3ad"), Core.Rarity.Rare => Hex("#4aa3ff"), Core.Rarity.Epic => Hex("#b46cff"), _ => Hex("#ffb02e"),
-        };
-        public static Color GearRarity(int r) => r switch { 1 => Hex("#9aa3ad"), 2 => Hex("#5bc46a"), 3 => Hex("#4aa3ff"), 4 => Hex("#b46cff"), _ => Hex("#ffb02e") };
+        public static Color Rarity(Rarity r) => Hex(Accessibility.RarityColour(Access.ColourMode, r));
+        public static Color GearRarity(int r) => Hex(Accessibility.GearColour(Access.ColourMode, r));
 
         // Chapter scenery: sky top, sky bottom/fog, ground, prop colour.
         public static (Color top, Color bottom, Color ground, Color prop) Scene(int chapter)

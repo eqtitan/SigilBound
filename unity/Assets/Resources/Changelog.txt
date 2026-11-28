@@ -12,6 +12,12 @@ fix: Solenne, Aelira, Ember, Azura, Morwenna and Kasimir walk formally and take 
 fix: Shields and two-handed props no longer bend with the arm or legs (Hobb, Hask, Gorrum, Dunstan, Ivo, Merrit, Oswin, Tallow, Sable, Oriel, Benedict, Marrow, Maelis, Barley and more).
 fix: The loose specks around Fennick, Brega and Holt and the stray piece by Nell's feet are gone.
 change: Steel and gold blades and shield rims catch the light.
+new: Settings has an Accessibility section at the top: text size (Small, Default, Large, Extra large), reduce motion, screen shake, flash effects, a colour-blind palette, hold time and larger buttons.
+new: Text size makes every label bigger; anything without room shrinks to fit instead of spilling over, never smaller than Default, and tiny text is gone.
+new: Reduce motion turns off screen shake and holds the Titan and lair cinematics on still shots with gentle cuts instead of sweeping camera moves.
+new: Flash effects (On, Reduced, Off) dims or removes crit and ultimate flashes, flickering lightning and bright bursts.
+new: Colour-blind palettes for red-green and blue-yellow colour blindness change element and rarity colours; element icons and rarity letters stay, with preview chips in Settings.
+new: Hold to confirm can be shorter or longer, and Larger tap targets makes every button at least 56 dp.
 fix: Tansy and Corran are back to their previous look while their new animal legs are fixed (they showed up stretched and broken).
 fix: Jasper's long coat now swings and slides off his legs instead of splitting around them, and his boots and trousers bend with his knees.
 fix: Hask's tower shield sits closer to his fist so it no longer cuts through his helmet, and he attacks with sword swings only.

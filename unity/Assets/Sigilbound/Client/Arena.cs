@@ -56,6 +56,7 @@ namespace Sigilbound.Client
         float _breath, _ovW; public float BreathTarget;   // 0..1: the Titan winding up (BattleController)
         Vector3 _ovPos; Quaternion _ovRot = Quaternion.identity; float _ovFov = 42;
         public Vector3 BreathFocus;                        // where the breathing tilt looks (the Titan's head)
+        // Screen shake (and Reduce motion, which turns it off) also scale the Titan's breathing tilt.
         public static float MotionScale => (Vfx.ShakeSetting?.Invoke() ?? "full") switch { "off" => 0f, "reduced" => 0.4f, _ => 1f };
 
         void SetPose(Vector3 pos, Vector3 target, float fov)
@@ -83,7 +84,8 @@ namespace Sigilbound.Client
             if (pos.y < 0.4f) pos.y = 0.4f;
             var rot = b > 0 && BreathFocus != Vector3.zero ? Quaternion.Slerp(_poseRot, Quaternion.LookRotation(BreathFocus - pos), 0.3f * b) : _poseRot;
             float fov = _poseFov;
-            if (_ovW > 0) { pos = Vector3.Lerp(pos, _ovPos, _ovW); rot = Quaternion.Slerp(rot, _ovRot, _ovW); fov = Mathf.Lerp(fov, _ovFov, _ovW); }
+            if (Access.ReduceMotion) ReducedOverride(ref pos, ref rot, ref fov);
+            else if (_ovW > 0) { pos = Vector3.Lerp(pos, _ovPos, _ovW); rot = Quaternion.Slerp(rot, _ovRot, _ovW); fov = Mathf.Lerp(fov, _ovFov, _ovW); }
             // Titan cinematics keep the ground in frame (Faultline Leap, the final blow, Bedrock Hammer's low shot):
             // tilt down until the frame's bottom edge meets the ground within BattleLayout.GroundSeen metres.
             if (_framedTitan && _ovW > 0)
@@ -94,6 +96,32 @@ namespace Sigilbound.Client
                 if (pitch > max) rot = Quaternion.AngleAxis((pitch - max) * _ovW, rot * Vector3.right) * rot;
             }
             Cam.transform.position = pos + Vfx.ShakeOffset; Cam.transform.rotation = rot; Cam.fieldOfView = fov;
+        }
+
+        // Settings > Accessibility > Reduce motion: a cinematic (Titan intro and moves, lair reveal) holds one still
+        // shot instead of swinging, zooming or rolling: the pose it has once fully blended in, without the Dutch
+        // roll, entered and left with a cut softened by a short dip (CutDip, drawn by OnGUI under the HUD).
+        bool _held; Vector3 _heldPos; Quaternion _heldRot; float _heldFov;
+        public static float CutDip { get; private set; }
+        void ReducedOverride(ref Vector3 pos, ref Quaternion rot, ref float fov)
+        {
+            bool full = _ovW >= 0.999f;
+            if (full && !_held)
+            {
+                _held = true; _heldPos = _ovPos; _heldFov = _ovFov; CutDip = 1f;
+                var f = _ovRot * Vector3.forward; _heldRot = Quaternion.LookRotation(f, Vector3.up); // level horizon
+            }
+            else if (!full && _held) { _held = false; CutDip = 1f; }
+            if (_held) { pos = _heldPos; rot = _heldRot; fov = _heldFov; }
+            CutDip = Mathf.MoveTowards(CutDip, 0, Time.unscaledDeltaTime / 0.3f);
+        }
+        void OnGUI()
+        {
+            if (CutDip <= 0.01f || Event.current.type != EventType.Repaint) return;
+            GUI.depth = 10; // under the HUD (App draws at depth 0)
+            var keep = GUI.color; GUI.color = new Color(0, 0, 0, 0.55f * CutDip);
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = keep;
         }
 
         // Menu view: the team lineup stands in front of a fixed camera.

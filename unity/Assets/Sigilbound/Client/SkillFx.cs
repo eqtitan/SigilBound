@@ -197,7 +197,8 @@ namespace Sigilbound.Client
         }
 
         // ---------- primitives ----------
-        static Color Hdr(Color c, float k) { var o = c * k * 0.5f; o.a = 1; return o; } // legacy additive doubles the tint
+        // Legacy additive doubles the tint. Settings > Accessibility > Flash effects caps how bright a spark gets.
+        static Color Hdr(Color c, float k) { var o = c * Mathf.Min(k, Access.BurstCap) * 0.5f; o.a = 1; return o; }
         // An HDR palette colour squashed to a displayable one (for alpha-blended leaves, ink, splashes).
         static Color Ldr(Color c, float a = 1, float bright = 0.9f) { float m = Mathf.Max(c.r, Mathf.Max(c.g, Mathf.Max(c.b, 0.001f))); var o = c * (bright / m); o.a = a; return o; }
         static Vector3 Ground(Vector3 p, float y = 0.03f) => new Vector3(p.x, y, p.z);
@@ -582,8 +583,9 @@ namespace Sigilbound.Client
             if (crit)
             {
                 GroundFx(_shock, pos, 0.4f, 2.6f, P.Core, 0.9f, 0.3f, 0, 0, true);
-                GroundFx(_burst, pos, 1, 2.4f, P.Core, 0.6f, 0.24f, 0, 0, true);
-                GroundFx(_flare, pos, 2f, 4.2f, P.Core, 0.8f, 0.24f, 0, 0, true, true);
+                float fl = Mathf.Max(0.25f, Access.FlashScale); // Flash effects: dimmer crit burst and flare
+                GroundFx(_burst, pos, 1, 2.4f, P.Core, 0.6f * fl, 0.24f, 0, 0, true);
+                GroundFx(_flare, pos, 2f, 4.2f, P.Core, 0.8f * fl, 0.24f, 0, 0, true, true);
                 Debris(pos, N(5), 2.4f, 3.5f, 0.14f);
             }
         }
@@ -769,7 +771,8 @@ namespace Sigilbound.Client
             var main = TakeLine(10, 0.07f * s, g); var f1 = TakeLine(5, 0.04f * s, g); var f2 = TakeLine(5, 0.035f * s, g);
             var glow = TakeLine(10, 0.3f * s, Grad(Hdr(P.Main, 0.7f), Hdr(P.Deep, 0.5f)));
             GroundFx(_glow, pos, 0.6f * s, 1.8f * s, P.Core, 1.0f, 0.2f, 0, 0, true);
-            for (int flick = 0; flick < 3; flick++)
+            int flicks = Accessibility.BoltFlicks(Access.Flash); // one steady strike when flashes are limited
+            for (int flick = 0; flick < flicks; flick++)
             {
                 var top = pos + new Vector3(Random.Range(-0.5f, 0.5f), 2.6f * s, Random.Range(-0.5f, 0.5f));
                 var pts = new Vector3[10];
@@ -781,7 +784,7 @@ namespace Sigilbound.Client
                 }
                 Fork(f1, Random.Range(2, 5)); Fork(f2, Random.Range(4, 8));
                 main.widthMultiplier = 0.07f * s * (1 - flick * 0.2f);
-                float wait = 0.05f; while ((wait -= Time.deltaTime) > 0) yield return null;
+                float wait = flicks == 1 ? 0.16f : 0.05f; while ((wait -= Time.deltaTime) > 0) yield return null;
             }
             ReleaseLine(main); ReleaseLine(f1); ReleaseLine(f2); ReleaseLine(glow);
         }
@@ -961,11 +964,13 @@ namespace Sigilbound.Client
         }
 
         // Short full-screen flash on crits.
+        // Settings > Accessibility > Flash effects: weaker when Reduced, none when Off.
         public void CritFlash(Element el)
         {
+            float fs = Access.FlashScale; if (fs <= 0) return;
             _flashT = 0; _flashDur = 0.22f;
             _flash.gameObject.SetActive(true);
-            _flash.sharedMaterial.SetColor("_TintColor", Hdr(Of(el).Core, 0.25f));
+            _flash.sharedMaterial.SetColor("_TintColor", Hdr(Of(el).Core, 0.25f * fs));
             _flash.transform.localRotation = Quaternion.Euler(0, 0, Random.Range(0, 360f));
         }
 

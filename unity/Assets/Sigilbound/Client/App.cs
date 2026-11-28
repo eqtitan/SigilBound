@@ -66,7 +66,8 @@ namespace Sigilbound.Client
             Quality.ReplayCapped = () => Screen == ScreenId.Battle && Battle != null && Battle.Replaying; // auto-replay and Auto Climb run at 30 fps
             Quality.I.Apply();
             Quality.Notice = Toast; // thermal fallback messages
-            Vfx.ShakeSetting = () => Quality.SavedShake; // Settings > Screen shake
+            Access.Warm();          // Settings > Accessibility (device preferences)
+            Vfx.ShakeSetting = () => Access.Shake; // Settings > Accessibility: Screen shake, off with Reduce motion
             PerfOverlay.Sync();     // debug FPS / draw-call overlay, if turned on in Settings
             Vfx.Create(Arena.Cam);
             SkillFx.Create(Arena.Cam).SetTier(Quality.I.Tier); // vfx.mjs-style skill effects

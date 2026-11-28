@@ -39,7 +39,7 @@ static class UxTests
         check(parsed && worst >= 4.5, $"ux: disabled button labels are at least 4.5:1 on every plate (worst {worst:0.0}:1)");
 
         // Touch targets: 48 dp from the screen density, never under 44 units.
-        check(ui.Contains("public static float Tap => Mathf.Max(44f, Dp(48f));") && ui.Contains("dpi / 160f"), "ux: Ui.Tap is 48 dp (density aware, 44-unit floor)");
+        check(ui.Contains("public static float Tap => Mathf.Max(44f, Dp(Accessibility.TapDp(Access.LargeTaps)));") && ui.Contains("dpi / 160f"), "ux: Ui.Tap is 48 dp (56 with larger tap targets; density aware, 44-unit floor)");
         var list = prep.Substring(prep.IndexOf("void DrawStageList", StringComparison.Ordinal));
         list = list.Substring(0, list.IndexOf("static void ScrollFade", StringComparison.Ordinal));
         check(list.Contains("Mathf.Max(tap + 6") && list.Contains("Scroller.Begin") && list.Contains("Ui.Button(row, \"\", Ui.Kind.Ghost)") && list.Contains("new Rect(r.xMax - tap - 4, r.y + 2, tap, tap)"),
