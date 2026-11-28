@@ -106,6 +106,15 @@ namespace Sigilbound.Client
         });
         public static float[] Burst(int n) => Mono(n, (u, v) => { float d = Len(u, v), a = MathF.Atan2(v, u); return C01(1 - d) * (0.4f + 0.6f * MathF.Pow(MathF.Abs(MathF.Cos(a * 6)), 8)); });
         public static float[] Streak(int n) => Mono(n, (u, v) => C01(1 - MathF.Abs(u)) * C01((v + 1) / 2) * (0.6f + 0.4f * MathF.Sin(u * 20)));
+        // Soft vertical wisps that tile both ways (every term is periodic over u, v in -1..1): the slow noise
+        // scroll on effect pillars (Shaders/SigilFxPillar.shader); breathing light, no hard stripes.
+        public static float[] Wisps(int n) => Mono(n, (u, v) =>
+        {
+            float pi = MathF.PI;
+            float a = MathF.Sin(pi * (2 * u + 0.5f * MathF.Sin(pi * v)));
+            float b = MathF.Sin(pi * (5 * u - 2 * v + 0.3f * MathF.Sin(pi * 2 * u)));
+            return C01(0.5f + 0.32f * a + 0.18f * b);
+        });
         public static float[] Hex(int n) => Mono(n, (u, v) => { float x = (u + 1) * 6, y = (v + 1) * 6; float h = MathF.Abs(MathF.Sin(x * 1.732f) * MathF.Sin(y * 2f + x)); return 0.25f + 0.75f * MathF.Pow(h, 6); });
 
         // Rune circle: double outer ring with a band of glyphs, a dashed ring, a hexagram inside a

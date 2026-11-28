@@ -3,6 +3,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Sigilbound.Core;
 
 namespace Sigilbound.Client
 {
@@ -123,27 +124,88 @@ namespace Sigilbound.Client
             Destroy(lr.gameObject);
         }
 
-        public void Number(Vector3 pos, string text, Color color, float size = 1f)
+        // Floating numbers (art review M3): placed in screen space above the unit's head tag (Core NumberLayout),
+        // with a little random spread, stacked upward when several pop at once, and kept on screen for their whole
+        // rise. Drawn on top of everything (no depth test) with a dark drop shadow; a WEAK!/RESIST tag is its own
+        // smaller line under the number, in its own colour, so it stays readable over any background.
+        // anchor: the head-tag point in the world (BattleController.NumberAnchor). Reduce motion: no rise, a fade only.
+        sealed class Num { public Transform T; public TextMesh Main, Shadow, Tag, TagShadow; public NumBox Box; public float Depth, Rise, Age, Life, Up; public Color C, TagC; }
+        readonly List<Num> _nums = new List<Num>();
+        Material _numMat;
+        const float NumPx = 34f;           // a normal number's height at Ui.Scale 1 (pixels)
+
+        public void Number(Vector3 anchor, string text, Color color, float size = 1f, string tag = null, Color? tagColor = null)
         {
-            var go = new GameObject("num");
-            go.transform.position = pos + new Vector3(Random.Range(-0.2f, 0.2f), 0, 0);
-            var tm = go.AddComponent<TextMesh>();
-            tm.font = _font; tm.text = text; tm.fontSize = 64; tm.characterSize = 0.06f * size;
-            tm.anchor = TextAnchor.MiddleCenter; tm.alignment = TextAlignment.Center; tm.color = color; tm.fontStyle = FontStyle.Bold;
-            go.GetComponent<MeshRenderer>().sharedMaterial = _font.material;
-            StartCoroutine(Float(go.transform, tm));
-        }
-        IEnumerator Float(Transform t, TextMesh tm)
-        {
-            Vector3 p = t.position; Color c = tm.color;
-            for (float k = 0; k < 1; k += Time.deltaTime / 0.9f)
+            if (_cam == null) return;
+            var sp = _cam.WorldToScreenPoint(anchor);
+            if (sp.z <= 0.1f) return;
+            if (_numMat == null)
             {
-                t.position = p + Vector3.up * (k * 0.9f);
-                t.rotation = _cam.transform.rotation;
-                tm.color = new Color(c.r, c.g, c.b, k < 0.6f ? 1 : 1 - (k - 0.6f) / 0.4f);
+                _numMat = new Material(_font.material) { name = "NumberOnTop" };
+                _numMat.SetFloat("unity_GUIZTestMode", (float)UnityEngine.Rendering.CompareFunction.Always); // never hidden behind a body
+            }
+            float h = NumPx * Ui.Scale * size;
+            float rise = Access.ReduceMotion ? 0f : (float)Core.NumberLayout.Rise * h;
+            float th = string.IsNullOrEmpty(tag) ? 0 : Mathf.Max(h * 0.62f, 20f * Ui.Scale); // the tag line
+            float boxH = h + th;
+            var live = new List<NumBox>(_nums.Count);
+            foreach (var n in _nums) live.Add(new NumBox(n.Box.X, n.Box.Y + n.Up, n.Box.W, n.Box.H)); // where each is now (they all rise at one speed)
+            double w = System.Math.Max(Core.NumberLayout.Width(text, h), string.IsNullOrEmpty(tag) ? 0 : Core.NumberLayout.Width(tag, th));
+            float top = Screen.height * 0.12f; // the header, turn-order bar and round pill
+            var box = Core.NumberLayout.Place(sp.x, sp.y, w, boxH, live, Screen.width, Screen.height, top, rise, Random.Range(-1f, 1f));
+
+            var go = new GameObject("num");
+            var num = new Num { T = go.transform, Box = box, Depth = sp.z, Rise = rise, Life = 0.95f, C = color, TagC = tagColor ?? color };
+            num.Shadow = Line(go.transform, text, 100); num.Main = Line(go.transform, text, 101);
+            if (th > 0) { num.TagShadow = Line(go.transform, tag, 100); num.Tag = Line(go.transform, tag, 101); }
+            _nums.Add(num);
+            Place(num, h, th);
+            StartCoroutine(Float(num, h, th));
+        }
+
+        TextMesh Line(Transform parent, string text, int order)
+        {
+            var go = new GameObject(order == 100 ? "shadow" : "text"); go.transform.SetParent(parent, false);
+            var tm = go.AddComponent<TextMesh>();
+            tm.font = _font; tm.text = text; tm.fontSize = 64; tm.fontStyle = FontStyle.Bold;
+            tm.anchor = TextAnchor.MiddleCenter; tm.alignment = TextAlignment.Center;
+            var r = go.GetComponent<MeshRenderer>(); r.sharedMaterial = _numMat; r.sortingOrder = order;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
+            return tm;
+        }
+
+        // Puts the number's lines at its box (plus the rise so far), sized to stay the same on screen.
+        void Place(Num n, float h, float th)
+        {
+            float worldPerPx = 2f * n.Depth * Mathf.Tan(_cam.fieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1, Screen.height);
+            float up = n.Up = n.Rise * Mathf.Clamp01(n.Age / n.Life); // a steady rise: numbers stacked together keep their gaps
+            float cx = (float)n.Box.X, cy = (float)n.Box.Y + up, top = cy + (float)n.Box.H / 2;
+            var rot = _cam.transform.rotation;
+            void Set(TextMesh tm, float px, float x, float y, bool shadow)
+            {
+                if (tm == null) return;
+                float off = shadow ? Mathf.Max(1.5f, px * 0.07f) : 0;
+                tm.transform.position = _cam.ScreenToWorldPoint(new Vector3(x + off, y - off, n.Depth));
+                tm.transform.rotation = rot;
+                tm.characterSize = px * worldPerPx * 10f / tm.fontSize / 0.92f; // TextMesh line height ~ fontSize x characterSize / 10
+            }
+            Set(n.Shadow, h, cx, top - h / 2, true); Set(n.Main, h, cx, top - h / 2, false);
+            Set(n.TagShadow, th, cx, top - h - th / 2, true); Set(n.Tag, th, cx, top - h - th / 2, false);
+        }
+
+        IEnumerator Float(Num n, float h, float th)
+        {
+            for (n.Age = 0; n.Age < n.Life && n.T != null; n.Age += Time.deltaTime)
+            {
+                float k = n.Age / n.Life, a = k < 0.65f ? 1 : 1 - (k - 0.65f) / 0.35f;
+                Place(n, h, th);
+                Color C(Color c, float alpha) => new Color(c.r, c.g, c.b, alpha);
+                n.Main.color = C(n.C, a); n.Shadow.color = new Color(0.04f, 0.02f, 0.06f, a * 0.85f);
+                if (n.Tag != null) { n.Tag.color = C(n.TagC, a); n.TagShadow.color = new Color(0.04f, 0.02f, 0.06f, a * 0.9f); }
                 yield return null;
             }
-            Destroy(t.gameObject);
+            _nums.Remove(n);
+            if (n.T != null) Destroy(n.T.gameObject);
         }
 
         // Settings > Screen shake: full | reduced | off.

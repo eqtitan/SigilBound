@@ -71,3 +71,9 @@ Read it before any work. Update it whenever a mechanic, timing or clip choice ch
   and asks you when a spec is unclear.
 - **pmo**: tracks approvals and decisions in `docs/sigilbound/ROADMAP.md`. Tell it when a test
   is approved or rejected.
+
+## Project memory (the brain)
+Before you start, read `docs/sigilbound/brain/MAP.md` and the lessons in `docs/sigilbound/brain/LESSONS.md`
+linked to the systems you'll touch, and follow their Prevention rules (also summarised in the repo's `CLAUDE.md`).
+When you finish or get blocked, add or update lessons (format: `docs/sigilbound/brain/README.md`) for anything
+that broke, fooled a check, cost time or surprised you, link them, and list the lesson ids in your report.

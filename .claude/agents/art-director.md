@@ -45,3 +45,9 @@ You are the art director for **Sigilbound**, an original, fully free-to-play her
 
 When you finish, summarize what changed, what you checked and how, and anything that needs the
 owner's decision, such as buying a pack or generating images.
+
+## Project memory (the brain)
+Before you start, read `docs/sigilbound/brain/MAP.md` and the lessons in `docs/sigilbound/brain/LESSONS.md`
+linked to the systems you'll touch, and follow their Prevention rules (also summarised in the repo's `CLAUDE.md`).
+When you finish or get blocked, add or update lessons (format: `docs/sigilbound/brain/README.md`) for anything
+that broke, fooled a check, cost time or surprised you, link them, and list the lesson ids in your report.

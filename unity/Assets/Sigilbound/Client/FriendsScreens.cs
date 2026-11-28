@@ -46,7 +46,7 @@ namespace Sigilbound.Client
                 Ui.Panel(r, new Color(0.12f, 0.1f, 0.17f, 0.95f));
                 Ui.Text(new Rect(r.x + 14, r.y + 10, r.width - 28, 24), "Friends and chat aren't available right now", 15, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, true);
                 Ui.Text(new Rect(r.x + 14, r.y + 40, r.width - 28, 70), on.Unavailable + "\nEverything else in the game works offline.", 13, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft, true);
-                if (Ui.Button(new Rect(r.x + 14, r.yMax - 52, r.width - 28, 40), "Try again", Ui.Kind.Secondary)) { on.Probed = false; on.Probe(); }
+                if (Ui.Button(new Rect(r.x + 14, r.yMax - 56, r.width - 28, Mathf.Max(44, Ui.Tap)), "Try again", Ui.Kind.Secondary)) { on.Probed = false; on.Probe(); }
                 return;
             }
             if (!on.SignedIn)
@@ -67,34 +67,36 @@ namespace Sigilbound.Client
             float content = 330 + d.incoming.Count * 56 + Mathf.Max(1, d.friends.Count) * 64 + d.outgoing.Count * 48 + 160;
             _scroll = Scroller.Begin(area, _scroll, content);
             float y = 8;
-            Ui.Text(new Rect(Pad, y, 200, 32), "Friends", 22, Palette.Text, FontStyle.Bold);
-            if (Ui.Button(new Rect(Ui.W - Pad - 96, y, 96, 32), "Refresh", Ui.Kind.Secondary, 13)) on.Refresh();
-            y += 42;
+            // A tab root: the ribbon banner, like Home, Summon and Trials (design rule 2).
+            Ui.Banner(new Rect(Pad + 10, y + 6, 200, 30), "Friends", 19);
+            if (Ui.Button(new Rect(Ui.W - Pad - 104, y, 104, Mathf.Max(44, Ui.Tap)), "Refresh", Ui.Kind.Secondary, 13)) on.Refresh();
+            y += Mathf.Max(44, Ui.Tap) + 10;
 
             var c = Row(ref y, 84);
             Ui.Panel(c, new Color(0.12f, 0.1f, 0.17f, 0.95f));
             Ui.PlainText(new Rect(c.x + 14, c.y + 8, c.width - 120, 20), $"Signed in as {d.me.name} · your friend code", 12, Palette.Dim);
             Ui.PlainText(new Rect(c.x + 14, c.y + 30, c.width - 120, 40), d.me.code, 30, Palette.Gold, FontStyle.Bold);
-            if (Ui.Button(new Rect(c.xMax - 100, c.y + 24, 86, 36), "Copy", Ui.Kind.Secondary, 13)) { GUIUtility.systemCopyBuffer = d.me.code; Toast("Friend code copied"); }
+            if (Ui.Button(new Rect(c.xMax - 100, c.y + 20, 86, Mathf.Max(44, Ui.Tap)), "Copy", Ui.Kind.Secondary, 13)) { GUIUtility.systemCopyBuffer = d.me.code; Toast("Friend code copied"); }
 
             c = Row(ref y, 96);
             Ui.Panel(c, new Color(0.12f, 0.1f, 0.17f, 0.95f));
             Ui.Text(new Rect(c.x + 14, c.y + 8, 200, 22), "Add a friend", 15, Palette.Text, FontStyle.Bold);
             _codeInput = GUI.TextField(new Rect(c.x + 14, c.y + 40, c.width - 120, 42), _codeInput.ToUpperInvariant(), 8, Field(18));
-            if (Ui.Button(new Rect(c.xMax - 98, c.y + 40, 84, 42), "Add", Ui.Kind.Primary, 15)) { on.AddFriend(_codeInput); _codeInput = ""; GUI.FocusControl(null); }
+            if (Ui.Button(new Rect(c.xMax - 98, c.y + 39, 84, Mathf.Max(44, Ui.Tap)), "Add", Ui.Kind.Primary, 15)) { on.AddFriend(_codeInput); _codeInput = ""; GUI.FocusControl(null); }
 
             if (d.incoming.Count > 0)
             {
-                c = Row(ref y, 36 + d.incoming.Count * 56);
+                c = Row(ref y, 40 + d.incoming.Count * Mathf.Max(56, Ui.Tap + 8));
                 Ui.Panel(c, new Color(0.12f, 0.1f, 0.17f, 0.95f), Palette.Gold);
                 Ui.Text(new Rect(c.x + 14, c.y + 8, 200, 22), "Friend requests", 15, Palette.Text, FontStyle.Bold);
                 for (int i = 0; i < d.incoming.Count; i++)
                 {
-                    var f = d.incoming[i]; float ry = c.y + 36 + i * 56;
+                    var f = d.incoming[i]; float ry = c.y + 36 + i * Mathf.Max(56, Ui.Tap + 8);
                     Ui.PlainText(new Rect(c.x + 14, ry, c.width - 200, 24), f.name, 15, Palette.Text, FontStyle.Bold);
                     Ui.Text(new Rect(c.x + 14, ry + 22, c.width - 200, 20), "wants to be friends", 12, Palette.Dim);
-                    if (Ui.Button(new Rect(c.xMax - 182, ry + 4, 84, 36), "Accept", Ui.Kind.Primary, 13)) on.Respond(f.id, true);
-                    if (Ui.Button(new Rect(c.xMax - 92, ry + 4, 78, 36), "Decline", Ui.Kind.Secondary, 13)) on.Respond(f.id, false);
+                    // Decline (Secondary) first, Accept (the Primary) last, both 48 dp (rule 3).
+                    if (Ui.Button(new Rect(c.xMax - 182, ry, 84, Mathf.Max(44, Ui.Tap)), "Decline", Ui.Kind.Secondary, 13)) on.Respond(f.id, false);
+                    if (Ui.Button(new Rect(c.xMax - 92, ry, 78, Mathf.Max(44, Ui.Tap)), "Accept", Ui.Kind.Primary, 13)) on.Respond(f.id, true);
                 }
             }
 
@@ -111,36 +113,32 @@ namespace Sigilbound.Client
                 Ui.PlainText(new Rect(rr.x + 22, rr.y + 6, rr.width - 90, 24), f.name, 15, Palette.Text, FontStyle.Bold);
                 string stage = f.profile == null ? "" : f.profile.cleared >= TotalStages ? "Campaign complete" : $"Stage {Game.StageLabel(Mathf.Min(f.profile.cleared, TotalStages - 1))}";
                 Ui.Text(new Rect(rr.x + 22, rr.y + 30, rr.width - 90, 20), $"{stage} · Power {Ui.Fmt(f.profile?.power ?? 0)} · {Online.Ago(f.seen)}", 12, Palette.Dim);
-                if (f.unread > 0)
-                {
-                    var b = new Rect(rr.xMax - 40, rr.y + 17, 26, 24);
-                    Ui.Round(b, Palette.Bad, null, 12);
-                    Ui.Text(b, f.unread.ToString(), 12, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
-                }
+                Ui.Badge(new Vector2(rr.xMax - 26, rr.center.y), f.unread); // the one red badge
                 if (Ui.Button(rr, "", Ui.Kind.Ghost)) { _friendId = f.id; Go(ScreenId.FriendProfile); }
             }
 
             if (d.outgoing.Count > 0)
             {
-                c = Row(ref y, 36 + d.outgoing.Count * 48);
+                float step = Mathf.Max(44, Ui.Tap) + 6;
+                c = Row(ref y, 40 + d.outgoing.Count * step);
                 Ui.Panel(c, new Color(0.12f, 0.1f, 0.17f, 0.95f));
                 Ui.Text(new Rect(c.x + 14, c.y + 8, 200, 22), "Sent requests", 15, Palette.Text, FontStyle.Bold);
                 for (int i = 0; i < d.outgoing.Count; i++)
                 {
-                    var f = d.outgoing[i]; float ry = c.y + 36 + i * 48;
+                    var f = d.outgoing[i]; float ry = c.y + 36 + i * step;
                     Ui.PlainText(new Rect(c.x + 14, ry + 6, c.width - 130, 24), f.name + "  (waiting)", 14, Palette.Text);
-                    if (Ui.Button(new Rect(c.xMax - 98, ry + 2, 84, 34), "Cancel", Ui.Kind.Secondary, 13)) on.Remove(f.id);
+                    if (Ui.Button(new Rect(c.xMax - 98, ry, 84, Mathf.Max(44, Ui.Tap)), "Cancel", Ui.Kind.Secondary, 13)) on.Remove(f.id);
                 }
             }
 
             c = Row(ref y, 44);
-            if (Ui.Button(new Rect(c.x, c.y, c.width / 2 - 5, 40), "Blocked players", Ui.Kind.Chip, 13)) { on.LoadBlocked(); Go(ScreenId.Blocked); }
-            if (Ui.Button(new Rect(c.x + c.width / 2 + 5, c.y, c.width / 2 - 5, 40), "Delete online profile", Ui.Kind.Chip, 13))
+            if (Ui.Button(new Rect(c.x, c.y, c.width / 2 - 5, Mathf.Max(44, Ui.Tap)), "Blocked players", Ui.Kind.Secondary, 13)) { on.LoadBlocked(); Go(ScreenId.Blocked); }
+            if (Ui.Button(new Rect(c.x + c.width / 2 + 5, c.y, c.width / 2 - 5, Mathf.Max(44, Ui.Tap)), "Delete online profile", Ui.Kind.Secondary, 13))
                 Modal("Delete online profile?", 240, b =>
                 {
                     Ui.Text(new Rect(b.x, b.y, b.width, 90), "This removes your name, friend code, friends and all chat messages from the server. Your game progress on this device stays.", 14, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
                     if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width / 2 - 5, 44), "Cancel", Ui.Kind.Secondary)) CloseModal();
-                    if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Delete", Ui.Kind.Red)) { CloseModal(); on.DeleteAccount(() => Go(ScreenId.Friends)); }
+                    if (Ui.Button(new Rect(b.x + b.width / 2 + 5, b.yMax - 46, b.width / 2 - 5, 44), "Delete", Ui.Kind.Danger)) { CloseModal(); on.DeleteAccount(() => Go(ScreenId.Friends)); }
                 });
             Scroller.End();
         }
@@ -151,9 +149,10 @@ namespace Sigilbound.Client
             if (f == null) { Go(ScreenId.Friends); return; }
             var p = f.profile ?? new NetProfile();
             float y = area.y + 8;
-            if (Ui.Button(new Rect(Pad, y, 96, 34), "‹ Friends", Ui.Kind.Secondary, 13)) Go(ScreenId.Friends);
-            if (Ui.Button(new Rect(Ui.W - Pad - 100, y, 100, 34), "More…", Ui.Kind.Secondary, 13)) FriendActions(f);
-            y += 44;
+            float tap = Mathf.Max(44, Ui.Tap);
+            if (Ui.ScreenHeader(new Rect(Pad, y, Ui.W - Pad * 2, tap), "", 0)) GoBack();
+            if (Ui.Button(new Rect(Ui.W - Pad - 100, y, 100, tap), "More…", Ui.Kind.Secondary, 13)) FriendActions(f);
+            y += tap + 8;
             Ui.PlainText(new Rect(Pad, y, Ui.W - 32, 30), f.name, 22, Palette.Text, FontStyle.Bold); y += 30;
             Ui.PlainText(new Rect(Pad, y, Ui.W - 32, 20), $"{Online.Ago(f.seen)} · code {f.code}", 13, Palette.Dim); y += 26;
             y = Mathf.Max(y + 200, area.yMax - 260); // their team stands here in 3D
@@ -173,7 +172,7 @@ namespace Sigilbound.Client
             if (Ui.Button(new Rect(b.x, b.y, b.width, 44), "Report player", Ui.Kind.Secondary)) { CloseModal(); AskReport(f, 0, null); }
             if (Ui.Button(new Rect(b.x, b.y + 54, b.width, 44), "Block player", Ui.Kind.Secondary))
             { CloseModal(); Online.Block(f.id, () => Go(ScreenId.Friends)); }
-            if (Ui.Button(new Rect(b.x, b.y + 108, b.width, 44), "Remove friend", Ui.Kind.Red))
+            if (Ui.Button(new Rect(b.x, b.y + 108, b.width, 44), "Remove friend", Ui.Kind.Danger))
             { CloseModal(); Online.Remove(f.id, () => Go(ScreenId.Friends)); }
             if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "Cancel", Ui.Kind.Chip)) CloseModal();
         });
@@ -190,7 +189,7 @@ namespace Sigilbound.Client
                     if (Ui.Button(new Rect(b.x, ry, b.width, 44), reason, Ui.Kind.Secondary, 14)) { CloseModal(); Online.Report(f.id, messageId, reason); }
                     ry += 50;
                 }
-                if (Ui.Button(new Rect(b.x, b.yMax - 40, b.width, 38), "Cancel", Ui.Kind.Chip, 13)) CloseModal();
+                if (Ui.Button(new Rect(b.x, b.yMax - Mathf.Max(44, Ui.Tap), b.width, Mathf.Max(44, Ui.Tap)), "Cancel", Ui.Kind.Secondary, 13)) CloseModal();
             });
         }
 
@@ -199,10 +198,11 @@ namespace Sigilbound.Client
             var on = Online; var f = on.Friend(on.ChatWith);
             if (f == null) { Go(ScreenId.Friends); return; }
             float y = area.y + 6;
-            if (Ui.Button(new Rect(Pad, y, 40, 36), "‹", Ui.Kind.Secondary, 16)) Go(ScreenId.FriendProfile);
-            Ui.PlainText(new Rect(Pad + 50, y, Ui.W - 100, 20), f.name, 16, Palette.Text, FontStyle.Bold);
-            Ui.Text(new Rect(Pad + 50, y + 20, Ui.W - 100, 16), Online.Ago(f.seen), 11, Palette.Dim);
-            y += 46;
+            float tap = Mathf.Max(44, Ui.Tap);
+            if (Ui.BackButton(new Rect(Pad, y, Ui.BackW, tap))) GoBack();
+            Ui.PlainText(new Rect(Pad + Ui.BackW + 12, y + 2, Ui.W - Ui.BackW - 44, 20), f.name, 16, Palette.Text, FontStyle.Bold);
+            Ui.Text(new Rect(Pad + Ui.BackW + 12, y + 22, Ui.W - Ui.BackW - 44, 18), Online.Ago(f.seen), 11, Palette.Dim);
+            y += tap + 6;
             var log = new Rect(Pad, y, Ui.W - 32, area.yMax - y - 60);
             Ui.Panel(log, new Color(0.1f, 0.09f, 0.14f, 0.96f));
 
@@ -225,7 +225,7 @@ namespace Sigilbound.Client
                 Ui.Round(b, col, null, 12);
                 GUI.Label(new Rect(b.x + 12, b.y + 6, b.width - 24, b.height - 26), m.body, Plain(14, m.mine ? Palette.Hex("#1b1408") : Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true));
                 var time = System.DateTimeOffset.FromUnixTimeMilliseconds(m.created).ToLocalTime();
-                Ui.Text(new Rect(b.x + 12, b.yMax - 20, b.width - 24, 16), m.pending ? "sending…" : time.ToString("h:mm tt"), 10, m.mine ? Palette.Hex("#3a2a10") : Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
+                Ui.Text(new Rect(b.x + 12, b.yMax - 20, b.width - 24, 16), m.pending ? "sending…" : time.ToString("h:mm tt"), 11, m.mine ? Palette.Hex("#3a2a10") : Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
                 if (!m.mine && m.id > 0 && Ui.Button(b, "", Ui.Kind.Ghost)) AskReport(f, m.id, m.body);
                 cy += heights[i] + 6;
             }
@@ -241,15 +241,15 @@ namespace Sigilbound.Client
                 on.SendMessage(text, ok => { if (!ok && string.IsNullOrEmpty(_chatInput)) _chatInput = text; });
                 if (enter) Event.current.Use();
             }
-            Ui.Text(new Rect(Pad, area.yMax - 6, Ui.W - 32, 14), "Tap a friend's message to report it.", 9, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+            Ui.Text(new Rect(Pad, area.yMax - 8, Ui.W - 32, 16), "Tap a friend's message to report it.", 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
         }
 
         void DrawBlocked(Rect area)
         {
             float y = area.y + 8;
-            if (Ui.Button(new Rect(Pad, y, 96, 34), "‹ Friends", Ui.Kind.Secondary, 13)) Go(ScreenId.Friends);
-            y += 44;
-            Ui.Text(new Rect(Pad, y, 300, 30), "Blocked players", 20, Palette.Text, FontStyle.Bold); y += 40;
+            float tap = Mathf.Max(44, Ui.Tap);
+            if (Ui.ScreenHeader(new Rect(Pad, y, Ui.W - Pad * 2, tap), "Blocked players")) GoBack();
+            y += tap + 12;
             var list = Online.Blocked?.blocked;
             if (list == null) { Ui.Text(new Rect(Pad, y, 300, 24), "Loading…", 14, Palette.Dim); return; }
             if (list.Count == 0) { Ui.Text(new Rect(Pad, y, Ui.W - 32, 40), "You haven't blocked anyone.", 14, Palette.Dim); return; }
@@ -258,7 +258,7 @@ namespace Sigilbound.Client
                 var r = Row(ref y, 52, 8);
                 Ui.Panel(r, Palette.Panel2, Palette.Line, 10);
                 Ui.PlainText(new Rect(r.x + 14, r.y, r.width - 130, 52), p.name, 15, Palette.Text, FontStyle.Bold);
-                if (Ui.Button(new Rect(r.xMax - 104, r.y + 9, 92, 34), "Unblock", Ui.Kind.Secondary, 13)) Online.Unblock(p.id);
+                if (Ui.Button(new Rect(r.xMax - 104, r.center.y - Mathf.Max(44, Ui.Tap) / 2, 92, Mathf.Max(44, Ui.Tap)), "Unblock", Ui.Kind.Secondary, 13)) Online.Unblock(p.id);
             }
         }
     }

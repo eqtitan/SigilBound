@@ -55,6 +55,10 @@ on:
         type: choice
         options: ["build-apk", "build-store-aab", "get-license-file"]
         default: "build-apk"
+      scenes:
+        description: "Smoke tour also shoots every campaign scene (stops 1, 3, 6 and the lair reveal of each chapter; adds several minutes)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -345,15 +349,21 @@ jobs:
           command -v xvfb-run
       - name: Smoke tour (screenshot mode, headless; same run as tools/unity-shots.sh)
         id: smoke
-        timeout-minutes: 30
+        # The per-commit tour takes about 5 minutes; with the scene tour (workflow_dispatch input "scenes",
+        # -sbShotsScenes: 15 chapters x 3 stops + reveals + 2 Hard lairs) allow it up to 50.
+        timeout-minutes: 55
+        env:
+          SCENES: ${{ github.event_name == 'workflow_dispatch' && inputs.scenes && 'yes' || '' }}
         run: |
           OUT="$PWD/unity-smoke"; rm -rf "$OUT" && mkdir -p "$OUT"
           BIN="$PWD/Sigilbound-Linux/Sigilbound.x86_64"; chmod +x "$BIN"
           START=$(date +%s)
+          EXTRA=(); LIMIT=1500
+          if [ -n "$SCENES" ]; then EXTRA=(-sbShotsScenes); LIMIT=3000; echo "Scene tour on"; fi
           # Software GL (llvmpipe) is slow but enough for the tour. -force-glcore avoids Vulkan.
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 1500 xvfb-run -a -s "-screen 0 1280x720x24" \
+          LIBGL_ALWAYS_SOFTWARE=1 timeout "$LIMIT" xvfb-run -a -s "-screen 0 1280x720x24" \
             "$BIN" -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -force-glcore \
-            -logFile "$OUT/player.log" -sbShots="$OUT" || echo "player exited with $?"
+            -logFile "$OUT/player.log" -sbShots="$OUT" "${EXTRA[@]}" || echo "player exited with $?"
           echo "Smoke tour took $(( $(date +%s) - START )) s; $(ls "$OUT"/*.png 2>/dev/null | wc -l) screenshots."
           if bash tools/unity-smoke-check.sh "$OUT"; then
             echo "smoke=passed" >> "$GITHUB_OUTPUT"

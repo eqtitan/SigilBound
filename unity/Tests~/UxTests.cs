@@ -77,7 +77,7 @@ static class UxTests
         var client = Directory.GetFiles(Path.Combine(root, "Assets", "Sigilbound", "Client"), "*.cs").Select(File.ReadAllText).ToList();
         check(!client.Any(s => s.Contains("ColorTag(\"●\"")) && !prep.Contains("ShortName.Substring(0, 1)") && prep.Contains("Ui.ElementBadge(disc"),
             "ux: elements show their icon wherever a coloured dot or initial stood");
-        check(bc.Contains("\" WEAK!\"") && bc.Contains("\" RESIST\"") && bc.Contains("Icon.Shield : Icon.Skull"), "ux: damage numbers say WEAK!/RESIST and turn chips mark allies and enemies by glyph");
+        check(bc.Contains("\"WEAK!\"") && bc.Contains("\"RESIST\"") && bc.Contains("Icon.Shield : Icon.Skull"), "ux: damage numbers say WEAK!/RESIST and turn chips mark allies and enemies by glyph");
         check(ui.Contains("public static void RarityTab") && client.Sum(s => Regex.Matches(s, "Ui\\.RarityTab\\(").Count) >= 4, "ux: rarity frames carry a letter tab");
 
         // Press feedback: drawn (ghost) buttons light up while held and tap like the plates.

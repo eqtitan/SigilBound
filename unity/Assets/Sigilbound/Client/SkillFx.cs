@@ -8,7 +8,8 @@
 //   leaves  - alpha leaves fluttering on a little noise (gale)
 //   under / fall - alpha soft dots and additive falling drops (mud, petals, droplets)
 //   decals  - pooled ground/billboard quads, additive and alpha (rune circles, shock rings, lava, crust)
-//   walls / domes - pooled open cylinders (pillars, splash crowns) and spheres (shields)
+//   walls / domes - pooled open tubes (pillars, splash crowns) and spheres (shields), drawn with the FxPillar
+//                   shader: translucent light with a fresnel falloff, so the unit inside always shows (art review M3)
 //   trails / lines - pooled TrailRenderers (projectiles, wind ribbons) and LineRenderers (beams, bolts)
 // Every effect is time-based (same look at 30, 60 or 120 fps) and scales its particle counts by tier.
 using System.Collections;
@@ -41,8 +42,9 @@ namespace Sigilbound.Client
         static readonly Color DUST = new Color(0.46f, 0.4f, 0.33f, 1), STONE = new Color(0.62f, 0.56f, 0.5f, 1), INK = new Color(0.07f, 0.02f, 0.12f, 1);
         public static Pal Of(Element e) => Palettes[e.ToString().ToLowerInvariant()];
 
-        Camera _cam; Material _add, _alpha;
+        Camera _cam; Material _add, _alpha, _pillar; bool _pillarShader; Mesh _tube;
         ParticleSystem _over, _under, _fall, _flame, _smoke, _streaks, _debris, _leaves;
+        Texture2D _wisps;
         Texture2D _dot, _ring, _rune, _streak, _hex, _burst, _crack, _glow, _shock, _rays, _flare, _caustic, _foam, _lava, _crust;
         float _mult = 1f; // particle count scale by quality tier (Low 0.35 .. Ultra 1.2)
         public int Tier { get; private set; } = 2;   // Low 0 .. Ultra 3 (SetTier)
@@ -88,6 +90,13 @@ namespace Sigilbound.Client
             _hex = T(128, () => FxTextures.Hex(128)); _glow = T(64, () => FxTextures.Glow(64)); _shock = T(128, () => FxTextures.Shock(128));
             _rays = T(128, () => FxTextures.Rays(128)); _flare = T(128, () => FxTextures.Flare(128)); _caustic = T(128, () => FxTextures.Caustic(128));
             _foam = T(128, () => FxTextures.Foam(128)); _lava = T(128, () => FxTextures.Lava(128)); _crust = T(128, () => FxTextures.Crust(128));
+            _wisps = T(64, () => FxTextures.Wisps(64)); _wisps.wrapMode = TextureWrapMode.Repeat; // tiles: it scrolls
+            // Pillars and domes: the FxPillar shader (fresnel falloff, soft top, opacity cap); without it the old
+            // additive particle shader, with the tube's vertex alpha giving it the same soft top.
+            var pillar = Shader.Find("Sigilbound/FxPillar");
+            _pillarShader = pillar != null && pillar.isSupported;
+            _pillar = _pillarShader ? new Material(pillar) { name = "FxPillar" } : new Material(_add) { name = "FxPillarFallback" };
+            _tube = Tube(20);
 
             _over = MakeSystem("Over", _add, _dot, 1500, 0);
             _under = MakeSystem("Under", _alpha, _dot, 500, 0);
@@ -310,20 +319,76 @@ namespace Sigilbound.Client
             Release(d);
         }
 
-        // A glowing open cylinder (pillar / shock wall / splash crown): radius and height animate, fades.
+        // An open tube (no caps: the old primitive cylinder's lids read as a solid lamp shade), radius 0.5, from y 0
+        // to 1, uv.y up its height. Vertex alpha holds the soft foot and the fade at the top for the fallback shader.
+        static Mesh Tube(int sides)
+        {
+            float[] ys = { 0f, (float)BattleFx.FadeBottom, 0.4f, 0.7f, 1f };
+            int rows = ys.Length, cols = sides + 1;
+            var v = new Vector3[rows * cols]; var n = new Vector3[v.Length]; var uv = new Vector2[v.Length]; var c = new Color[v.Length];
+            for (int r = 0; r < rows; r++)
+                for (int k = 0; k < cols; k++)
+                {
+                    float a = k / (float)sides * Mathf.PI * 2, y = ys[r]; int i = r * cols + k;
+                    v[i] = new Vector3(Mathf.Cos(a) * 0.5f, y, Mathf.Sin(a) * 0.5f); n[i] = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
+                    uv[i] = new Vector2(k / (float)sides * 2f, y);
+                    float foot = Mathf.SmoothStep(0, 1, y / (float)BattleFx.FadeBottom), top = 1 - Mathf.SmoothStep(0, 1, (y - (1 - (float)BattleFx.FadeTop)) / (float)BattleFx.FadeTop);
+                    c[i] = new Color(1, 1, 1, Mathf.Clamp01(foot) * Mathf.Clamp01(top));
+                }
+            var t = new List<int>();
+            for (int r = 0; r < rows - 1; r++)
+                for (int k = 0; k < sides; k++)
+                {
+                    int i = r * cols + k;
+                    t.Add(i); t.Add(i + cols); t.Add(i + 1); t.Add(i + 1); t.Add(i + cols); t.Add(i + cols + 1);
+                }
+            var m = new Mesh { name = "FxTube", vertices = v, normals = n, uv = uv, colors = c };
+            m.SetTriangles(t, 0); m.RecalculateBounds();
+            return m;
+        }
+        Decal TakeTube()
+        {
+            var d = Take(_walls, PrimitiveType.Cylinder, "Wall", _pillar);
+            var mf = d.T.GetComponent<MeshFilter>(); if (mf != null && mf.sharedMesh != _tube) mf.sharedMesh = _tube;
+            return d;
+        }
+        // The pillar look for this frame: colour, opacity (capped per tier, BattleFx.PillarOpacity; Flash effects
+        // can only lower it), fresnel and vertical fade. fade: (bottom feather, top fade); (0, 0) for a dome.
+        void PillarLook(Decal d, Texture2D tex, Color c, float k, float a, Vector2 fade, float core)
+        {
+            float op = (float)BattleFx.PillarOpacity(Tier) * Mathf.Clamp01(k) * a * Mathf.Min(1f, Access.BurstCap);
+            if (_pillarShader)
+            {
+                d.B.SetTexture("_MainTex", tex);
+                d.B.SetVector("_TintColor", Ldr(c, 1, 1f));
+                d.B.SetFloat("_Opacity", op); d.B.SetFloat("_Core", core); d.B.SetFloat("_Fresnel", (float)BattleFx.PillarFresnel);
+                d.B.SetVector("_VFade", new Vector4(fade.x, fade.y, 0, 0));
+                d.B.SetVector("_Scroll", fade == Vector2.zero ? Vector4.zero : new Vector4(0.05f, -0.35f, 0, 0)); // domes: a still hex shell
+            }
+            else
+            {
+                d.B.SetTexture("_MainTex", tex == _wisps ? _streak : tex);
+                var col = Ldr(c, 1, 1f) * op * 0.5f; col.a = 1; // legacy additive doubles
+                d.B.SetVector("_TintColor", col); d.B.SetVector("_Color", col);
+            }
+            d.R.SetPropertyBlock(d.B);
+        }
+
+        // A translucent pillar / shock wall / splash crown: radius and height animate, fades. On a unit it lasts at
+        // most BattleFx.MaxLifeOnTarget (callers pass LifeOnTarget) and never hides it (fresnel: clear in the middle).
         void Wall(Vector3 p, float r0, float r1, float h0, float h1, Color c, float k, float life, float delay = 0)
             => StartCoroutine(WallRoutine(p, r0, r1, h0, h1, c, k, life, delay));
         IEnumerator WallRoutine(Vector3 p, float r0, float r1, float h0, float h1, Color c, float k, float life, float delay)
         {
             if (delay > 0) yield return new WaitForSeconds(delay);
-            var d = Take(_walls, PrimitiveType.Cylinder, "Wall", _add);
-            d.B.SetTexture("_MainTex", _streak);
+            var d = TakeTube();
+            var fade = new Vector2((float)BattleFx.FadeBottom, (float)BattleFx.FadeTop);
             for (float t = 0; t < life; t += Time.deltaTime)
             {
                 float u = t / life, ease = 1 - Mathf.Pow(1 - u, 2), a = Mathf.Clamp01(u / 0.15f) * Mathf.Clamp01((1 - u) / 0.5f);
                 float r = Mathf.Lerp(r0, r1, ease), h = Mathf.Lerp(h0, h1, ease);
-                d.T.position = p + Vector3.up * (h / 2); d.T.rotation = Quaternion.Euler(0, t * 90, 0); d.T.localScale = new Vector3(r * 2, h / 2, r * 2);
-                var col = Hdr(c, k * a * 0.6f); d.B.SetVector("_TintColor", col); d.B.SetVector("_Color", col); d.R.SetPropertyBlock(d.B);
+                d.T.position = Ground(p, 0.01f); d.T.rotation = Quaternion.Euler(0, t * 40, 0); d.T.localScale = new Vector3(r * 2, h, r * 2);
+                PillarLook(d, _wisps, c, k, a, fade, (float)BattleFx.PillarCore);
                 yield return null;
             }
             Release(d);
@@ -332,14 +397,13 @@ namespace Sigilbound.Client
         void Dome(Vector3 p, float r0, float r1, Color c, float life) => StartCoroutine(DomeRoutine(p, r0, r1, c, life));
         IEnumerator DomeRoutine(Vector3 p, float r0, float r1, Color c, float life)
         {
-            var d = Take(_domes, PrimitiveType.Sphere, "Dome", _add);
-            d.B.SetTexture("_MainTex", _hex);
+            var d = Take(_domes, PrimitiveType.Sphere, "Dome", _pillar);
             for (float t = 0; t < life; t += Time.deltaTime)
             {
                 float u = t / life, ease = 1 - Mathf.Pow(1 - u, 3), a = Mathf.Clamp01(u / 0.08f) * Mathf.Clamp01((1 - u) / 0.6f);
                 float r = Mathf.Lerp(r0, r1, ease);
                 d.T.position = p; d.T.localScale = Vector3.one * r * 2; d.T.rotation = Quaternion.Euler(0, t * 40, 0);
-                var col = Hdr(c, a * 0.45f); d.B.SetVector("_TintColor", col); d.B.SetVector("_Color", col); d.R.SetPropertyBlock(d.B);
+                PillarLook(d, _hex, c, 0.85f, a, Vector2.zero, (float)BattleFx.PillarCore * 0.6f); // a shell: clear across the unit, a hex rim
                 yield return null;
             }
             Release(d);
@@ -470,20 +534,22 @@ namespace Sigilbound.Client
         }
 
         // ---------- effects ----------
-        public void CastCircle(Vector3 pos, Element el)
+        // foot: the caster's footprint (BattleFx.Footprint: its element disc's diameter). The circle is that size,
+        // not a 2.6 m stamp over its neighbours (art review M3); BattleController hides the disc meanwhile.
+        public void CastCircle(Vector3 pos, Element el, float foot = 1.1f)
         {
-            var P = Of(el);
-            GroundFx(_rune, pos, 0.8f, 2.0f, P.Main, 1.05f, 1.05f, 1.4f);
-            GroundFx(_rune, pos, 0.4f, 1.15f, P.Core, 0.55f, 0.95f, -2.6f);
-            GroundFx(_glow, pos, 1.8f, 2.6f, P.Main, 0.4f, 1.0f);
-            Wall(pos, 0.7f, 0.92f, 0.15f, 0.8f, P.Main, 0.75f, 0.85f);
-            int n = N(14);
+            var P = Of(el); float f = foot / (float)BattleFx.AuraDiameter, life = (float)BattleFx.CircleTime;
+            GroundFx(_rune, pos, 0.5f * foot, (float)BattleFx.CircleRune * foot, P.Main, 0.9f, life, 1.4f);
+            GroundFx(_rune, pos, 0.25f * foot, 0.6f * foot, P.Core, 0.5f, life * 0.9f, -2.6f);
+            GroundFx(_glow, pos, 0.9f * foot, (float)BattleFx.CircleGlow * foot, P.Main, 0.3f, life);
+            Wall(pos, 0.36f * foot, 0.46f * foot, 0.1f, 0.55f * f, P.Main, 0.6f, 0.6f);
+            int n = N(10);
             for (int i = 0; i < n; i++)
             {
-                float th = i / (float)n * Mathf.PI * 2, r = 0.85f;
+                float th = i / (float)n * Mathf.PI * 2, r = 0.45f * foot;
                 Spark(_over, pos + new Vector3(Mathf.Cos(th) * r, 0.12f, Mathf.Sin(th) * r), new Vector3(0, Random.Range(0.5f, 1.6f), 0), Hdr(i % 2 == 0 ? P.Core : P.Main, 1), Random.Range(0.1f, 0.24f), Random.Range(0.5f, 0.9f));
             }
-            StartCoroutine(After(0.15f, () => Detail(pos + Vector3.up * 0.25f, el, 0.6f)));
+            StartCoroutine(After(0.15f, () => Detail(pos + Vector3.up * 0.25f, el, 0.5f * Mathf.Min(1.4f, f))));
         }
 
         // Energy gathering into a unit (motes pulled toward its chest).
@@ -604,7 +670,7 @@ namespace Sigilbound.Client
                 case Element.Shadow: GroundFxA(_glow, g, radius * 1.4f, radius * 2.2f, new Color(INK.r, INK.g, INK.b, 0.7f), 1.4f); break;
                 default: GroundFx(_shock, g, radius * 0.6f, radius * 2.3f, P.Core, 0.5f, 0.9f, 2.5f); break;
             }
-            Wall(centre, radius * 0.7f, radius * 0.95f, 0.3f, 2.0f, P.Main, 1f, 1.1f);
+            Wall(centre, radius * 0.7f, radius * 0.95f, 0.3f, 1.8f, P.Main, 0.9f, (float)BattleFx.LifeOnTarget(1.1));
             for (int i = 0; i < N(24); i++) { var off = Random.insideUnitCircle * radius; Spark(_over, centre + new Vector3(off.x, 0.1f, off.y), new Vector3(0, Random.Range(1f, 3f), 0), Hdr(P.Core, 1), Random.Range(0.1f, 0.22f), Random.Range(0.5f, 1f)); }
             Smoke(centre + Vector3.up * 0.3f, N(6), P.Dark.gamma, radius * 0.7f, 1.0f, 1.3f, 0.4f);
             // the element erupting at a few spots across the area, staggered
@@ -654,7 +720,7 @@ namespace Sigilbound.Client
             var P = HEAL;
             GroundFx(_dot, pos, 1.4f, 1.9f, P.Main, 0.5f, 1.1f);
             GroundFx(_ring, pos, 0.6f, 1.8f, P.Core, 0.7f, 0.8f);
-            Wall(pos, 0.55f, 0.45f, 1.4f, 2.3f, P.Main, 0.9f, 1.1f);
+            Wall(pos, 0.6f, 0.5f, 1.2f, 2.1f, P.Main, 0.8f, (float)BattleFx.LifeOnTarget(1.1));
             for (int i = 0; i < N(28); i++) { float th = Random.Range(0, Mathf.PI * 2), r = Random.Range(0.15f, 0.6f); Spark(_over, pos + new Vector3(Mathf.Cos(th) * r, Random.Range(0.1f, 1.2f), Mathf.Sin(th) * r), new Vector3(0, Random.Range(0.6f, 1.6f), 0), Hdr(i % 3 == 0 ? P.Core : P.Main, 1), Random.Range(0.08f, 0.2f), Random.Range(0.6f, 1.1f)); }
         }
 
@@ -674,9 +740,9 @@ namespace Sigilbound.Client
         public void Shield(Vector3 pos)
         {
             var P = AQUA;
-            Dome(pos + Vector3.up * 0.85f, 0.55f, 1.05f, P.Main, 1.2f);
+            Dome(pos + Vector3.up * 0.85f, 0.6f, 1.05f, P.Main, (float)BattleFx.LifeOnTarget(1.2));
             GroundFx(_dot, pos + Vector3.up * 0.9f, 1, 1.5f, P.Main, 0.6f, 0.2f, 0, 0, true);
-            GroundFx(_rune, pos, 1.3f, 2.0f, P.Main, 0.7f, 1.0f, 1);
+            GroundFx(_rune, pos, 0.9f, 1.3f, P.Main, 0.6f, 0.8f, 1);
         }
 
         // Damage-over-time tick: poison bubbles (and a coloured pulse) on the unit.
@@ -695,7 +761,7 @@ namespace Sigilbound.Client
             var P = Of(el);
             GroundFx(_dot, pos, 1.4f, 1.8f, P.Main, 0.35f, 1.6f);
             GroundFx(_ring, pos, 0.5f, 1.9f, P.Core, 0.5f, 1.2f);
-            Wall(pos, 0.45f, 0.15f, 1.6f, 2.6f, P.Main, 0.35f, 1.5f);
+            Wall(pos, 0.45f, 0.15f, 1.6f, 2.4f, P.Main, 0.35f, (float)BattleFx.LifeOnTarget(1.5));
             StartCoroutine(Stream(1.2f, N(60), k => Spark(_over, pos + new Vector3(Random.Range(-0.35f, 0.35f), Random.Range(0.1f, 1.8f) * (1 - k * 0.6f), Random.Range(-0.35f, 0.35f)), new Vector3(Random.Range(-0.15f, 0.15f), Random.Range(0.6f, 1.4f), Random.Range(-0.15f, 0.15f)), Hdr(P.Core, 1), Random.Range(0.06f, 0.14f), Random.Range(0.6f, 1.1f))));
             Smoke(pos + Vector3.up * 0.8f, N(16), new Color(0.12f, 0.11f, 0.12f), 0.3f, 0.9f, 1.2f, 0.6f);
         }

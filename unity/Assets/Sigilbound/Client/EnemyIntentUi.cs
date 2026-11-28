@@ -95,12 +95,12 @@ namespace Sigilbound.Client
             string who = it.Unit.Ally ? it.Unit.Template.ShortName : it.Unit.Name;
             string head = it.Kind == IntentKind.Stunned ? $"{who} loses its next turn." : $"{WordOf(it.Kind)}{(it.Kind == IntentKind.Ultimate ? " · " + WordOf(it.Does) : "")}" + (it.Target != null ? $" → {(it.Target.Ally ? it.Target.Template.ShortName : it.Target.Name)}" : "");
             string body = sk == null ? "" : SkillText.Describe(sk);
-            app.Modal(sk != null ? $"{who}: {sk.Name}" : who, 250, b =>
+            app.InfoModal(sk != null ? $"{who}: {sk.Name}" : who, 254, b =>
             {
                 Icons.Draw(new Rect(b.x, b.y + 2, 28, 28), IconOf(it.Kind), ColourOf(it.Kind));
                 Ui.Text(new Rect(b.x + 36, b.y, b.width - 36, 32), head, 15, ColourOf(it.Kind), FontStyle.Bold, TextAnchor.MiddleLeft, true);
                 Ui.Text(new Rect(b.x, b.y + 40, b.width, b.height - 96), body + "\n\nIts next move if nothing changes first: heroes acting before it can change its mind.", 13, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
-                if (Ui.Button(new Rect(b.x, b.yMax - 44, b.width, 42), "Close", Ui.Kind.Secondary)) app.CloseModal();
+                if (app.ModalFooter(b, "Close")) app.CloseModal(); // the shared info-modal footer, 48 dp
             });
         }
     }
