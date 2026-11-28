@@ -180,7 +180,10 @@ namespace UnityEditor.Build.Reporting
     public sealed class BuildReport : UnityEngine.Object
     {
         public BuildSummary summary => throw new NotImplementedException();
+        public BuildStep[] steps => throw new NotImplementedException();
     }
+    public struct BuildStep { public BuildStepMessage[] messages => throw new NotImplementedException(); }
+    public struct BuildStepMessage { public UnityEngine.LogType type => throw new NotImplementedException(); public string content => throw new NotImplementedException(); }
 }
 
 namespace UnityEditor.SceneManagement

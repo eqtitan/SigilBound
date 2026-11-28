@@ -192,7 +192,11 @@ jobs:
         id: apk1
         # Gradle downloads the Android build tools from Maven Central on every build; when Maven
         # answers 429 (Too Many Requests), the step fails before our code is built, so it is retried
-        # once after a pause (below).
+        # once after a pause (below), but only for that error (see "Why did the APK build fail?").
+        # The target API is pinned (androidTargetSdkVersion here, PlayerSettings in ProjectSetup.cs,
+        # BuildScript.TargetSdk = 36): with nothing pinned, game-ci read it from a ProjectSettings.asset
+        # we don't commit and printed "Failed to find package 'platforms;android-0'" on every build
+        # (QA review #10, PMO P2-26: a harmless warning, but it looked like the cause of the 429 failures).
         continue-on-error: true
         # unity-builder v6 runs the game-ci CLI. With UNITY_EMAIL + UNITY_PASSWORD and no
         # UNITY_LICENSE it activates a Personal license through Unity's licensing client
@@ -210,13 +214,27 @@ jobs:
           buildMethod: Sigilbound.EditorTools.BuildScript.Android
           versioning: None
           androidVersionCode: ${{ github.run_number }}
+          androidTargetSdkVersion: AndroidApiLevel36
           androidExportType: androidPackage
           allowDirtyBuild: true
-      - name: Wait before retrying the APK build
+      - name: Why did the APK build fail? (retry only a Maven 429 or the android-0 SDK lookup)
+        id: why
         if: steps.apk1.outcome == 'failure'
-        run: sleep 180
+        # BuildScript writes the errors Unity logged during a failed build to unity/Builds/build-errors.txt.
+        run: |
+          LOG=unity/Builds/build-errors.txt
+          if [ -f "$LOG" ] && grep -Eq "status code 429|Too Many Requests|platforms;android-0" "$LOG"; then
+            echo "retry=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::APK build hit a known flake ($(grep -Eom1 "status code 429|Too Many Requests|platforms;android-0" "$LOG")); retrying once in 3 minutes."
+            sleep 180
+          else
+            echo "retry=false" >> "$GITHUB_OUTPUT"
+            echo "::error::APK build failed for another reason (no retry). First errors:"
+            if [ -f "$LOG" ]; then head -c 3000 "$LOG"; else echo "(no $LOG: Unity stopped before building; see the step log above)"; fi
+            exit 1
+          fi
       - name: Build the APK (retry after a failure)
-        if: steps.apk1.outcome == 'failure'
+        if: steps.why.outputs.retry == 'true'
         # unity-builder v6 runs the game-ci CLI. With UNITY_EMAIL + UNITY_PASSWORD and no
         # UNITY_LICENSE it activates a Personal license through Unity's licensing client
         # ("personal" method); with UNITY_LICENSE it uses the file and falls back to the account.
@@ -233,6 +251,7 @@ jobs:
           buildMethod: Sigilbound.EditorTools.BuildScript.Android
           versioning: None
           androidVersionCode: ${{ github.run_number }}
+          androidTargetSdkVersion: AndroidApiLevel36
           androidExportType: androidPackage
           allowDirtyBuild: true
       - name: Name the APK
@@ -571,6 +590,7 @@ jobs:
           buildMethod: Sigilbound.EditorTools.BuildScript.AndroidStore
           versioning: None
           androidVersionCode: ${{ github.run_number }}
+          androidTargetSdkVersion: AndroidApiLevel36
           androidExportType: androidAppBundle
           androidKeystoreName: upload.keystore
           androidKeystoreBase64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
