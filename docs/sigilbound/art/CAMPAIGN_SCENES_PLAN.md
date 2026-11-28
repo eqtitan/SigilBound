@@ -82,3 +82,26 @@ No failed or repeated paid jobs. Sources and prompts: `unity/Tools~/models/landm
 
 - **Owner:** look at the chapter contact sheets from real screenshots (section 7) and say whether the look is right.
 - **Art director:** M4 (glow-aware landmarks), then a frame-time check with the PMO on device.
+
+## 7. Real screenshots (M3)
+
+Owner decision 2026-11-28: real screenshots before the scenes ship. The Unity workflow, run by hand on
+`feat/campaign-scenes` with the `scenes` input, builds the Linux player and runs the screenshot tour with
+`-sbShotsScenes` (1280x720, software GL): every chapter's stops 1, 3 and 6 in battle, the lair reveal's middle key,
+and the Hard lairs of chapters 2 and 15. Contact sheets per chapter: scratchpad `scene_real/`.
+
+**Build 182** (run 46102985276, commit 0e5e033): 146 shots, the tour took 9 min 18 s (5 min 16 s without the
+scenes), smoke passed. Seen in every chapter: heroes, enemies and tags readable and in frame; the lane clear; no
+pink or missing textures, floating props or black stages; the landmark behind the enemies on stop 6 with the tilt
+(camera pitch 24 degrees against 30), whole for all but the bell tower and the Stormcrown crag; every lair reveal
+shows its landmark. Problems, fixed in the next commit:
+- The crystals of the gold ruins, amethyst and burning-ruins lands (chapters 5, 8, 10) were burned to flat white
+  or yellow cut-outs by the bloom (emission 1.2); now a lit body in the mote colour with a soft glow (0.3).
+- The two Hard lairs never started (locked in the tour's throwaway save) and three late stops (10-3, 14-1, 15-1)
+  showed the defeat screen (a level-2 team); the tour now opens every stage and puts the team at level 60.
+- Not fixed (by design, for the owner): on stops 1-3 the landmark far ahead is small and often lost in the fog.
+
+The fixes (commit de232b7) are not yet confirmed in a build: three later dispatches (runs 185, 187, 197) were
+cancelled while waiting, because the workflow's license-seat concurrency groups keep only the newest pending job
+and other branches kept queueing. Next: dispatch again (`scenes` on) when the Unity queue is quiet and check
+chapters 5, 8 and 10 (crystals), 2-6H and 15-6H (night tilt), and that no stop shows the defeat screen.
