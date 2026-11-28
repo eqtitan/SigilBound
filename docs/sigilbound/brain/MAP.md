@@ -13,7 +13,7 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 | build-pipeline | prepare-models, compress, credits | L001 L007 L010 |
 | tests | Tests~, CompileCheck, gates | L001 L013 L026 L028 |
 | ci | workflow, smoke gate, queue, artifacts | L004 L005 L016 L024 L027 |
-| qa | in-house tester, checklists | L004 L016 L024 L025 L026 L027 L028 |
+| qa | in-house tester, checklists | L004 L016 L024 L025 L026 L027 L028 L032 |
 | scenes | campaign scenery, cameras | L004 |
 | balance | curves, pools, roles, probes | L006 L020 |
 | campaign | stages, waves, eases | L006 |
@@ -50,4 +50,5 @@ graph LR
   L017 --> L028[L028 plates over text, solved]
   L025 --> L028
   L030 --> L031[L031 store id already taken]
+  L027 --> L032[L032 model load mid-attack froze battle]
 ```

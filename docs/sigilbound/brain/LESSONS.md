@@ -310,3 +310,14 @@ Newest at the bottom. Format and rules: README.md. Systems: MAP.md.
 - Prevention: before recommending an app id, grep the whole repo (`grep -rn "com\.sigilbound\." --include=*.gradle --include=*.json --include=*.cs`) and list every app that already uses it.
 - Related: L030
 - Evidence: mobile/android/app/build.gradle (applicationId "com.sigilbound.game"); unity/Assets/Sigilbound/Editor/ProjectSetup.cs; docs/sigilbound/store/READINESS.md item 5
+
+## L032 - A model arriving mid-coroutine nulls the stand-in's bones
+- Status: solved
+- Systems: qa, runtime
+- Symptom: build 214, one in-house tour of six: NullReferenceException in CharacterView.Attack right after "SBMODEL view kettle: model shown"; the turn never ended and the battle stayed frozen until the tour's 150 s timeout.
+- Cause: battles start before every model has loaded (loading placeholders). The stand-in attack checked `ArmR != null` once, then wrote `ArmR.localRotation` every frame; the model load sets `ArmL = ArmR = null` mid-loop. BattleController waits on that coroutine, so one exception stalls the whole turn loop.
+- Fix: re-read the arms every frame and stop posing when they are gone (fix/attack-model-swap).
+- Prevention: in any coroutine that spans frames, re-check references the model loader can replace (ArmL/ArmR, _model, _animator) after every `yield`; never cache a "not null" check across a yield. Open follow-up: ShotsMode should log "battle did not finish" on its timeout and the smoke check should fail on it, so a frozen battle without an exception is caught too.
+- Related: L027
+- Evidence: docs/sigilbound/qa/inhouse-2026-11-28-c500092.md bug 1
+

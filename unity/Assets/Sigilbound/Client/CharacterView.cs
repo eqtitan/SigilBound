@@ -430,15 +430,22 @@ namespace Sigilbound.Client
             for (float k = 0; k < 1; k += Time.deltaTime / dur)
             {
                 transform.position = Vector3.Lerp(_home, lungeTo, Ease(k));
-                if (ArmR != null && _animator == null)
+                // The real model can finish loading mid-swing and clears the stand-in's arms (L032), so re-check them
+                // every frame instead of once: a null arm here used to throw and freeze the battle for good.
+                var armR = ArmR; var armL = ArmL;
+                if (armR != null && _animator == null)
                 {
-                    if (melee) ArmR.localRotation = Quaternion.Euler(Mathf.Lerp(0, -150, k), 0, 0);
-                    else { ArmR.localRotation = Quaternion.Euler(Mathf.Lerp(0, -160, k), 0, 0); ArmL.localRotation = Quaternion.Euler(Mathf.Lerp(0, -160, k), 0, 0); }
+                    if (melee) armR.localRotation = Quaternion.Euler(Mathf.Lerp(0, -150, k), 0, 0);
+                    else { armR.localRotation = Quaternion.Euler(Mathf.Lerp(0, -160, k), 0, 0); if (armL != null) armL.localRotation = Quaternion.Euler(Mathf.Lerp(0, -160, k), 0, 0); }
                 }
                 yield return null;
             }
-            if (melee && ArmR != null && _animator == null)
-                for (float k = 0; k < 1; k += Time.deltaTime / 0.1f) { ArmR.localRotation = Quaternion.Euler(Mathf.Lerp(-150, 40, k), 0, 0); yield return null; }
+            if (melee && _animator == null)
+                for (float k = 0; k < 1; k += Time.deltaTime / 0.1f)
+                {
+                    var armR = ArmR; if (armR == null) break;
+                    armR.localRotation = Quaternion.Euler(Mathf.Lerp(-150, 40, k), 0, 0); yield return null;
+                }
             _busy = false;
         }
 

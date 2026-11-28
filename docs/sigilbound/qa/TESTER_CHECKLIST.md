@@ -8,9 +8,11 @@ Please send back: your phone model, what you tried, and anything that looked wro
 A screenshot helps a lot. Settings → Send feedback also copies a report with your device and recent errors.
 
 
-> **Old "Sigilbound" web app (Capacitor, from the android-latest link):** it is retired. Its app id is now
-> reserved for the Play Store version. If you still have it, open it, go to Settings > Save code > Copy and keep
-> the code, then uninstall it. Paste the code into the Unity app (Settings > Paste and Load code) to keep your progress.
+> **Old "Sigilbound" web app (from the android-latest link) is retired.** If you still have it and it has MORE progress
+> than your Unity app: in the Unity app first copy your own code (Settings > Save code > Copy mine) and keep it, then in
+> the old app copy its code, paste it into the Unity app (Settings > Paste, Load code) and check the preview before
+> tapping Load: it REPLACES the Unity app's progress. Then uninstall the old app. If your Unity app is further along,
+> just uninstall the old app.
 
 ## 1. NEW in this build: screens and buttons (please check these first)
 - [ ] **Home:** quests on the left, your team in the middle, and a **Continue Campaign** button on the right
