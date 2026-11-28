@@ -19,7 +19,13 @@ from mathutils.bvhtree import BVHTree
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import ubc_parts as P  # noqa: E402
-from i3d_landmarks import LANDMARKS  # noqa: E402
+import importlib  # noqa: E402
+# landmark tables: i3d_landmarks (the new heroes) and i3d_landmarks_portrait (roster heroes remodelled from
+# their portraits), whichever this branch carries
+LANDMARKS = {}
+for _m in ("i3d_landmarks", "i3d_landmarks_portrait"):
+    try: LANDMARKS.update(importlib.import_module(_m).LANDMARKS)
+    except ModuleNotFoundError: pass
 
 NODEFORM = ("index", "middle", "ring", "pinky", "thumb", "_leaf", "root", "rest_fit")
 
@@ -162,6 +168,10 @@ def main():
     for i, p in enumerate(L.get("tail", [])[:-1]):
         b = eb.new(f"tail_{i + 1:02d}"); b.head = Vector(p); b.tail = Vector(L["tail"][i + 1]); b.parent = prev
         b.use_connect = False; prev = b
+    # extra rigid bones (moth wings: wing_l / wing_r, which RigExtras flutters about their own axis, so the
+    # bone runs up the wing's hinge); they take only the vertices a rigid test gives them
+    for name, parent, h, tl in L.get("extra_bones", []):
+        b = eb.new(name); b.head = Vector(h); b.tail = Vector(tl); b.parent = eb[parent]; b.use_connect = False
     m = eb.new("rest_fit"); m.head = Vector((0, 0, 0)); m.tail = Vector((0, 0.05, 0)); m.parent = eb["root"]
     bpy.ops.object.mode_set(mode="OBJECT")
     for b in A1.data.bones:
@@ -200,16 +210,21 @@ def main():
     # weights: fill anything heat missed (nearest bone segment), then the rigid overrides
     vg = {n: (body.vertex_groups.get(n) or body.vertex_groups.new(name=n)) for n in defb}
     segs = {n: (A2.matrix_world @ A2.data.bones[n].head_local, A2.matrix_world @ A2.data.bones[n].tail_local) for n in defb}
+    extra = {e[0] for e in L.get("extra_bones", [])}
     def nearest(p):
         best, bd = None, 1e9
         for n, (h, t) in segs.items():
+            if n in extra: continue
             ab = t - h; u = max(0.0, min(1.0, (p - h).dot(ab) / max(ab.length_squared, 1e-9)))
             d = (p - (h + ab * u)).length
             if d < bd: best, bd = n, d
         return best
     mw = body.matrix_world
     over = L.get("rigid", [])
-    filled = forced = 0
+    for name, *_ in L.get("extra_bones", []):
+        if name in body.vertex_groups:
+            g = body.vertex_groups[name]; g.remove([v.index for v in body.data.vertices])
+    filled = forced = 0; attached = set()
     for v in body.data.vertices:
         p = mw @ v.co
         tgt = next((bn for bn, test in over if test(p)), None)
@@ -217,13 +232,49 @@ def main():
             tgt = nearest(p); filled += 1
         elif tgt is not None:
             forced += 1
+            if not any(tgt.startswith(k) for k in ("thigh", "calf", "foot", "ball", "clavicle", "upperarm", "lowerarm", "hand")):
+                attached.add(v.index)   # back gear, capes, halos: a rigid part on the trunk
         if tgt == "nearest_tail":
             tails = [n for n in defb if n.startswith("tail_")]
             tgt = min(tails, key=lambda n: min(((p - segs[n][0]).length, (p - segs[n][1]).length))) if tails else nearest(p)
         if tgt is not None:
             for gi in [g.group for g in v.groups]: body.vertex_groups[gi].remove([v.index])
             vg[tgt].add([v.index], 1.0, "REPLACE")
-    print(f"[i3d] {a.hero}: heat-filled {filled}, rigid {forced}")
+    # arm reach: arm-bone weight only within this distance of the arm in the mesh's pose, so bone heat can't drag
+    # torso skin out with an arm folded against it into a curtain when the arm goes to the T-pose
+    reach = L.get("arm_reach"); cut = 0
+    if reach:
+        def segd(p, a_, b_):
+            ab = b_ - a_; u = max(0.0, min(1.0, (p - a_).dot(ab) / max(ab.length_squared, 1e-9))); return (p - (a_ + ab * u)).length
+        for s in ("l", "r"):
+            chain_ = [J["shoulder_" + s], J["elbow_" + s], J["wrist_" + s], J["handend_" + s]]
+            names = {"upperarm_" + s, "lowerarm_" + s, "hand_" + s}
+            gids = {body.vertex_groups[n_].index for n_ in names if n_ in body.vertex_groups}
+            for v in body.data.vertices:
+                if not any(g.group in gids and g.weight > 0 for g in v.groups): continue
+                p = mw @ v.co
+                if any(t_(p) for _, t_ in over): continue
+                if min(segd(p, a_, b_) for a_, b_ in zip(chain_, chain_[1:])) <= reach: continue
+                for gi in gids: body.vertex_groups[gi].remove([v.index])
+                if sum(g.weight for g in v.groups) < 1e-3:
+                    tgt = min((n_ for n_ in segs if n_ not in extra and not any(n_.startswith(k) for k in ("upperarm", "lowerarm", "hand"))),
+                              key=lambda n_: segd(p, *segs[n_]))
+                    vg[tgt].add([v.index], 1.0, "REPLACE")
+                cut += 1
+        print(f"[i3d] {a.hero}: arm weight cut from {cut} torso vertices")
+    # soft blends: long robes and coats share part of their weight with a calmer bone (pelvis), so they don't
+    # split with the legs: (bone, share, test)
+    soft = 0
+    for bn, share, test in L.get("blend", []):
+        for v in body.data.vertices:
+            if not test(mw @ v.co) or any(t_(mw @ v.co) for _, t_ in over): continue
+            ws = [(body.vertex_groups[g.group].name, g.weight) for g in v.groups]
+            tot = sum(w for _, w in ws) or 1.0
+            for n_, w in ws: body.vertex_groups[n_].add([v.index], w / tot * (1 - share), "REPLACE")
+            if bn not in [n_ for n_, _ in ws]: vg[bn].add([v.index], share, "REPLACE")
+            else: body.vertex_groups[bn].add([v.index], dict(ws)[bn] / tot * (1 - share) + share, "REPLACE")
+            soft += 1
+    print(f"[i3d] {a.hero}: heat-filled {filled}, rigid {forced}, blended {soft}")
 
     # --- pose A2 back to A1's rest and apply: the mesh moves into the T-pose ---
     for o in bpy.context.selected_objects: o.select_set(False)
@@ -244,10 +295,57 @@ def main():
     bm = bmesh.new(); bm.from_mesh(body.data); bm.edges.ensure_lookup_table()
     torn_e = {e.index for e in bm.edges if e.calc_length() > max(0.08, len0[e.index] * L.get("tear", 2.5))}
     kill = [f for f in bm.faces if any(e.index in torn_e for e in f.edges)]
+    if L.get("split_limbs"):
+        # faces joining two different limbs (left leg to right leg, a hand's weapon to a calf), or a limb to a rigid
+        # trunk part (a banner tip fused to a knee), become sheets in any stance: drop them (limb to trunk is kept)
+        dl = bm.verts.layers.deform.active; gname = {g.index: g.name for g in body.vertex_groups}
+        def limb(v):
+            w = v[dl] if dl else {}
+            if not w: return None
+            n_ = gname[max(w.items(), key=lambda kv: kv[1])[0]]
+            for pre, tag in (("thigh_", "leg"), ("calf_", "leg"), ("foot_", "leg"), ("ball_", "leg"), ("clavicle_", "arm"),
+                             ("upperarm_", "arm"), ("lowerarm_", "arm"), ("hand_", "arm")):
+                if n_.startswith(pre): return tag + n_[-2:]
+            return None
+        lim = {v.index: ("attached" if v.index in attached else limb(v)) for v in bm.verts}
+        kill += [f for f in bm.faces if f not in kill and len({lim[v.index] for v in f.verts} - {None}) > 1]
+        kill = list(set(kill))
+    oid = bm.verts.layers.int.new("oid")
+    for v in bm.verts: v[oid] = v.index
+    open0 = {frozenset((e.verts[0][oid], e.verts[1][oid])) for e in bm.edges if e.is_boundary}
     bmesh.ops.delete(bm, geom=kill, context="FACES")
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    filled_n = 0
+    if L.get("fill_holes"):
+        # close the holes the tear opened (the generator never modelled what an arm hid): each loop of new
+        # boundary edges gets a cap whose corners take the UVs of the faces beside them
+        uv = bm.loops.layers.uv.active
+        newb = [e for e in bm.edges if e.is_boundary and frozenset((e.verts[0][oid], e.verts[1][oid])) not in open0]
+        # one loop at a time, small ones only (a long loop is an arm torn off a robe: a cap would be a sheet)
+        left, keep = set(newb), []
+        while left:
+            st = [left.pop()]; comp = []
+            while st:
+                e = st.pop(); comp.append(e)
+                for v in e.verts:
+                    for e2 in v.link_edges:
+                        if e2 in left: left.discard(e2); st.append(e2)
+            if sum(e.calc_length() for e in comp) < L.get("fill_max", 0.6): keep += comp
+        res = bmesh.ops.holes_fill(bm, edges=keep, sides=0)
+        for f in res["faces"]:
+            for lp in f.loops:
+                src = next((l2 for l2 in lp.vert.link_loops if l2.face is not f and l2.face not in res["faces"]), None)
+                if src is not None: lp[uv].uv = src[uv].uv.copy()
+        if L.get("cap_sample") and res["faces"]:   # caps over dark interiors: one texel from a chosen surface
+            cs = Vector(L["cap_sample"]); caps = set(res["faces"])
+            fs = min((f for f in bm.faces if f not in caps), key=lambda f: (f.calc_center_median() - cs).length)
+            uv0 = fs.loops[0][uv].uv.copy()
+            for f in caps:
+                for lp in f.loops: lp[uv].uv = uv0
+        bmesh.ops.triangulate(bm, faces=res["faces"]); filled_n = len(res["faces"])
+    bm.verts.layers.int.remove(oid)
     bm.to_mesh(body.data); bm.free()
-    print(f"[i3d] {a.hero}: tore {len(kill)} stretched faces")
+    print(f"[i3d] {a.hero}: tore {len(kill)} stretched faces, capped {filled_n} holes")
     body.parent = None
     bpy.data.objects.remove(A2, do_unlink=True)
     # A1 back to its rest; bind
@@ -264,6 +362,7 @@ def main():
     alb_png = os.path.join(a.out, f"_tmp_{a.hero}.png")
     img.filepath_raw = alb_png; img.file_format = "PNG"; img.save()
     im = Image.open(alb_png).convert("RGB")
+    if im.width > 1024: im = im.resize((1024, 1024 * im.height // im.width), Image.LANCZOS)  # HD textures are 1024
     from PIL import ImageDraw, ImageChops
     W_, H_ = im.size
     def mask_of(tris):
