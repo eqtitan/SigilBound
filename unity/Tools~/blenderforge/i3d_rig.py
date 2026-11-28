@@ -20,10 +20,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import ubc_parts as P  # noqa: E402
 import importlib  # noqa: E402
-# landmark tables: i3d_landmarks (the new heroes) and i3d_landmarks_portrait (roster heroes remodelled from
-# their portraits), whichever this branch carries
+# landmark tables: i3d_landmarks (the new heroes), i3d_landmarks_portrait (roster heroes remodelled from their
+# portraits) and i3d_landmarks_titan (the Titan), whichever this branch carries
 LANDMARKS = {}
-for _m in ("i3d_landmarks", "i3d_landmarks_portrait"):
+for _m in ("i3d_landmarks", "i3d_landmarks_portrait", "i3d_landmarks_titan"):
     try: LANDMARKS.update(importlib.import_module(_m).LANDMARKS)
     except ModuleNotFoundError: pass
 
@@ -363,7 +363,7 @@ def main():
     img.filepath_raw = alb_png; img.file_format = "PNG"; img.save()
     im = Image.open(alb_png).convert("RGB")
     if im.width > 1024: im = im.resize((1024, 1024 * im.height // im.width), Image.LANCZOS)  # HD textures are 1024
-    from PIL import ImageDraw, ImageChops
+    from PIL import ImageDraw, ImageChops, ImageFilter
     W_, H_ = im.size
     def mask_of(tris):
         mk = Image.new("L", (W_, H_), 0); dr = ImageDraw.Draw(mk)
@@ -401,19 +401,31 @@ def main():
     im.save(os.path.join(a.out, f"SB_Hero_{a.hero}_HD_albedo.jpg"), quality=88, optimize=True)
     # glow: bright saturated element-coloured pixels (lava, flames, runes), half size
     g = im.resize((im.width // 2, im.height // 2)).convert("HSV")
-    hue_lo, hue_hi = L.get("glow_hue", (0, 40))
+    hue_lo, hue_hi = L.get("glow_hue", (0, 40)); smin, vmin = L.get("glow_sv", (120, 200))
     gp = Image.new("RGB", g.size); src = g.load(); dst = gp.load()
     n = 0
     for y in range(g.height):
         for x in range(g.width):
             h, s, v = src[x, y]
             hd = h * 360 // 255
-            if s > 120 and v > 200 and hue_lo <= hd <= hue_hi:
+            if s > smin and v > vmin and hue_lo <= hd <= hue_hi:
                 dst[x, y] = (255, 255, 255); n += 1
     if glow_extra:
         ImageDraw.Draw(gp).rectangle([glow_extra[0] // 2, glow_extra[1] // 2, glow_extra[0] // 2 + 7, glow_extra[1] // 2 + 7], fill=(255, 255, 255)); n += 64
     if n > 50:
+        if L.get("glow_dilate"): gp = gp.filter(ImageFilter.MaxFilter(L["glow_dilate"]))
         gp.save(os.path.join(a.out, f"SB_Hero_{a.hero}_HD_glow.png"))
+        if L.get("glow_neutral"):
+            # the game tints the glow mask per element (Titan: Flame orange ... Shadow violet), added over the
+            # albedo: the albedo under the mask goes dark neutral so the seam colour is the element's alone
+            mk = gp.convert("L").resize(im.size, Image.BILINEAR).filter(ImageFilter.GaussianBlur(1.5)); mp = mk.load(); px = im.load()
+            for y in range(im.height):
+                for x in range(im.width):
+                    k_ = mp[x, y] / 255.0
+                    if k_ <= 0.02: continue
+                    r, g_, b_ = px[x, y]; gr = int(0.18 * (r * 0.3 + g_ * 0.59 + b_ * 0.11)) + 22
+                    px[x, y] = tuple(int(c * (1 - k_) + gr * k_) for c in (r, g_, b_))
+            im.save(os.path.join(a.out, f"SB_Hero_{a.hero}_HD_albedo.jpg"), quality=88, optimize=True)
     os.remove(alb_png)
     # placeholder material (the game applies the textures)
     mat = bpy.data.materials.new("M_Hero_HD"); body.data.materials.clear(); body.data.materials.append(mat)
