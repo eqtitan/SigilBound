@@ -3,6 +3,7 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-28 | New heroes and a new Titan
+fix: Tansy and Corran are back to their previous look while their new animal legs are fixed (they showed up stretched and broken).
 fix: Jasper's long coat now swings and slides off his legs instead of splitting around them, and his boots and trousers bend with his knees.
 fix: Hask's tower shield sits closer to his fist so it no longer cuts through his helmet, and he attacks with sword swings only.
 change: Kaelith and Wystan glide at a formal walk instead of jogging and take heavy hits on their feet, so their gown and robe stay closed.
@@ -12,7 +13,6 @@ fix: Holding the phone upright, battles get the big round buttons, a Pause butto
 fix: Holding the phone upright, the campaign has the Normal/Hard and Act I/II switches, bigger stage buttons and solid locked chapters.
 fix: Enemy names on the stage list are no longer cut off; the level moves under a long name.
 fix: The release review marks every copy of a hero with "!" when you release all of them.
-fix: The Titan's arrival is filmed between your heroes, so none of them blocks its face, and its name tag keeps clear of the skill banner.
 fix: Wide heroes (Vorgrim, Talvo, Wystan, Crusk, Hartwin, Nyssa, Vessa) get more room in the Home line-up.
 fix: Heroes no longer flash in a T-pose on Home while their models load.
 new: Auto Climb: tap Climb in battle or on the results screen and, after each win, the next stage, Hard stage, dungeon floor or arena fight starts by itself until you lose or run out, then a summary shows what you earned. The game remembers your choice.
@@ -23,7 +23,7 @@ new: A new Legendary hero: Vessa Silkmourne, the spider-folk Weaver of Wraithmoo
 new: Vessa's skills: Silk Snare slows, Widow's Venom poisons every enemy, and Silkfall Pounce leaps on a foe.
 change: The Titan has a new look: a hunched basalt colossus with huge fists, crystal ridges and molten seams that glow in its element's colour.
 change: The Titan's arena is now a caldera with lava veins and a crater rim.
-fix: The Titan's arrival is filmed from behind your heroes looking up at its face, its jump keeps the ground in view, and its name tag clears its horns.
+fix: The Titan's arrival is filmed from between your heroes looking up at its face, its jump keeps the ground in view, and its name tag clears its horns and the skill banner.
 change: Brannoc, Vex and Aurex have new 3D models that match their portraits.
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
 change: Painted icons for the Gale, Light and Shadow elements on the campaign map, and each shard type has its own coloured crystal.
@@ -45,9 +45,6 @@ balance: Gear can add at most +50 speed to a hero.
 balance: Kettle, Oriel and Wren toned down; Corvan, Ysolde, Brannoc, Nyx, Tamsin and Sable strengthened.
 balance: 45 more heroes retuned for the new speeds.
 balance: Stage 13-6 and the final stage 15-6 are a little easier.
-
-## 2026-11-27 | Fairer chapters and clearer battles
-fix: Tansy and Corran now bend their legs like a hare and a goat, with a backward-folding hock, when they walk, crouch and kneel.
 
 ## 2026-11-27 | Fairer chapters and clearer battles
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.

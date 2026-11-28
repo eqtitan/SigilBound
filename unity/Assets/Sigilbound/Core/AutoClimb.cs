@@ -50,8 +50,9 @@ namespace Sigilbound.Core
                 case ClimbArea.Dungeon:
                 {
                     int next = current + 1;
-                    if (g.DungeonRunsLeft(dungeon) <= 0) return ClimbTarget.Stop(ClimbStop.OutOfRuns);
+                    // The top floor wins over "out of runs": clearing it with the day's last run is reaching the end.
                     if (next >= Trials.DungeonFloors) return ClimbTarget.Stop(ClimbStop.ReachedEnd);
+                    if (g.DungeonRunsLeft(dungeon) <= 0) return ClimbTarget.Stop(ClimbStop.OutOfRuns);
                     if (!g.CanEnterFloor(dungeon, next)) return ClimbTarget.Stop(ClimbStop.Locked);
                     return ClimbTarget.Go(next);
                 }

@@ -10,8 +10,10 @@ using System.Text.Json;
 
 static class DigitigradeTests
 {
-    // Heroes rigged with "legs": "digitigrade" (i3d_landmarks_portrait.py).
-    static readonly string[] Expected = { "tansy", "corran" };
+    // Heroes rigged with "legs": "digitigrade" (i3d_landmarks_portrait.py). Empty for now: Tansy and Corran were
+    // rolled back to their plain rigs after the in-house tester found them exploded in game (build 180, the
+    // DigitigradeLegs runtime layer); they return here once the layer is fixed and checked on a real build.
+    static readonly string[] Expected = { };
     static readonly string[] LegBones = { "thigh", "calf", "meta", "foot", "ball" };
 
     static string Find(params string[] rel)
