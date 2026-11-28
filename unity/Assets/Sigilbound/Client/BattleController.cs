@@ -23,7 +23,7 @@ namespace Sigilbound.Client
         public static BattleSpec ForArena(Rival rv) => new BattleSpec { Mode = BattleMode.Arena, Rival = rv };
     }
 
-    public sealed class BattleController : MonoBehaviour
+    public sealed partial class BattleController : MonoBehaviour
     {
         public App App;
         Battle _b; BattleSpec _spec;
@@ -33,12 +33,12 @@ namespace Sigilbound.Client
         Coroutine _loop;
 
         Game G => App.G;
-        bool Auto => G.S.settings.auto;
+        bool Auto => AutoClimb.AutoBattle(G.S.settings, Climbing); // Auto Climb keeps Auto battle on (AutoClimbUi.cs)
         bool IsTitan => _spec.Mode == BattleMode.Titan;
         public BattleMode Mode => _spec?.Mode ?? BattleMode.Stage;
         public bool InProgress => _b != null && !_finished;
-        // Auto-replay is looping campaign battles (Quality caps it at 30 fps).
-        public bool Replaying => _b != null && _spec != null && _spec.Mode == BattleMode.Stage && G.S.settings.autoReplay;
+        // Auto-replay is looping campaign battles, or Auto Climb is running (Quality caps both at 30 fps).
+        public bool Replaying => _b != null && _spec != null && ((_spec.Mode == BattleMode.Stage && G.S.settings.autoReplay) || Climbing || _climbPending);
 
         public void Begin(int stage) => Begin(stage < 0 ? BattleSpec.Titan() : BattleSpec.ForStage(stage));
 
@@ -54,6 +54,8 @@ namespace Sigilbound.Client
             if (spec.Mode == BattleMode.Titan && !spec.Practice) { G.StartTitan(); App.Save(); }
             if (spec.Mode == BattleMode.Arena) { G.StartArena(spec.Rival); App.Save(); }
             _spec = spec;
+            if (spec.Mode == BattleMode.Arena) _arenaSlot = SlotOf(spec.Rival);
+            _climbPending = false; _climbRetreat = false;
             App.ClearLineup();
             HeroModels.TrimSoon(); // auto-replay starts battles back to back: free the last one's leftovers
             _b = spec.Mode switch
@@ -115,6 +117,7 @@ namespace Sigilbound.Client
             if (_loop != null) StopCoroutine(_loop);
             Time.timeScale = 1; _paused = false;
             _auto = null;
+            _climb = null; _climbPending = false; // leaving the battle ends any climb (its summary has shown)
             Clear();
             App.CloseModal();
             App.Arena.Build(Mathf.Min(Chapters.Length - 1, G.S.cleared / StagesPerChapter), false);
@@ -131,7 +134,8 @@ namespace Sigilbound.Client
         // Android Back: asks to retreat mid-battle; on a result popup it leaves the battle (0.19.2).
         public void BackPressed()
         {
-            if (_finished) { G.S.settings.autoReplay = false; App.Save(); End(BackScreen); }
+            if (_finished && _climb != null && App.ModalOpen) { AutoClimb.SetClimb(G.S.settings, false); App.Save(); StopClimb(ClimbStop.ByPlayer); }
+            else if (_finished) { G.S.settings.autoReplay = false; App.Save(); End(BackScreen); }
             else if (App.ModalOpen) App.CloseModal();
             else AskRetreat();
         }
@@ -222,7 +226,10 @@ namespace Sigilbound.Client
             var rv = StoryScenes.RevealOf(chapter);
             if (rv == null) yield break;
             // Once per lair per session: the arrival is the point; replays of the same boss skip it.
-            if (!_lairsRevealed.Add(chapter)) yield break;
+            // While climbing, a lair already seen (this session, or cleared before this fight) is skipped too.
+            bool clearedBefore = _spec.Mode == BattleMode.Hard ? _spec.Stage < G.S.hardCleared : _spec.Stage < G.S.cleared;
+            bool seen = !_lairsRevealed.Add(chapter);
+            if (AutoClimb.SkipLairReveal(Climbing, seen, clearedBefore)) yield break;
             var (pc, top) = rv.Value;
             var arena = App.Arena; float keepSpeed = Time.timeScale; Time.timeScale = 1;
             _cinema = _skippable = true;
@@ -787,6 +794,7 @@ namespace Sigilbound.Client
                 int stage = _spec.Stage;
                 var res = G.CompleteStage(stage); App.Save();
                 App.Online.PushProfile();
+                if (ClimbResult(true, res.Reward, res.Gear != null ? 1 : 0, res.LevelUps)) return; // Auto Climb: the summary, or a countdown on the results
                 string ups = string.Join("\n", res.LevelUps.Select(l => $"{Hero(l.hero.id).ShortName} → Lv {l.hero.level}"));
                 string gear = res.Gear == null ? "" : $"\nFound: {GearRarityNames[res.Gear.rarity]} {res.Gear.Set} {res.Gear.Slot}";
                 bool canNext = stage + 1 < TotalStages && G.S.cleared > stage;
@@ -805,7 +813,7 @@ namespace Sigilbound.Client
                     if (G.S.settings.autoReplay) StartCoroutine(AutoReplay());
                     return;
                 }
-                App.Modal("VICTORY", 330, r =>
+                ResultModal("VICTORY", 330, r =>
                 {
                     if (replay && _auto != null)
                     {
@@ -817,6 +825,7 @@ namespace Sigilbound.Client
                     }
                     Ui.Text(new Rect(r.x, r.y, r.width, 60), res.Reward + $"\n+{Ui.Fmt(res.Reward.Xp)} XP each" + (res.FirstClear ? " · First clear bonus!" : ""), 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
                     Ui.Text(new Rect(r.x, r.y + 64, r.width, 90), ups + gear, 13, Palette.Good, FontStyle.Normal, TextAnchor.UpperCenter, true);
+                    if (ClimbBar(r)) return;
                     float y = r.yMax - 100;
                     if (canNext && Ui.Button(new Rect(r.x, y, r.width, 44), "Next Stage ▶")) { App.CloseModal(); Begin(Mathf.Min(G.S.cleared, TotalStages - 1)); }
                     if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Again", Ui.Kind.Secondary)) { App.CloseModal(); Begin(stage); }
@@ -827,9 +836,10 @@ namespace Sigilbound.Client
             else
             {
                 G.S.settings.autoReplay = false; App.Save();
+                if (ClimbResult(false, null, 0, null)) return; // a loss ends the climb: its summary
                 if (_auto != null) { _auto.Record(false, null, false, null); ShowAutoSummary("ended by a defeat", _spec.Stage); return; }
                 if (Ui.Landscape) { App.Modal("DEFEAT", ResultsHeight, r => DrawResults(r, false, null, false, null, null, _spec.Stage, false), App.WideModalW); return; }
-                App.Modal("DEFEAT", 250, r =>
+                ResultModal("DEFEAT", 250, r =>
                 {
                     Ui.Text(new Rect(r.x, r.y, r.width, 80), "Level heroes with training, equip and upgrade gear, bring elements that beat the enemy, and summon new heroes.", 13, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
                     if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Retry", Ui.Kind.Secondary)) { App.CloseModal(); Begin(_spec.Stage); }
@@ -844,6 +854,7 @@ namespace Sigilbound.Client
         void FinishHard()
         {
             int idx = _spec.Stage;
+            if (_b.Result != BattleResult.Victory && ClimbResult(false, null, 0, null)) return;
             if (_b.Result != BattleResult.Victory && Ui.Landscape)
             {
                 // The same results screen as the campaign (UX review #10), with Hard's own actions.
@@ -855,7 +866,7 @@ namespace Sigilbound.Client
             }
             if (_b.Result != BattleResult.Victory)
             {
-                App.Modal("DEFEAT", 250, r =>
+                ResultModal("DEFEAT", 250, r =>
                 {
                     Ui.Text(new Rect(r.x, r.y, r.width, 80), "Hard stages hit much harder. Level up, upgrade gear and try again.", 13, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
                     if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Retry", Ui.Kind.Secondary)) { App.CloseModal(); Begin(BattleSpec.ForHard(idx)); }
@@ -865,6 +876,7 @@ namespace Sigilbound.Client
             }
             var res = G.CompleteHard(idx); App.Save();
             App.Online.PushProfile();
+            if (ClimbResult(true, res.Reward, res.Gear != null ? 1 : 0, res.LevelUps)) return;
             string ups = string.Join("\n", res.LevelUps.Select(l => $"{Hero(l.hero.id).ShortName} → Lv {l.hero.level}"));
             string gear = $"\nFound: {GearRarityNames[res.Gear.rarity]} {res.Gear.Set} {res.Gear.Slot}";
             int next = idx + 1;
@@ -879,10 +891,11 @@ namespace Sigilbound.Client
                 ShowResults("HARD CLEARED", spec);
                 return;
             }
-            App.Modal("HARD CLEARED", 340, r =>
+            ResultModal("HARD CLEARED", 340, r =>
             {
                 Ui.Text(new Rect(r.x, r.y, r.width, 60), res.Reward + $"\n+{Ui.Fmt(res.Reward.Xp)} XP each" + (res.FirstClear ? " · First Hard clear!" : ""), 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
                 Ui.Text(new Rect(r.x, r.y + 64, r.width, 90), ups + gear, 13, Palette.Good, FontStyle.Normal, TextAnchor.UpperCenter, true);
+                if (ClimbBar(r)) return;
                 if (G.HardOpen(next) && Ui.Button(new Rect(r.x, r.yMax - 100, r.width, 44), $"Hard {Game.StageLabel(next)} ▶")) { App.CloseModal(); Begin(BattleSpec.ForHard(next)); }
                 if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Again", Ui.Kind.Secondary)) { App.CloseModal(); Begin(BattleSpec.ForHard(idx)); }
                 if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Map", Ui.Kind.Secondary)) End(ScreenId.Campaign);
@@ -972,6 +985,7 @@ namespace Sigilbound.Client
         {
             var key = _spec.Dungeon; int floor = _spec.Floor; var D = Trials.Dungeon(key);
             string where = $"{D.Name} · Floor {floor + 1}";
+            if (_b.Result != BattleResult.Victory && ClimbResult(false, null, 0, null)) return;
             if (_b.Result != BattleResult.Victory && Ui.Landscape)
             {
                 ShowResults("DEFEAT", new ResultsSpec { Where = where, LoseText = "No run used. Strengthen your team and try again." }
@@ -982,7 +996,7 @@ namespace Sigilbound.Client
             }
             if (_b.Result != BattleResult.Victory)
             {
-                App.Modal("DEFEAT", 220, r =>
+                ResultModal("DEFEAT", 220, r =>
                 {
                     Ui.Text(new Rect(r.x, r.y, r.width, 50), "No run used. Strengthen your team and try again.", 13, Palette.Dim, FontStyle.Normal, TextAnchor.UpperCenter, true);
                     if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Retry", Ui.Kind.Secondary)) { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor)); }
@@ -991,6 +1005,7 @@ namespace Sigilbound.Client
                 return;
             }
             var res = G.CompleteDungeon(key, floor); App.Save();
+            if (ClimbResult(true, res.Reward, res.Drops.Count, res.LevelUps)) return;
             string ups = string.Join("\n", res.LevelUps.Select(l => $"{Hero(l.hero.id).ShortName} → Lv {l.hero.level}"));
             string drops = string.Join("\n", res.Drops.Select(g => $"Found: {GearRarityNames[g.rarity]} {g.Set} {g.Slot}"));
             bool next = res.RunsLeft > 0 && floor + 1 < Trials.DungeonFloors;
@@ -1005,11 +1020,12 @@ namespace Sigilbound.Client
                 ShowResults($"FLOOR {floor + 1} CLEARED", spec);
                 return;
             }
-            App.Modal($"FLOOR {floor + 1} CLEARED", 360, r =>
+            ResultModal($"FLOOR {floor + 1} CLEARED", 360, r =>
             {
                 Ui.Text(new Rect(r.x, r.y, r.width, 60), res.Reward + (res.Reward.Xp > 0 ? $"\n+{Ui.Fmt(res.Reward.Xp)} XP each" : "") + (res.First ? "\nFirst clear bonus!" : ""), 14, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
                 Ui.Text(new Rect(r.x, r.y + 64, r.width, 80), (ups + "\n" + drops).Trim(), 13, Palette.Good, FontStyle.Normal, TextAnchor.UpperCenter, true);
                 Ui.Text(new Rect(r.x, r.yMax - 128, r.width, 22), $"{D.Name}: {res.RunsLeft} run{(res.RunsLeft == 1 ? "" : "s")} left today", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+                if (ClimbBar(r)) return;
                 if (next && Ui.Button(new Rect(r.x, r.yMax - 100, r.width, 44), $"Floor {floor + 2} ▶")) { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor + 1)); }
                 if (res.RunsLeft > 0 && Ui.Button(new Rect(r.x, r.yMax - 46, r.width / 2 - 5, 44), "Again", Ui.Kind.Secondary)) { App.CloseModal(); Begin(BattleSpec.ForDungeon(key, floor)); }
                 if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Back", Ui.Kind.Secondary)) End(ScreenId.Dungeon);
@@ -1020,13 +1036,15 @@ namespace Sigilbound.Client
         {
             var rv = _spec.Rival;
             var res = G.CompleteArena(rv, _b.Result == BattleResult.Victory); App.Save();
-            App.Modal(res.Win ? "VICTORY" : "DEFEAT", 290, r =>
+            if (ClimbResult(res.Win, res.Reward, 0, null)) return;
+            ResultModal(res.Win ? "VICTORY" : "DEFEAT", 290, r =>
             {
                 Ui.Text(new Rect(r.x, r.y, r.width, 50), $"vs {rv.Name}\n{Ui.ColorTag((res.Delta > 0 ? "+" : "") + res.Delta, res.Win ? Palette.Good : Palette.Bad)} points → {res.Points}", 15, Palette.Text, FontStyle.Normal, TextAnchor.UpperCenter, true);
                 float y = r.y + 56;
                 if (res.After.Name != res.Before.Name) { Ui.Text(new Rect(r.x, y, r.width, 26), $"{res.After.Name} rank{(res.Win ? " reached!" : "")}", 17, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter); y += 28; }
                 if (res.Win) { Ui.Text(new Rect(r.x, y, r.width, 22), res.Reward.ToString(), 13, Palette.Gold, FontStyle.Normal, TextAnchor.MiddleCenter); y += 24; }
                 Ui.Text(new Rect(r.x, y, r.width, 22), $"Fights left today: {G.S.daily.arenaTries}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+                if (ClimbBar(r)) return;
                 if (Ui.Button(new Rect(r.x, r.yMax - 46, r.width, 44), "Continue")) End(ScreenId.ArenaPvp);
             });
         }
@@ -1048,6 +1066,10 @@ namespace Sigilbound.Client
                 if (Ui.Button(new Rect(r.x + r.width / 2 + 5, r.yMax - 46, r.width / 2 - 5, 44), "Retreat", Ui.Kind.Red))
                 {
                     App.CloseModal();
+                    // Leaving a climb after its first fight stops it (stopped by you) and shows its summary; an arena
+                    // retreat still counts as a loss.
+                    if (_spec.Mode == BattleMode.Arena && _climb != null) _climbRetreat = true;
+                    else if (_climb != null) { G.S.settings.autoReplay = false; StopClimb(ClimbStop.ByPlayer, WhereOf(_spec)); return; }
                     if (IsTitan || _spec.Mode == BattleMode.Arena) { if (_loop != null) StopCoroutine(_loop); ResetCinema(); _b.Retreat(); Finish(); }
                     else { G.S.settings.autoReplay = false; if (_auto != null) { if (_loop != null) StopCoroutine(_loop); Time.timeScale = 1; _finished = true; _auto.Record(false, null, false, null); ShowAutoSummary("ended by a retreat", _spec.Stage); } else End(BackScreen); }
                 }
@@ -1075,11 +1097,14 @@ namespace Sigilbound.Client
                 return;
             }
             if (Ui.Landscape) { DrawHudWide(); return; }
+            HudSkills = Rect.zero;
             var safe = Ui.Safe; var cam = App.Arena.Cam;
             float top = safe.y;
             // header
-            GUI.DrawTexture(new Rect(0, 0, Ui.W, top + 50), Ui.Solid(new Color(0.06f, 0.05f, 0.08f, 0.55f)));
-            if (Ui.Button(new Rect(10, top + 8, 40, 34), "X", Ui.Kind.Secondary, 14)) AskRetreat();
+            // Two rows of 48 dp controls: leave, where and view on top; the switches (Replay, Climb, Auto, speed) below.
+            float hb = Mathf.Max(44, Ui.Tap), hdr = hb * 2 + 14;
+            GUI.DrawTexture(new Rect(0, 0, Ui.W, top + hdr), Ui.Solid(new Color(0.06f, 0.05f, 0.08f, 0.55f)));
+            if (Ui.Button(new Rect(10, top + 4, hb, hb), "X", Ui.Kind.Secondary, 14)) AskRetreat();
             string info = _spec.Mode switch
             {
                 BattleMode.Titan => $"Titan · Turn {Mathf.Min(_b.BossTurns + 1, TitanTurns)}/{TitanTurns} · {Ui.Fmt(_b.TitanDamage)} dmg",
@@ -1088,14 +1113,22 @@ namespace Sigilbound.Client
                 BattleMode.Hard => $"Hard {Game.StageLabel(_spec.Stage)} · Wave {_b.Wave + 1}/{_b.Waves.Count}",
                 _ => $"Stage {Game.StageLabel(_spec.Stage)} · Wave {_b.Wave + 1}/{_b.Waves.Count}",
             };
-            float bx = Ui.W - 10;
-            bx -= 46; if (Ui.Button(new Rect(bx, top + 8, 42, 34), $"{G.S.settings.speed}x", Ui.Kind.Secondary, 13)) { G.S.settings.speed = G.S.settings.speed >= 3 ? 1 : G.S.settings.speed + 1; Time.timeScale = _finished ? 1 : G.S.settings.speed; App.Save(); }
-            bx -= 54; if (Ui.Button(new Rect(bx, top + 8, 50, 34), "Auto", Auto ? Ui.Kind.Primary : Ui.Kind.Secondary, 12)) { G.S.settings.auto = !G.S.settings.auto; App.Save(); }
-            if (_spec.Mode == BattleMode.Stage) { bx -= 54; if (Ui.Button(new Rect(bx, top + 8, 50, 34), "Replay", G.S.settings.autoReplay ? Ui.Kind.Primary : Ui.Kind.Secondary, 11)) ToggleAutoReplay(); }
-            bx -= 46; if (Ui.Button(new Rect(bx, top + 8, 42, 34), "View", Ui.Kind.Secondary, 11)) CycleCamera();
-            Ui.Text(new Rect(56, top + 8, bx - 60, 34), info, 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
-            DrawTurnBar(top + 50);
-            RoundPill(8, top + 84, false);
+            float bx = Ui.W - 10 - (hb + 8);
+            if (Ui.Button(new Rect(bx, top + 4, hb + 8, hb), "View", Ui.Kind.Secondary, 12)) CycleCamera();
+            Ui.Text(new Rect(18 + hb, top + 4, bx - hb - 24, hb), info, 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+            {
+                bool replay = _spec.Mode == BattleMode.Stage;
+                int n = 2 + (replay ? 1 : 0) + (CanClimb ? 1 : 0);
+                float g = 6, cw = (Ui.W - 20 - g * (n - 1)) / n, cx = 10, cy = top + hb + 10;
+                if (replay) { if (HudChip(new Rect(cx, cy, cw, hb), Icon.Loop, "Replay", G.S.settings.autoReplay)) ToggleAutoReplay(); cx += cw + g; }
+                if (CanClimb) { if (HudChip(new Rect(cx, cy, cw, hb), Icon.Climb, "Climb", Climbing)) ToggleClimb(); cx += cw + g; }
+                HudAutoSpeed = new Rect(cx, cy, cw * 2 + g, hb);
+                if (HudChip(new Rect(cx, cy, cw, hb), Icon.Auto, "Auto", Auto)) ToggleAuto(); cx += cw + g;
+                if (HudChip(new Rect(cx, cy, cw, hb), Icon.Speed, $"{G.S.settings.speed}x", G.S.settings.speed > 1)) { G.S.settings.speed = G.S.settings.speed >= 3 ? 1 : G.S.settings.speed + 1; Time.timeScale = _finished ? 1 : G.S.settings.speed; App.Save(); }
+            }
+            DrawTurnBar(top + hdr);
+            HudTurns = new Rect(0, top + hdr, Ui.W, 30);
+            RoundPill(8, top + hdr + 34, false);
 
             // unit bars + tap targets
             bool manual = _awaiting && _actor != null && _actor.Ally && !Auto;
@@ -1109,7 +1142,7 @@ namespace Sigilbound.Client
                 Vector3 sp = cam.WorldToScreenPoint(u.Titan ? TitanTagPoint(v) // the Titan's tag sits above its horn tips
                     : v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
                 if (sp.z < 0) continue;
-                float x = Mathf.Clamp(sp.x / Ui.Scale, 46, Ui.W - 46), y = Mathf.Max(safe.y + 114, (Screen.height - sp.y) / Ui.Scale); // tags stay on screen, below the turn bar
+                float x = Mathf.Clamp(sp.x / Ui.Scale, 46, Ui.W - 46), y = Mathf.Max(safe.y + hdr + 64, (Screen.height - sp.y) / Ui.Scale); // tags stay on screen, below the turn bar
                 float w = u.Titan ? 140 : 76;
                 Icons.Draw(new Rect(x - w / 2 - 10, y - 29, 13, 13), Icons.ForElement(u.El), Palette.Element(u.El));
                 Ui.Text(new Rect(x - w / 2 + 4, y - 30, w + 6, 16), u.Ally ? u.Template.ShortName : u.Name, 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
@@ -1167,8 +1200,29 @@ namespace Sigilbound.Client
         // One name for it everywhere (UX review #14: the button said Loop, the results said auto-replay).
         void ToggleAutoReplay()
         {
-            G.S.settings.autoReplay = !G.S.settings.autoReplay; App.Save();
+            bool climbing = _climbPending;
+            AutoClimb.SetReplay(G.S.settings, !G.S.settings.autoReplay); App.Save(); // Replay on turns Auto Climb off
             App.Toast(G.S.settings.autoReplay ? "Auto-replay on: the stage starts again after each win" : "Auto-replay off");
+            if (climbing && G.S.settings.autoReplay) { StopClimb(ClimbStop.ByPlayer); return; }
+            // On at a campaign victory screen: the stage starts again after the usual pause.
+            if (G.S.settings.autoReplay && _finished && _b != null && _b.Result == BattleResult.Victory && _spec.Mode == BattleMode.Stage) StartCoroutine(AutoReplay());
+        }
+
+        // Auto battle; while Auto Climb runs it stays on (the climb needs it).
+        void ToggleAuto()
+        {
+            if (Climbing) { App.Toast("Auto stays on while Auto Climb is on"); return; }
+            G.S.settings.auto = !G.S.settings.auto; App.Save();
+        }
+
+        // A portrait switch: icon and name on the painted chip; "on" also shows a gold check badge, not only a colour.
+        static bool HudChip(Rect r, Icon icon, string name, bool on)
+        {
+            bool hit = Ui.Button(r, "", on ? Ui.Kind.ChipOn : Ui.Kind.Chip);
+            Icons.Draw(new Rect(r.x + 7, r.center.y - 8, 16, 16), icon, on ? Palette.Gold : Palette.Text);
+            Ui.Text(new Rect(r.x + 26, r.y, r.width - 28, r.height), name, 12, on ? Palette.Gold : Palette.Text, FontStyle.Bold);
+            if (on) { Ui.Round(new Rect(r.xMax - 14, r.y + 2, 12, 12), Palette.Gold, null, 6); Icons.Draw(new Rect(r.xMax - 12, r.y + 4, 8, 8), Icon.Check, Palette.Hex("#1a1208")); }
+            return hit;
         }
 
         void TogglePause()
@@ -1238,8 +1292,9 @@ namespace Sigilbound.Client
             float bx = right - bs;
             if (RoundButton(new Rect(bx, top, bs, bs), _paused ? Icon.Play : Icon.Pause, _paused ? "Resume" : "Pause", _paused)) TogglePause();
             bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Speed, $"{G.S.settings.speed}x", G.S.settings.speed > 1)) { G.S.settings.speed = G.S.settings.speed >= 3 ? 1 : G.S.settings.speed + 1; if (!_paused) Time.timeScale = _finished ? 1 : G.S.settings.speed; App.Save(); }
-            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Auto, "Auto", Auto)) { G.S.settings.auto = !G.S.settings.auto; App.Save(); }
+            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Auto, "Auto", Auto)) ToggleAuto();
             HudAutoSpeed = new Rect(bx, top, bs * 2 + bg, bs);
+            if (CanClimb) { bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Climb, "Climb", Climbing)) ToggleClimb(); }
             if (_spec.Mode == BattleMode.Stage) { bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Loop, "Replay", G.S.settings.autoReplay)) ToggleAutoReplay(); }
             bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Camera, "View", false)) CycleCamera();
             // The status legend on any turn, your own included (UX review #5/#9: it only opened on others' turns).
@@ -1511,10 +1566,15 @@ namespace Sigilbound.Client
                 Stat(Icon.Heart, Palette.Good, "Healing", _healed.TryGetValue(u, out var hl) ? hl : 0, maxHeal);
             }
 
-            // A note (runs left, practice) and the mode's buttons, centred.
+            // While Auto Climb counts down to the next fight: its line and a Stop button instead of the mode's buttons.
+            if (ClimbBar(r)) return;
+            // A note (runs left, practice) and the mode's buttons, centred; the Replay / Climb switches at the left.
             if (spec.Note != null) Ui.Text(new Rect(r.x, r.yMax - 70, r.width, 20), spec.Note, 12, Palette.Hex("#c9bda6"), FontStyle.Normal, TextAnchor.MiddleCenter);
             int nb = Mathf.Max(1, spec.Buttons.Count);
-            float bh = Mathf.Max(44, Ui.Tap), bw = Mathf.Min(200, (r.width - 10 * (nb - 1)) / nb), bx = r.center.x - (bw * nb + 10 * (nb - 1)) / 2, btnY = r.yMax - bh;
+            float bh = Mathf.Max(44, Ui.Tap), btnY = r.yMax - bh;
+            float togW = ResultToggles(new Rect(r.x, btnY, Mathf.Min(308, r.width * 0.38f), bh));
+            float ax = togW > 0 ? r.x + togW + 16 : r.x, aw = r.xMax - ax;
+            float bw = Mathf.Min(200, (aw - 10 * (nb - 1)) / nb), bx = ax + aw / 2 - (bw * nb + 10 * (nb - 1)) / 2;
             foreach (var (label, kind, go) in spec.Buttons)
             {
                 if (Ui.Button(new Rect(bx, btnY, bw, bh), label, kind)) { go(); break; }

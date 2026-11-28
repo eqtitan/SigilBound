@@ -3,6 +3,7 @@
 # Start a NEW "## date | title" entry for each batch of changes (the game remembers which entries were seen).
 
 ## 2026-11-28 | New heroes and a new Titan
+new: Auto Climb: tap Climb in battle or on the results screen and, after each win, the next stage, Hard stage, dungeon floor or arena fight starts by itself until you lose or run out, then a summary shows what you earned. The game remembers your choice.
 fix: The update banner on Windows stays on top after you tap the bottom bar instead of slipping behind the screen.
 new: On Windows the game now keeps running when you click into another window, so battles don't freeze (Settings lets you pause instead, and mute the sound in the background).
 new: Six new heroes join the summon pool: Vorgrim Ashscale, Talvo Brassfang, Wystan Quillmere, Crusk Brineclaw, Hartwin Sunhorn and Nyssa Duskwing.

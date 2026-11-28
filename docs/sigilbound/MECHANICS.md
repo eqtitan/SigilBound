@@ -621,3 +621,21 @@ Code: `Core/Roster.cs` (`IsProtected`, `PlanRelease`, `ReleaseMany`, `UndoReleas
 - Auto-fill order: lowest rarity, then spare copies (owned more than once) before singletons, then lowest level, then oldest.
 - Rank-up cost: `2000 × stars` gold and `stars` fodder heroes at the same stars; the level is kept (train to the new cap). Rank up all: strongest heroes first, fodder never reused, a promoted hero never becomes fodder, stops when gold runs out; "train to cap" adds `ceil(XP to cap / TrainXpPerGold)` gold per step.
 - Presets save in the optional `"roster"` key; the red danger toggles are never saved (presets load with them off = protected).
+
+## 12. Auto Climb (2026-11-28, PLAN step 111)
+
+Code: `Core/AutoClimb.cs` (rules, `ClimbLog`), `Client/AutoClimbUi.cs` (switches, pause, summary).
+
+| Area | Next fight after a win | Stops when |
+|---|---|---|
+| Campaign (Normal) | the next stage in order, across chapters and into Act II | last stage cleared (reached the end); next stage not unlocked (locked) |
+| Campaign (Hard) | the next Hard stage | last stage; next Hard stage locked (its Normal stage isn't cleared) |
+| Dungeon (Vault, Hall of Echoes, Forge) | the next floor of the same dungeon | no winning runs left today (out of runs); floor 10 cleared (reached the end) |
+| Arena | the same slot (Easy, Even or Hard) of the new rivals | no fights left today (out of tries; each try is used when its fight starts) |
+
+- Every area stops on the first loss, when a modal other than the results screen opens during the pause (a message needs you), or when the player stops it: the Stop button on the results screen, Back, Leave mid-fight (an arena retreat still counts as a loss, as always), switching Climb off or Replay on.
+- Between fights nothing else happens: no upgrades, no team or gear changes. The pause is 3 s of real time (not sped up by 2x/3x), the same as auto-replay.
+- Climb and Replay are mutually exclusive; turning Climb on turns Auto battle on, and Auto stays on while Climb is on. The switch is saved (`settings.autoClimb`, only written when on) and applies to the next fight the player starts too.
+- Story: the one-time Act II intro plays once when a Normal climb crosses into Act II, then the climb continues. Lair reveals play once per session (as without climbing); while climbing, a boss stage cleared before skips its reveal too.
+- Frame rate: 30 fps while climbing (the auto-replay rule). On desktop the climb continues in the background when "keep running" is on.
+- The Climb Summary totals are the sum of each won fight's rewards (gold, XP each, worn/mystic/radiant shards, essence, Skill Tomes, gear pieces); losses add a fight but no rewards.

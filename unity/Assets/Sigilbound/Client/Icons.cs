@@ -13,6 +13,7 @@ namespace Sigilbound.Client
         Coin, Shard, Essence, Tome, Star, StarEmpty, Menu, Back, Next, Close, Play, Check, Lock,
         Sword, Shield, Clock, Crown, Skull, Home, Map, Helm, Portal, Tower, Friends, Trophy, Heart,
         Bolt, Pause, Speed, Auto, Camera, Loop, Filter, Sort, Flame, Gale, Tide, Light, Shadow, Plus, Minus, Info,
+        Climb, // Auto Climb: two chevrons going up
     }
 
     public static class Icons
@@ -159,6 +160,8 @@ namespace Sigilbound.Client
                 case Icon.Shadow: return p => Cut(Circle(p, Vector2.zero, 0.75f), Circle(p, V(0.35f, 0.25f), 0.6f));
                 case Icon.Plus: return p => U(Box(p, Vector2.zero, V(0.7f, 0.12f), 0.05f), Box(p, Vector2.zero, V(0.12f, 0.7f), 0.05f));
                 case Icon.Minus: return p => Box(p, Vector2.zero, V(0.7f, 0.12f), 0.05f);
+                case Icon.Climb: return p => U(U(Seg(p, V(-0.62f, 0.05f), V(0, 0.65f), 0.14f), Seg(p, V(0, 0.65f), V(0.62f, 0.05f), 0.14f)),
+                                                U(Seg(p, V(-0.62f, -0.6f), V(0, 0f), 0.14f), Seg(p, V(0, 0f), V(0.62f, -0.6f), 0.14f)));
                 default: return p => U(Ring(p, Vector2.zero, 0.78f, 0.1f), U(Box(p, V(0, -0.15f), V(0.09f, 0.35f)), Circle(p, V(0, 0.4f), 0.11f))); // Info
             }
         }

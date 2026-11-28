@@ -141,6 +141,7 @@ namespace Sigilbound.Core
             {
                 s.settings.speed = Math.Max(1, Math.Min(3, Json.Int(st, "speed", 1)));
                 s.settings.auto = Json.Bool(st, "auto"); s.settings.autoReplay = Json.Bool(st, "autoReplay");
+                s.settings.autoClimb = Json.Bool(st, "autoClimb") && !s.settings.autoReplay; // Replay and Climb never both on
                 s.settings.cam = Json.Str(st, "cam", "angle");
                 if (!Json.Bool(st, "camDefault2")) s.settings.cam = "angle"; // modes.js one-time switch to Three-quarter
                 s.settings.fpsCap = Json.Int(st, "fpsCap", 60) == 30 ? 30 : 60;
@@ -291,6 +292,9 @@ namespace Sigilbound.Core
             st["speed"] = s.settings.speed; st["auto"] = s.settings.auto; st["autoReplay"] = s.settings.autoReplay;
             st["cam"] = s.settings.cam; st["camDefault2"] = 1; st["fpsCap"] = s.settings.fpsCap; st["quality"] = s.settings.quality;
             st["sfxVol"] = s.settings.sfxVol; st["musicVol"] = s.settings.musicVol;
+            // Auto Climb (Unity only): written only when on, or kept (as off) when the source save had it, so
+            // saves without it stay unchanged.
+            if (s.settings.autoClimb || st.ContainsKey("autoClimb")) st["autoClimb"] = s.settings.autoClimb;
             root["settings"] = st;
             var stats = Json.Obj(root, "stats") ?? new Dictionary<string, object>();
             stats["wins"] = s.wins; stats["summons"] = s.summons; stats["titanBest"] = s.titanBestAllTime;

@@ -63,7 +63,7 @@ namespace Sigilbound.Client
             Quality.Create(gameObject, G.S.settings.quality, Quality.SavedFpsMode(G.S.settings.fpsCap)).Sun = Arena.Sun;
             Background.Apply(); // desktop: keep running when the window loses focus (Settings)
             Quality.Busy = () => Battle != null && Battle.InProgress; // Auto holds tier changes until the battle ends
-            Quality.ReplayCapped = () => Screen == ScreenId.Battle && Battle != null && Battle.Replaying; // auto-replay runs at 30 fps
+            Quality.ReplayCapped = () => Screen == ScreenId.Battle && Battle != null && Battle.Replaying; // auto-replay and Auto Climb run at 30 fps
             Quality.I.Apply();
             Quality.Notice = Toast; // thermal fallback messages
             Vfx.ShakeSetting = () => Quality.SavedShake; // Settings > Screen shake
@@ -172,7 +172,8 @@ namespace Sigilbound.Client
         void OnApplicationQuit() => Save();
 
         public void Toast(string text) => _toasts.Add((text, Time.unscaledTime + 2.4f));
-        public void Modal(string title, float height, Action<Rect> body, float maxWidth = ModalW) { _modalTitle = title; _modalHeight = height; _modalBody = body; _modalMaxW = maxWidth; }
+        public void Modal(string title, float height, Action<Rect> body, float maxWidth = ModalW) { _modalTitle = title; _modalHeight = height; _modalBody = body; _modalMaxW = maxWidth; ModalSerial++; }
+        public int ModalSerial { get; private set; } // counts modals opened: Auto Climb notices one that isn't its results screen
         public void CloseModal() { if (_modalBody != null) _modalClosedAt = Time.unscaledTime; _modalBody = null; _modalTitle = null; }
         public bool ModalOpen => _modalBody != null;
 
