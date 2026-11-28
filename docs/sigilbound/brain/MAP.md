@@ -11,13 +11,13 @@ Which lessons belong to which system, and how systems connect. Read the rows for
 | art-pipeline | Gemini, cut-out, fal TRELLIS, artgen | L009 L012 |
 | character-td | per-frame visual review method | L008 L018 L019 |
 | build-pipeline | prepare-models, compress, credits | L001 L007 L010 |
-| tests | Tests~, CompileCheck, gates | L001 L013 |
-| ci | workflow, smoke gate, queue, artifacts | L004 L005 L016 |
-| qa | in-house tester, checklists | L004 L016 |
+| tests | Tests~, CompileCheck, gates | L001 L013 L026 |
+| ci | workflow, smoke gate, queue, artifacts | L004 L005 L016 L024 L027 |
+| qa | in-house tester, checklists | L004 L016 L024 L025 L026 L027 L028 |
 | scenes | campaign scenery, cameras | L004 |
 | balance | curves, pools, roles, probes | L006 L020 |
 | campaign | stages, waves, eases | L006 |
-| ui | IMGUI, shared components, overlays | L011 L017 |
+| ui | IMGUI, shared components, overlays | L011 L017 L025 L028 |
 | arena | ArenaReactor, effects | L015 |
 | platform | Windows/Android specifics | L021 |
 | licensing | credits, licences | L007 |
@@ -44,4 +44,8 @@ graph LR
   L009[L009 i3d input rules] --> L018
   L011[L011 GUI.depth] --> L017[L017 shared UI]
   L015[L015 OnEnable/Start] --> L016
+  L005 --> L024[L024 green run, no APK]
+  L024 --> L027[L027 preview moves]
+  L025[L025 96 dpi tours] --> L026[L026 shared prefs]
+  L017 --> L028[L028 plates over text]
 ```
