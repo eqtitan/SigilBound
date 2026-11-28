@@ -36,6 +36,9 @@ static class Program
         if (args.Length > 0 && args[0] == "roles") { CombatProbes.Roles(args.Length > 1 ? int.Parse(args[1]) : 1500); return 0; }
         if (args.Length > 0 && args[0] == "titandmg") { CombatProbes.TitanDamage(); return 0; }
         if (args.Length > 0 && args[0] == "speed") { SpeedProbe.Run(args.Length > 1 ? int.Parse(args[1]) : 3000); return 0; }
+        // `dotnet run --project Tests~ -- stageenemies > fixtures/stage-enemies.json`: the golden enemy ids of every
+        // campaign stage (MechanicsTests checks the game against it). Regenerate only for a deliberate pool change.
+        if (args.Length > 0 && args[0] == "stageenemies") { Console.WriteLine(MechanicsTests.StageEnemiesJson()); return 0; }
         if (args.Length > 0 && args[0] == "combatstats") { CombatStats.Run(); return 0; }
         // `dotnet run --project Tests~ -- balance id...`: just the roster balance sims (docs/sigilbound/newheroes.py tunes with it).
         if (args.Length > 0 && args[0] == "balance")

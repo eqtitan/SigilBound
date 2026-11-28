@@ -130,6 +130,22 @@ static class ReleaseTests
         check(r.ColeGeared.helm == helm && g.S.teams[0].uids.Contains(r.WrenSaved.uid), "undo: gear goes back on and saved presets are restored");
         check(!g.UndoRelease(undo, r.Now, out var twice) && twice == "Nothing to undo", "undo: only once");
 
+        // Saved team order and roster order come back exactly (the in-house report's [8,9] -> [9,8]).
+        {
+            var go = new Game(seed: 5) { Now = () => T0 };
+            var lead = go.AddHero("pell"); go.S.team.Add(lead.uid);
+            var a = go.AddHero("hask"); var mid = go.AddHero("velka"); var b = go.AddHero("hask"); var c = go.AddHero("nettle");
+            go.S.teams.Add(new TeamPreset { uids = new List<int> { a.uid, b.uid } });
+            go.S.teams.Add(new TeamPreset { uids = new List<int> { c.uid, mid.uid, b.uid, a.uid } });
+            var roster0 = go.S.heroes.Select(h => h.uid).ToList();
+            var teams0 = go.S.teams.Select(t => string.Join(",", t.uids)).ToList();
+            var po = new ReleasePlan { Protect = Protect.Always }; po.Release.AddRange(new[] { a, b, c });
+            var uo = go.ReleaseMany(po);
+            bool gone = go.S.teams[0].uids.Count == 0 && go.S.teams[1].uids.SequenceEqual(new[] { mid.uid });
+            check(uo != null && gone && go.UndoRelease(uo, T0.AddSeconds(5)) && go.S.heroes.Select(h => h.uid).SequenceEqual(roster0) && go.S.teams.Select(t => string.Join(",", t.uids)).SequenceEqual(teams0),
+                $"undo: saved teams and the roster come back in their original order ({string.Join(" / ", go.S.teams.Select(t => string.Join(",", t.uids)))} vs {string.Join(" / ", teams0)})");
+        }
+
         // Too late.
         var u2 = g.ReleaseMany(g.PlanRelease(f));
         check(!g.UndoRelease(u2, T0.AddSeconds(90 + 121), out var late) && late.StartsWith("Too late"), "undo: refused after 2 minutes");

@@ -224,16 +224,19 @@ namespace Sigilbound.Core
         {
             if (plan == null) return null;
             var u = new ReleaseUndo { At = Now() };
+            // Undo puts everything back at its original index (ascending), so record positions in the
+            // roster and presets as they were before this release, not after the earlier removals.
+            var heroOrder = S.heroes.ToList();
+            var teamOrder = S.teams.Select(t => t.uids.ToList()).ToList();
             foreach (var h in plan.Release.ToList())
             {
-                int idx = S.heroes.IndexOf(h);
+                int idx = S.heroes.Contains(h) ? heroOrder.IndexOf(h) : -1;
                 if (idx < 0 || S.heroes.Count <= 1 || IsProtected(h, plan.Protect & ~Protect.LastCopy)) continue;
                 if ((plan.Protect & Protect.LastCopy) != 0 && CopiesOf(h.id) <= 1) continue;
                 foreach (Slot s in Enum.GetValues(typeof(Slot)))
                     if (h.GetGear(s) != 0) { u.Gear.Add((h.uid, s, h.GetGear(s))); h.SetGear(s, 0); }
                 for (int i = 0; i < S.teams.Count; i++)
-                    for (int k = S.teams[i].uids.Count - 1; k >= 0; k--)
-                        if (S.teams[i].uids[k] == h.uid) { u.Presets.Add((i, k, h.uid)); S.teams[i].uids.RemoveAt(k); }
+                    if (S.teams[i].uids.RemoveAll(x => x == h.uid) > 0) u.Presets.Add((i, teamOrder[i].IndexOf(h.uid), h.uid));
                 u.Heroes.Add((h, idx));
                 u.Essence += Release(h);
             }

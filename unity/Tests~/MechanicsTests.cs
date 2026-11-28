@@ -3,6 +3,7 @@
 // They are Unity-only: none of the web game's 24 heroes may use them (web parity).
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Sigilbound.Core;
 using static Sigilbound.Core.GameData;
@@ -18,6 +19,8 @@ static class MechanicsTests
     static Battle Fight(Unit a, params Unit[] foes) => new Battle(new List<Unit> { a }, new List<List<Unit>> { foes.ToList() }, new Fixed());
     static int Dmg(List<BattleEvent> ev, Unit t) => ev.Where(e => e.Type == EvType.Damage && e.Unit == t).Sum(e => e.Amount);
 
+    public static string StageEnemies(int i) => string.Join("|", Game.StageWaves(i).Select(w => string.Join(",", w.Select(e => e.Template.Id + (e.Boss ? "*" : "")))));
+    public static string StageEnemiesJson() => "{\n" + string.Join(",\n", Enumerable.Range(0, TotalStages).Select(i => $"  \"{i}\": \"{StageEnemies(i)}\"")) + "\n}";
     public static void Run(Action<bool, string> check)
     {
         Console.WriteLine("\nRoster mechanics:");
@@ -226,6 +229,22 @@ static class MechanicsTests
             var r61 = Game.StageRewards(61, false); var r89 = Game.StageRewards(89, false);
             check(ls && Math.Abs(ch10 - 0.98) < 1e-9 && finale && spd && r89.Gold > r61.Gold * 1.5 && r89.Xp > r61.Xp * 1.5 && Game.StageRewards(59, false).Gold == Js.RoundInt(200 + 58 * 60.0),
                 $"balance patch: Light/Shadow chapters x{Curve.LSEase}, chapter 10 x{ch10:0.00}, 15-6 eased, role speed A+8/D-2/H-4/S0, Act 2 rewards grow ({r61.Gold} -> {r89.Gold} gold)");
+        }
+
+        // Stage enemy pools are frozen (PLAN step 110): new heroes never change an existing stage's line-up.
+        {
+            var fake = new HeroDef { Id = "zz_new", Name = "Zz New", Rarity = Rarity.Legendary, Element = Element.Shadow, Role = Role.Attack, Skills = Heroes[0].Skills };
+            var appended = Heroes.Concat(new[] { fake }).ToArray();
+            var inserted = Heroes.Take(30).Concat(new[] { fake }).Concat(Heroes.Skip(30)).ToArray();
+            string ids(IReadOnlyList<HeroDef> roster, int i) => string.Join("|", Game.StageWaves(i, roster).Select(w => string.Join(",", w.Select(e => e.Template.Id + (e.Boss ? "*" : "") + ":" + e.El))));
+            int moved = Enumerable.Range(0, TotalStages).Count(i => ids(appended, i) != ids(Heroes, i) || ids(inserted, i) != ids(Heroes, i));
+            check(moved == 0 && Act2Pool.Length == Act2EnemyIds.Length && Act2EnemyIds.Distinct().Count() == Act2EnemyIds.Length,
+                $"stage enemies: adding a hero to the roster (at the end or in the middle) changes no stage's waves ({moved} of {TotalStages} moved)");
+            var golden = (Dictionary<string, object>)Json.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "fixtures", "stage-enemies.json")));
+            var off = Enumerable.Range(0, TotalStages).Where(i => !golden.TryGetValue(i.ToString(), out var v) || (string)v != StageEnemies(i)).Select(Game.StageLabel).ToList();
+            var newSeven = new[] { "vorgrim", "talvo", "wystan", "crusk", "hartwin", "nyssa", "vessa" };
+            check(off.Count == 0 && golden.Count == TotalStages && !newSeven.Any(Act2EnemyIds.Contains),
+                $"stage enemies match the golden list (fixtures/stage-enemies.json) and the seven newest heroes are not in Act II" + (off.Count > 0 ? $" (changed: {string.Join(", ", off.Take(8))})" : ""));
         }
 
         // Text and web parity.

@@ -359,13 +359,23 @@ namespace Sigilbound.Core
             return f;
         }
 
-        public static List<List<EnemySpec>> StageWaves(int idx)
+        public static List<List<EnemySpec>> StageWaves(int idx) => StageWaves(idx, Heroes);
+        // Act 1 draws enemies from the web game's 24 heroes (identical stages); act 2 from the frozen
+        // Act2EnemyIds list. Both are fixed whatever else joins the roster (the overload lets the tests
+        // check that by passing a bigger roster).
+        public static HeroDef[] EnemyPool(int idx, IReadOnlyList<HeroDef> roster)
+        {
+            if (ReferenceEquals(roster, Heroes)) return idx < ClassicStages ? Classic : Act2Pool;
+            if (idx < ClassicStages) return roster.Take(Classic.Length).ToArray();
+            var byId = roster.ToDictionary(h => h.Id);
+            return Act2EnemyIds.Select(id => byId[id]).ToArray();
+        }
+        public static List<List<EnemySpec>> StageWaves(int idx, IReadOnlyList<HeroDef> roster)
         {
             var rng = new Seeded(idx + 7);
             var g = Grade(idx);
             g.Mul *= CampaignEase(idx);
-            // Act 1 draws enemies from the web game's 24 heroes (identical stages); act 2 from every hero.
-            var pool = idx < ClassicStages ? Classic : Heroes;
+            var pool = EnemyPool(idx, roster);
             var chapterEl = ChapterElement(ChapterOf(idx));
             var waves = new List<List<EnemySpec>>();
             int waveCount = IsBossStage(idx) ? 3 : 2;

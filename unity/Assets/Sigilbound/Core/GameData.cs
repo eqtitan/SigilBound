@@ -283,14 +283,35 @@ namespace Sigilbound.Core
         };
         // The original 24 heroes, as in the web game. Campaign, Hard, dungeon and rival enemies are
         // drawn from these with seeded picks, so stages stay exactly as they were (and match the web
-        // fixtures) as the roster grows. New heroes join the enemy pools deliberately, later.
+        // fixtures) as the roster grows. New heroes join the enemy pools only deliberately (Act II: Act2EnemyIds).
         public static readonly HeroDef[] Classic = Heroes.Take(24).ToArray();
+        // Act II campaign enemies (PLAN step 110). A frozen list: the roster as it was when Act II was
+        // tuned (step 99), so adding heroes never reshuffles existing stages. Waves pick from it by index,
+        // so never reorder or remove entries; a new hero joins Act II only by appending it here on purpose
+        // (which re-rolls Act II and needs a campaign re-tune). Unity only: the web game has no Act II.
+        public static readonly string[] Act2EnemyIds =
+        {
+            "brannoc", "mira", "pell", "odo", "wren", "kettle", "ysolde", "corvan", "hask", "lumen", "nyx", "tamsin",
+            "gorrum", "velka", "aurelia", "sable", "kaito", "maelis", "thrain", "oriel", "vaelith", "morwenna", "seraphine", "ulfgar",
+            "bram", "nettle", "hobb", "greta", "cole", "tilly", "ronan", "isla", "dunstan", "marisol", "vesper", "brega",
+            "fennick", "orla", "silas", "wynn", "kestrel", "sorrel", "amber", "tobias", "nerys", "hale", "juno", "pike",
+            "rhea", "corwin", "astrid", "caspian", "ignis", "lyra", "malachar", "rowan", "selene", "brann", "ysra", "oswin",
+            "grimsby", "marrow", "ember", "quill", "drift", "sprig", "tallow", "hollis", "auren", "cinder", "thessaly", "umbra",
+            "lucan", "kharra", "nocturne", "aelira", "zephyrine", "solenne", "nell", "briar", "perrin", "loam", "merrit", "sienna",
+            "calder", "dorian", "ivo", "saoirse", "gideon", "liora", "bastian", "elowen", "faelan", "wick", "azura", "pyrrhus",
+            "kaelith", "aurex", "stormbearer", "vex", "dace", "dulcie", "holt", "rhosyn", "ansel", "saskia", "kasimir", "imogen",
+            "ilsabet", "obrecht", "tansy", "barley", "clover", "edric", "corran", "linnet", "ysabeau", "wendel", "hilde", "aveline",
+            "jory", "morag", "wenna", "lazlo", "mungo", "neve", "hendrick", "kaija", "morvoren", "leofric", "hettie", "abel",
+            "poppy", "benedict", "emeric", "agathe", "ottavia", "fabian", "augustin", "clemence", "rook", "pernille", "perpetua", "jasper",
+            "mabon", "tindra", "ambrose", "lune", "aldric", "ondessa",
+        };
         // Classic heroes whose skill numbers (multipliers, heal and shield sizes) are tuned for Unity's combat
         // rules and so differ from the web game's data.js (PLAN step 109: the 40-60% balance band now covers
         // the original 24 too). Names, targets, cooldowns and effects still match the web.
         public static readonly string[] UnityTuned = { "brannoc", "wren", "kettle", "ysolde", "corvan", "nyx", "tamsin", "sable", "oriel" };
         static readonly Dictionary<string, HeroDef> _byId = Heroes.ToDictionary(h => h.Id);
         public static HeroDef Hero(string id) => _byId.TryGetValue(id, out var h) ? h : null;
+        public static readonly HeroDef[] Act2Pool = Act2EnemyIds.Select(id => _byId[id]).ToArray();
         public static readonly string[] Starters = { "ysolde", "hask", "corvan" };
 
         public static readonly HeroDef Titan = H("titan", "Kharvok the Ashen Titan", Rarity.Legendary, Element.Flame, Role.Defense,
