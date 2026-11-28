@@ -374,8 +374,8 @@ def brazier():
     # bowl: rounded and deep, its lip rolled out (a cauldron, not a cone)
     lathe(bm, [(0.06, 0.62), (0.27, 0.67), (0.37, 0.78), (0.38, 0.89), (0.41, 0.95), (0.33, 0.96), (0.30, 0.88)], 10, METAL)
     for k in range(3):  # three struts from the column to the bowl
-        leg = box(0.045, 0.36, 0.045, METAL)
-        add_bm(bm, leg, Ry(k * 120 + 60) @ T(0.1, 0.46, 0) @ Rz(-30)); leg.free()
+        leg = box(0.04, 0.30, 0.04, METAL)
+        add_bm(bm, leg, Ry(k * 120 + 60) @ T(0.06, 0.44, 0) @ Rz(-38)); leg.free()
     coals = ico(0.3, 1, COAL)
     for v in coals.verts: v.co = Vector((v.co.x, max(v.co.y, 0) * 0.32, v.co.z))
     displace(coals, 0.035, 6, 3)
@@ -384,7 +384,7 @@ def brazier():
     for k in range(5):  # a few embers glowing in the heap
         a = k / 5 * math.tau + rng.uniform(-0.3, 0.3); r = rng.uniform(0.04, 0.18)
         e = ico(rng.uniform(0.035, 0.05), 0, GLOW)
-        add_bm(bm, e, T(math.cos(a) * r, 0.94 - r * 0.3, math.sin(a) * r)); e.free()
+        add_bm(bm, e, T(math.cos(a) * r, 0.865 + 0.096 * (1 - (r / 0.3) ** 2), math.sin(a) * r)); e.free()  # on the heap's surface
     return bm
 
 
