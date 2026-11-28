@@ -34,7 +34,9 @@ namespace Sigilbound.Client
         {
             // A stacked effect (Poison/Burn x2/x3) gets extra room on its right for a readable "x3" (the
             // corner badge was too small to read at battle size).
-            float gap = 2, sw = size * 1.3f;
+            // The turns badge is at least 12 units with a 10-point digit (UX review #3: it was about 6.5 sp), so
+            // icons get a wider gap for the badge that hangs off their corner.
+            float bsz = Mathf.Max(12, size * 0.62f), gap = 2 + bsz * 0.35f, sw = size * 1.3f;
             float w = -gap; foreach (var e in effects) w += size + gap + (e.Stacks > 1 ? sw : 0);
             float x0 = centre ? x - w / 2 : x, cx = x0;
             int fs = Mathf.Max(10, Mathf.RoundToInt(size * 0.72f));
@@ -44,7 +46,7 @@ namespace Sigilbound.Client
                 cx += size + gap + (e.Stacks > 1 ? sw : 0);
                 var t = Get(e.Type);
                 if (t != null) GUI.DrawTexture(r, t);
-                else Ui.Text(r, SkillText.EffectShort(e.Type), 7, FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff"), FontStyle.Bold, TextAnchor.MiddleCenter);
+                else Ui.Text(r, SkillText.EffectShort(e.Type), 9, FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#c07aff"), FontStyle.Bold, TextAnchor.MiddleCenter);
                 if (e.Stacks > 1)
                 {
                     var sr = new Rect(r.xMax + 1, r.y, sw, size);
@@ -53,9 +55,9 @@ namespace Sigilbound.Client
                 }
                 if (e.Turns > 0 && e.Type != FxType.Shield)
                 {
-                    var n = new Rect(r.xMax - size * 0.42f, r.yMax - size * 0.42f, size * 0.46f, size * 0.46f);
-                    Ui.Round(n, new Color(0.07f, 0.05f, 0.09f, 0.95f), FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#a05ae0"), 6);
-                    Ui.Text(n, e.Turns.ToString(), Mathf.Max(7, Mathf.RoundToInt(size * 0.38f)), Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+                    var n = new Rect(r.xMax - bsz * 0.65f, r.yMax - bsz * 0.65f, bsz, bsz);
+                    Ui.Round(n, new Color(0.07f, 0.05f, 0.09f, 0.95f), FxDef.IsBuff(e.Type) ? Palette.Gold : Palette.Hex("#a05ae0"), Mathf.RoundToInt(bsz / 2));
+                    Ui.Text(n, e.Turns.ToString(), Mathf.Max(10, Mathf.RoundToInt(bsz * 0.8f)), Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
                 }
             }
             return new Rect(x0, y, Mathf.Max(0, w), size);

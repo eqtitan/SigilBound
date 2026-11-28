@@ -152,6 +152,7 @@ namespace Sigilbound.Core
 
             var stats = Json.Obj(root, "stats");
             s.wins = Json.Int(stats, "wins"); s.summons = Json.Int(stats, "summons"); s.titanBestAllTime = Json.Long(stats, "titanBest");
+            s.roster = RosterFrom(Json.Obj(root, "roster"));
             s.playerName = Json.Str(root, "playerName");
             s.gameVersion = Json.Str(root, "gameVersion");
 
@@ -180,6 +181,49 @@ namespace Sigilbound.Core
             return s;
         }
         static int Clamp(int v, int lo, int hi) => Math.Max(lo, Math.Min(hi, v));
+
+        // "roster": { presets: [{name, rarity, stars, element, role, minLv, maxLv, dupes, keep, protect}], active,
+        // sort, rankTarget, rankTeamOnly }. Missing or bad values fall back to the safe defaults; every preset loads
+        // with Locked, Team and the danger rules (Epic+, last copy) on.
+        static RosterPrefs RosterFrom(Dictionary<string, object> o)
+        {
+            var r = new RosterPrefs();
+            if (o == null) return r;
+            var def = ReleaseFilter.SafeCleanup();
+            foreach (var p in Json.Arr(o, "presets") ?? new List<object>())
+            {
+                if (!(p is Dictionary<string, object>)) continue;
+                r.presets.Add(new ReleaseFilter
+                {
+                    name = Json.Str(p, "name", "My filter"), rarityMask = Json.Int(p, "rarity", def.rarityMask), starMask = Json.Int(p, "stars", def.starMask),
+                    elementMask = Json.Int(p, "element"), roleMask = Json.Int(p, "role"), minLevel = Json.Int(p, "minLv", 1), maxLevel = Json.Int(p, "maxLv", ReleaseFilter.MaxLevelAll),
+                    dupesOnly = Json.Bool(p, "dupes"), keepBest = Json.Int(p, "keep", def.keepBest), protect = Json.Int(p, "protect", def.protect),
+                });
+            }
+            r.activePreset = Json.Int(o, "active", -1);
+            r.heroSort = Json.Str(o, "sort", "power");
+            r.rankAllTarget = Json.Int(o, "rankTarget");
+            r.rankAllTeamOnly = Json.Bool(o, "rankTeamOnly", true);
+            r.Clamp();
+            return r;
+        }
+
+        // Keys a newer build added to "roster" are kept (it starts from the source save's object).
+        static Dictionary<string, object> RosterJson(RosterPrefs r, Dictionary<string, object> src)
+        {
+            r.Clamp();
+            var o = src ?? new Dictionary<string, object>();
+            foreach (var kv in new Dictionary<string, object>
+            {
+                ["presets"] = r.presets.Select(p => (object)new Dictionary<string, object>
+                {
+                    ["name"] = p.name, ["rarity"] = p.rarityMask, ["stars"] = p.starMask, ["element"] = p.elementMask, ["role"] = p.roleMask,
+                    ["minLv"] = p.minLevel, ["maxLv"] = p.maxLevel, ["dupes"] = p.dupesOnly, ["keep"] = p.keepBest, ["protect"] = p.protect,
+                }).ToList(),
+                ["active"] = r.activePreset, ["sort"] = r.heroSort, ["rankTarget"] = r.rankAllTarget, ["rankTeamOnly"] = r.rankAllTeamOnly,
+            }) o[kv.Key] = kv.Value;
+            return o;
+        }
 
         // ---------- SaveData -> JSON ----------
         // Starts from the JSON the save came from (so web-only fields survive) and overwrites
@@ -251,6 +295,9 @@ namespace Sigilbound.Core
             var stats = Json.Obj(root, "stats") ?? new Dictionary<string, object>();
             stats["wins"] = s.wins; stats["summons"] = s.summons; stats["titanBest"] = s.titanBestAllTime;
             root["stats"] = stats;
+            // Roster tools (Unity only; the web game keeps the key and ignores it): written only once it differs
+            // from the defaults, or when the source save had it.
+            if (s.roster != null && (!s.roster.IsDefault || root.ContainsKey("roster"))) root["roster"] = RosterJson(s.roster, Json.Obj(root, "roster"));
             if (!string.IsNullOrEmpty(s.playerName)) root["playerName"] = s.playerName;
             if (!string.IsNullOrEmpty(s.gameVersion)) root["gameVersion"] = s.gameVersion;
 

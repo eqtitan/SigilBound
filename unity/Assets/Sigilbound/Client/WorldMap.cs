@@ -61,12 +61,14 @@ namespace Sigilbound.Client
                     if (Ui.Button(new Rect(b.x, b.yMax - 46, b.width, 44), "To Saltreach")) CloseModal();
                 });
             }
-            int act = _act != 0 ? _act : (act2Open && progressAll >= ClassicStages ? 2 : 1);
-            if (act == 2 && !act2Open) act = 1;
+            int act = MapAct(hard);
             var pts = act == 1 ? Act1Points : Act2Points;
             int c0 = act == 1 ? 0 : ClassicChapters, cn = act == 1 ? ClassicChapters : Chapters.Length - ClassicChapters;
             float trackH = hard ? 0 : 58;
+            bool listOpen = _chapterOpen >= 0 && _chapterOpen < Chapters.Length;
             var map = new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16 - trackH);
+            // An open stage list also covers the reward track (58 more units for its rows: UX review #1).
+            var listArea = new Rect(map.x, map.y, map.width, area.yMax - 8 - map.y);
             if (act == 1 && PaintedMap) GUI.DrawTexture(map, Skin.Tex("bg_campaign"), ScaleMode.StretchToFill); // the painting has its own ornate border
             else if (act == 2 && PaintedMap2) GUI.DrawTexture(map, Skin.Tex("bg_campaign2"), ScaleMode.StretchToFill);
             else { GUI.DrawTexture(map, MapTexture(act), ScaleMode.StretchToFill); Ui.Round(map, Color.clear, Palette.Trim, 12); } // gilded frame
@@ -86,7 +88,7 @@ namespace Sigilbound.Client
             }
 
             // An open stage list covers part of the map: the medallions and switches under it must not take its taps.
-            Ui.Cover = _chapterOpen >= 0 && _chapterOpen < Chapters.Length ? StageListRect(map, _chapterOpen) : (Rect?)null;
+            Ui.Cover = listOpen ? StageListRect(listArea, _chapterOpen) : (Rect?)null;
             // Medallions.
             int progress = progressAll;
             int current = Mathf.Min(Chapters.Length - 1, progress / StagesPerChapter);
@@ -106,28 +108,56 @@ namespace Sigilbound.Client
                 // Six pips: stages cleared in this chapter.
                 for (int q = 0; q < StagesPerChapter; q++)
                     Ui.Round(new Rect(p.x - 21 + q * 7.5f, m.yMax + 3, 6, 6), q < done ? Palette.Gold : new Color(0, 0, 0, 0.55f), Palette.TrimLo, 3);
-                var label = new Rect(p.x - 70, m.yMax + 10, 140, 16);
-                Ui.Round(new Rect(label.center.x - 56, label.y, 112, 16), new Color(0.08f, 0.06f, 0.1f, 0.7f), null, 7);
-                Ui.Text(label, Chapters[c], 10, locked ? Palette.Dim : Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
-                if (!locked && Ui.Button(new Rect(m.x - 6, m.y - 6, s + 12, s + 34), "", Ui.Kind.Ghost)) _chapterOpen = _chapterOpen == c ? -1 : c;
+                // The chapter name on a dark pill, readable when locked too (the lock icon tells the state: art review H5).
+                var label = new Rect(p.x - 75, m.yMax + 10, 150, 17);
+                Ui.TextOnArt(label, Chapters[c], 11, locked ? Palette.Hex("#cfc5b2") : Palette.Text, FontStyle.Bold);
+                var hitM = new Rect(m.x - 6, m.y - 6, s + 12, s + 34);
+                if (Ui.Button(hitM, "", Ui.Kind.Ghost))
+                {
+                    if (locked) Toast(hard && first < G.S.cleared ? $"Clear Hard {Game.StageLabel(first - 1)} to open {Chapters[c]}" : $"Clear stage {Game.StageLabel(first - 1)} to open {Chapters[c]}");
+                    else _chapterOpen = _chapterOpen == c ? -1 : c;
+                }
             }
 
-            // Title and Normal/Hard switch.
+            // Title; the Normal/Hard and Act switches are in the top bar (DrawCampaignSwitches), outside the painting.
             Ui.Banner(new Rect(map.center.x - 170, map.y + 8, 340, 30), (hard ? "Hard · " : "") + (act == 1 ? "Act I" : "Act II · The Sigil Bearers"), 18);
-            // Act switch (Act II opens once act I is cleared).
-            if (Ui.Button(new Rect(map.x + 10, map.y + 46, 80, 30), "Act I", act == 1 ? Ui.Kind.ChipOn : Ui.Kind.Chip, 12)) { _act = 1; _chapterOpen = -1; }
-            if (Ui.Button(new Rect(map.x + 96, map.y + 46, 80, 30), "Act II", act == 2 ? Ui.Kind.ChipOn : Ui.Kind.Chip, 12, act2Open)) { _act = 2; _chapterOpen = -1; }
-            if (Ui.Button(new Rect(map.x + 10, map.y + 10, 80, 30), "Normal", hard ? Ui.Kind.Chip : Ui.Kind.ChipOn, 12)) { _hardTab = false; _chapterOpen = -1; }
-            if (Ui.Button(new Rect(map.x + 96, map.y + 10, 80, 30), "Hard", hard ? Ui.Kind.ChipOn : Ui.Kind.Chip, 12, G.S.cleared > 0)) { _hardTab = true; _chapterOpen = -1; }
-            Ui.Text(new Rect(map.xMax - 190, map.y + 10, 180, 30), hard ? $"Hard {G.S.hardCleared}/{G.S.cleared}" : $"{G.S.cleared}/{TotalStages} stages", 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
+            Ui.TextOnArt(new Rect(map.xMax - 190, map.y + 12, 176, 26), hard ? $"Hard {G.S.hardCleared}/{G.S.cleared}" : $"{G.S.cleared}/{TotalStages} stages", 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleRight);
 
-            if (_chapterOpen >= 0 && _chapterOpen < Chapters.Length)
+            if (listOpen)
             {
                 Ui.Cover = null; Ui.OnTop = true;
-                try { DrawStageList(map, _chapterOpen, hard); } finally { Ui.OnTop = false; }
+                try { DrawStageList(listArea, _chapterOpen, hard); } finally { Ui.OnTop = false; }
             }
             Ui.Cover = null;
-            if (!hard) DrawRewardTrack(new Rect(area.x + 10, map.yMax + 6, area.width - 20, trackH - 8), c0, cn);
+            if (!hard && !listOpen) DrawRewardTrack(new Rect(area.x + 10, map.yMax + 6, area.width - 20, trackH - 8), c0, cn);
+        }
+
+        // Which act the map shows: the player's pick, else where their progress is.
+        int MapAct(bool hard)
+        {
+            bool act2Open = G.S.cleared >= ClassicStages;
+            int act = _act != 0 ? _act : (act2Open && (hard ? G.S.hardCleared : G.S.cleared) >= ClassicStages ? 2 : 1);
+            return act == 2 && !act2Open ? 1 : act;
+        }
+
+        // The campaign's two switches as segmented controls in the top bar (UX review #7: the chips on the
+        // painting were violet on violet and 28 dp tall). Locked options keep a readable label and a lock, and
+        // say why when tapped.
+        void DrawCampaignSwitches(Rect r)
+        {
+            bool hard = _hardTab && G.S.cleared > 0, act2Open = G.S.cleared >= ClassicStages;
+            int act = MapAct(hard);
+            float h = Mathf.Min(r.height, Mathf.Max(44, Ui.Tap)), segW = Mathf.Clamp(r.width / 4.4f, 62, 84), gap = 12;
+            float total = segW * 4 + gap + 12, x = r.x + Mathf.Max(0, (r.width - total) / 2);
+            var mode = new Rect(x, r.center.y - h / 2, segW * 2 + 6, h);
+            var acts = new Rect(mode.xMax + gap, mode.y, segW * 2 + 6, h);
+            int m = Ui.Segmented(mode, new[] { "Normal", "Hard" }, hard ? 1 : 0, new[] { true, G.S.cleared > 0 }, 14);
+            if (m == 0 && hard) { _hardTab = false; _chapterOpen = -1; }
+            else if (m == 1 && G.S.cleared == 0) Toast("Clear stage 1-1 to unlock Hard mode");
+            else if (m == 1 && !hard) { _hardTab = true; _chapterOpen = -1; }
+            int a = Ui.Segmented(acts, new[] { "Act I", "Act II" }, act - 1, new[] { true, act2Open }, 14);
+            if (a == 1 && !act2Open) Toast($"Clear stage {Game.StageLabel(ClassicStages - 1)} to open Act II");
+            else if (a >= 0 && a + 1 != act) { _act = a + 1; _chapterOpen = -1; }
         }
 
         static Vector2 MapPos(Rect map, Vector2 p) => new Vector2(map.x + p.x * map.width, map.y + p.y * map.height);

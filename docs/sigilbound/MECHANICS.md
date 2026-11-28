@@ -461,6 +461,7 @@ Status column: **pending** until the owner approves, rejects or asks for changes
 - **2026-11-27:** Section 9 (combat rules after PLAN steps 97-99). Broken state, honest dodge rule,
   Hit_Big note, enrage/Break/stack feedback rows, section 1 turn start; the owner review moved to
   section 10 (it was a second "8.").
+- **2026-11-28:** Section 11 (release and rank-up rules, PLAN step 107).
 
 
 ## 9. Combat rules (2026-11-27)
@@ -548,3 +549,26 @@ Mid team: Ysolde, Corvan, Hask, Kaito. Strong team: Maelis, Oriel, Aurelia, Vael
 ## 10. Owner review of the animation tests (2026-11-25)
 
 Approved: T1 idle, T2 blade attack, T6 spell cast, T9 death, and all 150 concepts. Changes requested and done: T3 spear (now `Spear_Thrust`: guard, draw, lunge, recover), T8 heavy hit (now `Hit_Kneel`: stagger, drop to one knee, rise), T10 defeat (fall pivots on the planted knees; PvP losses only, owner 2026-11-26). Deaths always use the death clip. Hand-made clips are authored in `unity/Tools~/blenderforge/make_clips.py`.
+
+
+## 11. Release and rank-up rules (2026-11-28, PLAN step 107)
+
+Code: `Core/Roster.cs` (`IsProtected`, `PlanRelease`, `ReleaseMany`, `UndoRelease`, `AutoFill`, `PlanRankAll`), `Core/Game.cs` (`RankUp`, `SuggestFodder`).
+
+| Rule | Release (default "Safe clean-up") | Rank-up auto-pick | Hand pick (rank-up) |
+|---|---|---|---|
+| Locked hero | never | never | never |
+| Current team | never | never | never |
+| In a saved team | protected (can untick) | skipped | allowed, warning |
+| Wearing gear | protected (can untick) | skipped | allowed, warning |
+| Ranked up (stars above natural) | protected (can untick) | allowed (fodder must share the target's stars) | allowed |
+| Max level at their stars | off (can tick) | allowed | allowed |
+| Epic / Legendary | only with the red toggle | skipped | allowed, red warning, hold 1 s |
+| Last copy of a hero | only with the red toggle | skipped | allowed, red warning, hold 1 s |
+
+- Release essence: `EssenceValue(rarity) × stars` (5 / 20 / 80 / 300 per star). Gear goes back to the bag; released heroes leave saved team presets. The last hero in the roster is never released.
+- Keep best N (0-3): per hero id across the whole roster, highest stars, then level, then power.
+- Undo: 2 minutes, in memory only (a restart or a save import drops it); refused once the essence has been spent.
+- Auto-fill order: lowest rarity, then spare copies (owned more than once) before singletons, then lowest level, then oldest.
+- Rank-up cost: `2000 × stars` gold and `stars` fodder heroes at the same stars; the level is kept (train to the new cap). Rank up all: strongest heroes first, fodder never reused, a promoted hero never becomes fodder, stops when gold runs out; "train to cap" adds `ceil(XP to cap / TrainXpPerGold)` gold per step.
+- Presets save in the optional `"roster"` key; the red danger toggles are never saved (presets load with them off = protected).

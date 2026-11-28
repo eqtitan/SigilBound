@@ -5,6 +5,12 @@
 ## 2026-11-27 | Fairer chapters and clearer battles
 change: New portraits for Vex Hollowking (a crown of sigil shards) and Aurex Lightsworn (a golden sunburst); Mother Agathe, Isla and Sister Wren now wear Sigil medallions.
 change: Vex, Aurex and Brannoc have new 3D models that match their portraits.
+new: Release Heroes: filter by rarity, stars, element, role and level, keep the best copies, save presets, review before you release, and undo within 2 minutes.
+new: Rank Up shows the fodder it will use; change any slot, Auto-fill with the cheapest safe heroes, or Rank up all to a chosen star with a cost preview.
+fix: Rank-up no longer offers a newly summoned Epic or Legendary before your levelled Commons, and the confirm shows each hero's rarity and stars.
+change: The Heroes list remembers your sort choice.
+change: Easier to tap and read on phones: whole stage rows are tappable, battle buttons and text are bigger, and Continue Campaign is always visible on Home.
+fix: Menus stay clear of camera holes and rounded corners; locked buttons, the Hard and Act switches, elements and rarities no longer rely on faint text or colour alone.
 fix: The Round and Enrage banner now sits under the turn order bar instead of running beneath it.
 balance: Light and Shadow chapters are easier: Flame, Gale and Tide heroes have no edge there, so those enemies are 8% weaker.
 balance: Stage 10-1 no longer jumps in difficulty, and Act II climbs more gently to a beatable final boss.

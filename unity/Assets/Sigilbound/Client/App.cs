@@ -34,7 +34,7 @@ namespace Sigilbound.Client
 
         // screen state
         int _heroUid; GameData.Slot _slot; int _chapterOpen = -1; int _prepStage = -1; bool _prepTitan, _prepPractice; ScreenId _prepBack;
-        Vector2 _scroll; string _sort = "power";
+        Vector2 _scroll; // the hero-list sort (_sort) is saved: RosterUi.cs
         readonly List<CharacterView> _lineup = new List<CharacterView>();
         List<string> _shotLineup; bool _shotNoUi; // screenshot mode: a chosen lineup, menus hidden (ShotsMode gallery)
         string _lineupKey = "";
@@ -152,6 +152,7 @@ namespace Sigilbound.Client
             Store?.AcceptFresh(); // the player chose this save over the unreadable one
             G = new Game(s);
             G.EnsureDaily();
+            _undo = null; _rp = RosterPanel.None; // a pending release undo belongs to the old save
             Save();
             _lineupKey = "";
             Quality.I?.Set(G.S.settings.quality, Quality.SavedFpsMode(G.S.settings.fpsCap));
@@ -171,6 +172,7 @@ namespace Sigilbound.Client
         {
             if (s != Screen) HeroModels.TrimSoon(); // let go of hero models the new screen doesn't show
             Screen = s; _scroll = Vector2.zero; CloseModal();
+            _rp = RosterPanel.None; // a roster panel closes when you go anywhere (RosterUi.cs)
         }
 
         void Update()
@@ -198,6 +200,7 @@ namespace Sigilbound.Client
         {
             if (Screen == ScreenId.Battle) { Battle.BackPressed(); return; }
             if (ModalOpen) { CloseModal(); return; }
+            if (RosterBack()) return; // Release Heroes / Rank Up panels step back inside the Heroes screen
             switch (Screen)
             {
                 case ScreenId.Titan: case ScreenId.Dungeon: case ScreenId.ArenaPvp: Go(ScreenId.Trials); break;
@@ -313,15 +316,21 @@ namespace Sigilbound.Client
         void OnGUI()
         {
             if (_shotNoUi) return;
-            Ui.Begin(Screen == ScreenId.Battle || Screen == ScreenId.Modes || ((Screen == ScreenId.Campaign || Screen == ScreenId.Prep) && Ui.Landscape)); // battle and the modes hub use the whole width; menus a column
+            // Battle, the modes hub and (in landscape) Home, the map and team setup use the whole width; menus a column.
+            bool wide = Screen == ScreenId.Battle || Screen == ScreenId.Modes || ((Screen == ScreenId.Campaign || Screen == ScreenId.Prep || Screen == ScreenId.Home) && Ui.Landscape);
+            Ui.Begin(wide);
             GUI.enabled = !ModalOpen; // a modal blocks taps on the screen behind it
             if (Screen == ScreenId.Battle) { Battle.DrawHud(); Tutorial.DrawBattle(this); DrawModalAndToasts(); return; }
             var safe = Ui.Safe;
             float top = safe.y, bottom = safe.yMax;
             if (Screen == ScreenId.Intro) { DrawIntro(new Rect(0, top, Ui.W, bottom - top)); DrawModalAndToasts(); return; }
 
-            DrawTopBar(new Rect(0, top, Ui.W, 44));
-            var content = new Rect(0, top + 44, Ui.W, bottom - top - 44 - 64);
+            // The campaign map's Normal/Hard and Act switches sit in a taller top bar (UX review #7).
+            float barH = Screen == ScreenId.Campaign && Ui.Landscape ? Mathf.Max(44f, Ui.Tap + 8) : 44f;
+            DrawTopBar(new Rect(0, top, Ui.W, barH));
+            // Full-width screens keep their content inside the safe area (camera hole, rounded corners: UX review #6).
+            float cx0 = wide ? Mathf.Max(0, safe.x) : 0, cx1 = wide ? Mathf.Min(Ui.W, safe.xMax) : Ui.W;
+            var content = new Rect(cx0, top + barH, cx1 - cx0, bottom - top - barH - 64);
             switch (Screen)
             {
                 case ScreenId.Home: DrawHome(content); break;
@@ -352,7 +361,11 @@ namespace Sigilbound.Client
         {
             GUI.DrawTexture(new Rect(Ui.Left, 0, Ui.FullW, r.yMax), Ui.GradientTex(Palette.Hex("#1d1726"), Palette.Hex("#120e19"), null, 2));
             Ui.GoldRule(new Rect(Ui.Left, r.yMax - 1, Ui.FullW, 1));
-            float x = 8;
+            // Contents inside the safe area, so the gold and the menu never sit under a camera hole or a rounded corner.
+            var sc = Ui.SafeContent(8);
+            float x = Ui.Landscape ? sc.x : Mathf.Max(8, sc.x);
+            var bar = r;
+            r = new Rect(r.x, r.y + (r.height - 44) / 2, r.width, 44); // chips stay centred when the bar is taller (the campaign map)
             // Currency chips: a drawn icon (Icons.cs) plus the amount.
             void Chip(Icon icon, string text, Color c, string painted = null)
             {
@@ -369,9 +382,23 @@ namespace Sigilbound.Client
             Chip(Icon.Shard, G.S.shardMystic.ToString(), Palette.Blue, "shard");
             Chip(Icon.Shard, G.S.shardRadiant.ToString(), Palette.Hex("#ffb02e"), "shard");
             Chip(Icon.Essence, G.S.essence.ToString(), Palette.Hex("#8fd8ff"), "essence");
-            var menu = new Rect(Ui.W - 46, r.y + 6, 38, 32);
-            if (Ui.Button(menu, "", Ui.Kind.Secondary, 16)) OpenSettings();
+            // The menu button: 44 wide and the bar's full height to tap, the plate as before.
+            float mx1 = Ui.Landscape ? sc.xMax : Mathf.Min(Ui.W - 8, sc.xMax);
+            var menu = new Rect(mx1 - 38, r.y + 6, 38, 32);
+            float tap = Mathf.Max(44, Ui.Tap);
+            var menuHit = new Rect(mx1 - tap, r.y, tap, Mathf.Max(bar.yMax - r.y, tap)); // at least 48 dp square
+            if (Ui.Button(menu, "", Ui.Kind.Secondary, 16) | Ui.Button(menuHit, "", Ui.Kind.Ghost)) OpenSettings();
             Icons.Draw(new Rect(menu.x + 10, menu.y + 7, 18, 18), Icon.Menu, Palette.Hex("#f3e3c3"));
+            if (Screen == ScreenId.Campaign && Ui.Landscape) DrawCampaignSwitches(new Rect(x + 12, bar.y + 4, menuHit.x - x - 24, bar.height - 8));
+        }
+
+        // Cells of the bottom nav: a centred band (at most 560 wide) inside the safe area, the same on every screen.
+        public static Rect NavCell(int i, float top)
+        {
+            var sc = Ui.SafeContent(8);
+            float w = Ui.Landscape ? Mathf.Min(sc.width, 560) : Ui.W;
+            float x0 = Ui.Landscape ? sc.center.x - w / 2 : 0;
+            return new Rect(x0 + i * w / 6f, top, w / 6f, 64);
         }
 
         void DrawNav(Rect r)
@@ -380,21 +407,20 @@ namespace Sigilbound.Client
             GUI.DrawTexture(new Rect(Ui.Left, r.y, Ui.FullW, r.height), Ui.GradientTex(Palette.Hex("#1a1522"), Palette.Hex("#0d0a12"), null, 2));
             Ui.GoldRule(new Rect(Ui.Left, r.y, Ui.FullW, 1));
             var items = new (ScreenId id, string label, Icon icon)[] { (ScreenId.Home, "Home", Icon.Home), (ScreenId.Modes, "Battle", Icon.Sword), (ScreenId.Heroes, "Heroes", Icon.Helm), (ScreenId.Summon, "Summon", Icon.Portal), (ScreenId.Trials, "Trials", Icon.Tower), (ScreenId.Friends, "Friends", Icon.Friends) };
-            float w = Ui.W / items.Length;
             for (int i = 0; i < items.Length; i++)
             {
+                var cell = NavCell(i, r.y); float w = cell.width;
                 var it = items[i];
                 bool on = Screen == it.id || (it.id == ScreenId.Home && Screen == ScreenId.Achievements) || (it.id == ScreenId.Modes && (Screen == ScreenId.Campaign || Screen == ScreenId.Prep)) || (it.id == ScreenId.Heroes && (Screen == ScreenId.Hero || Screen == ScreenId.Equip))
                     || (it.id == ScreenId.Trials && (Screen == ScreenId.Titan || Screen == ScreenId.Dungeon || Screen == ScreenId.ArenaPvp))
                     || (it.id == ScreenId.Friends && (Screen == ScreenId.FriendProfile || Screen == ScreenId.Chat || Screen == ScreenId.Blocked));
-                var cell = new Rect(i * w, r.y, w, 64);
                 if (Ui.Button(cell, "", Ui.Kind.Ghost)) { if (it.id == ScreenId.Friends) OpenFriends(); else Go(it.id); }
                 if (on) { Ui.Round(new Rect(cell.x + 6, r.y + 4, w - 12, 56), new Color(0.95f, 0.77f, 0.36f, 0.12f), null, 12); Ui.GoldRule(new Rect(cell.x + w * 0.22f, r.y + 1, w * 0.56f, 2)); }
-                var tint = on ? Palette.Gold : Palette.Hex("#9b8f7a");
+                var tint = on ? Palette.Gold : Palette.Hex("#c4b89f"); // inactive labels 9:1 on the bar (art review H5: they were under 3:1 at phone size)
                 // Painted nav icons (dimmed when not selected) with the skin on; drawn ones without.
                 string pn = it.id == ScreenId.Home ? "home" : it.id == ScreenId.Modes ? "sword" : it.id == ScreenId.Heroes ? "helm" : it.id == ScreenId.Summon ? "portal" : it.id == ScreenId.Trials ? "tower" : "heart";
                 if (!Icons.Painted(new Rect(cell.x + w / 2 - 15, r.y + 4, 30, 30), pn, on ? 1f : 0.55f)) Icons.Draw(new Rect(cell.x + w / 2 - 12, r.y + 8, 24, 24), it.icon, tint);
-                Ui.Text(new Rect(cell.x, r.y + 34, w, 22), it.label, 11, tint, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+                Ui.Text(new Rect(cell.x, r.y + 34, w, 22), it.label, 12, tint, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
                 int badge = it.id == ScreenId.Home ? HomeBadge() : it.id == ScreenId.Trials ? G.TrialsBadge()
                     : it.id == ScreenId.Friends && Online.SignedIn ? Online.Unread.messages + Online.Unread.requests : 0;
                 if (badge > 0)
@@ -418,7 +444,8 @@ namespace Sigilbound.Client
             if (ModalOpen)
             {
                 GUI.DrawTexture(Ui.Screen01, Ui.Solid(new Color(0, 0, 0, 0.7f)));
-                var box = new Rect(16, Mathf.Max(Ui.Safe.y + 20, (Ui.H - _modalHeight) / 2), Ui.W - 32, _modalHeight);
+                float mx0 = Mathf.Max(16, Ui.Safe.x + 16), mx1 = Mathf.Min(Ui.W - 16, Ui.Safe.xMax - 16); // inside the safe area
+                var box = new Rect(mx0, Mathf.Max(Ui.Safe.y + 20, (Ui.H - _modalHeight) / 2), mx1 - mx0, _modalHeight);
                 Ui.Card(box, true); // the web's framed .mbox
                 if (!string.IsNullOrEmpty(_modalTitle)) Ui.Heading(new Rect(box.x, box.y + 14, box.width, 34), _modalTitle, 24, TextAnchor.MiddleCenter);
                 _modalBody?.Invoke(new Rect(box.x + 16, box.y + 56, box.width - 32, box.height - 72));
@@ -427,7 +454,8 @@ namespace Sigilbound.Client
             float y = Ui.Safe.yMax - 120;
             for (int i = _toasts.Count - 1; i >= 0; i--)
             {
-                var r = new Rect(30, y, Ui.W - 60, 36);
+                float tw = Mathf.Min(Ui.W - 60, 620);
+                var r = new Rect(Ui.W / 2 - tw / 2, y, tw, 36);
                 Ui.Panel(r, new Color(0, 0, 0, 0.85f), Palette.Line, 10);
                 Ui.Text(r, _toasts[i].text, 13, Palette.Text, FontStyle.Normal, TextAnchor.MiddleCenter, true);
                 y -= 42;

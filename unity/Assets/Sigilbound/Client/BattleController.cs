@@ -637,7 +637,7 @@ namespace Sigilbound.Client
                         v.Hit(e.Crit || e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp) > 0.14f);
                         if (e.Crit) SkillFx.I?.CritFlash(e.Source != null ? e.Source.El : _lastEl);
                         ArenaEvents.RaiseHit(v.transform.position, e.Amount / (float)Mathf.Max(1, e.Unit.MaxHp), e.Crit, _ultBy != null || (e.Source != null && e.Source.Boss));
-                        Vfx.I.Number(c + Vector3.up * 0.3f, (e.Crit ? "CRIT " : "") + Ui.Fmt(e.Amount),
+                        Vfx.I.Number(c + Vector3.up * 0.3f, (e.Crit ? "CRIT " : "") + Ui.Fmt(e.Amount) + (e.Elem > 1 ? " WEAK!" : e.Elem < 1 ? " RESIST" : ""), // words as well as colour (UX review #4)
                             e.Crit ? new Color(1f, 0.85f, 0.2f) : e.Elem > 1 ? new Color(1f, 0.55f, 0.3f) : e.Elem < 1 ? new Color(0.7f, 0.7f, 0.8f) : Color.white, e.Crit ? 1.3f : 1f);
                         if (e.Crit) Vfx.I.Shake();
                         if (multiHit && hitsLeft.TryGetValue(e.Unit, out var left) && left > 1)
@@ -856,7 +856,8 @@ namespace Sigilbound.Client
                 bool now = i == 0 && u == _actor;
                 Ui.Panel(r, u.Ally ? Palette.Hex("#1f3326") : Palette.Hex("#3a1c1c"), now ? Palette.Gold : u.Ally ? Palette.Good : Palette.Bad, 8);
                 string nm = u.Titan ? "Titan" : u.Template.ShortName;
-                Ui.Text(r, $"{Ui.ColorTag("●", Palette.Element(u.El))}{(nm.Length > 5 ? nm.Substring(0, 5) : nm)}", 10, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
+                Icons.Draw(new Rect(r.x + 3, r.y + 6, 12, 12), Icons.ForElement(u.El), Palette.Element(u.El)); // the element's shape, not a coloured dot (UX review #4)
+                Ui.Text(new Rect(r.x + 14, r.y, r.width - 14, r.height), nm.Length > 5 ? nm.Substring(0, 5) : nm, 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
             }
         }
 
@@ -1023,7 +1024,8 @@ namespace Sigilbound.Client
                 if (sp.z < 0) continue;
                 float x = Mathf.Clamp(sp.x / Ui.Scale, 46, Ui.W - 46), y = Mathf.Max(safe.y + 114, (Screen.height - sp.y) / Ui.Scale); // tags stay on screen, below the turn bar
                 float w = u.Titan ? 140 : 76;
-                Ui.Text(new Rect(x - w / 2 - 10, y - 30, w + 20, 16), $"{Ui.ColorTag("●", Palette.Element(u.El))} {(u.Ally ? u.Template.ShortName : u.Name)}", 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
+                Icons.Draw(new Rect(x - w / 2 - 10, y - 29, 13, 13), Icons.ForElement(u.El), Palette.Element(u.El));
+                Ui.Text(new Rect(x - w / 2 + 4, y - 30, w + 6, 16), u.Ally ? u.Template.ShortName : u.Name, 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleCenter);
                 Ui.Bar(new Rect(x - w / 2, y - 15, w, 7), u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
                 var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(x - w / 2, y - 15, w * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 3), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
                 BreakBar(new Rect(x - w / 2, y - 7, w, 4), u.Break); // weakness break meter
@@ -1078,22 +1080,29 @@ namespace Sigilbound.Client
             Time.timeScale = _paused ? 0 : (_finished ? 1 : Mathf.Clamp(G.S.settings.speed, 1, 3));
         }
 
-        // A round corner button with a drawn icon and a tiny caption.
+        // A round corner button with a drawn icon and a caption; at least 48 dp (UX review #3: they were 37 dp, 6 apart).
+        // "On" also shows as a lit ring and a gold dot, not only a colour change.
         bool RoundButton(Rect r, Icon icon, string caption, bool on)
         {
-            Ui.Round(r, on ? Palette.Hex("#3d3020") : new Color(0.08f, 0.06f, 0.1f, 0.82f), on ? Palette.Gold : Palette.Bronze, Mathf.RoundToInt(r.width / 2));
-            Icons.Draw(new Rect(r.x + r.width * 0.26f, r.y + r.height * 0.18f, r.width * 0.48f, r.height * 0.48f), icon, on ? Palette.Gold : Palette.Text);
-            Ui.Text(new Rect(r.x - 6, r.yMax - r.height * 0.36f, r.width + 12, r.height * 0.3f), caption, 9, on ? Palette.Gold : Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter);
+            Ui.Round(r, on ? Palette.Hex("#3d3020") : new Color(0.08f, 0.06f, 0.1f, 0.86f), on ? Palette.Gold : Palette.Trim, Mathf.RoundToInt(r.width / 2));
+            if (on) Ui.Round(new Rect(r.xMax - 12, r.y + 1, 10, 10), Palette.Gold, Palette.Hex("#3d3020"), 5);
+            Icons.Draw(new Rect(r.x + r.width * 0.29f, r.y + r.height * 0.14f, r.width * 0.42f, r.height * 0.42f), icon, on ? Palette.Gold : Palette.Text);
+            Ui.Text(new Rect(r.x - 8, r.yMax - r.height * 0.42f, r.width + 16, r.height * 0.34f), caption, 11, on ? Palette.Gold : Palette.Hex("#d8ccb6"), FontStyle.Bold, TextAnchor.MiddleCenter);
             return Ui.Button(r, "", Ui.Kind.Ghost);
         }
+        // Where the HUD put its turn bar, skill buttons and Auto/speed this frame (the tutorial's rings use them).
+        public static Rect HudTurns, HudSkills, HudAutoSpeed;
 
         void DrawHudWide()
         {
             var safe = Ui.Safe; var cam = App.Arena.Cam;
             float top = safe.y + 6, left = Mathf.Max(8, safe.x + 8), right = Mathf.Min(Ui.W - 8, safe.xMax - 8);
+            // Corner buttons at least 48 dp with 8-unit gaps; everything below the top row moves down by dy.
+            float bs = Mathf.Max(48, Ui.Tap), bg = 8, dy = bs - 40;
+            HudTurns = HudSkills = Rect.zero;
 
             // ---- top-left: retreat, stage and wave, timer ----
-            if (RoundButton(new Rect(left, top, 40, 40), Icon.Close, "Leave", false)) AskRetreat();
+            if (RoundButton(new Rect(left, top, bs, bs), Icon.Close, "Leave", false)) AskRetreat();
             string where = _spec.Mode switch
             {
                 BattleMode.Titan => $"Titan · Turn {Mathf.Min(_b.BossTurns + 1, TitanTurns)}/{TitanTurns}",
@@ -1104,40 +1113,46 @@ namespace Sigilbound.Client
             };
             string round = _spec.Mode == BattleMode.Titan ? $"{Ui.Fmt(_b.TitanDamage)} damage" : _spec.Mode == BattleMode.Arena ? "" : $"Wave {_b.Wave + 1} of {_b.Waves.Count}";
             int secs = Mathf.FloorToInt(Time.unscaledTime - _t0);
-            var info = new Rect(left + 48, top, 300, 40);
-            Ui.Round(new Rect(info.x - 4, info.y + 2, 230, 36), new Color(0.06f, 0.05f, 0.08f, 0.6f), null, 10);
-            Ui.Text(new Rect(info.x + 6, info.y + 2, 220, 18), where, 12, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
-            Icons.Draw(new Rect(info.x + 6, info.y + 22, 12, 12), Icon.Clock, Palette.Dim);
-            Ui.Text(new Rect(info.x + 22, info.y + 20, 200, 16), $"{secs / 60}:{secs % 60:00}{(round.Length > 0 ? "   " + round : "")}", 11, Palette.Dim);
+            var info = new Rect(left + bs + bg, top + (bs - 40) / 2, 300, 40);
+            Ui.Round(new Rect(info.x - 4, info.y, 246, 40), new Color(0.06f, 0.05f, 0.08f, 0.72f), null, 10);
+            Ui.Text(new Rect(info.x + 6, info.y + 1, 236, 20), where, 13, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+            Icons.Draw(new Rect(info.x + 6, info.y + 23, 12, 12), Icon.Clock, Palette.Dim);
+            Ui.Text(new Rect(info.x + 22, info.y + 20, 216, 18), $"{secs / 60}:{secs % 60:00}{(round.Length > 0 ? "   " + round : "")}", 12, Palette.Hex("#d0c4ae"));
             // Centred under the turn-order bar (beside the info box it ran under the turn chips).
-            RoundPill(Ui.W / 2, top + 76, true, true);
+            RoundPill(Ui.W / 2, top + 82 + dy, true, true);
 
             // ---- top-right: camera, loop, auto, speed, pause ----
-            float bx = right - 40;
-            if (RoundButton(new Rect(bx, top, 40, 40), _paused ? Icon.Play : Icon.Pause, _paused ? "Resume" : "Pause", _paused)) TogglePause();
-            bx -= 46; if (RoundButton(new Rect(bx, top, 40, 40), Icon.Speed, $"{G.S.settings.speed}x", G.S.settings.speed > 1)) { G.S.settings.speed = G.S.settings.speed >= 3 ? 1 : G.S.settings.speed + 1; if (!_paused) Time.timeScale = _finished ? 1 : G.S.settings.speed; App.Save(); }
-            bx -= 46; if (RoundButton(new Rect(bx, top, 40, 40), Icon.Auto, "Auto", Auto)) { G.S.settings.auto = !G.S.settings.auto; App.Save(); }
-            if (_spec.Mode == BattleMode.Stage) { bx -= 46; if (RoundButton(new Rect(bx, top, 40, 40), Icon.Loop, "Loop", G.S.settings.autoReplay)) { G.S.settings.autoReplay = !G.S.settings.autoReplay; App.Save(); } }
-            bx -= 46; if (RoundButton(new Rect(bx, top, 40, 40), Icon.Camera, "View", false)) CycleCamera();
+            float bx = right - bs;
+            if (RoundButton(new Rect(bx, top, bs, bs), _paused ? Icon.Play : Icon.Pause, _paused ? "Resume" : "Pause", _paused)) TogglePause();
+            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Speed, $"{G.S.settings.speed}x", G.S.settings.speed > 1)) { G.S.settings.speed = G.S.settings.speed >= 3 ? 1 : G.S.settings.speed + 1; if (!_paused) Time.timeScale = _finished ? 1 : G.S.settings.speed; App.Save(); }
+            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Auto, "Auto", Auto)) { G.S.settings.auto = !G.S.settings.auto; App.Save(); }
+            HudAutoSpeed = new Rect(bx, top, bs * 2 + bg, bs);
+            if (_spec.Mode == BattleMode.Stage) { bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Loop, "Loop", G.S.settings.autoReplay)) { G.S.settings.autoReplay = !G.S.settings.autoReplay; App.Save(); } }
+            bx -= bs + bg; if (RoundButton(new Rect(bx, top, bs, bs), Icon.Camera, "View", false)) CycleCamera();
 
             // ---- turn order, centred under the top row ----
             if (!_b.Over)
             {
                 if (_turnsFrame != Time.frameCount) { _turnsFrame = Time.frameCount; _turns = _b.PredictTurns(7); }
-                float cw = 70, cg = 4, tw = _turns.Count * (cw + cg) + 36;
-                float tx = Ui.W / 2 - tw / 2, ty = top + 46;
-                Ui.Round(new Rect(tx - 4, ty - 2, tw + 8, 26), new Color(0.04f, 0.03f, 0.06f, 0.55f), null, 8);
-                Ui.Text(new Rect(tx, ty, 34, 22), "Next", 10, Palette.Dim, FontStyle.Bold, TextAnchor.MiddleLeft);
+                // Chips 28 tall with 11-point names; allies and enemies differ by a shield or skull glyph and by
+                // the frame, not only green against red (UX review #4), and each face carries its element icon.
+                float cw = 88, cg = 4, ch = 28, tw = _turns.Count * (cw + cg) + 40;
+                float tx = Ui.W / 2 - tw / 2, ty = top + bs + 6;
+                Ui.Round(new Rect(tx - 4, ty - 2, tw + 8, ch + 4), new Color(0.04f, 0.03f, 0.06f, 0.66f), null, 8);
+                Ui.Text(new Rect(tx, ty, 38, ch), "Next", 11, Palette.Hex("#d0c4ae"), FontStyle.Bold, TextAnchor.MiddleLeft);
+                HudTurns = new Rect(tx - 4, ty - 2, tw + 8, ch + 4);
                 for (int i = 0; i < _turns.Count; i++)
                 {
-                    var u = _turns[i]; var r = new Rect(tx + 36 + i * (cw + cg), ty, cw, 22);
+                    var u = _turns[i]; var r = new Rect(tx + 40 + i * (cw + cg), ty, cw, ch);
                     bool now = i == 0 && u == _actor;
                     Ui.Panel(r, u.Ally ? Palette.Hex("#1f3326") : Palette.Hex("#3a1c1c"), now ? Palette.Gold : u.Ally ? Palette.Good : Palette.Bad, 7);
-                    // A tiny face in an element-coloured frame (the element icon where there is no portrait: the Titan).
-                    if (u.Titan || !Portraits.Thumb(new Rect(r.x + 3, r.y + 3, 16, 16), u.Template.Id, Palette.Element(u.El)))
-                        Icons.Draw(new Rect(r.x + 4, r.y + 5, 12, 12), Icons.ForElement(u.El), Palette.Element(u.El));
+                    // A small face in an element-coloured frame, with the element's icon on its corner.
+                    bool face = !u.Titan && Portraits.Thumb(new Rect(r.x + 3, r.y + 3, 22, 22), u.Template.Id, Palette.Element(u.El));
+                    if (face) Ui.ElementBadge(new Rect(r.x + 15, r.y + 14, 13, 13), u.El);
+                    else Ui.ElementBadge(new Rect(r.x + 4, r.y + 4, 20, 20), u.El);
+                    Icons.Draw(new Rect(r.xMax - 14, r.y + 8, 11, 11), u.Ally ? Icon.Shield : Icon.Skull, u.Ally ? Palette.Hex("#bfe8c8") : Palette.Hex("#ffc0b0"));
                     string nm = u.Titan ? "Titan" : u.Template.ShortName;
-                    Ui.Text(new Rect(r.x + 21, r.y, r.width - 23, r.height), nm.Length > 7 ? nm.Substring(0, 7) : nm, 10, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
+                    Ui.Text(new Rect(r.x + 29, r.y, r.width - 44, r.height), nm.Length > 6 ? nm.Substring(0, 6) : nm, 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
                 }
             }
 
@@ -1145,7 +1160,7 @@ namespace Sigilbound.Client
             bool manual = _awaiting && _actor != null && _actor.Ally && !Auto && !_paused;
             var targets = manual ? _b.AffectedBy(_actor, _sel) : new List<Unit>();
             var tags = new List<(Unit u, CharacterView v, Rect r)>();
-            float minY = top + 136; // name tags stay below the skill banner (top + 76..104), even the Titan's
+            float minY = top + 168 + dy; // name tags (30 tall, above minY) stay below the round pill and the skill banner (top + 82..132 + dy), even the Titan's
             foreach (var kv in _views)
             {
                 var u = kv.Key; var v = kv.Value;
@@ -1155,10 +1170,10 @@ namespace Sigilbound.Client
                 Vector3 sp = cam.WorldToScreenPoint(u.Titan ? v.transform.position + Vector3.up * (float)BattleLayout.WormHornTop // the Titan's tag sits above its horns
                     : v.HeadTop ? v.HeadTop.position + Vector3.up * 0.25f : v.transform.position + Vector3.up * 2.2f);
                 if (sp.z < 0) continue;
-                float w = u.Titan ? 150 : 86;
-                float x = Mathf.Clamp(sp.x / Ui.Scale - Ui.Offset, w / 2 + 4, Ui.W - w / 2 - 4);
+                float w = u.Titan ? 156 : 96;
+                float x = Mathf.Clamp(sp.x / Ui.Scale - Ui.Offset, Mathf.Max(0, safe.x) + w / 2 + 4, Mathf.Min(Ui.W, safe.xMax) - w / 2 - 4); // inside the safe area
                 float y = Mathf.Max(minY, (Screen.height - sp.y) / Ui.Scale);
-                tags.Add((u, v, new Rect(x - w / 2, y - 26, w, 26)));
+                tags.Add((u, v, new Rect(x - w / 2, y - 30, w, 30)));
             }
             // Lowest on screen first; anything overlapping an earlier tag moves up until it clears.
             tags.Sort((a, b) => b.r.y.CompareTo(a.r.y));
@@ -1166,25 +1181,29 @@ namespace Sigilbound.Client
             for (int i = 0; i < tags.Count; i++)
             {
                 var r = tags[i].r;
-                for (int guard = 0; guard < 8 && placed.Any(p => p.Overlaps(r)); guard++) r.y -= 24;
-                r.y = Mathf.Max(minY - 26, r.y);
+                for (int guard = 0; guard < 8 && placed.Any(p => p.Overlaps(r)); guard++) r.y -= 28;
+                r.y = Mathf.Max(minY - 30, r.y);
                 placed.Add(r); tags[i] = (tags[i].u, tags[i].v, r);
             }
             foreach (var (u, v, r) in tags)
             {
-                var badge = new Rect(r.x, r.y + 10, 18, 16);
+                // Name (11) with the element icon, the level badge (10), HP 8 units, break and turn meter 4 each.
+                Icons.Draw(new Rect(r.x, r.y - 1, 13, 13), Icons.ForElement(u.El), Palette.Element(u.El));
+                Ui.Text(new Rect(r.x + 15, r.y - 3, r.width + 30, 16), u.Ally ? u.Template.ShortName : u.Name, 11, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
+                var badge = new Rect(r.x, r.y + 13, 22, 16);
                 Ui.Round(badge, u.Ally ? Palette.Hex("#1f3326") : Palette.Hex("#3a1c1c"), Palette.Element(u.El), 4);
-                Ui.Text(badge, u.Level.ToString(), 9, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
-                Ui.Text(new Rect(r.x, r.y - 2, r.width + 30, 13), u.Ally ? u.Template.ShortName : u.Name, 10, Palette.Text, FontStyle.Bold, TextAnchor.MiddleLeft);
-                var bar = new Rect(r.x + 20, r.y + 12, r.width - 20, 6);
+                Ui.Text(badge, u.Level.ToString(), 10, Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+                var bar = new Rect(r.x + 24, r.y + 14, r.width - 24, 8);
                 Ui.Bar(bar, u.Titan ? 1 : u.Hp / (float)u.MaxHp, u.Ally ? Palette.Good : Palette.Bad);
-                var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 2), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
-                BreakBar(new Rect(bar.x, bar.yMax + 1, bar.width, 3), u.Break);
-                Ui.Bar(new Rect(bar.x, bar.yMax + (u.Break > 0 ? 5 : 2), bar.width, 3), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
+                var sh = u.Shield; if (sh != null) GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * Mathf.Clamp01(sh.Val / (float)u.MaxHp), 3), Ui.Solid(new Color(0.7f, 0.85f, 1f)));
+                BreakBar(new Rect(bar.x, bar.yMax + 1, bar.width, 4), u.Break);
+                Ui.Bar(new Rect(bar.x, bar.yMax + (u.Break > 0 ? 6 : 2), bar.width, 4), (float)(u.Tm / Core.Battle.TmFull), Palette.Blue);
                 if (u.Effects.Count > 0)
                 {
-                    var ir = StatusIcons.Row(r.x, r.yMax + 3, u.Effects, 15, false);
-                    if (!manual && !App.ModalOpen && Ui.Button(ir, "", Ui.Kind.Ghost)) StatusIcons.ShowLegend(App); // tap the icons: the legend
+                    var ir = StatusIcons.Row(r.x, r.yMax + 5, u.Effects, 18, false);
+                    // A 48 dp invisible hit box around the icons (UX review #9: the row was 14 dp tall).
+                    var hitIr = new Rect(ir.x - 4, ir.center.y - Ui.Tap / 2, Mathf.Max(ir.width + 8, Ui.Tap), Ui.Tap);
+                    if (!manual && !App.ModalOpen && Ui.Button(hitIr, "", Ui.Kind.Ghost)) StatusIcons.ShowLegend(App); // tap the icons: the legend
                 }
                 if (manual && targets.Contains(u))
                 {
@@ -1202,17 +1221,20 @@ namespace Sigilbound.Client
 
             // ---- banner, and the skill buttons bottom-right (only on a manual turn) ----
             string banner = _paused ? "Paused" : !string.IsNullOrEmpty(_banner) ? _banner : manual ? $"{_actor.Template.ShortName}'s turn" : "";
-            if (banner.Length > 0) Ui.Text(new Rect(0, top + 76, Ui.W, 28), banner, 18, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter, false, true);
+            if (banner.Length > 0) Ui.Text(new Rect(0, top + 104 + dy, Ui.W, 28), banner, 18, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleCenter, false, true); // under the round pill, not on it
             float bottom = safe.yMax - 8;
             if (manual)
             {
                 var sks = _actor.Template.Skills;
                 float d = 66, g = 10, x0 = right - sks.Length * (d + g) + g;
                 // What the selected skill does, just left of the buttons.
-                var desc = new Rect(Mathf.Max(left, x0 - 330), bottom - d, Mathf.Min(320, x0 - left - 10), d);
-                Ui.Round(desc, new Color(0.06f, 0.05f, 0.08f, 0.72f), Palette.Bronze, 10);
-                Ui.Text(new Rect(desc.x + 10, desc.y + 4, desc.width - 20, 18), sks[_sel].Name, 12, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
-                Ui.Text(new Rect(desc.x + 10, desc.y + 22, desc.width - 20, desc.height - 24), SkillText.Describe(sks[_sel]), 10, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
+                HudSkills = new Rect(x0, bottom - d, right - x0, d);
+                // Description at 12 (was 10) in a box that grows upward to fit it.
+                float dw = Mathf.Min(360, x0 - left - 10), dh = Mathf.Max(d, Ui.Label(12, null, FontStyle.Normal, TextAnchor.UpperLeft, true).CalcHeight(new GUIContent(SkillText.Describe(sks[_sel])), dw - 20) + 30);
+                var desc = new Rect(Mathf.Max(left, x0 - dw - 10), bottom - dh, dw, dh);
+                Ui.Round(desc, new Color(0.06f, 0.05f, 0.08f, 0.8f), Palette.Bronze, 10);
+                Ui.Text(new Rect(desc.x + 10, desc.y + 4, desc.width - 20, 20), sks[_sel].Name, 13, Palette.Gold, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
+                Ui.Text(new Rect(desc.x + 10, desc.y + 25, desc.width - 20, desc.height - 27), SkillText.Describe(sks[_sel]), 12, Palette.Text, FontStyle.Normal, TextAnchor.UpperLeft, true);
                 for (int i = 0; i < sks.Length; i++)
                 {
                     int cd = _actor.Cds[i];
@@ -1221,11 +1243,11 @@ namespace Sigilbound.Client
                     Ui.Round(b, sel ? Palette.Hex("#3d3020") : Palette.Hex("#1d1726"), sel ? Palette.Gold : cd > 0 ? Palette.Bronze : Palette.Trim, Mathf.RoundToInt(d / 2));
                     var ic = sks[i].Target switch { Target.Enemy => Icon.Sword, Target.AllEnemies => Icon.Bolt, Target.Ally => Icon.Heart, Target.AllAllies => Icon.Shield, _ => Icon.Star };
                     Icons.Draw(new Rect(b.x + d * 0.27f, b.y + d * 0.16f, d * 0.46f, d * 0.46f), ic, cd > 0 ? Palette.Dim : sel ? Palette.Gold : Palette.Text);
-                    Ui.Text(new Rect(b.x - 8, b.yMax - d * 0.36f, d + 16, d * 0.3f), $"A{i + 1}", 10, sel ? Palette.Gold : Palette.Dim, FontStyle.Bold, TextAnchor.MiddleCenter);
+                    Ui.Text(new Rect(b.x - 8, b.yMax - d * 0.38f, d + 16, d * 0.32f), $"A{i + 1}", 11, sel ? Palette.Gold : Palette.Hex("#d0c4ae"), FontStyle.Bold, TextAnchor.MiddleCenter);
                     if (cd > 0)
                     {
                         Ui.Round(b, new Color(0, 0, 0, 0.55f), null, Mathf.RoundToInt(d / 2));
-                        Ui.Text(b, cd.ToString(), 20, Palette.Bad, FontStyle.Bold, TextAnchor.MiddleCenter);
+                        Ui.Text(b, cd.ToString(), 22, Palette.Hex("#ff8a7a"), FontStyle.Bold, TextAnchor.MiddleCenter);
                     }
                     else if (Ui.Button(b, "", Ui.Kind.Ghost)) _sel = i;
                 }
@@ -1233,7 +1255,7 @@ namespace Sigilbound.Client
             else
             {
                 string state = Auto ? "Auto battle" : _actor != null && !_actor.Ally ? "Enemy turn…" : "";
-                if (state.Length > 0) Ui.Text(new Rect(right - 200, bottom - 24, 200, 24), state, 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
+                if (state.Length > 0) Ui.TextOnArt(new Rect(right - 200, bottom - 26, 196, 26), state, 13, Palette.Hex("#e0d6c4"), FontStyle.Normal, TextAnchor.MiddleRight);
             }
         }
 

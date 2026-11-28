@@ -35,6 +35,116 @@ namespace Sigilbound.Client
         // Full-screen rect in layout coordinates (backdrops, bars that span the whole width).
         public static Rect Screen01 => new Rect(Left, 0, FullW, H);
 
+        // Physical sizes (UX review #1, #3): logical units for a length in dp (160 per inch). Phones put about
+        // 2.25 px in a unit, so a fixed size in units comes out smaller in dp than it looks on a PC screen.
+        public static float Dp(float dp)
+        {
+            float dpi = Screen.dpi;
+            if (dpi <= 0) dpi = Application.isMobilePlatform ? 400f : 96f;
+            return dp * Mathf.Max(1f, dpi / 160f) / Scale;
+        }
+        // The smallest side of anything tappable: 48 dp on a phone (never under 44 units on a PC), so every
+        // target clears the 44 dp minimum.
+        public static float Tap => Mathf.Max(44f, Dp(48f));
+        // The safe area (camera hole, rounded corners) inset by a gutter on the left and right, in layout units.
+        // Screens laid out across the whole width use it for their content; bars use it for their contents.
+        public static Rect SafeContent(float gutter = 0)
+        {
+            var s = Safe;
+            float x0 = Mathf.Max(Left, s.x) + gutter, x1 = Mathf.Min(Left + FullW, s.xMax) - gutter;
+            return new Rect(x0, s.y, Mathf.Max(0, x1 - x0), s.height);
+        }
+
+        // Readable text (UX review #11, art review H5; WCAG contrast 4.5:1 for text): disabled controls keep a
+        // grey plate with light grey text instead of fading everything to 40%.
+        public static readonly Color DisabledText = Palette.Hex("#d2ccc0");
+        public static readonly Color DisabledPlate = Palette.Hex("#34313a");
+        // WCAG relative luminance contrast of two opaque colours (1 to 21).
+        public static float Contrast(Color a, Color b)
+        {
+            static float Ch(float c) => c <= 0.03928f ? c / 12.92f : Mathf.Pow((c + 0.055f) / 1.055f, 2.4f);
+            static float L(Color c) => 0.2126f * Ch(c.r) + 0.7152f * Ch(c.g) + 0.0722f * Ch(c.b);
+            float la = L(a), lb = L(b);
+            return (Mathf.Max(la, lb) + 0.05f) / (Mathf.Min(la, lb) + 0.05f);
+        }
+
+        // The largest font size from max down to min at which one line of text fits the width.
+        public static int FitSize(string text, float width, int max, int min, bool serif = false)
+        {
+            for (int sz = max; sz > min; sz--)
+                if (Label(sz, null, serif ? FontStyle.Bold : FontStyle.Normal, TextAnchor.MiddleCenter, false, serif && SerifCanDraw(text)).CalcSize(new GUIContent(text)).x <= width) return sz;
+            return min;
+        }
+
+        // A short dark pill behind a line of text that sits on art or the 3D scene (art review H5).
+        public static void TextOnArt(Rect r, string text, int size, Color color, FontStyle fs = FontStyle.Normal, TextAnchor align = TextAnchor.MiddleCenter)
+        {
+            if (Event.current.type == EventType.Repaint)
+            {
+                float w = Mathf.Min(r.width, Label(size, color, fs, align).CalcSize(new GUIContent(text)).x + 24);
+                float x = align == TextAnchor.MiddleLeft || align == TextAnchor.UpperLeft || align == TextAnchor.LowerLeft ? r.x - 8
+                    : align == TextAnchor.MiddleRight || align == TextAnchor.UpperRight || align == TextAnchor.LowerRight ? r.xMax - w + 8 : r.center.x - w / 2;
+                Round(new Rect(x, r.y + 1, w, r.height - 2), new Color(0.04f, 0.03f, 0.06f, 0.72f), null, Mathf.Clamp(Mathf.RoundToInt(r.height / 2 - 1), 4, 14));
+            }
+            Text(r, text, size, color, fs, align);
+        }
+
+        // Colour-blind safety (UX review #4): rarity also reads as a letter, never by frame colour alone.
+        public static string RarityLetter(Sigilbound.Core.Rarity r) => r switch
+        {
+            Sigilbound.Core.Rarity.Common => "C", Sigilbound.Core.Rarity.Rare => "R", Sigilbound.Core.Rarity.Epic => "E", _ => "L",
+        };
+        // A small rarity tab (letter on the rarity colour) in the top-right corner of a rarity-coloured frame.
+        public static void RarityTab(Rect frame, Sigilbound.Core.Rarity r, float size = 15)
+        {
+            var t = new Rect(frame.xMax - size - 2, frame.y + 2, size, size);
+            Round(t, Color.Lerp(Palette.Rarity(r), Color.black, 0.55f), Palette.Rarity(r), 4);
+            Text(t, RarityLetter(r), Mathf.Max(10, Mathf.RoundToInt(size * 0.72f)), Color.white, FontStyle.Bold, TextAnchor.MiddleCenter);
+        }
+        // An element badge: the element's icon (its shape tells it apart without the colour) on a dark disc.
+        public static void ElementBadge(Rect r, Sigilbound.Core.Element e, Color? ring = null)
+        {
+            int rad = Mathf.RoundToInt(Mathf.Min(r.width, r.height) / 2);
+            Round(r, Color.Lerp(Palette.Element(e), Color.black, 0.6f), ring ?? Palette.Element(e), rad);
+            float k = Mathf.Min(r.width, r.height) * 0.64f;
+            Icons.Draw(new Rect(r.center.x - k / 2, r.center.y - k / 2, k, k), Icons.ForElement(e), Color.Lerp(Palette.Element(e), Color.white, 0.35f));
+        }
+
+        // A segmented switch (UX review #7): the options side by side on a solid dark plate, the chosen one
+        // gilded. Locked options stay readable with a lock icon. Returns the option tapped (locked ones too, so
+        // the caller can say why), or -1.
+        public static int Segmented(Rect r, string[] labels, int selected, bool[] open, int size = 14)
+        {
+            Round(r, Palette.Hex("#0d0a12"), Palette.Trim, 12);
+            int n = labels.Length, hit = -1;
+            float w = (r.width - 6) / n;
+            for (int i = 0; i < n; i++)
+            {
+                var seg = new Rect(r.x + 3 + i * w, r.y + 3, w, r.height - 6);
+                bool on = i == selected, ok = open == null || open[i];
+                if (on) { Round(seg, Palette.Hex("#3d3020"), Palette.Gold, 10); GoldRule(new Rect(seg.x + seg.width * 0.2f, seg.yMax - 3, seg.width * 0.6f, 2)); }
+                else if (i > 0 && i - 1 != selected) GUI.DrawTexture(new Rect(seg.x, seg.y + 8, 1, seg.height - 16), Solid(Palette.Bronze));
+                var c = on ? Palette.Gold : ok ? Palette.Hex("#e6dccb") : Palette.Dim;
+                float lw = ok ? 0 : 16;
+                if (!ok) Icons.Draw(new Rect(seg.center.x - Label(size, c, FontStyle.Bold).CalcSize(new GUIContent(labels[i])).x / 2 - lw + 2, seg.center.y - 7, 14, 14), Icon.Lock, c);
+                Text(new Rect(seg.x + lw / 2, seg.y, seg.width, seg.height), labels[i], size, c, FontStyle.Bold, TextAnchor.MiddleCenter);
+                if (Button(seg, "", Kind.Ghost)) hit = i;
+            }
+            return hit;
+        }
+
+        // Press feedback for drawn controls (UX review #8): a soft light overlay while held, and on hover with a mouse.
+        public static bool Held(Rect r) => GUI.enabled && Input.GetMouseButton(0) && r.Contains(Event.current.mousePosition) && !Scroller.WasDragging && !(Cover.HasValue && !OnTop && Cover.Value.Contains(Event.current.mousePosition));
+        static void PressOverlay(Rect r, bool held)
+        {
+            bool hover = !held && GUI.enabled && !Application.isMobilePlatform && !Input.GetMouseButton(0) && r.Contains(Event.current.mousePosition);
+            if (!held && !hover) return;
+            int rad = Mathf.Abs(r.width - r.height) < 1 ? Mathf.RoundToInt(r.width / 2) : Mathf.RoundToInt(Mathf.Min(12, Mathf.Min(r.width, r.height) / 2));
+            Round(r, held ? new Color(1f, 0.93f, 0.75f, 0.16f) : new Color(1f, 0.93f, 0.75f, 0.07f), held ? new Color(1f, 0.85f, 0.5f, 0.45f) : null, rad);
+        }
+        // A pressed painted plate shrinks a little (3%), so the tap reads even on art without a pressed variant.
+        static Rect Pressed(Rect r) { float dx = r.width * 0.03f, dy = r.height * 0.05f; return new Rect(r.x + dx, r.y + dy, r.width - 2 * dx, r.height - 2 * dy); }
+
         static readonly Dictionary<string, Texture2D> _tex = new Dictionary<string, Texture2D>();
         static readonly Dictionary<string, GUIStyle> _styles = new Dictionary<string, GUIStyle>();
         static Font _font, _serif, _serifBold;
@@ -270,9 +380,9 @@ namespace Sigilbound.Client
         }
 
         public enum Kind { Primary, Secondary, Blue, Red, Chip, ChipOn, Ghost }
-        static GUIStyle ButtonStyle(Kind k, int size, bool serif = true)
+        static GUIStyle ButtonStyle(Kind k, int size, bool serif = true, bool off = false)
         {
-            return Style($"btn{k}{size}{serif}", () =>
+            return Style($"btn{k}{size}{serif}{off}", () =>
             {
                 // Gilded plates as in style.css: gradient stops top / upper-mid / lower-mid / bottom.
                 (Color top, Color midA, Color midB, Color bottom, Color text, Color? border) = k switch
@@ -293,10 +403,17 @@ namespace Sigilbound.Client
                 };
                 if (k != Kind.Ghost) s.active.background = GradientTex(Color.Lerp(top, Color.black, 0.2f), Color.Lerp(bottom, Color.black, 0.2f), border, rad, Color.Lerp(midA, Color.black, 0.2f), 0.45f, Color.Lerp(midB, Color.black, 0.2f));
                 // Painted skin (Skin.cs): Button() draws the plate itself, so the style only carries the text.
-                if (k != Kind.Ghost && Skin.Tex(SkinName(k)) != null) { s.normal.background = s.active.background = s.hover.background = null; s.padding = new RectOffset(18, 18, 4, 6); }
+                bool painted = k != Kind.Ghost && Skin.Tex(SkinName(k)) != null;
+                if (painted || off) { s.normal.background = s.active.background = s.hover.background = null; }
                 bool display = serif && k != Kind.Ghost;
                 s.fontSize = size; s.fontStyle = display ? FontStyle.Normal : FontStyle.Bold; s.alignment = TextAnchor.MiddleCenter; s.wordWrap = true; s.richText = true;
-                s.normal.textColor = s.active.textColor = s.hover.textColor = text; s.hover.background = s.normal.background;
+                if (off) text = k == Kind.Ghost ? Palette.Dim : DisabledText;
+                // Pressed: the label darkens a touch on light plates and brightens on dark ones.
+                s.normal.textColor = s.hover.textColor = text;
+                s.active.textColor = k == Kind.Primary ? Color.Lerp(text, Color.black, 0.25f) : Color.Lerp(text, Color.white, 0.25f);
+                if (!painted && !off) s.hover.background = s.normal.background;
+                // One padding (UX review #8: the painted plates' 18-unit side padding was set and then always
+                // overwritten; it would wrap labels on narrow buttons, so the plates keep 6 at the sides).
                 s.padding = new RectOffset(6, 6, 4, 4); s.font = display ? _serifBold : _font;
                 return s;
             });
@@ -312,14 +429,35 @@ namespace Sigilbound.Client
         public static bool Button(Rect r, string text, Kind k = Kind.Primary, int size = 15, bool enabled = true)
         {
             bool covered = Cover.HasValue && !OnTop && Cover.Value.Contains(Event.current.mousePosition);
-            var was = GUI.enabled; GUI.enabled = was && enabled && !covered;
-            var col = GUI.color; if (!enabled) GUI.color = new Color(1, 1, 1, 0.4f);
-            if (k != Kind.Ghost && Event.current.type == EventType.Repaint)
-                Skin.DrawButton(r, SkinName(k), GUI.enabled && Input.GetMouseButton(0) && r.Contains(Event.current.mousePosition));
-            bool hit = GUI.Button(r, text, ButtonStyle(k, size, SerifCanDraw(text)));
-            GUI.color = col; GUI.enabled = was;
+            bool serif = SerifCanDraw(text);
+            if (!enabled)
+            {
+                // Disabled: a grey plate with light grey text (4.5:1 or better), clearly off but readable.
+                if (Event.current.type == EventType.Repaint)
+                {
+                    if (k != Kind.Ghost)
+                    {
+                        var keep = GUI.color;
+                        GUI.color = keep * new Color(0.34f, 0.34f, 0.37f, 1f); // the painted plate, dark and greyed: the label stays 4.5:1 even on the brightest gold band
+                        if (!Skin.DrawButton(r, SkinName(k), false)) { GUI.color = keep; GradientBox(r, Palette.Hex("#45414c"), DisabledPlate, Palette.Hex("#5a5560"), 10); }
+                        GUI.color = keep;
+                    }
+                    ButtonStyle(k, size, serif, true).Draw(r, new GUIContent(text), false, false, false, false);
+                }
+                return false;
+            }
+            var was = GUI.enabled; GUI.enabled = was && !covered;
+            bool held = Held(r);
+            if (Event.current.type == EventType.Repaint)
+            {
+                if (k != Kind.Ghost) Skin.DrawButton(held ? Pressed(r) : r, SkinName(k), held);
+                else PressOverlay(r, held);
+            }
+            bool hit = GUI.Button(r, text, ButtonStyle(k, size, serif));
+            if (k != Kind.Ghost && !held && Event.current.type == EventType.Repaint) PressOverlay(r, false); // hover only on plates (the press shows on the plate itself)
+            GUI.enabled = was;
             hit = hit && !Scroller.WasDragging;
-            if (hit && k != Kind.Ghost) Sound.I?.Play("tap", 0.45f, 1, 0); // every button taps, as the web
+            if (hit) Sound.I?.Play("tap", k == Kind.Ghost ? 0.3f : 0.45f, 1, 0); // every button taps, as the web (drawn ones too)
             return hit;
         }
 

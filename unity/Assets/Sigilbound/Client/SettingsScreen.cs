@@ -37,11 +37,13 @@ namespace Sigilbound.Client
             });
         }
 
+        static float Tap => Mathf.Max(44, Ui.Tap);
+
         void SettingRow(ref float y, Rect b, string title, string sub)
         {
             Ui.Text(new Rect(b.x, y, b.width, 22), title, 15, Palette.TrimHi, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
-            if (!string.IsNullOrEmpty(sub)) Ui.Text(new Rect(b.x, y + 20, b.width, 18), sub, 11, Palette.Dim);
-            y += string.IsNullOrEmpty(sub) ? 26 : 42;
+            if (!string.IsNullOrEmpty(sub)) Ui.Text(new Rect(b.x, y + 21, b.width, 18), sub, 12, Palette.Dim);
+            y += string.IsNullOrEmpty(sub) ? 26 : 44;
         }
 
         void Chips(ref float y, Rect b, string[] labels, int on, System.Action<int> pick)
@@ -49,12 +51,13 @@ namespace Sigilbound.Client
             float x = b.x;
             for (int i = 0; i < labels.Length; i++)
             {
-                float w = Mathf.Max(54, labels[i].Length * 7.6f + 18);
-                if (x + w > b.xMax) { x = b.x; y += 36; }
-                if (Ui.Button(new Rect(x, y, w, 30), labels[i], i == on ? Ui.Kind.ChipOn : Ui.Kind.Chip, 12)) pick(i);
+                // 48 dp tall chips (UX review #1); the chosen one is gilded (gold frame and label).
+                float w = Mathf.Max(Tap, labels[i].Length * 8.2f + 34);
+                if (x + w > b.xMax) { x = b.x; y += Tap + 6; }
+                if (Ui.Button(new Rect(x, y, w, Tap), labels[i], i == on ? Ui.Kind.ChipOn : Ui.Kind.Chip, 13)) pick(i);
                 x += w + 6;
             }
-            y += 40;
+            y += Tap + 10;
         }
 
         void Slider(ref float y, Rect b, string title, double value, System.Action<double> set)
@@ -62,10 +65,18 @@ namespace Sigilbound.Client
             int pct = Mathf.RoundToInt((float)value * 100);
             Ui.Text(new Rect(b.x, y, b.width - 60, 22), title, 15, Palette.TrimHi, FontStyle.Bold, TextAnchor.MiddleLeft, false, true);
             Ui.Text(new Rect(b.xMax - 60, y, 60, 22), pct > 0 ? pct + "%" : "Off", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleRight);
-            float v = GUI.HorizontalSlider(new Rect(b.x, y + 26, b.width, 20), pct, 0, 100);
+            // A visible gold track with its filled part and a 28-unit thumb in a 48 dp tall hit area (UX review #15,
+            // art review H5: the stock track was invisible and the thumb 12 px).
+            var area = new Rect(b.x, y + 24, b.width, Tap);
+            var track = new Rect(area.x + 14, area.center.y - 4, area.width - 28, 8);
+            Ui.Round(track, Palette.Hex("#0d0a12"), Palette.Bronze, 4);
+            if (pct > 0) Ui.Round(new Rect(track.x, track.y, track.width * pct / 100f, track.height), Palette.GoldDark, Palette.Trim, 4);
+            var thumbSt = Ui.Style("sliderThumb", () => new GUIStyle { normal = { background = Ui.RoundTex(Palette.Gold, Palette.TrimHi, 14) }, active = { background = Ui.RoundTex(Palette.TrimHi, Palette.Gold, 14) }, fixedWidth = 28, fixedHeight = 28 });
+            var barSt = Ui.Style("sliderBar", () => new GUIStyle { fixedHeight = 0, stretchHeight = true, padding = new RectOffset(0, 0, 0, 0), overflow = new RectOffset(0, 0, 0, 0) });
+            float v = GUI.HorizontalSlider(area, pct, 0, 100, barSt, thumbSt);
             int nv = Mathf.RoundToInt(v / 5) * 5; // 5% steps like the web slider
             if (nv != pct) { set(nv / 100.0); Save(); }
-            y += 52;
+            y += 30 + Tap;
         }
 
         // The rows scroll (drag) inside the modal; the version line and Done stay pinned below.
@@ -95,8 +106,8 @@ namespace Sigilbound.Client
             }
 
             SettingRow(ref y, b, "What's new", "Notes for every update: new features, fixes and changes.");
-            if (Ui.Button(new Rect(b.x, y, 160, 34), "View notes", Ui.Kind.Secondary, 13)) OpenWhatsNew();
-            y += 44;
+            if (Ui.Button(new Rect(b.x, y, 170, Tap), "View notes", Ui.Kind.Secondary, 13)) OpenWhatsNew();
+            y += Tap + 10;
 
             // Frame rate (owner decision 2026-11-27): 60 by default; the screen's 90/120 Hz as a choice.
             int hz = Quality.HighHz; string fpsMode = Quality.SavedFpsMode(st.fpsCap);
@@ -109,8 +120,8 @@ namespace Sigilbound.Client
                 Quality.SaveFpsMode(modes[i]); st.fpsCap = modes[i] == "30" ? 30 : 60; Save(); Quality.I?.Set(st.quality, modes[i]);
                 Toast(modes[i] == "high" ? $"{hz} fps: uses more battery" : modes[i] == "60" ? "60 fps" : "30 fps: cooler and longer battery");
             });
-            Ui.Text(new Rect(b.x, y - 6, b.width, 16), "Auto-replay always runs at 30 fps.", 11, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
-            y += 12;
+            Ui.Text(new Rect(b.x, y - 6, b.width, 18), "Auto-replay always runs at 30 fps.", 12, Palette.Dim, FontStyle.Normal, TextAnchor.UpperLeft);
+            y += 14;
 
             SettingRow(ref y, b, "Screen shake", "How much the camera shakes on big hits.");
             string[] shakes = { "full", "reduced", "off" };
@@ -137,9 +148,9 @@ namespace Sigilbound.Client
             });
 
             SettingRow(ref y, b, "Feedback", "Found a bug or have an idea? Send it to the developer.");
-            if (Ui.Button(new Rect(b.x, y, 160, 34), "Send feedback", Ui.Kind.Primary, 13)) OpenFeedback();
-            if (Ui.Button(new Rect(b.x + 170, y, 150, 34), "Replay tutorial", Ui.Kind.Secondary, 13)) { Tutorial.Step = 1; CloseModal(); Go(ScreenId.Home); Toast("Tutorial restarted"); }
-            y += 44;
+            if (Ui.Button(new Rect(b.x, y, 170, Tap), "Send feedback", Ui.Kind.Primary, 13)) OpenFeedback();
+            if (Ui.Button(new Rect(b.x + 180, y, 170, Tap), "Replay tutorial", Ui.Kind.Secondary, 13)) { Tutorial.Step = 1; CloseModal(); Go(ScreenId.Home); Toast("Tutorial restarted"); }
+            y += Tap + 10;
 
             SettingRow(ref y, b, "Performance overlay", "Shows frame rate and draw calls. For testing; saved on this device.");
             Chips(ref y, b, new[] { "Off", "On" }, PerfOverlay.Enabled ? 1 : 0, i => PerfOverlay.Enabled = i == 1);
@@ -147,8 +158,8 @@ namespace Sigilbound.Client
             if (Screen != ScreenId.Battle)
             {
                 SettingRow(ref y, b, "Promo code", "Got a code? Enter it here for free rewards.");
-                _promoInput = Ui.Field(new Rect(b.x, y, b.width - 100, 34), _promoInput, 32, false);
-                if (Ui.Button(new Rect(b.xMax - 92, y, 92, 34), "Redeem", Ui.Kind.Primary, 13))
+                _promoInput = Ui.Field(new Rect(b.x, y, b.width - 108, Tap), _promoInput, 32, false);
+                if (Ui.Button(new Rect(b.xMax - 100, y, 100, Tap), "Redeem", Ui.Kind.Primary, 13))
                 {
                     switch (Promo.Redeem(G, _promoInput, out var entry))
                     {
@@ -158,23 +169,23 @@ namespace Sigilbound.Client
                         default: Save(); _promoInput = ""; Sound.I?.Play("legendary", 1, 1, 0); Toast($"{entry.Label}: {entry.Reward}"); break;
                     }
                 }
-                y += 46;
+                y += Tap + 10;
 
                 SettingRow(ref y, b, "Save code", "Paste a code from the web game to load that progress here. It replaces this device's progress.");
                 _loadInput = Ui.Field(new Rect(b.x, y, b.width, 64), _loadInput, 200000, true);
                 y += 70;
                 float bw = (b.width - 12) / 3;
-                if (Ui.Button(new Rect(b.x, y, bw, 38), "Paste", Ui.Kind.Secondary, 13)) _loadInput = GUIUtility.systemCopyBuffer ?? "";
-                if (Ui.Button(new Rect(b.x + bw + 6, y, bw, 38), "Load code", Ui.Kind.Primary, 13)) ConfirmLoad();
-                if (Ui.Button(new Rect(b.x + (bw + 6) * 2, y, bw, 38), "Copy mine", Ui.Kind.Secondary, 13))
+                if (Ui.Button(new Rect(b.x, y, bw, Tap), "Paste", Ui.Kind.Secondary, 13)) _loadInput = GUIUtility.systemCopyBuffer ?? "";
+                if (Ui.Button(new Rect(b.x + bw + 6, y, bw, Tap), "Load code", Ui.Kind.Primary, 13)) ConfirmLoad();
+                if (Ui.Button(new Rect(b.x + (bw + 6) * 2, y, bw, Tap), "Copy mine", Ui.Kind.Secondary, 13))
                 { GUIUtility.systemCopyBuffer = ExportSaveCode(); Toast("Save code copied"); }
-                y += 48;
+                y += Tap + 10;
             }
             _settingsH = y + 8;
             Scroller.End();
             if (_settingsH > view.height + 1) // a hint that there's more below
                 GUI.DrawTexture(new Rect(view.x, view.yMax - 18, view.width, 18), Ui.GradientTex(new Color(0, 0, 0, 0), new Color(0, 0, 0, 0.45f), null, 2));
-            Ui.Text(new Rect(outer.x, outer.yMax - 70, outer.width, 18), $"Sigilbound (Unity) v{Application.version}{(Updater.MyBuild > 0 ? $" · build {Updater.MyBuild}" : "")}", 11, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
+            Ui.Text(new Rect(outer.x, outer.yMax - 70, outer.width, 18), $"Sigilbound (Unity) v{Application.version}{(Updater.MyBuild > 0 ? $" · build {Updater.MyBuild}" : "")}", 12, Palette.Dim, FontStyle.Normal, TextAnchor.MiddleCenter);
             if (Ui.Button(new Rect(outer.x, outer.yMax - 46, outer.width, 44), "Done")) CloseModal();
         }
 
